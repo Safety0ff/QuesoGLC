@@ -86,10 +86,9 @@ void __glcInitLibrary(void)
   // Initializes the "Common Area"
 
   __glcContextState::memoryManager = (FT_Memory)__glcMalloc(sizeof(*__glcContextState::memoryManager));
-  if (!__glcContextState::memoryManager) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+  if (!__glcContextState::memoryManager)
     goto FatalError;
-  }
+
   __glcContextState::memoryManager->user = NULL;
   __glcContextState::memoryManager->alloc = __glcAllocFunc;
   __glcContextState::memoryManager->free = __glcFreeFunc;
@@ -97,41 +96,23 @@ void __glcInitLibrary(void)
 
   // Creates the array of state currency
   __glcContextState::isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
-  if (!__glcContextState::isCurrent) {
-    __glcFree(__glcContextState::memoryManager);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+  if (!__glcContextState::isCurrent)
     goto FatalError;
-  }
 
   // Creates the array of context states
   __glcContextState::stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
-  if (!__glcContextState::stateList) {
-    __glcFree(__glcContextState::memoryManager);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    delete[] __glcContextState::isCurrent;
+  if (!__glcContextState::stateList)
     goto FatalError;
-  }
 
   // Open the first Unicode database
   __glcContextState::unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
-  if (!__glcContextState::unidb1) {
-    __glcFree(__glcContextState::memoryManager);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
+  if (!__glcContextState::unidb1)
     goto FatalError;
-  }
 
   // Open the second Unicode database
   __glcContextState::unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
-  if (!__glcContextState::unidb2) {
-    __glcFree(__glcContextState::memoryManager);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
+  if (!__glcContextState::unidb2)
     goto FatalError;
-  }
 
   // Initialize the mutex
   // At least this op can not fail !!!
@@ -149,6 +130,23 @@ void __glcInitLibrary(void)
   return;
 
  FatalError:
+  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+  if (__glcContextState::memoryManager) {
+    __glcFree(__glcContextState::memoryManager);
+    __glcContextState::memoryManager = NULL;
+  }
+  if (__glcContextState::isCurrent) {
+    delete[] __glcContextState::isCurrent;
+    __glcContextState::isCurrent = NULL;
+  }
+  if (__glcContextState::stateList) {
+    delete[] __glcContextState::stateList;
+    __glcContextState::stateList = NULL;
+  }
+  if (__glcContextState::unidb1) {
+    gdbm_close(__glcContextState::unidb1);
+    __glcContextState::unidb1 = NULL;
+  }
   perror("GLC Fatal Error");
   exit(-1);
 }
