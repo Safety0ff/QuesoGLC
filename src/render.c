@@ -1,9 +1,12 @@
 /* $Id$ */
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "GL/glc.h"
 #include "internal.h"
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
 
 static GLint __glcLookupFont(GLint inCode)
 {
@@ -77,8 +80,65 @@ GLint __glcGetFont(GLint inCode)
     return 0;
 }
 
-static void __glcRenderCharBitmap(GLint inGlyphIndex, __glcFont* inFont, __glcContextState* inState)
+/* TODO : Render Bitmap fonts */
+static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
 {
+    FT_Matrix matrix;
+    FT_Face face = inFont->face;
+    FT_Outline outline = face->glyph->outline;
+    FT_BBox boundBox;
+    FT_Bitmap pixmap;
+    GLint EM_size = face->units_per_EM;
+
+    /* compute glyph dimensions */
+    matrix.xx = inState->bitmapMatrix[0] * 65536. / EM_size;
+    matrix.xy = inState->bitmapMatrix[2] * 65536. / EM_size;
+    matrix.yx = inState->bitmapMatrix[1] * 65536. / EM_size;
+    matrix.yy = inState->bitmapMatrix[3] * 65536. / EM_size;
+    
+    FT_Outline_Transform(&outline, &matrix);
+    FT_Outline_Get_CBox(&outline, &boundBox);
+    
+    boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
+    boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
+    boundBox.xMax = (boundBox.xMax + 32) & -64;	/* ceiling(xMax) */
+    boundBox.yMax = (boundBox.yMax + 32) & -64;	/* ceiling(yMax) */
+    
+    pixmap.width = (boundBox.xMax - boundBox.xMin) / 64;
+    pixmap.rows = (boundBox.yMax - boundBox.yMin) / 64;
+    pixmap.pitch = pixmap.width / 8 + 1;	/* 1 bit / pixel */
+    
+    /* Fill the pixmap descriptor and the pixmap buffer */
+    pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
+    pixmap.buffer = (GLubyte *)malloc(pixmap.rows * pixmap.pitch);
+    if (!pixmap.buffer) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    /* fill the pixmap buffer with the background color */
+    memset(pixmap.buffer, 0, pixmap.rows * pixmap.pitch);
+    
+    /* Flip the picture */
+    pixmap.pitch = - pixmap.pitch;
+    
+    /* translate the outline to match (0, 0) with the glyph's lower left corner */
+    FT_Outline_Translate(&outline, -boundBox.xMin, -boundBox.yMin);
+    
+    /* render the glyph */
+    if (FT_Outline_Get_Bitmap(library, &outline, &pixmap)) {
+	free(pixmap.buffer);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin / 64., -boundBox.yMin / 64.,
+	face->glyph->advance.x * inState->bitmapMatrix[0] / EM_size / 64., 
+	face->glyph->advance.x * inState->bitmapMatrix[1] / EM_size / 64.,
+	pixmap.buffer);
+    
+    free(pixmap.buffer);
 }
 
 static void __glcRenderCharTexture(GLint inGlyphIndex, __glcFont* inFont, __glcContextState* inState)
@@ -91,26 +151,27 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
     __glcFont* font = state->fontList[inFont - 1];
     GLint glyphIndex = 0;
     
-    if (FT_Set_Char_Size(font->face, 0, 1 << 16, 0, 0)) {
+    if (FT_Set_Char_Size(font->face, 0, 1 << 16, state->resolution,  state->resolution)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
     glyphIndex = FT_Get_Char_Index(font->face, inCode);
     
+    if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_DEFAULT)) {
+	__glcRaiseError(GLC_INTERNAL_ERROR);
+	return;
+    }
+
     switch(state->renderStyle) {
 	case GLC_BITMAP:
-	    __glcRenderCharBitmap(glyphIndex, font, state);
+	    __glcRenderCharBitmap(font, state);
 	    return;
 	case GLC_TEXTURE:
 	    __glcRenderCharTexture(glyphIndex, font, state);
 	    return;
 	case GLC_LINE:
 	case GLC_TRIANGLE:
-	    if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_DEFAULT)) {
-		__glcRaiseError(GLC_INTERNAL_ERROR);
-		return;
-	    }
 	    __glcRenderCharScalable(font, state, (state->renderStyle == GLC_TRIANGLE));
 	    return;
 	default:
