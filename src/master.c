@@ -221,7 +221,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   buffer = __glcCtxQueryBuffer(state, length);
   if (!buffer) {
     __glcFree(s);
-    __glcFree(content.dptr);
+    /* __glcFree(content.dptr); */
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
@@ -229,7 +229,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   /* Perform the conversion */
   __glcUniConvert(s, buffer, state->stringType, length);
   __glcFree(s);
-  __glcFree(content.dptr);
+  /* __glcFree(content.dptr); */
     
   return buffer;
 }

@@ -11,8 +11,8 @@ int main(int argc, char** argv)
     char buffer[256];
     char *end = NULL;
     int code = 0;
-    DBM *unicod1;
-    DBM *unicod2;
+    DBM *unicod1 = NULL;
+    DBM *unicod2 = NULL;
     datum key , content;
     
     if (argc < 2) {
@@ -29,14 +29,14 @@ int main(int argc, char** argv)
     }
     
     /* Opens the first database which converts code into Unicode names */
-    unicod1 = dbm_open("unicode1", O_CREAT | O_RDWR, 0666);
+    unicod1 = dbm_open("unicode1", O_CREAT | O_RDWR, 0666); 
     if (!unicod1) {
 	printf("failed to open 'unicode1'\n");
 	return -1;
     }
 
     /* Opens the second database which converts Unicode names into code*/
-    unicod2 = dbm_open("unicode2", O_CREAT | O_RDWR, 0666);
+    unicod2 = dbm_open("unicode2", O_CREAT | O_RDWR, 0666); 
     if (!unicod2) {
 	printf("failed to open 'unicode2'\n");
 	return -1;

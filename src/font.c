@@ -365,7 +365,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       return;
     }
     code = (GLint)(*(content.dptr));
-    __glcFree(content.dptr);
+    /* __glcFree(content.dptr); */
 
     /* Check if the character identified by 'inCharName' is an element of the
      * list GLC_CHAR_LIST
@@ -535,14 +535,14 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     length = __glcUniEstimate(&s, state->stringType);
     buffer = __glcCtxQueryBuffer(state, length);
     if (!buffer) {
-      __glcFree(content.dptr);
+      /* __glcFree(content.dptr); */
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
     __glcUniConvert(&s, buffer, state->stringType, length);
 
     /* Free the place allocated by NDBM and return the result */
-    __glcFree(content.dptr);
+    /* __glcFree(content.dptr); */
     return buffer;
   }
   else
