@@ -22,7 +22,7 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 {
     __glcRendererData *data = (__glcRendererData *) inUserData;
     
-    if (data->firstVertex) {
+    if (!data->firstVertex) {
 	gluTessEndContour(data->tess);
 	gluTessBeginContour(data->tess);
     }
@@ -77,7 +77,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2, FT_V
     return 0;
 }
 
-static void __glcVertexCallbackFunc(void *inVertexData, void *inUserData)
+static void __glcVertexCallbackFunc(void *inVertexData)
 {
     GLfloat *vertex = (GLfloat *) inVertexData;
 
@@ -112,10 +112,10 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLbo
     }
     
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
-    gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, inFill ? GL_TRUE : GL_FALSE);
+    gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, !inFill);
 
     gluTessCallback(tess, GLU_TESS_BEGIN, glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX_DATA, __glcVertexCallbackFunc);
+    gluTessCallback(tess, GLU_TESS_VERTEX, __glcVertexCallbackFunc);
     gluTessCallback(tess, GLU_TESS_END, glEnd);
 	
     gluTessNormal(tess, 0., 0., 1.);

@@ -75,7 +75,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
     __glcFont* font = state->fontList[inFont - 1];
     GLint glyphIndex = 0;
     
-    if (FT_Set_Char_Size(font->face, 0, 1 << 16, 300, 300)) {
+    if (FT_Set_Char_Size(font->face, 0, 1 << 16, 0, 0)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
     }
