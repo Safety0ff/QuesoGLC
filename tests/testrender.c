@@ -10,23 +10,13 @@
 
 void display(void)
 {
-    int ctx = 0;
-    int font = 0;
     int i = 0;
     int ntex = 0;
     int ndl = 0;
     
-    glEnable(GL_TEXTURE_2D);
-    
-    ctx = glcGenContext();
-    glcContext(ctx);
-    
-    font = glcNewFontFromFamily(glcGenFontID(), "Courier");
-    glcFont(font);
-    glcFontFace(font, "Italic");
-    
-    /*    glcFontMap(font, 0x57, "LATIN SMALL LETTER W"); */
-    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glLoadIdentity();
     glcRenderStyle(GLC_LINE);
     glColor3f(0., 1., 0.);
     glTranslatef(100., 50., 0.);
@@ -34,16 +24,16 @@ void display(void)
     glScalef(100., 100., 0.);
     glcRenderChar('L');
     glcRenderString("inux");
-    glLoadIdentity();
     
+    glLoadIdentity();
     glcRenderStyle(GLC_TEXTURE);
     glColor3f(0., 0., 1.);
     glTranslatef(30., 350., 0.);
     glScalef(100., 100., 0.);
     glcRenderChar('X');
     glcRenderString("-windows");
-    glLoadIdentity();
     
+    glLoadIdentity();
     glcRenderStyle(GLC_BITMAP);
     glColor3f(1., 0., 0.);
     glRasterPos2f(30., 200.);
@@ -52,6 +42,7 @@ void display(void)
     glcRenderChar('O');
     glcRenderString("penGL");
 
+    glLoadIdentity();
     glcRenderStyle(GLC_TRIANGLE);
     glColor3f(1., 1., 0.);
     glTranslatef(30., 50., 0.);
@@ -62,6 +53,8 @@ void display(void)
     glcRenderStyle(GLC_TRIANGLE);
     glcRenderString("esoGLC");
     
+    glFlush();
+
     ntex = glcGeti(GLC_TEXTURE_OBJECT_COUNT);
     printf("Textures : %d\n", ntex);
     for (i = 0; i < ntex; i++)
@@ -78,7 +71,6 @@ void display(void)
 void reshape(int width, int height)
 {
     glClearColor(0., 0., 0., 0.);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -100,6 +92,9 @@ void keyboard(unsigned char key, int x, int y)
 
 int main(int argc, char **argv)
 {
+    int ctx = 0;
+    int font = 0;
+
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(640, 480);
@@ -107,6 +102,15 @@ int main(int argc, char **argv)
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
+
+    glEnable(GL_TEXTURE_2D);
+    
+    ctx = glcGenContext();
+    glcContext(ctx);
+    font = glcNewFontFromFamily(glcGenFontID(), "Courier");
+    glcFont(font);
+    glcFontFace(font, "Italic");
+    
     glutMainLoop();
     return 0;
 }
