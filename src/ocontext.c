@@ -775,6 +775,9 @@ GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
  * must be used.
  * If the 'threadArea' of the current thread does not exist, it is created and
  * initialized.
+ * IMPORTANT NOTE : __glcGetThreadArea() must never use __glcMalloc() and
+ *    __glcFree() since those functions could use the exceptContextStack
+ *    before it is initialized.
  */
 threadArea* __glcGetThreadArea(void)
 {
@@ -783,13 +786,20 @@ threadArea* __glcGetThreadArea(void)
   area = (threadArea*)pthread_getspecific(__glcCommonArea->threadKey);
 
   if (!area) {
-    area = (threadArea*)__glcMalloc(sizeof(threadArea));
+    area = (threadArea*)malloc(sizeof(threadArea));
     if (!area)
       return NULL;
 
     area->currentContext = NULL;
     area->errorState = GLC_NONE;
     area->lockState = 0;
+    area->exceptContextStack = (FT_List) malloc(sizeof(FT_ListRec));
+    if (!area->exceptContextStack) {
+      free(area);
+      return NULL;
+    }
+    area->exceptContextStack->head = NULL;
+    area->exceptContextStack->tail = NULL;
     pthread_setspecific(__glcCommonArea->threadKey, (void*)area);
   }
 

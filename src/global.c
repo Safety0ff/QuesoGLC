@@ -102,8 +102,9 @@ static void __glcFreeThreadArea(void *keyValue)
     state = area->currentContext;
     if (state)
       state->isCurrent = GL_FALSE;
-
-    __glcFree(area);
+    if (area->exceptContextStack)
+      free(area->exceptContextStack); /* DO NOT use __glcFree() !!! */
+    free(area); /* DO NOT use __glcFree() !!! */
   }
 }
 
@@ -347,13 +348,10 @@ void glcContext(GLint inContext)
 #ifndef __MACOSX__
   /* Get the screen on which drawing ops will be performed */
   dpy = glXGetCurrentDisplay();
-  if (!dpy) {
-    /* No GLX context is associated with the current thread. */
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
+  if (dpy) {
+    /* WARNING ! This may not be relevant if the display has several screens */
+    screen = DefaultScreenOfDisplay(dpy);
   }
-  /* WARNING ! This may not be relevant if the display has several screens */
-  screen = DefaultScreenOfDisplay(dpy);
 #endif
 
   /* Lock the "Common Area" in order to prevent race conditions */
@@ -448,24 +446,21 @@ void glcContext(GLint inContext)
 #endif
 
   if (area->currentContext) {
-#ifdef __MACOSX__
+#ifndef __MACOSX__
+    if (dpy) {
+      /* Compute the resolution of the screen in DPI (dots per inch) */
+      if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
+	area->currentContext->displayDPIx =
+	  (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
+	area->currentContext->displayDPIy =
+	  (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
+      }
+      return;
+    }
+#endif
     /* Standard values */
     area->currentContext->displayDPIx = 72;
     area->currentContext->displayDPIy = 72;
-#else
-    /* Compute the resolution of the screen in DPI (dots per inch) */
-    if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
-      area->currentContext->displayDPIx =
-        (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
-      area->currentContext->displayDPIy =
-        (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
-    }
-    else {
-      /* Standard values */
-      area->currentContext->displayDPIx = 72;
-      area->currentContext->displayDPIy = 72;
-    }
-#endif
   }
 }
 

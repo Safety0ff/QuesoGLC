@@ -77,6 +77,7 @@ typedef struct {
   __glcContextState* currentContext;
   GLCenum errorState;
   GLint lockState;
+  FT_List exceptContextStack;
 } threadArea;
 
 typedef struct {

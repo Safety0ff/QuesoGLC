@@ -1,5 +1,6 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
-	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c ocontext.c
+	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c ocontext.c \
+	  except.c
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
