@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,11 @@
 #ifndef __glc_ocontext_h
 #define __glc_ocontext_h
 
+#ifndef __WIN32__
 #include <pthread.h>
+#else
+#include <windows.h>
+#endif
 
 #include "GL/glc.h"
 #include "constant.h"
@@ -50,6 +54,7 @@ typedef struct {
   FT_List currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_List fontList;		/* GLC_FONT_LIST */
   FT_List masterList;
+  FT_List localCatalogList;
   GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
@@ -72,10 +77,14 @@ typedef struct {
 
   FT_List stateList;
   FT_List catalogList;		/* GLC_CATALOG_LIST */
+#ifndef __WIN32__
   pthread_mutex_t mutex;	/* For concurrent accesses to the common area arrays */
 
   pthread_key_t threadKey;
-
+#else
+  DWORD threadKey;
+  HANDLE mutex;
+#endif
   FT_Memory memoryManager;
 } commonArea;
 
