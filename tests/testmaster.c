@@ -30,7 +30,7 @@ void testQueso(void)
 	printf("Master #%d\n", i);
 	printf("- Face count : %d\n", numFaces);
 	printf("- Family : %s\n", (char *)glcGetMasterc(i, GLC_FAMILY));
-	for (j = 1; j <= numFaces; j++)
+	for (j = 0; j < numFaces; j++)
 	    printf("- Face #%d : %s\n", j, (char *)glcGetMasterListc(i, GLC_FACE_LIST, j));
     }
     
