@@ -6,7 +6,7 @@ else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
 CFLAGS += -Wall -Iinclude -ansi -pedantic-errors `freetype-config --cflags`
-LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU -lglut -lX11 -lXext -lXmu
+LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU -lglut -lX11 -lXext -lXmu -lgdbm
 ifdef DEBUGMODE
 LDFLAGS += -lefence
 endif

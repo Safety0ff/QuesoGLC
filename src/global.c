@@ -17,6 +17,7 @@ static pthread_mutex_t __glcCommonAreaMutex;
 static pthread_key_t __glcContextKey;
 static pthread_key_t __glcErrorKey;
 char __glcBuffer[GLC_STRING_CHUNK];
+GDBM_FILE unicod1, unicod2;
 
 static void __glcInitThread(void)
 {
@@ -304,7 +305,7 @@ GLint glcGenContext(void)
 	return 0;
     }
     
-    state = (__glcContextState *)malloc(sizeof(__glcContextState) * GLC_MAX_CONTEXTS);
+    state = (__glcContextState *)malloc(sizeof(__glcContextState));
     if (!state) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return 0;
@@ -427,19 +428,25 @@ void my_init(void)
 	__glcContextIsCurrent[i] = GL_FALSE;
 	__glcContextStateList[i] = NULL;
     }
+    
+    unicod1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
+    unicod2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
 }
 
 void my_fini(void)
 {
-	int i;
-	
-	/* destroy remaining contexts */
-	for (i=0; i < GLC_MAX_CONTEXTS; i++) {
-	    if (__glcIsContext(i))
-		__glcDeleteContext(i);
-	}
-	
-	/* destroy Common Area */
-	free(__glcContextIsCurrent);
-	free(__glcContextStateList);
+    int i;
+
+    /* destroy remaining contexts */
+    for (i=0; i < GLC_MAX_CONTEXTS; i++) {
+    if (__glcIsContext(i))
+	    __glcDeleteContext(i);
+    }
+
+    /* destroy Common Area */
+    free(__glcContextIsCurrent);
+    free(__glcContextStateList);
+    
+    gdbm_close(unicod1);
+    gdbm_close(unicod2);
 }
