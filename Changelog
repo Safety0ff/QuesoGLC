@@ -1,11 +1,18 @@
 Changes made from the "0.1" release to the "0.2" release:
 -----------------------------------------------------------
 
+- QuesoGLC does not open anymore the font files at font creation. Instead, font
+  files are opened when the fonts are added to GLC_CURRENT_FONT_LIST. It lowers
+  the number of font files that are simultaneously opened.
+- Every strings are now stored internally in Unicode UTF-8 format. Strings are
+  converted back to the current GLC_STRING_TYPE "on the fly".
+- Get rid of the string list objects (files ostrlst.[ch]) and the Unicode
+  character object (files ounichar.[ch]). This simplified the code.
+- Now uses standard predefined macros to detect Mac OSX platforms
+- QuesoGLC now uses Fontconfig to locate and examine fonts
 - Fixed invalid preprocessing tokens of test4 that prevented it to be compiled
   with pedantic-errors enabled.
 - QuesoGLC now uses Doxygen for its documentation.
-- Now uses standard predefined macros to detect Mac OSX platforms
-- QuesoGLC now uses Fontconfig to locate and examine fonts
 
 Changes made from the "Birth" release to the "0.1" release:
 -----------------------------------------------------------
@@ -37,8 +44,8 @@ Changes made from the "Birth" release to the "0.1" release:
   deleted from the 'stateList' array.
 - QuesoGLC now has the ability to use custom memory manager routines
   (see __glcFree, __glcMalloc and __glcRealloc)
-- FreeType2 now uses a custom memory manager based on __glcFree, __glcMalloc and
-  __glcRealloc. This helps debugging and detection of memory leaks.
+- FreeType2 now uses a custom memory manager based on __glcFree, __glcMalloc
+  and __glcRealloc. This helps debugging and detection of memory leaks.
 - Variables GLC_MIN_MAPPED_CODE, GLC_MAX_MAPPED_CODE, GLC_CHAR_COUNT and the
   list GLC_CHAR_LIST are now updated when a new font file is added to a master.
 - Changed license of QuesoGLC to LGPL
@@ -47,8 +54,8 @@ Changes made from the "Birth" release to the "0.1" release:
 - Fixed glcFont so that it behaves correctly if the font parameter is zero.
 - Fixed glcFontFace so that it leaves the current face unchanged if it fails to
   set a new face.
-- Fixed glcFontMap so that it checks if the character to be mapped is an element
-  of the list GLC_CHAR_LIST.
+- Fixed glcFontMap so that it checks if the character to be mapped is an
+  element of the list GLC_CHAR_LIST.
 - Fixed glcFontMap so that if no character name is given then the code 'inCode'
   is removed from the charmap.
 - Fixed glcRenderCountedString, so that it raises GLC_PARAMETER_ERROR if the

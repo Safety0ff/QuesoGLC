@@ -117,7 +117,10 @@ static void __glcMasterDestructor(FT_Memory memory, void *data, void *user)
 static void __glcFontDestructor(FT_Memory inMemory, void *inData, void* inUser)
 {
   __glcFont *font = (__glcFont*)inData;
+  __glcContextState* state = (__glcContextState*)inUser;
   
+  assert(state);
+
   if (font)
     __glcFontDestroy(font);
 }
@@ -140,7 +143,7 @@ void __glcCtxDestroy(__glcContextState *This)
 
   /* Destroy GLC_FONT_LIST */
   FT_List_Finalize(This->fontList, __glcFontDestructor,
-                   __glcCommonArea->memoryManager, NULL);
+                   __glcCommonArea->memoryManager, This);
   __glcFree(This->fontList);
 
   /* Destroy the local list of catalogs */

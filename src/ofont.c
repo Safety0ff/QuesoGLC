@@ -25,55 +25,37 @@
 #include "internal.h"
 #include "ocontext.h"
 #include "ofont.h"
+#include FT_LIST_H
 
-__glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
+__glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
+			   __glcContextState* state)
 {
-  GLCchar *buffer = NULL;
   __glcFont *This = NULL;
-  __glcContextState *state = __glcGetCurrent();
 
   assert(inParent);
+  assert(state);
 
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
+  This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
+  if (!This) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
-
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-  This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
 
-  This->faceDesc = NULL;
+  This->faceDesc = (__glcFaceDescriptor*)inParent->faceList->head->data;
   This->parent = inParent;
   This->charMapCount = 0;
   This->id = inID;
-
-  if (FT_New_Face(state->library, 
-		  (const char*)((__glcFaceDescriptor*)inParent->faceList->head->data)->fileName, 0, &This->face)) {
-    /* Unable to load the face file, however this should not happen since
-       it has been succesfully loaded when the master was created */
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(buffer);
-    __glcFree(This);
-    return NULL;
-  }
-
-  /* select a Unicode charmap */
-  if (FT_Select_Charmap(This->face, ft_encoding_unicode)) {
-    /* Arrghhh, no Unicode charmap is available. This should not happen
-       since it has been tested at master creation */
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FT_Done_Face(This->face);
-    __glcFree(This);
-    return NULL;
-  }
+  This->face = NULL;
 
   return This;
 }
 
 void __glcFontDestroy(__glcFont *This)
 {
-  FT_Done_Face(This->face);
+  if (This->face)
+    FT_Done_Face(This->face);
   __glcFree(This);
 }

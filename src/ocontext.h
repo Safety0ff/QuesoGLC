@@ -29,7 +29,6 @@
 
 #include "GL/glc.h"
 #include "constant.h"
-#include "ofont.h"
 #include "omaster.h"
 
 typedef struct {

@@ -26,6 +26,7 @@
 #include "GL/glc.h"
 #include "constant.h"
 #include "omaster.h"
+#include "ocontext.h"
 
 typedef struct {
   GLint id;
@@ -36,7 +37,8 @@ typedef struct {
   GLint charMapCount;
 } __glcFont;
 
-__glcFont*  __glcFontCreate(GLint id, __glcMaster *parent);
+__glcFont*  __glcFontCreate(GLint id, __glcMaster *parent,
+			    __glcContextState* state);
 void __glcFontDestroy(__glcFont *This);
 
 #endif /* __glc_ofont_h */
