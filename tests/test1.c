@@ -200,5 +200,6 @@ int main(void)
 
 	printf("Tests successful\n");
 
+	free(list);
 	return 0;
 }

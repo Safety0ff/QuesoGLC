@@ -70,6 +70,7 @@ void __glcStrLstDestroy(FT_List This)
 {
   FT_List_Finalize(This, __glcStrLstDestructor, __glcCommonArea->memoryManager,
 		   NULL);
+  __glcFree(This);
 }
 
 
