@@ -70,6 +70,33 @@ void glcDataPointer(GLvoid *inPointer)
   state->dataPointer = inPointer;
 }
 
+void __glcDeleteGLObjects(__glcContextState *inState)
+{
+  GLint i = 0;
+
+  /* Deletes display lists */
+  for (i = 0; i < inState->masterCount; i++) {
+    if (inState->masterList[i])
+      FT_List_Finalize(inState->masterList[i]->displayList,
+		       __glcListDestructor, __glcCommonArea->memoryManager,
+		       NULL);
+  }
+
+  /* SPECIAL NOTE on Texture objects deletion :
+   * Although glDeleteTextures() can safely be called with 0 texture to
+   * delete, some OpenGL ICD crash whenever a GL function is called when
+   * no GL context is bound to the thread. Hence, we assume that, when no
+   * GL context is bound, no texture has been created and, obviously,
+   * no texture needs to be deleted.
+   */
+  if (inState->textureObjectCount)
+    glDeleteTextures(inState->textureObjectCount, inState->textureObjectList);
+
+  /* Empties both GLC_LIST_OBJECT_LIST and GLC_TEXTURE_OBJECT_LIST */
+  inState->listObjectCount = 0;
+  inState->textureObjectCount = 0;
+}
+
 /* glcDeleteGLObjects:
  *   This command causes GLC to issue a sequence of GL commands to delete all
  *   of the GL objects that it owns. GLC uses the command glDeleteLists to
@@ -81,7 +108,6 @@ void glcDataPointer(GLvoid *inPointer)
 void glcDeleteGLObjects(void)
 {
   __glcContextState *state = NULL;
-  GLint i = 0;
 
   /* Check if the thread has a current context */
   state = __glcGetCurrent();
@@ -90,26 +116,7 @@ void glcDeleteGLObjects(void)
     return;
   }
 
-  /* Deletes display lists */
-  for (i = 0; i < state->masterCount; i++) {
-    if (state->masterList[i])
-      FT_List_Finalize(state->masterList[i]->displayList, __glcListDestructor,
-		       __glcCommonArea->memoryManager, NULL);
-  }
-
-  /* SPECIAL NOTE on Texture objects deletion :
-   * Although glDeleteTextures() can safely be called with 0 texture to
-   * delete, some OpenGL ICD crash whenever a GL function is called when
-   * no GL context is bound to the thread. Hence, we assume that, when no
-   * GL context is bound, no texture has been created and, obviously,
-   * no texture needs to be deleted.
-   */
-  if (state->textureObjectCount)
-    glDeleteTextures(state->textureObjectCount, state->textureObjectList);
-
-  /* Empties both GLC_LIST_OBJECT_LIST and GLC_TEXTURE_OBJECT_LIST */
-  state->listObjectCount = 0;
-  state->textureObjectCount = 0;
+  __glcDeleteGLObjects(state);
 }
 
 /* This internal function is used by both glcEnable/glcDisable since they

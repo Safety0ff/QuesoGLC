@@ -41,6 +41,8 @@ extern "C" {
   /* Find a token in a list of tokens separated by 'separator' */
   extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
 				     const GLCchar* inSeparator);
+  /* Deletes GL objects defined in context state */
+  void __glcDeleteGLObjects(__glcContextState *inState);
 
 #ifdef __cplusplus
 }
