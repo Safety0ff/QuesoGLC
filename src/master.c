@@ -44,19 +44,6 @@
 
 
 
-/* This function counts the number of bits that are set in c1 
- * Copied from Keith Packard's fontconfig
- */
-static FcChar32 FcCharSetPopCount(FcChar32 c1)
-{
-  /* hackmem 169 */
-  FcChar32    c2 = (c1 >> 1) & 033333333333;
-  c2 = c1 - c2 - ((c2 >> 1) & 033333333333);
-  return (((c2 + (c2 >> 3)) & 030707070707) % 077);
-}
-
-
-
 /** \ingroup master
  *  This command returns a string from a string list that is an attribute of
  *  the master identified by \e inMaster. The string list is identified by
