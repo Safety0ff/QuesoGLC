@@ -31,6 +31,12 @@ extern "C" {
   extern void __glcFree(void* ptr);
   extern void* __glcRealloc(void* ptr, size_t size);
 
+  /* FT double linked list destructor */
+  extern void __glcListDestructor(FT_Memory inMemory, void *inData, void *inUser);
+
+  /* Find a token in a list of tokens separated by 'separator' */
+  extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex, const GLCchar* inSeparator);
+
 #ifdef __cplusplus
 }
 #endif

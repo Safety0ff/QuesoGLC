@@ -244,28 +244,3 @@ GLint __glcStringList::convert(int inType)
 
   return 0;
 }
-
-GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
-			    const GLCchar* inSeparator)
-{
-    GLuint i = 0;
-    GLuint occurence = 0;
-    char *s = (char *)inString;
-    char *sep = (char *)inSeparator;
-    
-    if (!inIndex)
-	return (GLCchar *)inString;
-    
-    /* TODO use Unicode instead of ASCII */
-    for (i=0; i<=strlen(s); i++) {
-	if (s[i] == *sep)
-	    occurence++;
-	if (occurence == inIndex) {
-	    i++;
-	    break;
-	}
-    }
-    
-    
-    return (GLCchar *)&s[i];
-}

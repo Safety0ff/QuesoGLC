@@ -5,6 +5,7 @@
 
 #include "GL/glc.h"
 #include "internal.h"
+#include FT_LIST_H
 
 /* glcGetMasterListc:
  *   This command returns a string from a string list that is an attribute of
@@ -59,10 +60,13 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
       return GLC_NONE;
     }
     else {
-      /* Nothing can be done there. We would need to have better access
-       * to the charmap than that provided by FreeType2.
-       */
-      return GLC_NONE;
+      FT_ListNode node = master->charList->head;
+      GLint i;
+
+      for (i = 0; i < inIndex; i++)
+	node = node->next;
+
+      return glcGetMasterMap(inMaster, *((FT_ULong*)node->data));
     }
   case GLC_FACE_LIST:
     /* Verify if inIndex is in legal bounds */

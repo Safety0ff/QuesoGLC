@@ -30,6 +30,4 @@ class __glcStringList {
   GLint convert(int inType);
 };
 
-GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex, const GLCchar* inSeparator);
-
 #endif /* __glc_strlst_h */

@@ -6,6 +6,8 @@ void testQueso(void)
 {
     int ctx = 0;
     int font = 0;
+    int i = 0;
+    int last = 0;
 
     ctx = glcGenContext();
     glcContext(ctx);
@@ -30,4 +32,16 @@ void testQueso(void)
     glcFontMap(font, 90, "LATIN CAPITAL LETTER A");
     
     printf("Font Map #%d : %s\n", 65, (char *)glcGetFontMap(font, 65));
+
+    i = 0;
+    last = glcGetMasteri(i, GLC_CHAR_COUNT);
+    printf("Master #%d\n", i);
+    printf("- Vendor : %s\n", (char *)glcGetMasterc(i, GLC_VENDOR));
+    printf("- Format : %s\n", (char *)glcGetMasterc(i, GLC_MASTER_FORMAT));
+    printf("- Face count : %d\n", glcGetMasteri(i, GLC_FACE_COUNT));
+    printf("- Family : %s\n", (char *)glcGetMasterc(i, GLC_FAMILY));
+    printf("- Min Mapped Code : %d\n", glcGetMasteri(i,GLC_MIN_MAPPED_CODE));
+    printf("- Max Mapped Code : %d\n", glcGetMasteri(i,GLC_MAX_MAPPED_CODE));
+    printf("- Char Count : %d\n", last);
+    printf("- Last Character : %s\n", (char *)glcGetMasterListc(i, GLC_CHAR_LIST, last-1));
 }

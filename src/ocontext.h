@@ -50,6 +50,7 @@ class __glcContextState {
   GLint bufferSize;
 
  public:
+  static FT_Memory memoryManager;
   static GDBM_FILE unidb1, unidb2;
 
   GLuint displayDPIx;

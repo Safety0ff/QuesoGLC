@@ -34,6 +34,8 @@ void __glcExitLibrary(void)
 #ifdef _REENTRANT
   pthread_mutex_destroy(&__glcContextState::mutex);
 #endif
+
+  __glcFree(__glcContextState::memoryManager);
 }
 
 /* This function is called each time a pthread is cancelled or exits in order
@@ -48,6 +50,23 @@ static void __glcFreeThreadArea(void *keyValue)
     __glcFree(area);
 }
 #endif
+
+/* Routines for memory management of FreeType */
+static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
+{
+  return __glcMalloc(inSize);
+}
+
+static void __glcFreeFunc(FT_Memory inMemory, void *inBlock)
+{
+  return __glcFree(inBlock);
+}
+
+static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
+			     long inNewSize, void* inBlock)
+{
+  return __glcRealloc(inBlock, inNewSize);
+}
 
 /* This function is supposed to be called before any of QuesoGLC
  * function is used. It reserves memory and opens the Unicode DB files.
@@ -66,9 +85,20 @@ void __glcInitLibrary(void)
 
   // Initializes the "Common Area"
 
+  __glcContextState::memoryManager = (FT_Memory)__glcMalloc(sizeof(*__glcContextState::memoryManager));
+  if (!__glcContextState::memoryManager) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    goto FatalError;
+  }
+  __glcContextState::memoryManager->user = NULL;
+  __glcContextState::memoryManager->alloc = __glcAllocFunc;
+  __glcContextState::memoryManager->free = __glcFreeFunc;
+  __glcContextState::memoryManager->realloc = __glcReallocFunc;
+
   // Creates the array of state currency
   __glcContextState::isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
   if (!__glcContextState::isCurrent) {
+    __glcFree(__glcContextState::memoryManager);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     goto FatalError;
   }
@@ -76,6 +106,7 @@ void __glcInitLibrary(void)
   // Creates the array of context states
   __glcContextState::stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
   if (!__glcContextState::stateList) {
+    __glcFree(__glcContextState::memoryManager);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     delete[] __glcContextState::isCurrent;
     goto FatalError;
@@ -84,6 +115,7 @@ void __glcInitLibrary(void)
   // Open the first Unicode database
   __glcContextState::unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
   if (!__glcContextState::unidb1) {
+    __glcFree(__glcContextState::memoryManager);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     delete[] __glcContextState::isCurrent;
     delete[] __glcContextState::stateList;
@@ -93,6 +125,7 @@ void __glcInitLibrary(void)
   // Open the second Unicode database
   __glcContextState::unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
   if (!__glcContextState::unidb2) {
+    __glcFree(__glcContextState::memoryManager);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     gdbm_close(__glcContextState::unidb1);
     delete[] __glcContextState::isCurrent;

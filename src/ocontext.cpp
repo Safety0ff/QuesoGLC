@@ -2,6 +2,8 @@
 
 #include "ocontext.h"
 #include "internal.h"
+#include FT_MODULE_H
+#include FT_LIST_H
 
 GLboolean* __glcContextState::isCurrent = NULL;
 __glcContextState** __glcContextState::stateList = NULL;
@@ -15,6 +17,7 @@ threadArea* __glcContextState::area = NULL;
 #endif
 GDBM_FILE __glcContextState::unidb1 = NULL;
 GDBM_FILE __glcContextState::unidb2 = NULL;
+FT_Memory __glcContextState::memoryManager = NULL;
 
 __glcContextState::__glcContextState(GLint inContext)
 {
@@ -23,18 +26,19 @@ __glcContextState::__glcContextState(GLint inContext)
   setState(inContext, this);
   setCurrency(inContext, GL_FALSE);
 
-  if (FT_Init_FreeType(&library)) {
+  if (FT_New_Library(__glcContextState::memoryManager, &library)) {
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
     library = NULL;
     return;
   }
+  FT_Add_Default_Modules(library);
 
   catalogList = new __glcStringList(NULL);
   if (!catalogList) {
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
-    FT_Done_FreeType(library);
+    FT_Done_Library(library);
     library = NULL;
     return;
   }
@@ -106,7 +110,7 @@ __glcContextState::~__glcContextState()
     __glcFree(buffer);
 
   glcDeleteGLObjects();
-  FT_Done_FreeType(library);
+  FT_Done_Library(library);
 }
 
 /* Get the current context of the issuing thread */
@@ -205,6 +209,89 @@ GLboolean __glcContextState::isContext(GLint inContext)
   __glcContextState *state = getState(inContext);
 
   return (state ? GL_TRUE : GL_FALSE);
+}
+
+/* This function updates the GLC_CHAR_LIST list when a new face identified by
+ * 'face' is added to the master pointed by inMaster
+ */
+static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
+{
+  FT_ULong charCode;
+  FT_UInt gIndex;
+  FT_List list = NULL;
+  FT_ListNode node = NULL, current = NULL;
+  FT_ULong *data = NULL;
+
+  list = (FT_List)__glcMalloc(sizeof(*list));
+  if (!list)
+    return -1;
+  list->head = NULL;
+  list->tail = NULL;
+
+
+  charCode = FT_Get_First_Char(face, &gIndex);
+  while (gIndex) {
+    if (inMaster->minMappedCode > charCode)
+      inMaster->minMappedCode = charCode;
+    if (inMaster->maxMappedCode < charCode)
+      inMaster->maxMappedCode = charCode;
+
+    data = (FT_ULong*)__glcMalloc(sizeof(charCode));
+    if (!data) {
+      FT_List_Finalize(list, __glcListDestructor, __glcContextState::memoryManager, NULL);
+      __glcFree(list);
+      return -1;
+    }
+    *data = charCode;
+
+    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+    if (!node) {
+      __glcFree(data);
+      FT_List_Finalize(list, __glcListDestructor, __glcContextState::memoryManager, NULL);
+      __glcFree(list);
+      __glcFree(data);
+      return -1;
+    }
+    node->data = data;
+
+    FT_List_Add(list, node);
+    charCode = FT_Get_Next_Char(face, charCode, &gIndex);
+  }
+
+  current = inMaster->charList->head;
+
+  while(list->head && current){
+    if (*((FT_ULong*)current->data) > *((FT_ULong*)list->head->data)) {
+      if (current->prev) {
+	if (*((FT_ULong*)current->prev->data) == *((FT_ULong*)list->head->data)) {
+	  node = list->head;
+	  FT_List_Remove(list, node);
+	  __glcFree(node);
+	  continue;
+	}
+      }
+      node = list->head;
+      FT_List_Remove(list, node);
+      if (current->prev)
+	current->prev->next = node;
+      else
+	inMaster->charList->head = node;
+      node->prev = current->prev;
+      node->next = current;
+      current->prev = node;
+      inMaster->charListCount++;
+    }
+    current = current->next;
+  }
+
+  while (list->head){
+    node = list->head;
+    FT_List_Remove(list, node);
+    FT_List_Add(inMaster->charList, node);
+    inMaster->charListCount++;
+  }
+
+  return 0;
 }
 
 /* This function is called by glcAppendCatalog and glcPrependCatalog. It has
@@ -313,7 +400,6 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 	  continue;
 	}
       }
-
       FT_Done_Face(face);
     }
     else {
@@ -327,36 +413,35 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       __glcUniChar sp = __glcUniChar(path, GLC_UCS1);
       if (!FT_New_Face(library, path, j, &face)) {
 	s = __glcUniChar(face->style_name, GLC_UCS1);
-	if (master->faceList->find(&s))
-	  /* The current face in the font file has already been loaded in a
-	   * master, try the next one
+	if (!master->faceList->find(&s))
+	  /* The current face in the font file is not already loaded in a
+	   * master : Append (or prepend) the new face and its file name to
+	   * the master.
 	   */
-	  continue;
-	else {
 	  /* FIXME : 
-	     If there are several faces into the same file then we
-	     should indicate it inside faceFileName
+	   *  If there are several faces into the same file then we
+	   *  should indicate it inside faceFileName
 	   */
-	  /* Append (or prepend) the new face and its file name to the master */
-	  if (inAppend) {
-	    if (master->faceList->append(&s))
-	      break;
-	    if (master->faceFileName->append(&sp)) {
-	      master->faceList->remove(&s);
-	      break;		    
+	  if (!__glcUpdateCharList(master, face)) {
+	    if (inAppend) {
+	      if (master->faceList->append(&s))
+		break;
+	      if (master->faceFileName->append(&sp)) {
+		master->faceList->remove(&s);
+		break;		    
+	      }
 	    }
-	  }
-	  else {
-	    if (master->faceList->prepend(&s))
-	      break;
-	    if (master->faceFileName->prepend(&sp)) {
-	      master->faceList->remove(&s);
-	      break;		    
+	    else {
+	      if (master->faceList->prepend(&s))
+		break;
+	      if (master->faceFileName->prepend(&sp)) {
+		master->faceList->remove(&s);
+		break;		    
+	      }
 	    }
 	  }
 	}
 
-      }
       else {
       /* FreeType is not able to read this face in the font file, 
        * try the next one.

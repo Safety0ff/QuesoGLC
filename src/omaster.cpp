@@ -1,6 +1,7 @@
 #include "internal.h"
 #include "omaster.h"
 #include "ocontext.h"
+#include FT_LIST_H
 
 __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inFileExt, GLint inID, GLint inStringType)
 {
@@ -44,7 +45,6 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     return;
   }
 
-  charListCount = 0;
   /* use file extension to determine the face format */
   s = __glcUniChar(NULL, GLC_UCS1);
   if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
@@ -105,16 +105,36 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     return;
   }
 
+  charList = (FT_List)__glcMalloc(sizeof(*charList));
+  if (!charList) {
+    vendor->destroy();
+    delete vendor;
+    delete faceList;
+    delete faceFileName;
+    family->destroy();
+    delete family;
+    masterFormat->destroy();
+    delete masterFormat;
+    __glcFree(buffer);
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+  charList->head = NULL;
+  charList->tail = NULL;
+
   version = NULL;
   isFixedPitch = face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? GL_TRUE : GL_FALSE;
-  minMappedCode = 0;
-  maxMappedCode = 0x7fffffff;
+  charListCount = 0;
+  minMappedCode = 0x7fffffff;
+  maxMappedCode = 0;
   id = inID;
   displayList = NULL;
 }
 
 __glcMaster::~__glcMaster()
 {
+  FT_List_Finalize(charList, __glcListDestructor, __glcContextState::memoryManager, NULL);
+  __glcFree(charList);
   delete faceList;
   delete faceFileName;
   family->destroy();
