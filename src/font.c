@@ -120,7 +120,7 @@ static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
  */
 void glcDeleteFont(GLint inFont)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
   __glcFont *font = __glcVerifyFontParameters(inFont);
   FT_ListNode node = NULL;
 
@@ -276,12 +276,14 @@ static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace, __glcCont
  */
 GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
 
   if (inFont) {
     __glcFont *font = __glcVerifyFontParameters(inFont);
 
-    /* Check if the font identified by inFont exists */
+    /* Check if the current thread owns a context state
+     * and if the font identified by inFont exists
+     */
     if (!font)
       return GL_FALSE;
 
@@ -290,6 +292,12 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
   }
   else {
     FT_ListNode node = NULL;
+
+    /* Check if the current thread owns a context state */
+    if (!state) {
+      __glcRaiseError(GLC_STATE_ERROR);
+      return GL_FALSE;
+    }
 
     /* Search for a face which name is 'inFace' in the GLC_CURRENT_FONT_LIST */
     for (node = state->currentFontList->head; node; node = node->next) {

@@ -360,9 +360,10 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       list = ((__glcMaster*)node->data)->textureObjectList;
 
       if (list) {
-        for (texNode = list->head; texNode && inIndex; texNode = texNode->next, inIndex--) {}
+        for (texNode = list->head; texNode && inIndex;
+	     texNode = texNode->next, inIndex--) {}
         if (!inIndex && texNode)
-	    return ((__glcDisplayListKey*)texNode->data)->list;
+	    return (GLint)texNode->data;
       }
     }
     return 0;
@@ -552,10 +553,12 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_CATALOG_COUNT:
     return __glcStrLstLen(state->catalogList);
   case GLC_CURRENT_FONT_COUNT:
-    for (node = state->currentFontList->head; node; node = node->next, count++) {}
+    for (node = state->currentFontList->head; node;
+	 node = node->next, count++) {}
     return count;
   case GLC_FONT_COUNT:
-    for (count = 0, node = state->fontList->head; node; node = node->next, count++) {}
+    for (count = 0, node = state->fontList->head; node;
+	 node = node->next, count++) {}
     return count;
   case GLC_LIST_OBJECT_COUNT:
     for(count = 0, node = state->masterList->head; node; node = node->next) {
