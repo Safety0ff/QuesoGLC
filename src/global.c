@@ -32,6 +32,7 @@
 #include <X11/Xlib.h>
 #endif
 #include <fcntl.h>
+#include <assert.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -337,13 +338,7 @@ void glcContext(GLint inContext)
   }
 
   area = __glcGetThreadArea();
-  if (!area) {
-    /* This is a severe problem : we can not even issue an error
-     * since the threadArea does not exist.
-     */
-    perror("GLC Fatal Error");
-    exit(-1);
-  }
+  assert(area);
 
 #ifndef __MACOSX__
   /* Get the screen on which drawing ops will be performed */
@@ -613,13 +608,7 @@ GLCenum glcGetError(void)
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
   area = __glcGetThreadArea();
-  if (!area) {
-    /* This is a severe problem : we can not even issue an error
-     * since the threadArea does not exist.
-     */
-    perror("GLC Fatal Error");
-    exit(-1);
-  }
+  assert(area);
 
   error = area->errorState;
   __glcRaiseError(GLC_NONE);

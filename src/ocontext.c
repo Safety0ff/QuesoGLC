@@ -21,6 +21,7 @@
 /* Defines the methods of an object that is intended to managed contexts */
 
 #include <stdio.h>
+#include <assert.h>
 
 #include "internal.h"
 #include "ocontext.h"
@@ -155,13 +156,7 @@ __glcContextState* __glcGetCurrent(void)
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
-  if (!area) {
-    /* This is a severe problem : we can not even issue an error
-     * since the threadArea does not exist. May be we should issue
-     * a fatal error to stderr and kill the program ?
-     */
-    return NULL;
-  }
+  assert(area);
 
   return area->currentContext;
 }
@@ -200,13 +195,7 @@ void __glcRaiseError(GLCenum inError)
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
-  if (!area) {
-    /* This is a severe problem : we can not even issue an error
-     * since the threadArea does not exist. May be we should issue
-     * a fatal error to stderr and kill the program ?
-     */
-    return;
-  }
+  assert(area);
 
   /* An error can only be raised if the current error value is GLC_NONE. 
    * However, when inError == GLC_NONE then we must force the current error
@@ -703,13 +692,7 @@ void __glcLock(void)
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
-  if (!area) {
-    /* This is a severe problem : we can not even issue an error
-     * since the threadArea does not exist. May be we should issue
-     * a fatal error to stderr and kill the program ?
-     */
-    return;
-  }
+  assert(area);
 
   if (!area->lockState)
     pthread_mutex_lock(&__glcCommonArea->mutex);
@@ -728,13 +711,7 @@ void __glcUnlock(void)
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
-  if (!area) {
-    /* This is a severe problem : we can not even issue an error
-     * since the threadArea does not exist. May be we should issue
-     * a fatal error to stderr and kill the program ?
-     */
-    return;
-  }
+  assert(area);
 
   area->lockState--;
   if (!area->lockState)
