@@ -173,7 +173,7 @@ glcNewFontFromFamily(myFont, "Palatino"); /* Select the family of my font */
 glcFontFace(myFont, "Bold"); /* Select the face of my font */
 \endcode
 
-At this stage, a new font "Palatino Bold" which identified by \c myFont has
+At this stage, a new font "Palatino Bold" which is identified by \c myFont has
 been created in the current GLC context. We now want GLC to use \c myFont
 to render the text :
 
@@ -187,7 +187,7 @@ rendered. Indeed, when the glcRenderString() command will be executed, GLC
 will issue some GL commands but nothing will be displayed if we do not tell
 OpenGL where to render the string.
 
-If we decide to render text with bitmap images (which the default render style
+If we decide to render text in bitmap mode (which is the default render style
 of GLC), we need to give the raster position and (why not ?) the color of the
 text to OpenGL :
 
@@ -196,8 +196,8 @@ glRasterPos2f(100.f, 100.f);
 glColor3f(1.f, 0.f, 0.f);
 \endcode
 
-Our text will be rendered at coordinates (100, 100) in red color. It is time
-now to render the famous <em>"Hello world!"</em> string :
+Now, our text will be rendered at coordinates (100, 100) in red color. It is
+time now to render the famous <em>"Hello world!"</em> string :
 
 \code
 glcRenderString("Hello world!");
