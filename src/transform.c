@@ -96,8 +96,8 @@ void glcLoadMatrix(const GLfloat *inMatrix)
 }
 
 /** \ingroup transform
- *  This command multiply the floating point vector variable \b GLC_BITMAP_MATRIX
- *  by the incoming matrix \e inMatrix.
+ *  This command multiply the floating point vector variable
+ *  \b GLC_BITMAP_MATRIX by the incoming matrix \e inMatrix.
  *  \param inMatrix A pointer to a 2x2 matrix stored in column-major order
  *                  as 4 consecutives values.
  *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
@@ -120,10 +120,14 @@ void glcMultMatrix(const GLfloat *inMatrix)
 
     memcpy(tempMatrix, state->bitmapMatrix, 4 * sizeof(GLfloat));
     
-    state->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0] + tempMatrix[2] * inMatrix[1];
-    state->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0] + tempMatrix[3] * inMatrix[1];
-    state->bitmapMatrix[2] = tempMatrix[0] * inMatrix[2] + tempMatrix[2] * inMatrix[3];
-    state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2] + tempMatrix[3] * inMatrix[3];
+    state->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0]
+      + tempMatrix[2] * inMatrix[1];
+    state->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0]
+      + tempMatrix[3] * inMatrix[1];
+    state->bitmapMatrix[2] = tempMatrix[0] * inMatrix[2]
+      + tempMatrix[2] * inMatrix[3];
+    state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2]
+      + tempMatrix[3] * inMatrix[3];
 }
 
 /** \ingroup transform
