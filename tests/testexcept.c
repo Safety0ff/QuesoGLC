@@ -1,5 +1,6 @@
 #include "GL/glc.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "except.h"
 
 void distant_throw(void)
@@ -23,6 +24,11 @@ int main(void)
   __glcException exc = GLC_NO_EXC;
   GLenum err = glcGetError();
   void *data = NULL;
+
+  if (err) {
+    printf("Unexpected error 0x%x\n", (int)err);
+    return -1;
+  }
 
   TRY
     printf("First Try block\n");
