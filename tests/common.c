@@ -66,7 +66,7 @@ int main(void) {
     glViewport(0, 0, win.width, win.height);    /* Reset The Current Viewport And Perspective Transformation */
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(-0.325, win.width - 0.325, win.height - 0.325, -0.325);
+    gluOrtho2D(-0.325, win.width - 0.325, -0.325, win.height - 0.325);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     
