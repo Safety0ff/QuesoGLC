@@ -14,8 +14,17 @@ Changes made fom the "Birth" release to the "Baby" release:
 - QuesoGLC can now be built without the "pthread" library. However the "pthread"
   library is still being mandatory for multi-threading support.
 - FreeType2 now uses a custom memory manager based on __glcFree, __glcMalloc and
-  __glcRealloc. This helps debugging and memory leaks detection more easy.
+  __glcRealloc. This helps debugging and detection of memory leaks.
 - Variables GLC_MIN_MAPPED_CODE, GLC_MAX_MAPPED_CODE, GLC_CHAR_COUNT and the
   list GLC_CHAR_LIST are now updated when a new font file is added to a master.
-- Changed license of QuesoGLC into LGPL
+- Changed license of QuesoGLC to LGPL
+- Fixed glcAppendFont so that it raises GLC_PARAMETER_ERROR if the font is an
+  element of GLC_CURENT_FONT_LIST at the beginning of the command execution.
+- Fixed glcFont so that it behaves correctly if the font parameter is zero.
+- Fixed glcFontFace so that it leaves the current face unchanged if it fails to
+  set a new face.
+- Fixed glcFontMap so that it checks if the character to be mapped is an element
+  of the list GLC_CHAR_LIST.
+- Fixed glcFontMap so that if no character name is given then the code 'inCode'
+  is removed from the charmap.
 
