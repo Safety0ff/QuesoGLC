@@ -1,6 +1,11 @@
 Changes made from the "Birth" release to the "Baby" release:
 -----------------------------------------------------------
 
+- FreeType lists are now used for the string list object.
+- A mutex is now used for every access to the database since NDBM is not
+  thread-safe.
+- Fixed a bug where the content returned by dbm_fetch() was freed. This
+  behaviour was wrong since dbm_fetch() returns static data.
 - Now uses NDBM (which is much more portable) instead of GDBM
 - Fixed a bug in glcDeleteContext() where QuesoGLC tried to destroy the GL
   objects of the current context instead of those of the context to be deleted.
