@@ -46,7 +46,7 @@ database/$(BUILDER) : database/buildDB.c
 	$(CC) $(CFLAGS) $^ -o $@ -lgdbm
 
 clean:
-	rm -f $(OBJECTS) obj/*.o
+	rm -f $(OBJECTS) obj/*.o obj/*.oo
 	rm -f $(LIBRARY) database/$(BUILDER)
 	rm -f database/*.db
 	rm -fR docs/html docs/rtf
