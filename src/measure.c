@@ -199,7 +199,7 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
     return __glcGetCharMetric(inCode, inMetric, outVec, font, state);
 
   /* No glyph maps to in inCode. Use the replacement code instead */
-  repCode = glcGeti(GLC_REPLACEMENT_CODE);
+  repCode = state->replacementCode;
   font = __glcCtxGetFont(state, repCode);
   if (repCode && font)
     return __glcGetCharMetric(repCode, inMetric, outVec, font, state);
@@ -213,8 +213,8 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 
 /** \ingroup measure
  *  This command measures the layout that would result from rendering all
- *  mapped characters at the same origin. This contrats with
- *  glcGetStringCharMetric(), which measurs characters as  part of a string,
+ *  mapped characters at the same origin. This contrast with
+ *  glcGetStringCharMetric(), which measures characters as  part of a string,
  *  that is, influenced by kerning, ligatures, and so on.
  *
  *  The command stores in \e outVec the value of the metric identified by
@@ -323,10 +323,10 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  The character is identified by \e inIndex, and the metric is identified by
  *  \e inMetric.
  *
- *  The command raises \b GLC_PARAMETER_ERROR
- *  if \e inIndex is less than zero or is greater than or equal to the value of
- *  the variable \b GLC_MEASURED_CHAR_COUNT. If the command does not raise an
- *  error, its return value is outVec.
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than zero
+ *  or is greater than or equal to the value of the variable
+ *  \b GLC_MEASURED_CHAR_COUNT. If the command does not raise an error, its
+ *  return value is outVec.
  *  \par Example:
  *  The following example first calls glcMeasureString() to store the string
  *  "hello" in the measurement buffer. It then retrieves both the baseline and
@@ -353,9 +353,9 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  \endcode
  *  \note
  *  \e glcGetStringCharMetric is useful if you're interested in the metrics of
- *  a character as it appears in astring, that is, influenced by kerning,
- *  ligatures, and so on. To measure a charcter as if it started at the origin,
- *  call glcGetCharMetric().
+ *  a character as it appears in a string, that is, influenced by kerning,
+ *  ligatures, and so on. To measure a character as if it started at the
+ *  origin, call glcGetCharMetric().
  *  \param inIndex Specifies which element in the string to measure.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                  \b GLC_BOUNDS.
@@ -648,7 +648,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
     return 0;
   }
 
-  UinString = __glcConvertToUtf8(inString, state->stringType);
+  UinString = __glcConvertCountedStringToUtf8(inCount, inString,
+					      state->stringType);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;

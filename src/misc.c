@@ -511,3 +511,87 @@ FcChar32 FcCharSetPopCount(FcChar32 c1)
   c2 = c1 - c2 - ((c2 >> 1) & 033333333333);
   return (((c2 + (c2 >> 3)) & 030707070707) % 077);
 }
+
+/* Convert 'inCount' characters of 'inString' in the UTF-8 format and return a
+ * copy of the converted string.
+ */
+FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
+					 const GLCchar* inString,
+					 const GLint inStringType)
+{
+  FcChar8 buffer[FC_UTF8_MAX_LEN];
+  FcChar8* string = NULL;
+  FcChar8* ptr = NULL;
+  int len = 0;
+  int i = 0;
+
+  switch(inStringType) {
+  case GLC_UCS1:
+    {
+      FcChar8* ucs1 = NULL;
+
+      len = 0;
+      ucs1 = (FcChar8*)inString;
+      for (i = 0; i < inCount; i++)
+	len += __glcUcs1ToUtf8(*ucs1++, buffer);
+
+      string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
+      if (!string) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return NULL;
+      }
+
+      ucs1 = (FcChar8*)inString;
+      ptr = string;
+      for (i = 0; i < inCount; i++)
+	ptr += __glcUcs1ToUtf8(*ucs1++, ptr);
+    }
+    break;
+  case GLC_UCS2:
+    {
+      FcChar16* ucs2 = NULL;
+
+      len = 0;
+      ucs2 = (FcChar16*)inString;
+      for (i = 0; i < inCount; i++)
+	len += __glcUcs2ToUtf8(*ucs2++, buffer);
+
+      string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
+      if (!string) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return NULL;
+      }
+
+      ucs2 = (FcChar16*)inString;
+      ptr = string;
+      for (i = 0; i < inCount; i++)
+	ptr += __glcUcs2ToUtf8(*ucs2++, ptr);
+    }
+    break;
+  case GLC_UCS4:
+    {
+      FcChar32* ucs4 = NULL;
+
+      len = 0;
+      ucs4 = (FcChar32*)inString;
+      for (i = 0; i < inCount; i++)
+	len += FcUcs4ToUtf8(*ucs4++, buffer);
+
+      string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
+      if (!string) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return NULL;
+      }
+
+      ucs4 = (FcChar32*)inString;
+      ptr = string;
+      for (i = 0; i < inCount; i++)
+	ptr += FcUcs4ToUtf8(*ucs4++, ptr);
+    }
+    break;
+  default:
+    return NULL;
+  }
+
+  return string;
+}

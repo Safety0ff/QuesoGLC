@@ -556,7 +556,8 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertToUtf8(inString, state->stringType);
+  UinString = __glcConvertCountedStringToUtf8(inCount, inString,
+					      state->stringType);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;

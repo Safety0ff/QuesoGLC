@@ -90,6 +90,12 @@ extern "C" {
   extern GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 					       const FcChar8* inString,
 					       const GLint inStringType);
+
+  /* Duplicate a counted string in UTF-8 format */
+  FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
+					   const GLCchar* inString,
+					   const GLint inStringType);
+
   /* Count the number of bits that are set in c1  */
   extern FcChar32 FcCharSetPopCount(FcChar32 c1);
 
