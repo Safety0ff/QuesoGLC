@@ -37,6 +37,8 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   __glcMaster *This = NULL;
 
   This = (__glcMaster*)__glcMalloc(sizeof(__glcMaster));
+  if (!This)
+    return NULL;
 
   s.ptr = face->family_name;
   s.type = GLC_UCS1;
@@ -115,8 +117,8 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   This->charList->tail = NULL;
 
   This->version = NULL;
-  This->isFixedPitch = face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? GL_TRUE : GL_FALSE;
-  This->charListCount = 0;
+  This->isFixedPitch =
+    (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) ? GL_TRUE : GL_FALSE;
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
   This->id = inID;
@@ -168,7 +170,7 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
 
 void __glcMasterDestroy(__glcMaster *This)
 {
-  FT_List_Finalize(This->charList, __glcListDestructor,
+  FT_List_Finalize(This->charList, NULL,
 		   __glcCommonArea->memoryManager, NULL);
   FT_List_Finalize(This->displayList, __glcListDestructor,
 		   __glcCommonArea->memoryManager, NULL);

@@ -29,6 +29,8 @@
 #include "internal.h"
 #include FT_LIST_H
 
+
+
 /* glcCallbackFunc:
  *   This command assigns the value inFunc to the callback function variable
  *   identified by inOpCode.
@@ -53,6 +55,8 @@ void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
   state->callback = inFunc;
 }
 
+
+
 /* glcDataPointer:
  *   This command assigns the value inPointer to the variable GLC_DATA_POINTER
  */
@@ -70,13 +74,23 @@ void glcDataPointer(GLvoid *inPointer)
   state->dataPointer = inPointer;
 }
 
-static void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData, void *inUser)
+
+
+/* This function is called when the texture object list is destroyed */
+static void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
+					 void *inUser)
 {
   GLuint tex = (GLuint)inData;
 
   glDeleteTextures(1, &tex);
 }
 
+
+
+/* This functions destroys the display lists and the texture objects that
+ * are associated with a context identified by inState. The corresponding
+ * linked lists are also deleted.
+ */
 void __glcDeleteGLObjects(__glcContextState *inState)
 {
   FT_ListNode node = NULL;
@@ -88,9 +102,11 @@ void __glcDeleteGLObjects(__glcContextState *inState)
     FT_List_Finalize(master->displayList, __glcListDestructor,
                      __glcCommonArea->memoryManager, NULL);
     FT_List_Finalize(master->textureObjectList, __glcTextureObjectDestructor,
-                   __glcCommonArea->memoryManager, NULL);
+		     __glcCommonArea->memoryManager, NULL);
   }
 }
+
+
 
 /* glcDeleteGLObjects:
  *   This command causes GLC to issue a sequence of GL commands to delete all
@@ -113,6 +129,8 @@ void glcDeleteGLObjects(void)
 
   __glcDeleteGLObjects(state);
 }
+
+
 
 /* This internal function is used by both glcEnable/glcDisable since they
  * actually do the same job : put a value into a member of the
@@ -156,6 +174,8 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
   }
 }
 
+
+
 /* glcDisable:
  *   This command assigns the value GL_FALSE to the boolean variable identified
  *   by inAttrib.
@@ -165,7 +185,9 @@ void glcDisable(GLCenum inAttrib)
   __glcDisable(inAttrib, GL_FALSE);
 }
 
-/* glcDisable:
+
+
+/* glcEnable:
  *   This command assigns the value GL_TRUE to the boolean variable identified
  *   by inAttrib.
  */
@@ -173,6 +195,8 @@ void glcEnable(GLCenum inAttrib)
 {
   __glcDisable(inAttrib, GL_TRUE);
 }
+
+
 
 /* glcGetCallbackFunc:
  *   This command returns the value of the callback function variable
@@ -197,6 +221,8 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
 
   return state->callback;
 }
+
+
 
 /* glcGetListc:
  *   This command returns the string at offset inIndex from the first element
@@ -267,6 +293,8 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   return buffer;
 }
 
+
+
 /* glcGetListi:
  *   This command returns the integer at offset inIndex from the first element
  *   in the integer list identified by inAttrib. The command raises a
@@ -311,6 +339,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
   /* Perform the final part of verifications (the one which needs
    * the current context's states) then return the requested value.
    */
+  inIndex--;
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
     for (node = state->currentFontList->head; inIndex && node;
@@ -345,9 +374,10 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       list = ((__glcMaster*)node->data)->displayList;
 
       if (list) {
-        for (dlTree = list->head; dlTree && inIndex; dlTree = dlTree->next, inIndex--) {}
-        if (!inIndex && dlTree)
-	    return ((__glcDisplayListKey*)dlTree->data)->list;
+        for (dlTree = list->head; dlTree && inIndex;
+	     dlTree = dlTree->next, inIndex--) {}
+        if (dlTree)
+	  return ((__glcDisplayListKey*)dlTree->data)->list;
       }
     }
     return 0;
@@ -363,7 +393,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
         for (texNode = list->head; texNode && inIndex;
 	     texNode = texNode->next, inIndex--) {}
         if (!inIndex && texNode)
-	    return (GLint)texNode->data;
+	  return (GLint)texNode->data;
       }
     }
     return 0;
@@ -371,6 +401,8 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 
   return 0;
 }
+
+
 
 /* glcGetPointer:
  *   This command returns the value of the pointer variable identified by
@@ -396,6 +428,8 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
   return state->dataPointer;
 }
 
+
+
 /* glcGetc:
  *   This command returns the value of the string constant identified by
  *   inAttrib.
@@ -403,7 +437,7 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "";
-  static GLCchar* __glcRelease = (GLCchar*) "draft Linux 2.x";
+  static GLCchar* __glcRelease = (GLCchar*) "Release 0.0.1";
   static GLCchar* __glcVendor = (GLCchar*) "Queso Software";
 
   __glcContextState *state = NULL;
@@ -446,7 +480,7 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   default:
     return GLC_NONE;
   }
-    
+
   /* Allocates a buffer which size equals the length of the transformed
    * string */
   length = __glcUniEstimate(&s, state->stringType);
@@ -460,6 +494,8 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   return buffer;
 }
 
+
+
 /* glcGetf:
  *   This command returns the value of the floating point variable identified
  *   by inAttrib.
@@ -471,18 +507,20 @@ GLfloat glcGetf(GLCenum inAttrib)
   /* Check the parameter */
   if (inAttrib != GLC_RESOLUTION) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return 0.;
+    return 0.f;
   }
 
   /* Check if the thread has a current context */
   state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
-    return 0.;
+    return 0.f;
   }
 
   return state->resolution;
 }
+
+
 
 /* glcGetfv:
  *   This command stores into outVec the value of the floating point vector
@@ -498,7 +536,7 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
-    
+
   /* Check if the thread has a current context */
   state = __glcGetCurrent();
   if (!state) {
@@ -510,6 +548,8 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 
   return outVec;
 }
+
+
 
 /* glcGeti:
  *   This command returns the value of the integer variable or constant
@@ -553,7 +593,7 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_CATALOG_COUNT:
     return __glcStrLstLen(state->catalogList);
   case GLC_CURRENT_FONT_COUNT:
-    for (node = state->currentFontList->head; node;
+    for (node = state->currentFontList->head, count = 0; node;
 	 node = node->next, count++) {}
     return count;
   case GLC_FONT_COUNT:
@@ -561,7 +601,7 @@ GLint glcGeti(GLCenum inAttrib)
 	 node = node->next, count++) {}
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    for(count = 0, node = state->masterList->head; node; node = node->next) {
+    for (count = 0, node = state->masterList->head; node; node = node->next) {
       FT_ListNode dlTree = NULL;
       FT_List list = NULL;
 
@@ -572,11 +612,9 @@ GLint glcGeti(GLCenum inAttrib)
     }
     return count;
   case GLC_MASTER_COUNT:
-    node = state->masterList->tail;
-    if (node)
-      return ((__glcMaster*)node->data)->id;
-    else
-      return 0;
+    for (node = state->masterList->head, count = 0; node;
+	 node = node->next, count++) {}
+    return count;
   case GLC_MEASURED_CHAR_COUNT:
     return state->measuredCharCount;
   case GLC_RENDER_STYLE:
@@ -593,7 +631,8 @@ GLint glcGeti(GLCenum inAttrib)
       list = ((__glcMaster*)node->data)->textureObjectList;
 
       if (list)
-        for (texNode = list->head; texNode; texNode = texNode->next, count++) {}
+        for (texNode = list->head; texNode;
+	     texNode = texNode->next, count++) {}
     }
     return count;
   case GLC_VERSION_MAJOR:
@@ -604,6 +643,8 @@ GLint glcGeti(GLCenum inAttrib)
 
   return 0;
 }
+
+
 
 /* glcIsEnabled:
  *   This command returns GL_TRUE if the value of the boolean variable
@@ -643,6 +684,8 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
 
   return GL_FALSE;
 }
+
+
 
 /* glcStringType:
  *   This command assigns the value inStringType to the variable

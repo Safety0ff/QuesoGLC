@@ -30,6 +30,8 @@
 #include "internal.h"
 #include FT_LIST_H
 
+
+
 /* glcGetMasterListc:
  *   This command returns a string from a string list that is an attribute of
  *   the master identified by inMaster. The string list is identified by
@@ -38,7 +40,8 @@
  *   inIndex is less than zero or is greater than or equal to the value of the
  *   list element count attribute.
  */
-const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex)
+const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
+				 GLint inIndex)
 {
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
@@ -46,7 +49,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   GLCchar *buffer = NULL;
   GLint length = 0;
   FT_ListNode node = NULL;
-    
+
   /* Check some parameter.
    * NOTE : the verification of some parameters needs to get the current
    *        context state but since we are supposed to check parameters
@@ -61,16 +64,16 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
     return GLC_NONE;
   }
 
+  /* Verify if inIndex and inMaster are in legal bounds */
+  if ((inIndex < 0) || (inMaster < 0)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   /* Verify if a context is current to the thread */
   state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
-    return GLC_NONE;
-  }
-
-  /* Verify if inMaster is in legal bounds */
-  if (inMaster < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
@@ -84,38 +87,26 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
-    
+
   switch(inAttrib) {
   case GLC_CHAR_LIST:
-    /* Verify if inIndex is in legal bounds */
-    if ((inIndex < 0) || (inIndex >= master->charListCount)) {
+    for (node = master->charList->head; inIndex && node;
+	 node = node->next, inIndex--) {}
+
+    if (node)
+      return glcGetMasterMap(inMaster, (FT_ULong)node->data);
+    else {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
-    }
-    else {
-      FT_ListNode node = master->charList->head;
-      GLint i;
-
-      for (i = 0; i < inIndex; i++)
-	node = node->next;
-
-      return glcGetMasterMap(inMaster, *((FT_ULong*)node->data));
     }
   case GLC_FACE_LIST:
-    /* Verify if inIndex is in legal bounds */
-    if (inIndex < 0) {
+    /* Get the face name */
+    s = __glcStrLstFindIndex(master->faceList, inIndex);
+    if (!s) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
-    else {
-      /* Get the face name */
-      s = __glcStrLstFindIndex(master->faceList, inIndex);
-      if (!s) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
-	return GLC_NONE;
-      }
-      break;
-    }
+    break;
   }
 
   /* Allocate a buffer in order to store the string in the current string
@@ -130,6 +121,8 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 
   return buffer;
 }
+
+
 
 /* glcGetMasterMap:
  *   This command returns the string name of the character that the master
@@ -155,8 +148,8 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     return GLC_NONE;
   }
 
-  /* Check if inMaster is in legal bounds */
-  if (inMaster < 0) {
+  /* Check if inMaster and inCode are in legal bounds */
+  if ((inMaster < 0) || (inCode < 0)) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
@@ -180,17 +173,13 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
      *        changed since the user provided the file name
      */
     s = __glcStrLstFindIndex(master->faceFileName, i);
-    buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));
-    if (!buffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return NULL;
-    }
-    __glcUniDup(s, buffer, __glcUniLenBytes(s));
+    buffer = s->ptr;
 
     if (FT_New_Face(state->library, 
 		    (const char*) buffer, 0, &face)) {
       /* Unable to load the face file, however this should not happen since
-	 it has been succesfully loaded when the master was created */
+       * it has been succesfully loaded when the master was created.
+       */
       __glcRaiseError(GLC_RESOURCE_ERROR);
       face = NULL;
       continue;
@@ -209,16 +198,12 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
       face = NULL;
     }
   }
-    
+
   /* We have looked for the glyph in every font files of the master but did
    * not find a matching glyph => QUIT !!
    */
-  if ((GLuint)i == __glcStrLstLen(master->faceFileName))
-    if (face) {
-      FT_Done_Face(face);
-      face = NULL;
-      return GLC_NONE;
-    }
+  if (!face)
+    return GLC_NONE;
     
   /* The database gives the Unicode name in UCS1 encoding. We should now
    * change its encoding if needed.
@@ -254,6 +239,8 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   return buffer;
 }
 
+
+
 /* glcGetMasterc:
  *   This command returns a string attribute of the master identified by
  *   inMaster.
@@ -279,16 +266,16 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
+  /* Check if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   /* Verify if the thread owns a GLC context */
   state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
-    return GLC_NONE;
-  }
-
-  /* Check if inMaster is in legal bounds */
-  if (inMaster < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
@@ -318,7 +305,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     s = master->version;
     break;
   }
-  
+
   /* Allocate memory in order to perform the conversion into the current
    * string type
    */
@@ -333,6 +320,8 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   return buffer;  
 }
 
+
+
 /* glcGetMasteri:
  *   This command returns an integer attribute of the master identified by
  *   inMaster. The attribute is identified by inAttrib.
@@ -342,6 +331,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
+  GLint count = 0;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -356,17 +346,17 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
+  /* Check if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   /* Verify that the thread owns a context */
   state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
-  }
-
-  /* Check if inMaster is in legal bounds */
-  if (inMaster < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
   }
 
   for(node = state->masterList->head; node; node = node->next) {
@@ -383,7 +373,9 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   /* returns the requested attribute */
   switch(inAttrib) {
   case GLC_CHAR_COUNT:
-    return master->charListCount;
+    for (node = master->charList->head, count = 0; node;
+	 node = node->next, count++) {}
+    return count;
   case GLC_FACE_COUNT:
     return __glcStrLstLen(master->faceList);
   case GLC_IS_FIXED_PITCH:
@@ -396,6 +388,8 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 
   return 0;
 }
+
+
 
 /* glcAppendCatalog:
  *   This command appends the string inCatalog to the list GLC_CATALOG_LIST
@@ -415,6 +409,8 @@ void glcAppendCatalog(const GLCchar* inCatalog)
   __glcCtxAddMasters(state, inCatalog, GL_TRUE);
 }
 
+
+
 /* glcPrependCatalog:
  *   This command prepends the string inCatalog to the list GLC_CATALOG_LIST
  */
@@ -432,6 +428,8 @@ void glcPrependCatalog(const GLCchar* inCatalog)
   /* prepend the catalog */
   __glcCtxAddMasters(state, inCatalog, GL_FALSE);
 }
+
+
 
 /* glcRemoveCatalog:
  *   This command removes a string from the list GLC_CATALOG_LIST. It removes

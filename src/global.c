@@ -59,7 +59,6 @@ static void __glcStateDestructor(FT_Memory memory, void *data, void *user)
 
 
 /* This function is called when QuesoGLC is no longer needed.
- * It frees the memory and closes the Unicode DB files
  */
 #ifdef QUESOGLC_STATIC_LIBRARY
 static void __glcExitLibrary(void)
@@ -109,7 +108,10 @@ static void __glcFreeThreadArea(void *keyValue)
 
 
 
-/* Routines for memory management of FreeType */
+/* Routines for memory management of FreeType
+ * The memory manager of our FreeType library class uses the same memory
+ * allocation functions than QuesoGLC
+ */
 static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
 {
   return __glcMalloc(inSize);
@@ -129,8 +131,7 @@ static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
 
 
 /* This function is called before any function of QuesoGLC
- * is used. It reserves memory and opens the Unicode DB files.
- * In a few words, it initialiazes the library, hence the name
+ * is used. It reserves memory and initialiazes the library, hence the name.
  */
 #ifdef QUESOGLC_STATIC_LIBRARY
 static void __glcInitLibrary(void)
@@ -138,7 +139,7 @@ static void __glcInitLibrary(void)
 void _init(void)
 #endif
 {
-  /* Creates and initializes the "Common Area" */
+  /* Create and initialize the "Common Area" */
 
   __glcCommonArea = (commonArea*)__glcMalloc(sizeof(commonArea));
   if (!__glcCommonArea)
@@ -147,10 +148,16 @@ void _init(void)
   __glcCommonArea->stateList = NULL;
   __glcCommonArea->memoryManager = NULL;
 
-  /* Creates the thread-local storage for GLC errors */
+  /* Create the thread-local storage for GLC errors */
   if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
     goto FatalError;
 
+  /* Evil hack : we use the FT_MemoryRec_ structure definition which
+   * is supposed not to be exported by FreeType headers. So this memory
+   * allocation may fail if the guys of FreeType decide not to expose
+   * FT_MemoryRec_ anymore. However, this has not happened yet so we
+   * still rely on FT_MemoryRec_ ...
+   */
   __glcCommonArea->memoryManager =
     (FT_Memory)__glcMalloc(sizeof(struct FT_MemoryRec_));
   if (!__glcCommonArea->memoryManager)
@@ -161,7 +168,7 @@ void _init(void)
   __glcCommonArea->memoryManager->free = __glcFreeFunc;
   __glcCommonArea->memoryManager->realloc = __glcReallocFunc;
 
-  /* Creates the array of context states */
+  /* Create and initialize the array of context states */
   __glcCommonArea->stateList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
   if (!__glcCommonArea->stateList)
     goto FatalError;
@@ -233,7 +240,7 @@ GLint glcGetCurrentContext(void)
 
 
 /* glcDeleteContext:
- *   Marks for deletion the GLC context identified by <i>inContext</i>. If the
+ *   Marks for deletion the GLC context identified by inContext. If the
  *   marked context is not current to any client thread, the command deletes
  *   the marked context immediatly. Otherwise, the marked context will be
  *   deleted during the execution of the next glcContext() command that causes
@@ -250,11 +257,12 @@ void glcDeleteContext(GLint inContext)
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
+  /* Lock the "Common Area" in order to prevent race conditions */
   __glcLock();
 
+  /* verify if the context exists */
   state = __glcGetState(inContext);
 
-  /* verify if the context has been created */
   if (!state) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     __glcUnlock();
@@ -266,11 +274,10 @@ void glcDeleteContext(GLint inContext)
     state->pendingDelete = GL_TRUE;
   else {
     node = FT_List_Find(__glcCommonArea->stateList, state);
-    if (node) {
-      FT_List_Remove(__glcCommonArea->stateList, node);
-      __glcCtxDestroy(state);
-      __glcFree(node);
-    }
+    assert(node); /* If node is not found then something went wrong ... */
+    FT_List_Remove(__glcCommonArea->stateList, node);
+    __glcCtxDestroy(state);
+    __glcFree(node);
   }
 
   __glcUnlock();
@@ -299,7 +306,7 @@ void glcContext(GLint inContext)
 #endif
   __glcContextState *currentState = NULL;
   __glcContextState *state = NULL;
-  threadArea * area = NULL;
+  threadArea *area = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -326,7 +333,9 @@ void glcContext(GLint inContext)
 
   if (inContext) {
     /* verify that the context exists */
-    if (!glcIsContext(inContext)) {
+    state = __glcGetState(inContext);
+
+    if (!state) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       __glcUnlock();
       return;
@@ -345,8 +354,6 @@ void glcContext(GLint inContext)
 	return;
       }
     }
-
-    state = __glcGetState(inContext);
 
     /* Is the context already current to a thread ? */
     if (state->isCurrent) {
@@ -392,11 +399,10 @@ void glcContext(GLint inContext)
     if (currentState->pendingDelete) {
       FT_ListNode node = FT_List_Find(__glcCommonArea->stateList,
 				      currentState);
-      if (node) {
-	FT_List_Remove(__glcCommonArea->stateList, node);
-	__glcCtxDestroy(currentState);
-	__glcFree(node);
-      }
+      assert(node); /* If node is not found then something went wrong ... */
+      FT_List_Remove(__glcCommonArea->stateList, node);
+      __glcCtxDestroy(currentState);
+      __glcFree(node);
     }
   }
 
@@ -533,11 +539,8 @@ GLint* glcGetAllContexts(void)
    * thread or not).
    */
   __glcLock();
-  node = __glcCommonArea->stateList->head;
-  while (node) {
-    count++;
-    node = node->next;
-  }
+  for (node = __glcCommonArea->stateList->head, count = 0; node;
+       node = node->next, count++) {}
 
   /* Allocate memory to store the array */
   contextArray = (GLint *)malloc(sizeof(GLint) * (count+1));
@@ -551,12 +554,10 @@ GLint* glcGetAllContexts(void)
   contextArray[count] = 0;
 
   /* Copy the context IDs to the array */
-  node = __glcCommonArea->stateList->tail;
-  while (node) {
+  for (node = __glcCommonArea->stateList->tail; node;node = node->prev) {
     state = (__glcContextState *)node->data;
-    if (state)
-      contextArray[--count] = state->id;
-    node = node->prev;
+    assert(state);
+    contextArray[--count] = state->id;
   }
 
   __glcUnlock();

@@ -18,15 +18,16 @@
  */
 /* $Id$ */
 
-/* This file defines miscellaneous functions that are used throughout the lib */
+/* This file defines miscellaneous functions used throughout the lib */
 
 #include <stdlib.h>
 #include "ocontext.h"
 #include "internal.h"
 #include FT_LIST_H
 
-/* QuesoGLC own allocation and memory management routines */
 
+
+/* QuesoGLC own allocation and memory management routines */
 void* __glcMalloc(size_t size)
 {
   return malloc(size);
@@ -42,11 +43,21 @@ void* __glcRealloc(void *ptr, size_t size)
   return realloc(ptr, size);
 }
 
-/* FT lists destructor */
+
+
+/* FT list destructor 
+ * This destructor should be used whenever the data field of a linked list
+ * is used as an actual pointer : in QuesoGLC, some linked lists use the
+ * data field to store an integer value, in which case, the destroy parameter
+ * of FT_List_Finalize() must be set to NULL, otherwise a segmentation fault
+ * will occur.
+ */
 void __glcListDestructor(FT_Memory inMemory, void *inData, void *inUser)
 {
   __glcFree(inData);
 }
+
+
 
 /* Find a token in a list of tokens separated by 'separator' */
 GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,

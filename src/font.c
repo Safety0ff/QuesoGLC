@@ -29,6 +29,8 @@
 #include "internal.h"
 #include FT_LIST_H
 
+
+
 /* Most font commands need to check that :
  *   1. The current thread owns a context state
  *   2. The font identifier 'inFont' is legal
@@ -63,6 +65,8 @@ static __glcFont* __glcVerifyFontParameters(GLint inFont)
   return font;
 }
 
+
+
 /* glcAppendFont:
  *   This command appends inFont to the list GLC_CURRENT_FONT_LIST. The command
  *   raises GLC_PARAMETER_ERROR if inFont is an element in the list
@@ -80,8 +84,10 @@ void glcAppendFont(GLint inFont)
     return;
 
   /* Check if inFont is already an element of GLC_CURRENT_FONT_LIST */
-  if (FT_List_Find(state->currentFontList, font))
+  if (FT_List_Find(state->currentFontList, font)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
+  }
 
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
   if (!node) {
@@ -95,6 +101,8 @@ void glcAppendFont(GLint inFont)
   return;
 }
 
+
+
 /* This internal function must be called each time that a command destroys
  * a font. __glcDeleteFont removes, if necessary,  the font identified by
  * inFont from the list GLC_CURRENT_FONT_LIST.
@@ -102,7 +110,7 @@ void glcAppendFont(GLint inFont)
 static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
 {
   FT_ListNode node = NULL;
-    
+
   /* Look for the font into GLC_CURRENT_FONT_LIST */
   node = FT_List_Find(state->currentFontList, font);
 
@@ -112,6 +120,8 @@ static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
     __glcFree(node);
   }
 }
+
+
 
 /* glcDeleteFont:
  *   This command deletes the font identified by inFont. If inFont is an
@@ -137,6 +147,8 @@ void glcDeleteFont(GLint inFont)
   __glcFontDestroy(font);
 }
 
+
+
 /* glcFont:
  *   This command begins by removing all elements from the list
  *   GLC_CURRENT_FONT_LIST. If inFont is nonzero, the command then appends
@@ -155,10 +167,12 @@ void glcFont(GLint inFont)
     if (!font)
       return;
 
+    /* There is no need to check if the following state is not NULL since
+     * it has already been done by __glcVerifyFontParameters().
+     */
     state = __glcGetCurrent();
 
     /* Append the font identified by inFont to GLC_CURRENT_FONT_LIST */
-
     node = state->currentFontList->head;
     if (node) {
       /* Remove the first node of the list in order to prevent it to be
@@ -166,7 +180,7 @@ void glcFont(GLint inFont)
        */
       FT_List_Remove(state->currentFontList, node);
       FT_List_Finalize(state->currentFontList, NULL,
-                     __glcCommonArea->memoryManager, NULL);
+		       __glcCommonArea->memoryManager, NULL);
 
       /* Reset the list */
       state->currentFontList->head = NULL;
@@ -201,13 +215,16 @@ void glcFont(GLint inFont)
   }
 }
 
+
+
 /* This internal function tries to open the face file which name is identified
  * by inFace. If it succeeds, it closes the previous face and stores the new
  * face attributes in the __glcFont object identified by inFont. Otherwise,
  * it leaves the font 'inFont' unchanged. GL_TRUE or GL_FALSE are returned
- * to indicate if the function succeed or not.
+ * to indicate if the function succeeded or not.
  */
-static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace, __glcContextState *inState)
+static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace,
+			       __glcContextState *inState)
 {
   GLint faceID = 0;
   __glcUniChar UinFace;
@@ -216,28 +233,16 @@ static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace, __glcCont
   FT_Face newFace = NULL;
 
   UinFace.ptr = (GLCchar*)inFace;
-  UinFace.type =  inState->stringType;
+  UinFace.type = inState->stringType;
 
   /* Get the face ID of the face identified by the string inFace */
   faceID = __glcStrLstGetIndex(font->parent->faceList, &UinFace);
   if (faceID == -1)
     return GL_FALSE;
 
-  /* Get the file name of the face and copy it into a buffer */
-  /* NOTE : This operation is actually overkill since no conversion
-   *        is done during the process. We have to do it this way
-   *        because of data encapsulation (namely of the pointer 'ptr'
-   *        of the Unicode string object __glcUniChar). This is to be
-   *        removed in the near future but is kept for now in order to
-   *        prevent illegal accesses to __glcUniChar's 'ptr'.
-   */
+  /* Get the file name of the face */
   s = __glcStrLstFindIndex(font->parent->faceFileName, faceID);
-  buffer = __glcCtxQueryBuffer(inState, __glcUniLenBytes(s));
-  if (!buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GL_FALSE;
-  }
-  __glcUniDup(s, buffer, __glcUniLenBytes(s));
+  buffer = s->ptr;
 
   /* Open the new face */
   if (FT_New_Face(inState->library, 
@@ -260,6 +265,8 @@ static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace, __glcCont
 
   return GL_TRUE;
 }
+
+
 
 /* glcFontFace:
  *   This command attempts to set the current face of the font identified by
@@ -309,6 +316,8 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
   }
 }
 
+
+
 /* glcFontMap:
  *   This command modifies the map of the font identified by inFont such that
  *   the font maps inCode to the character whose name is the string inCharName.
@@ -319,11 +328,8 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
   __glcFont *font = NULL;
-  FT_UInt glyphIndex = 0;
   GLint i = 0;
-  FT_ULong code  = 0;
-  __glcContextState *state = __glcGetCurrent();
-  
+
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
   if (!font)
@@ -336,7 +342,8 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       if (font->charMap[1][i] == (FT_ULong)inCode) {
 	/* Remove the character mapped by inCode */
 	if (i < font->charMapCount-1)
-	  memmove(&font->charMap[0][i], &font->charMap[0][i+1], (font->charMapCount-i-1) * 2 * sizeof(GLint));
+	  memmove(&font->charMap[0][i], &font->charMap[0][i+1],
+		  (font->charMapCount-i-1) * 2 * sizeof(GLint));
 	font->charMapCount--;
 	break;
       }
@@ -344,6 +351,9 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     return;
   }
   else {
+    FT_UInt glyphIndex = 0;
+    FT_ULong code  = 0;
+    __glcContextState *state = __glcGetCurrent();
     __glcUniChar UinCharName;
     GLCchar* buffer = NULL;
     int length = 0;
@@ -361,6 +371,13 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     }
     __glcUniConvert(&UinCharName, buffer, GLC_UCS1, length);
 
+    /* Retrieve the Unicode code from its name */
+    code = __glcCodeFromName(buffer);
+    if (code == -1) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return;
+    }
+
     /* Verify that the glyph exists in the face */
     glyphIndex = FT_Get_Char_Index(font->face, inCode);
     if (!glyphIndex) {
@@ -368,19 +385,16 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       return;
     }
 
-    /* Use the NDBM database to retrieve the Unicode code from its name */
-    code = __glcCodeFromName(buffer);
-    if (code == -1) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return;
-    }
-
-    /* Check if the character identified by 'inCharName' is an element of the
-     * list GLC_CHAR_LIST
+    /* Add the character identified by 'inCharName' to the list GLC_CHAR_LIST.
      */
-    if (!FT_List_Find(font->parent->charList, &code)) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return;
+    if (!FT_List_Find(font->parent->charList, (void*)code)) {
+      FT_ListNode node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+      if (!node) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
+      node->data = (void*)code;
+      FT_List_Add(font->parent->charList, node);
     }
 
     /* FIXME : use a dichotomic algo instead */
@@ -390,7 +404,8 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     }
     if (font->charMap[0][i] != code) {
       /* The character identified by inCharName is not yet registered, we add
-       * it to the charmap */
+       * it to the charmap.
+       */
       if (font->charMapCount < GLC_MAX_CHARMAP) {
 	memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
 		(font->charMapCount - i) * 2 * sizeof(GLint));
@@ -406,6 +421,8 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     font->charMap[1][i] = inCode;
   }
 }
+
+
 
 /* glcGenFontID:
  *   This command returns a font ID that is not an element of the list
@@ -430,6 +447,8 @@ GLint glcGenFontID(void)
   else
     return ((__glcFont*)node->data)->id + 1;
 }
+
+
 
 /* glcGetFontFace:
  *   This command returns the string name of the current face of the font
@@ -460,6 +479,8 @@ const GLCchar* glcGetFontFace(GLint inFont)
     return GLC_NONE;
 }
 
+
+
 /* glcGetFontListc:
  *   This command is identical to the command glcGetMasterListc, except that
  *   it operates on a font (identified by inFont), not a master.
@@ -485,6 +506,8 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
   else
     return GLC_NONE;
 }
+
+
 
 /* glcGetFontMap:
  *   This command is identical to the command glcGetMasterMap, except that it
@@ -537,7 +560,6 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     }
     __glcUniConvert(&s, buffer, state->stringType, length);
 
-    /* Free the place allocated by NDBM and return the result */
     /* __glcFree(content.dptr); */
     return buffer;
   }
@@ -545,19 +567,23 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     return GLC_NONE;
 }
 
+
+
 /* glcGetFontc:
  *   This command is identical to the command glcGetMasterc, except that it
  *   operates on a font (identified by inFont), not a master
  */
 const GLCchar* glcGetFontc(GLint inFont, GLCenum inAttrib)
 {
-    __glcFont *font = __glcVerifyFontParameters(inFont);
-    
-    if (font)
-	return glcGetMasterc(font->parent->id, inAttrib);
-    else
-	return GLC_NONE;
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+
+  if (font)
+    return glcGetMasterc(font->parent->id, inAttrib);
+  else
+    return GLC_NONE;
 }
+
+
 
 /* glcGetFonti:
  *   This command is identical to the command glcGetMasteri, except that it
@@ -565,13 +591,15 @@ const GLCchar* glcGetFontc(GLint inFont, GLCenum inAttrib)
  */
 GLint glcGetFonti(GLint inFont, GLCenum inAttrib)
 {
-    __glcFont *font = __glcVerifyFontParameters(inFont);
-    
-    if (font)
-	return glcGetMasteri(font->parent->id, inAttrib);
-    else
-	return 0;
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+
+  if (font)
+    return glcGetMasteri(font->parent->id, inAttrib);
+  else
+    return 0;
 }
+
+
 
 /* glcIsFont:
  *   This command returns GL_TRUE if inFont is the ID of a font. If inFont is
@@ -579,16 +607,19 @@ GLint glcGetFonti(GLint inFont, GLCenum inAttrib)
  */
 GLboolean glcIsFont(GLint inFont)
 {
-    __glcFont *font = __glcVerifyFontParameters(inFont);
-    
-    return (font ? GL_TRUE : GL_FALSE);
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+
+  return (font ? GL_TRUE : GL_FALSE);
 }
+
+
 
 /* This internal function checks the validity of the parameter inMaster,
  * deletes the font identified by inFont (if any) and create a new font which
  * is added to the list GLC_FONT_LIST.
  */
-static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster, __glcContextState *inState)
+static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
+				    __glcContextState *inState)
 {
   FT_ListNode node = NULL;
   __glcFont *font = NULL;
@@ -598,7 +629,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster, __glcCo
     if (font->id == inFont)
       break;
     else
-      font = NULL;
+      font = NULL; /* font will be NULL if inFont ID is not in the font list */
   }
 
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
@@ -621,6 +652,8 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster, __glcCo
   return inFont;
 }
 
+
+
 /* glcNewFontFromMaster:
  *   This command creates a new font from the master identified by inMaster.
  *   The ID of the new font is inFont. If the command succeeds, it returns
@@ -630,43 +663,45 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster, __glcCo
  */
 GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
-    __glcContextState *state = NULL;
-    FT_ListNode node = NULL;
-    __glcMaster* master = NULL;
+  __glcContextState *state = NULL;
+  FT_ListNode node = NULL;
+  __glcMaster* master = NULL;
 
-    /* Check if inFont is in legal bounds */
-    if (inFont < 1) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
-	return 0;
-    }
+  /* Check if inFont is in legal bounds */
+  if (inFont < 1) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return 0;
+  }
 
-    /* Check if the current thread owns a context state */
-    state = __glcGetCurrent();
-    if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
-	return 0;
-    }
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return 0;
+  }
 
-    /* Check if inMaster is in legal bounds */
-    if (inMaster < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return GLC_NONE;
-    }
+  /* Check if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
 
-    for(node = state->masterList->head; node; node = node->next) {
-      master = (__glcMaster*)node->data;
-      if (master->id == inMaster) break;
-    }
+  for(node = state->masterList->head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    if (master->id == inMaster) break;
+  }
 
-    /* The master identified by inMaster has not been found */
-    if (!node) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
-	return 0;
-    }
+  /* The master identified by inMaster has not been found */
+  if (!node) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return 0;
+  }
 
-    /* Create and return the new font */
-    return __glcNewFontFromMaster(inFont, master, state);
+  /* Create and return the new font */
+  return __glcNewFontFromMaster(inFont, master, state);
 }
+
+
 
 /* glcNewFontFromFamily:
  *   This command performs a sequential search beginning with the first element
@@ -708,7 +743,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     if (!__glcUniCompare(&UinFamily, master->family))
       break;
   }
- 
+
   if (node)
     /* A master has been found, create a new font and add it to the list
      * GLC_FONT_LIST */
