@@ -57,6 +57,11 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 {
     __glcContextState *state = NULL;
     __glcMaster *master = NULL;
+    FT_Face face;
+    FT_UInt glyphIndex = 0;
+    datum key, content;
+    GLint i = 0;
+    char buffer[256];
 
     state = __glcGetCurrentState();
     if (!state) {
@@ -71,7 +76,34 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     
     master = state->masterList[inMaster];
 
-    return GLC_NONE;
+    for (i = 0; i < master->faceFileName.count; i++) {
+	if (FT_New_Face(library, __glcStringListExtractElement(&master->faceFileName,
+		i, buffer, 256), 0, &face)) {
+	    /* Unable to load the face file, however this should not happen since
+	       it has been succesfully loaded when the master was created */
+	    __glcRaiseError(GLC_INTERNAL_ERROR);
+	    return GLC_NONE;
+	}
+	glyphIndex = FT_Get_Char_Index(face, inCode);
+	if (glyphIndex)
+	    break;
+	FT_Done_Face(face);
+    }
+    
+    if (i == master->faceFileName.count)
+	FT_Done_Face(face);
+    
+    key.dsize = sizeof(GLint);
+    key.dptr = (char *)&inCode;
+    content = gdbm_fetch(unicod1, key);
+    if (!content.dptr) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return GLC_NONE;
+    }
+    strncpy(__glcBuffer, content.dptr, 256);
+    free(content.dptr);
+    
+    return (const GLCchar*)__glcBuffer;
 }
 
 const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
@@ -184,7 +216,7 @@ static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState)
 	master->version = NULL;
 	master->isFixedPitch = face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? GL_TRUE : GL_FALSE;
 	master->minMappedCode = 0;
-	master->maxMappedCode = 0;
+	master->maxMappedCode = 0x7fffffff;
 	inState->masterList[inState->masterCount] = master;
 	master->id = inState->masterCount;
 	inState->masterCount++;
@@ -245,10 +277,6 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 	    
 	    /* If the face has no Unicode charmap, skip it */
 	    if (FT_Select_Charmap(face, ft_encoding_unicode))
-		continue;
-	    
-	    /* If the face has no glyph names, skip it */
-	    if (!(face->face_flags & FT_FACE_FLAG_GLYPH_NAMES))
 		continue;
 	    
 	    for (j = 0; j < inState->masterCount; j++) {
