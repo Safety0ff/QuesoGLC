@@ -7,16 +7,20 @@ int main(void)
   int ctx = 0;
   int numMasters = 0;
   int numFaces = 0;
+  int numCatalogs = 0;
   int i = 0;
   int j = 0;
 
   ctx = glcGenContext();
   glcContext(ctx);
 
-  glcAppendCatalog("/usr/lib/X11/fonts/Type1");
+  glcAppendCatalog("../fonts/Type1");
 
-  printf("Catalogs : %d\nList : %s\n", glcGeti(GLC_CATALOG_COUNT),
-	 (const char *)glcGetListc(GLC_CATALOG_LIST, 0));
+  numCatalogs = glcGeti(GLC_CATALOG_COUNT);
+  printf("Catalogs : %d\n", numCatalogs);
+  
+  for (i = 0; i < numCatalogs; i++)
+    printf("Catalog #%d : %s\n", i, (const char *)glcGetListc(GLC_CATALOG_LIST, i));
 
   numMasters = glcGeti(GLC_MASTER_COUNT);
   printf("Masters : %d\n", numMasters);
