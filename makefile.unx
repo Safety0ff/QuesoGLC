@@ -23,7 +23,7 @@ LIB_DIR=@prefix@/lib
 
 ifdef DEBUGMODE
 CFLAGS = -g
-LIBS += -lefence
+#LIBS += -lefence
 else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
