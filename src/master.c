@@ -93,7 +93,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return NULL;
     }
-    s->dup(buffer, s.lenBytes());
+    s->dup(buffer, s->lenBytes());
 
     if (FT_New_Face(__glcContextState::library, 
 		    (const char*) buffer, 0, &face)) {
@@ -158,13 +158,17 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   
   switch(inAttrib) {
   case GLC_FAMILY:
-    s = &master->family;
+    s = master->family;
+    break;
   case GLC_MASTER_FORMAT:
-    s = &master->masterFormat;
+    s = master->masterFormat;
+    break;
   case GLC_VENDOR:
-    s = &master->vendor;
+    s = master->vendor;
+    break;
   case GLC_VERSION:
-    s = &master->version;
+    s = master->version;
+    break;
   default:
     __glcContextState::raiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;

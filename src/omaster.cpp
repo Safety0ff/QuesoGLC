@@ -7,39 +7,38 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   static char format1[] = "Type1";
   static char format2[] = "True Type";
   __glcUniChar s = __glcUniChar(face->family_name, GLC_UCS1);
-  __glcContextState *state = __glcContextState::getCurrent();
   GLCchar *buffer = NULL;
   int length = 0;
 
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
    * may be free and should be used instead of using the last location
    */
-  length = s.estimate(state->stringType);
+  length = s.estimate(inStringType);
   buffer = (GLCchar *) malloc(length);
   if (!buffer) {
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
   }
-  s.convert(buffer, state->stringType, length);
-  family = new __glcUniChar(buffer, state->stringType);
+  s.convert(buffer, inStringType, length);
+  family = new __glcUniChar(buffer, inStringType);
   if (!family) {
     free(buffer);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  faceList = new __glcStringList(NULL, inStringType);
+  faceList = new __glcStringList(NULL);
   if (!faceList) {
-    family.destroy();
+    family->destroy();
     delete family;
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  faceFileName = new __glcStringList(NULL, inStringType);
+  faceFileName = new __glcStringList(NULL);
   if (!faceFileName) {
     delete faceList;
-    family.destroy();
+    family->destroy();
     delete family;
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
@@ -54,21 +53,21 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     s = __glcUniChar(format2, GLC_UCS1);
 
   if (s.len()) {
-    length = s.estimate(state->stringType);
+    length = s.estimate(inStringType);
     buffer = (GLCchar*)malloc(length);
     if (!buffer) {
       delete faceList;
-      family.destroy();
+      family->destroy();
       delete family;
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
-    s.convert(buffer, state->stringType, length);
-    masterFormat = new __glcUniChar(buffer, state->stringType);
+    s.convert(buffer, inStringType, length);
+    masterFormat = new __glcUniChar(buffer, inStringType);
     if (!masterFormat) {
       delete faceList;
       delete faceFileName;
-      family.destroy();
+      family->destroy();
       delete family;
       free(buffer);
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
@@ -79,27 +78,27 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     masterFormat = NULL;
 
   s = __glcUniChar(inVendorName, GLC_UCS1);
-  length = s.estimate(state->stringType);
+  length = s.estimate(inStringType);
   buffer = (GLCchar*)malloc(length);
   if (!buffer) {
     delete faceList;
     delete faceFileName;
-    family.destroy();
+    family->destroy();
     delete family;
-    masterFormat.destroy();
+    masterFormat->destroy();
     delete masterFormat;
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  s.convert(buffer, state->stringType, length);
-  vendor = new __glcUniChar(buffer, state->stringType);
+  s.convert(buffer, inStringType, length);
+  vendor = new __glcUniChar(buffer, inStringType);
   if (!vendor) {
     delete faceList;
     delete faceFileName;
-    family.destroy();
+    family->destroy();
     delete family;
-    masterFormat.destroy();
+    masterFormat->destroy();
     delete masterFormat;
     free(buffer);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
@@ -118,9 +117,9 @@ __glcMaster::~__glcMaster()
 {
   delete faceList;
   delete faceFileName;
-  family.destroy();
-  masterFormat.destroy();
-  vendor.destroy();
+  family->destroy();
+  masterFormat->destroy();
+  vendor->destroy();
   delete family;
   delete masterFormat;
   delete vendor;

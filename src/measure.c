@@ -277,7 +277,7 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
     GLfloat baselineMetric[4] = {0., 0., 0., 0.};
     GLfloat boundsMetric[8] = {0., 0., 0., 0., 0., 0., 0., 0.};
     GLfloat storeBitmapMatrix[4] = {0., 0., 0., 0.};
-    char *s = (char *)inString;
+    __glcUniChar UinString;
 
     if (inCount <= 0) {
 	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
@@ -290,6 +290,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
 	return 0;
     }
 
+    UinString = __glcUniChar(inString, state->stringType);
+
     if (state->renderStyle == GLC_BITMAP) {
 	for (i = 0; i < 4; i++)
 	    storeBitmapMatrix[i] = state->bitmapMatrix[i];
@@ -300,14 +302,13 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
 	state->measurementStringBuffer[i] = 0.;
     
     /* FIXME :
-       1. Use Unicode instead of ASCII
-       2. Computations performed below assume that the string is rendered
-	  horizontally from left to right.
+       Computations performed below assume that the string is rendered
+       horizontally from left to right.
      */
     for (i = 0; i < inCount; i++) {
 	/* For each character get the metrics */
-	glcGetCharMetric(s[i], GLC_BASELINE, baselineMetric);
-	glcGetCharMetric(s[i], GLC_BOUNDS, boundsMetric);
+	glcGetCharMetric(UinString.index(i), GLC_BASELINE, baselineMetric);
+	glcGetCharMetric(UinString.index(i), GLC_BOUNDS, boundsMetric);
 	
 	/* If character are to be measured then store the results */
 	if (inMeasureChars) {
@@ -379,7 +380,16 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
 
 GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
 {
-    char *s = (char *)inString;
-    
-    return glcMeasureCountedString(inMeasureChars, strlen(s), inString);
+  __glcContextState *state = NULL;
+  __glcUniChar UinString;
+
+  state = __glcContextState::getCurrent();
+  if (!state) {
+    __glcContextState::raiseError(GLC_STATE_ERROR);
+    return 0;
+  }
+
+  UinString = __glcUniChar(inString, state->stringType);
+
+  return glcMeasureCountedString(inMeasureChars, UinString.len(), inString);
 }

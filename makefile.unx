@@ -6,7 +6,7 @@ CC_SOURCE = $(addprefix src/,$(CC_FILES))
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o)) $(addprefix obj/, $(CC_FILES:.cpp=.oo))
 TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
-	tests/testrender tests/testcontex tests/tstunicd
+	tests/testrender tests/testcontex
 
 LIBRARY = lib/libGLC.a
 DATABASE = database/unicode1.db

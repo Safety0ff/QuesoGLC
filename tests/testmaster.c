@@ -2,6 +2,7 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
+extern void my_init(void);
 extern void my_fini(void);
 
 void testQueso(void)
@@ -12,6 +13,8 @@ void testQueso(void)
     int i = 0;
     int j = 0;
     
+    my_init();
+
     ctx = glcGenContext();
     glcContext(ctx);
     

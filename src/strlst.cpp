@@ -38,7 +38,7 @@ GLint __glcStringList::append(__glcUniChar* inString)
     return -1;
 
   if (count) {
-    __glcUniChar s;
+    __glcUniChar *s = NULL;
 
     if (inString->type > string->type)
       if (convert(inString->type))
@@ -52,12 +52,13 @@ GLint __glcStringList::append(__glcUniChar* inString)
 
     room = (GLCchar *)malloc(inString->lenBytes());
     inString->convert(room, current->string->type, inString->lenBytes());
-    s = __glcUniChar(room, current->string->type);
-    item = new __glcStringList(&s);
+    s = new __glcUniChar(room, current->string->type);
+    item = new __glcStringList(s);
 
-    free(room);
-    if (!item)
+    if (!item) {
+      free(room);
       return -1;
+    }
     current->next = item;
   }
   else {

@@ -15,9 +15,6 @@
   */
 GLboolean glcIsContext(GLint inContext)
 {
-  /* Make sure that QuesoGLC has been initialized */
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
-
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
     return GL_FALSE;
   else
@@ -30,9 +27,6 @@ GLboolean glcIsContext(GLint inContext)
 GLint glcGetCurrentContext(void)
 {
   __glcContextState *state = NULL;
-
-  /* Make sure that QuesoGLC has been initialized */
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
 
   state = __glcContextState::getCurrent();
   if (!state)
@@ -53,8 +47,6 @@ void glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
 
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
-
   /* verify parameters are in legal bounds */
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS)) {
     __glcContextState::raiseError(GLC_PARAMETER_ERROR);
@@ -69,11 +61,15 @@ void glcDeleteContext(GLint inContext)
     return;
   }
 
+  __glcContextState::lock();
+
   if (__glcContextState::getCurrency(inContext - 1))
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else
     delete state;
+
+  __glcContextState::unlock();
 }
 
 /** \ingroup global
@@ -92,22 +88,19 @@ void glcContext(GLint inContext)
   __glcContextState *state = NULL;
   GLint currentContext = 0;
 
-  /* Make sure that QuesoGLC has been initialized */
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
-
-  lock();
+  __glcContextState::lock();
 
   if (inContext) {
     /* verify that parameters are in legal bounds */
     if ((inContext < 0) || (inContext > GLC_MAX_CONTEXTS)) {
       __glcContextState::raiseError(GLC_PARAMETER_ERROR);
-      unlock();
+      __glcContextState::unlock();
       return;
     }
     /* verify that the context exists */
     if (!__glcContextState::isContext(inContext - 1)) {
       __glcContextState::raiseError(GLC_PARAMETER_ERROR);
-      unlock();
+      __glcContextState::unlock();
       return;
     }
 
@@ -121,7 +114,7 @@ void glcContext(GLint inContext)
       state = __glcContextState::getCurrent();
       if (state->isInCallbackFunc) {
 	__glcContextState::raiseError(GLC_STATE_ERROR);
-	unlock();
+      __glcContextState::unlock();
 	return;
       }
     }
@@ -136,7 +129,7 @@ void glcContext(GLint inContext)
        * is already current to one thread (whether it is the issueing thread
        * or not) : there is nothing else to be done.
        */
-      unlock();
+      __glcContextState::unlock();
       return;
     }
 
@@ -172,7 +165,7 @@ void glcContext(GLint inContext)
       delete state;
   }
 
-  unlock();
+  __glcContextState::unlock();
 
   /* We read the version and extensions of the OpenGL client. We do it
    * for compliance with the specifications because we do not use it.
@@ -191,8 +184,7 @@ GLint glcGenContext(void)
   int i = 0;
   __glcContextState *state = NULL;
 
-  /* Make sure that QuesoGLC has been initialized */
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
+  __glcContextState::lock();
 
   /* Search for the first context ID that is unused */
   for (i=0 ; i<GLC_MAX_CONTEXTS; i++) {
@@ -203,6 +195,7 @@ GLint glcGenContext(void)
   if (i == GLC_MAX_CONTEXTS) {
     /* All the contexts are used. We can not generate a new one => ERROR !!! */
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcContextState::unlock();
     return 0;
   }
 
@@ -210,6 +203,7 @@ GLint glcGenContext(void)
   state = new __glcContextState(i);
   if (!state) {
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcContextState::unlock();
     return 0;
   }
 
@@ -233,10 +227,14 @@ GLint glcGenContext(void)
       } while (*sep);
       free(path);
     }
-    else
+    else {
       /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      return 0;
+    }
   }
+
+  __glcContextState::unlock();
 
   return i + 1;
 }
@@ -252,9 +250,6 @@ GLint* glcGetAllContexts(void)
   int count = 0;
   int i = 0;
   GLint* contextArray = NULL;
-
-  /* Make sure that QuesoGLC has been initialized */
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
 
   /* Count the number of existing contexts (whether they are current to a thread
    * or not).
@@ -288,12 +283,106 @@ GLCenum glcGetError(void)
 {
   GLCenum error = GLC_NONE;
 
-  /* Make sure that QuesoGLC has been initialized */
-  pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
-
   error = (GLCenum)pthread_getspecific(__glcContextState::errorKey);
   __glcContextState::raiseError(GLC_NONE);
   return error;
+}
+
+/* This function is supposed to be called when QuesoGLC before any of its
+ * function is used. It reserves memory and opens the Unicode DB files.
+ */
+void my_init(void)
+{
+  int i = 0;
+
+  // Creates the thread-local storage for the GLC error
+  // We create it first, so that the error value can be set
+  // if something goes wrong afterwards...
+  if (pthread_key_create(&__glcContextState::errorKey, NULL)) {
+    // Unfortunately we have not even been able to allocate a key
+    // for thread-local storage. Memory seems to be a really scarse
+    // resource here...
+    return;
+  }
+
+  // Initialize the "Common Area"
+
+  // Create array of state currency
+  __glcContextState::isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
+  if (!__glcContextState::isCurrent) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  // Create array of context states
+  __glcContextState::stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
+  if (!__glcContextState::stateList) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    delete[] __glcContextState::isCurrent;
+    return;
+  }
+
+  // Open the first Unicode database
+  __glcContextState::unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
+  if (!__glcContextState::unidb1) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Open the second Unicode database
+  __glcContextState::unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
+  if (!__glcContextState::unidb2) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Initialize the mutex
+  // At least this op can not fail !!!
+  pthread_mutex_init(&__glcContextState::mutex, NULL);
+
+  // Creates the thread-local storage for the context ID
+  if (pthread_key_create(&__glcContextState::contextKey, NULL)) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    gdbm_close(__glcContextState::unidb2);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Creates the thread-local storage for the lock count
+  if (pthread_key_create(&__glcContextState::lockKey, NULL)) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    gdbm_close(__glcContextState::unidb2);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Initialize FreeType
+  if (FT_Init_FreeType(&__glcContextState::library)) {
+    // Well, if it fails there is nothing that can be done
+    // with QuesoGLC : abort...
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    gdbm_close(__glcContextState::unidb2);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // So far, there are no contexts
+  for (i=0; i< GLC_MAX_CONTEXTS; i++) {
+    __glcContextState::isCurrent[i] = GL_FALSE;
+    __glcContextState::stateList[i] = NULL;
+  }
+
 }
 
 /* This function is supposed to be called when QuesoGLC is no longer needed.

@@ -11,19 +11,18 @@
 #include "strlst.h"
 
 extern "C" {
+  void my_init(void);
   void my_fini(void);
 }
 
 class __glcContextState {
   static GLboolean *isCurrent;
   static __glcContextState **stateList;
-  static pthread_once_t initOnce;
   static pthread_mutex_t mutex;
   static pthread_key_t contextKey;
   static pthread_key_t errorKey;
   static pthread_key_t lockKey;
 
-  static void initQueso(void);
   static __glcContextState* getState(GLint inContext);
   static void setState(GLint inContext, __glcContextState *inState);
   static GLboolean getCurrency(GLint inContext);
@@ -86,6 +85,7 @@ class __glcContextState {
   friend GLCenum glcGetError(void);
   friend GLboolean glcIsContext(GLint inContext);
 
+  friend void my_init(void);
   friend void my_fini(void);
 };
 

@@ -5,10 +5,10 @@
 
 GLboolean* __glcContextState::isCurrent = NULL;
 __glcContextState** __glcContextState::stateList = NULL;
-pthread_once_t __glcContextState::initOnce = PTHREAD_ONCE_INIT;
 pthread_mutex_t __glcContextState::mutex;
 pthread_key_t __glcContextState::contextKey;
 pthread_key_t __glcContextState::errorKey;
+pthread_key_t __glcContextState::lockKey;
 FT_Library __glcContextState::library;
 GDBM_FILE __glcContextState::unidb1 = NULL;
 GDBM_FILE __glcContextState::unidb2 = NULL;
@@ -96,100 +96,6 @@ __glcContextState::~__glcContextState()
   glcDeleteGLObjects();
 }
 
-void __glcContextState::initQueso(void)
-{
-  int i = 0;
-
-  // Creates the thread-local storage for the GLC error
-  // We create it first, so that the error value can be set
-  // if something goes wrong afterwards...
-  if (pthread_key_create(&errorKey, NULL)) {
-    // Unfortunately we have not even been able to allocate a key
-    // for thread-local storage. Memory seems to be a really scarse
-    // resource here...
-    return;
-  }
-
-  // Initialize the "Common Area"
-
-  // Create array of state currency
-  isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
-  if (!isCurrent) {
-    raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  // Create array of context states
-  stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
-  if (!stateList) {
-    raiseError(GLC_RESOURCE_ERROR);
-    delete[] isCurrent;
-    return;
-  }
-
-  // Open the first Unicode database
-  unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
-  if (!unidb1) {
-    raiseError(GLC_RESOURCE_ERROR);
-    delete[] isCurrent;
-    delete[] stateList;
-    return;
-  }
-
-  // Open the second Unicode database
-  unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
-  if (!unidb2) {
-    raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(unidb1);
-    delete[] isCurrent;
-    delete[] stateList;
-    return;
-  }
-
-  // Initialize the mutex
-  // At least this op can not fail !!!
-  pthread_mutex_init(&mutex, NULL);
-
-  // Creates the thread-local storage for the context ID
-  if (pthread_key_create(&contextKey, NULL)) {
-    raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(unidb1);
-    gdbm_close(unidb2);
-    delete[] isCurrent;
-    delete[] stateList;
-    return;
-  }
-
-  // Creates the thread-local storage for the lock count
-  if (pthread_key_create(&lockKey, NULL)) {
-    raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(unidb1);
-    gdbm_close(unidb2);
-    delete[] isCurrent;
-    delete[] stateList;
-    return;
-  }
-
-  // Initialize FreeType
-  if (FT_Init_FreeType(&library)) {
-    // Well, if it fails there is nothing that can be done
-    // with QuesoGLC : abort...
-    raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(unidb1);
-    gdbm_close(unidb2);
-    delete[] isCurrent;
-    delete[] stateList;
-    return;
-  }
-
-  // So far, there are no contexts
-  for (i=0; i< GLC_MAX_CONTEXTS; i++) {
-    isCurrent[i] = GL_FALSE;
-    stateList[i] = NULL;
-  }
-
-}
-
 /* Get the current context of the issuing thread */
 __glcContextState* __glcContextState::getCurrent(void)
 {
@@ -275,15 +181,15 @@ GLboolean __glcContextState::isContext(GLint inContext)
 void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 {
   const char* fileName = "/fonts.dir";
-  char *s = (char *)inCatalog;
   char buffer[256];
   char path[256];
   int numFontFiles = 0;
   int i = 0;
   FILE *file;
+  __glcUniChar s;
 
   /* TODO : use Unicode instead of ASCII ? */
-  strncpy(path, s, 256);
+  strncpy(path, (const char*)inCatalog, 256);
   strncat(path, fileName, strlen(fileName));
 
   /* Open 'fonts.dir' */
@@ -313,7 +219,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       desc[-1] = 0;
       desc++;
     }
-    strncpy(path, s, 256);
+    strncpy(path, (const char*)inCatalog, 256);
     strncat(path, "/", 1);
     strncat(path, buffer, strlen(buffer));
 
@@ -335,7 +241,6 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
     /* open the font file and read it */
     if (!FT_New_Face(__glcContextState::library, path, 0, &face)) {
       numFaces = face->num_faces;
-      __glcUniChar s;
 
       /* If the face has no Unicode charmap, skip it */
       if (FT_Select_Charmap(face, ft_encoding_unicode))
@@ -346,7 +251,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
        */
       for (j = 0; j < masterCount; j++) {
 	s = __glcUniChar(face->family_name, GLC_UCS1);
-	if (!s.compare(&(masterList[j]->family)))
+	if (!s.compare(masterList[j]->family))
 	  break;
       }
 

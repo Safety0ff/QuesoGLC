@@ -15,10 +15,10 @@ __glcUniChar::__glcUniChar(const GLCchar *inChar, GLint inType)
 }
 
 /* Length of the string in characters */
-int __glcUniChar::len(void)
+size_t __glcUniChar::len(void)
 {
   uniChar c;
-  int length = 0;
+  size_t length = 0;
 
   if (!ptr)
     return 0;
@@ -52,7 +52,7 @@ int __glcUniChar::len(void)
 }
 
 /* Length of the string in bytes (including the NULL termination) */
-int __glcUniChar::lenBytes(void)
+size_t __glcUniChar::lenBytes(void)
 {
   if (!ptr)
     return 0;
@@ -175,10 +175,10 @@ do { \
 GLCchar* __glcUniChar::convert(GLCchar* dest, int inType, size_t n)
 {
   uniChar c1, c2;
-  int length = 0;
+  size_t length = 0;
   int charSize = lenType(inType);
   char buffer[GLC_STRING_CHUNK];
-  int i = 0, j = 0;
+  unsigned int i = 0, j = 0;
 
   if (inType == type)
     return dup(dest, n);
@@ -222,9 +222,9 @@ GLCchar* __glcUniChar::convert(GLCchar* dest, int inType, size_t n)
 int __glcUniChar::estimate(int inType)
 {
   int length = 0;
-  int charSize = lenType(inType);
+  size_t charSize = (size_t) lenType(inType);
   unsigned int maxSize = 1;
-  int i = 0;
+  unsigned int i = 0;
   uniChar c;
   char buffer[256];
 
@@ -267,4 +267,25 @@ void __glcUniChar::destroy(void)
   if (!ptr)
     free(ptr);
   ptr = NULL;
+}
+
+GLuint __glcUniChar::index(GLint inPos)
+{
+  uniChar c;
+
+  c.ucs1 = (unsigned char*)ptr;
+
+  switch(type) {
+  case GLC_UCS1:
+    c.ucs1 += inPos;
+    return (GLuint) (*(c.ucs1));
+  case GLC_UCS2:
+    c.ucs2 += inPos;
+    return (GLuint) (*(c.ucs2));
+  case GLC_UCS4:
+    c.ucs4 += inPos;
+    return (GLuint) (*(c.ucs4));
+  default:
+    return 0;
+  }
 }

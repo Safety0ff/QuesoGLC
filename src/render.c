@@ -385,22 +385,35 @@ void glcRenderChar(GLint inCode)
 void glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
     GLint i = 0;
-    char *s = (char *)inString;
+    __glcContextState *state = NULL;
+    __glcUniChar UinString;
     
-    if (!glcGetCurrentContext()) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
-	return;
-    }
+  state = __glcContextState::getCurrent();
+  if (!state) {
+    __glcContextState::raiseError(GLC_STATE_ERROR);
+    return;
+  }
 
-    /* FIXME : use Unicode instead of ASCII */
+  UinString = __glcUniChar(inString, state->stringType);
 
-    for (i = 0; i < inCount; i++)
-	glcRenderChar(s[i]);
+  for (i = 0; i < inCount; i++)
+    glcRenderChar(UinString.index(i));
 }
 
 void glcRenderString(const GLCchar *inString)
 {
-    glcRenderCountedString(strlen((char *)inString), inString);
+  __glcContextState *state = NULL;
+  __glcUniChar UinString;
+
+  state = __glcContextState::getCurrent();
+  if (!state) {
+    __glcContextState::raiseError(GLC_STATE_ERROR);
+    return;
+  }
+
+  UinString = __glcUniChar(inString, state->stringType);
+
+  glcRenderCountedString(UinString.len(), inString);
 }
 
 void glcRenderStyle(GLCenum inStyle)
