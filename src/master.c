@@ -178,8 +178,10 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     return 0;
 }
 
-static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState)
+static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState, const char* inVendorName, const char* inFileExt)
 {
+    static char format1[] = "Type1";
+    static char format2[] = "True Type";
     /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
      * may be free and should be used instead of using the last location
      */
@@ -191,12 +193,7 @@ static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState)
 	if (!master)
 	    return NULL;
 
-	master->family = (GLCchar *)malloc(strlen(face->family_name) + 1);
-	if (!master->family) {
-	    free(master);
-	    return NULL;
-	}
-	memcpy(master->family, face->family_name, strlen(face->family_name) + 1);
+	master->family = (GLCchar *)strdup((const char*)face->family_name);
 
 	if (__glcStringListInit(&master->faceList, inState)) {
 	    free(master->family);
@@ -211,8 +208,13 @@ static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState)
 	}
 
 	master->charListCount = 0;
+	/* use file extension to determine the face format */
 	master->masterFormat = NULL;
-	master->vendor = NULL;
+	if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
+	    master->masterFormat = format1;
+	if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
+	    master->masterFormat = format2;
+	master->vendor = (GLCchar *)strdup(inVendorName);
 	master->version = NULL;
 	master->isFixedPitch = face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? GL_TRUE : GL_FALSE;
 	master->minMappedCode = 0;
@@ -257,6 +259,8 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 	int numFaces = 0;
 	int j = 0;
 	char *desc = NULL;
+	char *end = NULL;
+	char *ext = NULL;
 	__glcMaster *master;
 	
 	/* get the file name */
@@ -270,6 +274,21 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 	strncat(path, "/", 1);
 	strncat(path, buffer, strlen(buffer));
 
+	/* get the vendor name */
+	end = (char *)__glcFindIndexList(desc, 1, "-");
+	if (end)
+	    end[-1] = 0;
+
+	/* get the extension of the file */
+	if (desc)
+	    ext = desc - 3;
+	else
+	    ext = buffer + (strlen(buffer) - 1);
+	while ((*ext != '.') && (end - buffer))
+	    ext--;
+	if (ext != buffer)
+	    ext++;
+	
 	/* open the font file and read it */
 	if (!FT_New_Face(library, path, 0, &face)) {
 	    numFaces = face->num_faces;
@@ -286,7 +305,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 	    if (j < inState->masterCount)
 		master = inState->masterList[j];
 	    else {
-		master = __glcCreateMaster(face, inState);
+		master = __glcCreateMaster(face, inState, desc, ext);
 		if (!master) {
 		    FT_Done_Face(face);
 		    __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -384,6 +403,7 @@ void __glcDeleteMaster(GLint inMaster, __glcContextState *inState) {
     __glcStringListDelete(&master->faceList);
     __glcStringListDelete(&master->faceFileName);
     free(master->family);
+    free(master->vendor);
     
     for (i = 0; i < GLC_MAX_FONT; i++) {
 	if (inState->fontList[i]) {
