@@ -36,6 +36,28 @@ void glcDataPointer(GLvoid *inPointer)
     state->dataPointer = inPointer;
 }
 
+void glcDeleteGLObjects(void)
+{
+    __glcContextState *state = NULL;
+    int i = 0;
+
+    state = __glcGetCurrentState();
+    if (!state) {
+	__glcRaiseError(GLC_STATE_ERROR);
+	return;
+    }
+
+    /* Deletes display lists */
+    for (i = 0; i < state->listObjectCount; i++)
+	glDeleteLists(state->listObjectList[i], 1);
+
+    /* Deletes texture objects */
+    glDeleteTextures(state->textureObjectCount, state->textureObjectList);
+
+    state->listObjectCount = 0;
+    state->textureObjectCount = 0;
+}
+
 static void __glcDisable(GLCenum inAttrib, GLboolean value)
 {
     __glcContextState *state = NULL;
@@ -378,11 +400,5 @@ void glcStringType(GLCenum inStringType)
     }
 
     state->stringType = inStringType;
-    return;
-}
-
-/* TODO This funcs are not implemented */
-void glcDeleteGLObjects(void)
-{
     return;
 }
