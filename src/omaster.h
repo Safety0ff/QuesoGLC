@@ -26,7 +26,7 @@
 #include FT_FREETYPE_H
 #include "GL/glc.h"
 #include "constant.h"
-#include "ostrlst.h"
+#include "ounichar.h"
 
 typedef struct {
 	__glcUniChar* fileName;

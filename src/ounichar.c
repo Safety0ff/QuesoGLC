@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -204,7 +204,7 @@ GLCchar* __glcUniConvert(__glcUniChar *This, GLCchar* dest, int inType,
   uniChar c1, c2;
   size_t length = 0;
   int charSize = lenType(inType);
-  char buffer[GLC_STRING_CHUNK];
+  char buffer[1024]; /* Arf!!! Hard-coded size !!! FIXMEEEEEEEE */
   unsigned int i = 0, j = 0;
 
   if (inType == This->type)

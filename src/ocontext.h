@@ -31,7 +31,6 @@
 #include "constant.h"
 #include "ofont.h"
 #include "omaster.h"
-#include "ostrlst.h"
 
 typedef struct {
   GLboolean isCurrent;
