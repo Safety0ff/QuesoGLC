@@ -8,6 +8,8 @@
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
 
+#define GLC_TEXTURE_SIZE 64
+
 static GLint __glcLookupFont(GLint inCode)
 {
     GLint i = 0;
@@ -91,10 +93,10 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     GLint EM_size = face->units_per_EM;
 
     /* compute glyph dimensions */
-    matrix.xx = inState->bitmapMatrix[0] * 65536. / EM_size;
-    matrix.xy = inState->bitmapMatrix[2] * 65536. / EM_size;
-    matrix.yx = inState->bitmapMatrix[1] * 65536. / EM_size;
-    matrix.yy = inState->bitmapMatrix[3] * 65536. / EM_size;
+    matrix.xx = (FT_Fixed) (inState->bitmapMatrix[0] * 65536. / EM_size);
+    matrix.xy = (FT_Fixed) (inState->bitmapMatrix[2] * 65536. / EM_size);
+    matrix.yx = (FT_Fixed) (inState->bitmapMatrix[1] * 65536. / EM_size);
+    matrix.yy = (FT_Fixed) (inState->bitmapMatrix[3] * 65536. / EM_size);
     
     FT_Outline_Transform(&outline, &matrix);
     FT_Outline_Get_CBox(&outline, &boundBox);
@@ -141,8 +143,104 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     free(pixmap.buffer);
 }
 
-static void __glcRenderCharTexture(GLint inGlyphIndex, __glcFont* inFont, __glcContextState* inState)
+static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState)
 {
+    FT_Matrix matrix;
+    FT_Face face = inFont->face;
+    FT_Outline outline = face->glyph->outline;
+    FT_BBox boundBox;
+    FT_Bitmap pixmap;
+    GLint EM_size = face->units_per_EM;
+    GLuint texture = 0;
+    GLfloat width = 0, height = 0;
+    GLint format = 0;
+
+    glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, GLC_TEXTURE_SIZE,
+	GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+    glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &format);
+    if (!format) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    /* compute glyph dimensions */
+    matrix.xx = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / EM_size);
+    matrix.xy = 0;
+    matrix.yx = 0;
+    matrix.yy = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / EM_size);
+    
+    FT_Outline_Transform(&outline, &matrix);
+    FT_Outline_Get_CBox(&outline, &boundBox);
+    
+    boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
+    boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
+    boundBox.xMax = (boundBox.xMax + 32) & -64;	/* ceiling(xMax) */
+    boundBox.yMax = (boundBox.yMax + 32) & -64;	/* ceiling(yMax) */
+    
+    width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64);
+    height = (GLfloat)((boundBox.yMax - boundBox.yMin) / 64);
+    pixmap.width = GLC_TEXTURE_SIZE;
+    pixmap.rows = GLC_TEXTURE_SIZE;
+    pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
+    
+    /* Fill the pixmap descriptor and the pixmap buffer */
+    pixmap.pixel_mode = ft_pixel_mode_grays;	/* Anti-aliased rendering */
+    pixmap.num_grays = 256;
+    pixmap.buffer = (GLubyte *)malloc(pixmap.rows * pixmap.pitch);
+    if (!pixmap.buffer) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    /* fill the pixmap buffer with the background color */
+    memset(pixmap.buffer, 0, pixmap.rows * pixmap.pitch);
+
+    /* Flip the picture */
+    pixmap.pitch = - pixmap.pitch;
+    
+    /* translate the outline to match (0, 0) with the glyph's lower left corner */
+    FT_Outline_Translate(&outline, -boundBox.xMin, -boundBox.yMin);
+    
+    /* render the glyph */
+    if (FT_Outline_Get_Bitmap(library, &outline, &pixmap)) {
+	free(pixmap.buffer);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+
+    /* TODO : Add the texture object to the GLC_TEXTURE_OBJECT_LIST */
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, GLC_TEXTURE_SIZE, GLC_TEXTURE_SIZE,
+	0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixmap.buffer);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    glBegin(GL_QUADS);
+	glTexCoord2f(0., 0.);
+	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
+		boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
+	glTexCoord2f(width / GLC_TEXTURE_SIZE, 0.);
+	glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
+		boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
+	glTexCoord2f(width / GLC_TEXTURE_SIZE, height / GLC_TEXTURE_SIZE);
+	glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
+		boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
+	glTexCoord2f(0., height / GLC_TEXTURE_SIZE);
+	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
+		boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
+    glEnd();
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glTranslatef(face->glyph->advance.x * inState->bitmapMatrix[0] / EM_size / 64., 
+	face->glyph->advance.x * inState->bitmapMatrix[1] / EM_size / 64., 0.);
+    
+    free(pixmap.buffer);
 }
 
 static void __glcRenderChar(GLint inCode, GLint inFont)
@@ -168,7 +266,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 	    __glcRenderCharBitmap(font, state);
 	    return;
 	case GLC_TEXTURE:
-	    __glcRenderCharTexture(glyphIndex, font, state);
+	    __glcRenderCharTexture(font, state);
 	    return;
 	case GLC_LINE:
 	case GLC_TRIANGLE:
@@ -238,12 +336,8 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
 
     /* FIXME : use Unicode instead of ASCII */
 
-    /* Save current GL state */
-    for (i = 0; i < inCount; i++) {
+    for (i = 0; i < inCount; i++)
 	glcRenderChar(s[i]);
-	/* Advance pen for next character */
-    }
-    /* Restore current GL state */
 }
 
 void glcRenderString(const GLCchar *inString)
