@@ -4,36 +4,60 @@
  */
  
 /** \mainpage QuesoGLC
+\section whatisglc What is GLC ?
+The OpenGL Character Renderer (GLC) is a state machine that provides OpenGL
+programs with character rendering services via an application programmming
+interface (API).
 
-\section description Description
+The character rendering services provided by GLC has some significant
+advantages over platform specific interface such as GLX or WGL :
+-# The GLC API is platform independent. Since most nontrivial GL applications
+   render characters, GLC is an important step toward the goal of truly
+   portable GL applications.
+-# The GLC is simpler to use. Only two lines of GLC commands are required to
+   prepare for rendering characters.
+-# GLC provides more ways to exploit the rendering power of OpenGL. For
+   example, a glyph can be drawn as a bitmap, a set of lines, a set of
+   triangles, or a textured rectangle.
+-# GLC provides better support for glyph transformations. For example, GLC
+   supports rotated text, which is unavailable in GLX.
+-# GLC provides better support for the large coded character set defined by the
+   standards ISO/IEC 10646-1:1993 and Unicode 1.1
 
+\section whatisqglc What is QuesoGLC ?
 QuesoGLC is a free implementation of the OpenGL Character Renderer (GLC).
 QuesoGLC is based on the FreeType library, provides Unicode support and is
 designed to be easily ported on any platform that supports both FreeType and
 OpenGL.
 
-QuesoGLC is intended to be fully compliant with GLC specifications version 0.2
-Its development platform is Linux. However it is coded in pure ANSI C language,
-and should compile "out of the box" on every POSIX platform.
+QuesoGLC is free software; you can redistribute it and/or modify it under the
+terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option)
+any later version.
 
-\section news News
-\htmlonly
-<a href="http://sourceforge.net/export/projnews.php?group_id=53918&limit=5&show_summaries=1">news</a>
-\endhtmlonly
+QuesoGLC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE. See the
+<a href="http://www.gnu.org/copyleft/lesser.html">GNU Lesser General Public
+License</a> for more details.
 
-\section links Links
+Its development platform is Linux.
+\section requirements Requirements
+QuesoGLC is written in ANSI C and should compile with any C compiler that is
+compliant with ANSI C standards.
 
-<a href="http://www.opengl.org">OpenGL</a> \n
-<a href="http://www.opengl.org/documentation/spec.html">GLC specs</a> \n
-<a href="http://www.freetype.org">FreeType</a>
+<a href="http://www.opengl.org">OpenGL</a> and
+<a href="http://www.freetype.org">FreeType 2</a> are the only external
+dependencies.
 \n
 */
-/** \page tutorial GLC Tutorial
+/** \page tutorial Tutorial
 \section general General description
 GLC is a library that provides font services for OpenGL applications.
-When using GLC, there is no need to look for font directories, manage the font
-files, load and interpret glyph datas to render text, since GLC takes
-care of that for you.
+When using GLC, there is no need for you to look for font directories, manage
+the font files, load and interpret glyphs data, tesselate polygons, antialias
+characters and issue GL commands to render text, since GLC takes care of that
+for you.
 
 Although GLC is very easy to use, there are a few steps to follow in order
 to be ready to render text in your OpenGL application. This tutorial will
@@ -45,7 +69,7 @@ to the current thread before any GLC command can be issued. This task must be
 done by the program and GLC does not verify if this has been done. If you try
 to issue GLC commands while no GL context is current, the result of the
 commands is undefined.
-\section context The GLC contexts
+\section setupcontext Setting up a GLC context
 Just like OpenGL, GLC relies on the concept of context. A context is an
 entity that stores the state machine of GLC, that is, an entity that stores
 the font that is currently used, the type of rendering, the string encoding
@@ -86,7 +110,7 @@ command with a new context ID and if you want to release the current context
 without making a new context current, you just need to call \c glcContext(0);
 \note If your application is multi-threaded, you can bind a different context
 to each thread. However a context can only be bound to one thread at a time.
-\section fontdir Fonts directories
+\section fontdir Adding font directories
 GLC grabs font files from directories that are called "catalogs" in the GLC
 specifications. Depending on the implementation, a GLC context may or may not
 have default directories where to look for font files and may or may not
@@ -213,11 +237,16 @@ need to use \c glTranslate() to locate the position where the text is to be
 rendered.
 \section whatmore What more ?
 This is a basic tutorial which has shown you how to render some text with GLC.
-However, you may want to change the code above in order to fit it to your
-needs. If so, the first place to look at is the 
-<a href="globals.html">reference documentation</a> which is provided with
-QuesoGLC. GLC provides a nice set of functions (all of them beginning with
-\c glcGet* ) to introspect a context and see which fonts are available.
+However, for the sake of clarity, no error has been checked in the example
+above. In GLC some functions returns a value and this value must be checked
+in order to verify that no error has occured. Nevertheless, the prefered
+way in GLC to check errors is to use glcGetError().
+
+If you want to change the code above in order to fit it to your needs, the
+first place to look at is the <a href="overview.html">reference documentation
+</a> which is provided with QuesoGLC. GLC provides a nice set of functions
+(all of them beginning with \c glcGet* ) to introspect a context and see, for
+instance, which fonts are available.
 
 The measurement commands have not been used in the example above but you may
 use them to get some basic metrics of a string in order to precisely locate
@@ -229,4 +258,146 @@ are not available in GLX.
 
 Finally, you can have a look at the tests and examples of QuesoGLC to learn
 how to use some GLC commands and which are their effect.
+ */
+
+/** \page overview Documentation overview
+\section preamble Preamble
+The documentation of QuesoGLC is based on the
+<a href="http://www.opengl.org/documentation/spec.html">GLC specs</a>.
+Therefore, the principles, functions, and generally speaking the API described
+hereafter apply to every implementation of GLC.
+
+If you are new to GLC, may be you should begin with the
+<a href="tutorial.html">tutorial</a> ?
+\section theoverview Overwiew
+A GLC \e client is a program that uses OpenGL (henceforth, "GL") and GLC. A GLC
+\e library is a subroutine library that implements GLC. Like the GL Utilities
+(GLU), GLC is implemented  on the client side of the GL client-server
+connection and performs all of its rendering by issuing GL commands.
+
+A GLC \e context is an instantiation of GLC. When a client thread issues a GLC
+command, the thread's \e current GLC context executes the command.
+
+A client can render a character by issuing the command glcRenderChar(). GLC
+finds a \e font that \e maps the character code to a character such as LATIN
+CAPITAL LETTER A, then uses one or more glyphs from the font to create a
+graphical \e layout that represents the character. Finally, GLC issues a
+sequence of GL commands to draw the layout. Glyph coordinates are defined in
+\e em \e units and are transformed during rendering to produce the desired
+mapping of the glyph state into GL window coordinate system.
+
+In addition to commands for rendering, the GLC API includes measurement
+commands that return certain \e metrics (e.g. bounding box) for a layout.
+Since the focus of GLC is on \e rendering and not \e modeling, the GLC API
+does not provide access to glyph shape data.
+
+A font is a stylistically consistent set of glyphs that can be used to render
+some set of characters. Each font has a \e family name (e.g. Palatino) and a
+state variable that selects one of the \e faces (e.g. Regular, Italic, Bold,
+Bold Italic) that the font contains. A \e typeface is the combination of a
+family and a face (e.g. Palatino Bold).
+
+A font is an instantiation of a \e master, which is a representation of the
+font that is stored outside of GLC in a standard format such as \e TrueType or
+\e Type1. A \e catalog is a named list of masters, which may be implemented as
+a file system directory containing master files. A list of catalog names
+defines the list of masters that can be instantiated in a GLC context.
+
+Before issuing a GLC rendering command a client must issue GL commands directly
+to establish a GL state such that the GL commands issued by GLC produce the
+desired result. For example, before issuing a glcRenderChar() command a client
+may issue \b glColor and \b glRasterPos commands to establish the color and
+origin of the resulting layout.
+*/
+
+/**\page machinedef Machine definition
+\section datatypes Data types
+GLC uses GL data types and defines additional types, which are listed in the table below
+<center>
+<table>
+<caption>GLC data types</caption>
+  <tr>
+    <td>Type</td> <td>Definition</td>
+  </tr>
+  <tr>
+    <td><b>GLCchar</b></td> <td>Character code array element</td>
+  </tr>
+  <tr>
+    <td><b>GLCenum</b></td> <td>32 bits enumerant</td>
+  </tr>
+  <tr>
+    <td><b>GLCfunc</b></td> <td>Callback function pointer</td>
+  </tr>
+</table>
+</center>
+\section errors Errors
+Each client thread has a private GLC error code variable of type \b GLCenum.
+The initial value of this variable is \b GLC_NONE, the command stores the
+error's code in the variable.
+
+If a GLC command raises an error, the command will have no effect except the
+possible storing of the error's code. GLC error semantics apply only to GLC
+errors and not to GL errors or system errors (e.g. memory access errors) that
+occur during GLC command execution.
+
+Every GLC command execution begins with a test to determine if the command
+parameters are valid. If this test fails, the command raises
+\b GLC_PARAMETER_ERROR. Otherwise, GLC performs a test to determine if its
+state is such that the command is valid. If this test fails, the command
+raises \b GLC_STATE_ERROR. Otherwise, command execution proceeds. If at any
+point during command execution a needed resource (e.g. memory) is unavailable,
+the command raises \b GLC_RESOURCE_ERROR.
+\section contexts Contexts
+Each GLC context has a nonzero ID of type \b GLint. When a client is linked
+with a GLC library, the library maintains a list of IDs that contains one entry
+for each of the client's GLC contexts. This list is initially empty.
+
+Each client thread has a private GLC context ID variable that always contains
+either the value zero, indicating that the thread has no current thread. It is
+not possible for a GLC context to be current simultaneously to multiple
+threads.
+
+With the exception of the per-thread GLC error code and context ID variables,
+all of the GLC state variables that are used during execution of a GLC command
+are stored in the issuing thread's current GLC context.
+
+Each GLC command belongs to one of the following categories : Global, Context,
+Master, Font, Transformation, Rendering and Measurement. Global commands do
+not use GLC context state variables and can therefore be executed successfully
+if the issuing thread has no current GLC context. All other GLC commands raise
+\b GLC_STATE_ERROR if the issuing thread has no current GLC context.
+
+This document identifies explicitly the situations in which GLC may issue GL
+commands. In some GL implementations, the execution behavior of a GL command
+is defined only if the GL client has previously created a GL context and made
+it current to the issuing thread. It is the responsability of the GLC client to
+set up the underlying GL implementation such that whenever GLC issues a GL
+command, the execution behavior of that command is defined.
+
+The behavior of GLC depends on the extension set and version of the underlying
+GL implementation. When a GLC context is made current to a thread, GLC issues
+the commands
+\code
+glGetString(GL_VERSION);
+glGetString(GL_EXTENSIONS);
+\endcode
+and stores the returned strings.
+\section charcodes Character codes
+Except where otherwise specified, every character code in GLC is an element
+of the Universal Multiple-Octet Coded Character Set (UCS) defined by the
+standards ISO/IEC 10646-1:1993 and Unicode 1.1. A UCS code is denoted as
+U+<em>hexocde</em>, where \e hexcode is a sequence of hexadecimal digits. Each
+UCS code corresponds to a character that has a unique name string. For
+example, the code U+41 corresponds to the character LATIN CAPITAL LETTER A.
+\section  constants Constants
+GLC defines a set of implementation specific constants. The integer constants
+\b GLC_VERSION_MAJOR and \b GLC_VERSION_MINOR identify the version of GLC
+that the implementation supports. These constants correspond to a version
+<em>A.B</em> of this document. If a new version breaks compatibility, the
+major version number \e A will be incremented by one. Otherwise, the minor
+version number \e B will be incremented by one.
+
+The string constant \b GLC_VENDOR identifies the vendor of the implementation.
+If the vendor offes a GL implementation, the value of \b GLC_VENDOR must equal
+the value of the GL implementation constant \b GL_VENDOR.
  */
