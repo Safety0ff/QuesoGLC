@@ -1,6 +1,0 @@
-/* Define if gcc version is greater or equal to 3 */
-#undef QUESOGLC_GCC3
-/* Define if pthreads are to be used */
-#undef QUESOGLC_USE_THREAD
-/* Define if we are building a static library */
-#undef QUESOGLC_STATIC_LIBRARY
