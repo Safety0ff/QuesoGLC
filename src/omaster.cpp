@@ -40,11 +40,11 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   masterFormat = NULL;
   buffer = NULL;
 
-  faceList = new __glcStringList(NULL);
+  faceList = __glcStrLstCreate(NULL);
   if (!faceList)
     goto error;
 
-  faceFileName = new __glcStringList(NULL);
+  faceFileName = __glcStrLstCreate(NULL);
   if (!faceFileName)
     goto error;
 

@@ -25,7 +25,7 @@
 #include "GL/glc.h"
 #include "constant.h"
 #include "btree.h"
-#include "strlst.h"
+#include "ostrlst.h"
 
 class __glcMaster {
  public:

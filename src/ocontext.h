@@ -29,7 +29,7 @@
 #include "constant.h"
 #include "ofont.h"
 #include "omaster.h"
-#include "strlst.h"
+#include "ostrlst.h"
 
 extern "C" {
   void __glcInitLibrary(void);

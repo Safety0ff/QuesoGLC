@@ -88,13 +88,13 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
     }
   case GLC_FACE_LIST:
     /* Verify if inIndex is in legal bounds */
-    if ((inIndex < 0) || (inIndex >= master->faceList->getCount())) {
+    if ((inIndex < 0) || ((GLuint)inIndex >= master->faceList->count)) {
       __glcContextState::raiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
     else {
       /* Get the face name */
-      s = master->faceList->findIndex(inIndex);
+      s = __glcStrLstFindIndex(master->faceList, inIndex);
       break;
     }
   }
@@ -145,13 +145,13 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   master = state->masterList[inMaster];
 
   /* We search for a font file that supports the requested inCode glyph */
-  for (i = 0; i < master->faceFileName->getCount(); i++) {
+  for (i = 0; (GLuint)i < master->faceFileName->count; i++) {
     /* Copy the Unicode string into a buffer
      * NOTE : we do not change the encoding format (or string type) of the file
      *        name since we suppose that the encoding format of the OS has not
      *        changed since the user provided the file name
      */
-    s = master->faceFileName->findIndex(i);
+    s = __glcStrLstFindIndex(master->faceFileName, i);
     buffer = state->queryBuffer(__glcUniLenBytes(s));
     if (!buffer) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
@@ -185,7 +185,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   /* We have looked for the glyph in every font files of the master but did
    * not find a matching glyph => QUIT !!
    */
-  if (i == master->faceFileName->getCount())
+  if ((GLuint)i == master->faceFileName->count)
     if (face) {
       FT_Done_Face(face);
       face = NULL;
@@ -340,7 +340,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   case GLC_CHAR_COUNT:
     return master->charListCount;
   case GLC_FACE_COUNT:
-    return master->faceList->getCount();
+    return master->faceList->count;
   case GLC_IS_FIXED_PITCH:
     return master->isFixedPitch;
   case GLC_MAX_MAPPED_CODE:
@@ -406,7 +406,7 @@ void glcRemoveCatalog(GLint inIndex)
   }
 
   /* Verify that the parameter inIndex is in legal bounds */
-  if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
+  if ((inIndex < 0) || ((GLuint)inIndex >= state->catalogList->count)) {
     __glcContextState::raiseError(GLC_PARAMETER_ERROR);
     return;
   }

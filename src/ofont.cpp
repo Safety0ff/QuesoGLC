@@ -23,7 +23,7 @@
 
 __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
 {
-  __glcUniChar *s = inParent->faceFileName->findIndex(0);
+  __glcUniChar *s = __glcStrLstFindIndex(inParent->faceFileName, 0);
   GLCchar *buffer = NULL;
   __glcContextState *state = __glcContextState::getCurrent();
 

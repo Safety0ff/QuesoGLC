@@ -174,7 +174,7 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
   }
 
   /* Get the face ID of the face identified by the string inFace */
-  faceID = font->parent->faceList->getIndex(&UinFace);
+  faceID = __glcStrLstGetIndex(font->parent->faceList, &UinFace);
   if (faceID == -1)
     return GL_FALSE;
 
@@ -186,7 +186,7 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
    *        removed in the near future but is kept for now in order to
    *        prevent illegal accesses to __glcUniChar's 'ptr'.
    */
-  s = font->parent->faceFileName->findIndex(faceID);
+  s = __glcStrLstFindIndex(font->parent->faceFileName, faceID);
   buffer = inState->queryBuffer(__glcUniLenBytes(s));
   if (!buffer) {
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
@@ -435,7 +435,8 @@ const GLCchar* glcGetFontFace(GLint inFont)
   __glcContextState *state = __glcContextState::getCurrent();
 
   if (font) {
-    __glcUniChar *s = font->parent->faceList->findIndex(font->faceID);
+    __glcUniChar *s = __glcStrLstFindIndex(font->parent->faceList, 
+					   font->faceID);
     GLCchar *buffer = NULL;
 
     /* Convert the string name of the face into the current string type */

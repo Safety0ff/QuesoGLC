@@ -24,28 +24,25 @@
 #include <stdlib.h>
 
 #include "GL/glc.h"
-#include "unichar.h"
+#include "ounichar.h"
 
 #define GLC_STRING_CHUNK	256
 
-class __glcStringList {
+typedef struct __glcStringList__ {
   __glcUniChar* string;	/* Pointer to the string */
-  __glcStringList* next;
+  struct __glcStringList__* next;
   GLuint count;
+} __glcStringList;
 
- public:
-  inline GLint getCount(void) { return count; }
-
-  __glcStringList(__glcUniChar* inString);
-  ~__glcStringList();
-  GLint append(__glcUniChar* inString);
-  GLint prepend(__glcUniChar* inString);
-  GLint remove(__glcUniChar* inString);
-  GLint removeIndex(GLuint inIndex);
-  __glcUniChar* find(__glcUniChar* inString);
-  __glcUniChar* findIndex(GLuint inIndex);
-  GLint getIndex(__glcUniChar* inString);
-  GLint convert(int inType);
-};
+__glcStringList* __glcStrLstCreate(__glcUniChar* inString);
+void __glcStrLstDestroy(__glcStringList* This);
+GLint __glcStrLstAppend(__glcStringList* This, __glcUniChar* inString);
+GLint __glcStrLstPrepend(__glcStringList* This, __glcUniChar* inString);
+GLint __glcStrLstRemove(__glcStringList* This, __glcUniChar* inString);
+GLint __glcStrLstRemoveIndex(__glcStringList* This, GLuint inIndex);
+__glcUniChar* __glcStrLstFind(__glcStringList* This, __glcUniChar* inString);
+__glcUniChar* __glcStrLstFindIndex(__glcStringList* This, GLuint inIndex);
+GLint __glcStrLstGetIndex(__glcStringList* This, __glcUniChar* inString);
+GLint __glcStrLstConvert(__glcStringList* This, int inType);
 
 #endif /* __glc_strlst_h */

@@ -53,7 +53,7 @@ __glcContextState::__glcContextState(GLint inContext)
   }
   FT_Add_Default_Modules(library);
 
-  catalogList = new __glcStringList(NULL);
+  catalogList = __glcStrLstCreate(NULL);
   if (!catalogList) {
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
@@ -437,7 +437,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       if (!FT_New_Face(library, path, j, &face)) {
 	s.ptr = face->style_name;
 	s.type = GLC_UCS1;
-	if (!master->faceList->find(&s))
+	if (!__glcStrLstFind(master->faceList, &s))
 	  /* The current face in the font file is not already loaded in a
 	   * master : Append (or prepend) the new face and its file name to
 	   * the master.
@@ -448,18 +448,18 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 	   */
 	  if (!__glcUpdateCharList(master, face)) {
 	    if (inAppend) {
-	      if (master->faceList->append(&s))
+	      if (__glcStrLstAppend(master->faceList, &s))
 		break;
-	      if (master->faceFileName->append(&sp)) {
-		master->faceList->remove(&s);
+	      if (__glcStrLstAppend(master->faceFileName, &sp)) {
+		__glcStrLstRemove(master->faceList, &s);
 		break;		    
 	      }
 	    }
 	    else {
-	      if (master->faceList->prepend(&s))
+	      if (__glcStrLstPrepend(master->faceList, &s))
 		break;
-	      if (master->faceFileName->prepend(&sp)) {
-		master->faceList->remove(&s);
+	      if (__glcStrLstPrepend(master->faceFileName, &sp)) {
+		__glcStrLstRemove(master->faceList, &s);
 		break;		    
 	      }
 	    }
@@ -481,13 +481,13 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   s.ptr = (GLCchar*)inCatalog;
   s.type = GLC_UCS1;
   if (inAppend) {
-    if (catalogList->append(&s)) {
+    if (__glcStrLstAppend(catalogList, &s)) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
   }
   else {
-    if (catalogList->prepend(&s)) {
+    if (__glcStrLstPrepend(catalogList, &s)) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
@@ -511,7 +511,8 @@ void __glcContextState::removeMasters(GLint inIndex)
   __glcUniChar s;
 
   /* TODO : use Unicode instead of ASCII */
-  strncpy(buffer, (const char*)catalogList->findIndex(inIndex), 256);
+  strncpy(buffer, (const char*)__glcStrLstFindIndex(catalogList, inIndex),
+	  256);
   strncpy(path, buffer, 256);
   strncat(path, fileName, strlen(fileName));
 
@@ -546,7 +547,7 @@ void __glcContextState::removeMasters(GLint inIndex)
 	continue;
       s.ptr = buffer;
       s.type = GLC_UCS1;
-      index = master->faceFileName->getIndex(&s);
+      index = __glcStrLstGetIndex(master->faceFileName, &s);
       if (!index)
 	continue; // The file is not in the current master, try the next one
 
@@ -568,15 +569,15 @@ void __glcContextState::removeMasters(GLint inIndex)
 	}
       }
 
-      master->faceFileName->removeIndex(index); // Remove the file name
-      master->faceList->removeIndex(index); // Remove the face
+      __glcStrLstRemoveIndex(master->faceFileName, index); // Remove the file name
+      __glcStrLstRemoveIndex(master->faceList, index); // Remove the face
 
       /* FIXME :Characters from the font should be removed from the char list */
 
       /* If the master is empty (i.e. does not contain any face) then
        * remove it.
        */
-      if (!master->faceFileName->getCount()) {
+      if (!master->faceFileName->count) {
 	delete master;
 	master = NULL;
 	masterCount--;

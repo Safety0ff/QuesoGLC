@@ -19,7 +19,7 @@
 /* $Id$ */
 #include <stdio.h>
 #include "internal.h"
-#include "unichar.h"
+#include "ounichar.h"
 
 
 typedef union {
