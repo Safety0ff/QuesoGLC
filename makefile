@@ -11,30 +11,13 @@ ifdef DEBUGMODE
 LDFLAGS += -lefence
 endif
 LIBRARY = lib/libglc.a
-OBJECTS = tests/testcommon tests/teststrlst tests/testmaster tests/testfont tests/testrender tests/testcontex tests/glclogo
+OBJECTS = obj/common.o tests/testcommon tests/teststrlst tests/testmaster tests/testfont \
+	tests/testrender tests/testcontex
 
 all: $(OBJECTS) $(LIBRARY)
 
-tests/testcommon :  obj/common.o tests/testcommon.c
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-tests/teststrlst :  obj/common.o tests/teststrlst.c $(LIBRARY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-tests/testmaster :  obj/common.o tests/testmaster.c $(LIBRARY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-tests/testfont :  obj/common.o tests/testfont.c $(LIBRARY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-tests/testrender :  obj/common.o tests/testrender.c $(LIBRARY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-tests/glclogo :  obj/context.o tests/glclogo.c $(LIBRARY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
-
-tests/testcontex :  obj/common.o tests/testcontex.c $(LIBRARY)
-	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+tests/% :  tests/%.c $(LIBRARY)
+	$(CC) $(CFLAGS) obj/common.o $^ -o $@ $(LDFLAGS)
 
 obj/%.o : tests/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
