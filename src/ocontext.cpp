@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "ocontext.h"
 #include "internal.h"
 
@@ -61,7 +63,6 @@ __glcContextState::__glcContextState(GLint inContext)
 
     for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
 	textureObjectList[j] = 0;
-
 }
 
 __glcContextState::~__glcContextState()
@@ -80,8 +81,10 @@ __glcContextState::~__glcContextState()
   }
     
   for (i = 0; i < GLC_MAX_MASTER; i++) {
-    if (masterList[i])
-      __glcDeleteMaster(i, this);
+    if (masterList[i]) {
+      delete masterList[i];
+      masterList[i] = NULL;
+    }
   }
     
   glcDeleteGLObjects();
@@ -229,4 +232,220 @@ GLboolean __glcContextState::isContext(GLint inContext)
   __glcContextState *state = getState(inContext);
 
   return (state ? GL_TRUE : GL_FALSE);
+}
+
+void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
+{
+    const char* fileName = "/fonts.dir";
+    char *s = (char *)inCatalog;
+    char buffer[256];
+    char path[256];
+    int numFontFiles = 0;
+    int i = 0;
+    FILE *file;
+
+    /* TODO : use Unicode instead of ASCII */
+    strncpy(path, s, 256);
+    strncat(path, fileName, strlen(fileName));
+    
+    /* Open 'fonts.dir' */
+    file = fopen(path, "r");
+    if (!file) {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    /* Read the # of font files */
+    fgets(buffer, 256, file);
+    numFontFiles = strtol(buffer, NULL, 10);
+    
+    for (i = 0; i < numFontFiles; i++) {
+	FT_Face face = NULL;
+	int numFaces = 0;
+	int j = 0;
+	char *desc = NULL;
+	char *end = NULL;
+	char *ext = NULL;
+	__glcMaster *master = NULL;
+	
+	/* get the file name */
+	fgets(buffer, 256, file);
+	desc = (char *)__glcFindIndexList(buffer, 1, " ");
+	if (desc) {
+	    desc[-1] = 0;
+	    desc++;
+	}
+	strncpy(path, s, 256);
+	strncat(path, "/", 1);
+	strncat(path, buffer, strlen(buffer));
+
+	/* get the vendor name */
+	end = (char *)__glcFindIndexList(desc, 1, "-");
+	if (end)
+	    end[-1] = 0;
+
+	/* get the extension of the file */
+	if (desc)
+	    ext = desc - 3;
+	else
+	    ext = buffer + (strlen(buffer) - 1);
+	while ((*ext != '.') && (end - buffer))
+	    ext--;
+	if (ext != buffer)
+	    ext++;
+	
+	/* open the font file and read it */
+	if (!FT_New_Face(__glcContextState::library, path, 0, &face)) {
+	    numFaces = face->num_faces;
+	    
+	    /* If the face has no Unicode charmap, skip it */
+	    if (FT_Select_Charmap(face, ft_encoding_unicode))
+		continue;
+	    
+	    for (j = 0; j < masterCount; j++) {
+		if (!strcmp(face->family_name, (const char*)masterList[j]->family))
+		    break;
+	    }
+	    
+	    if (j < masterCount)
+		master = masterList[j];
+	    else {
+
+	      if (masterCount < GLC_MAX_MASTER - 1) {
+		master = new __glcMaster(face, desc, ext, masterCount, stringType);
+		if (!master) {
+		    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+		    continue;
+		}
+		masterList[masterCount++] = master;
+	      }
+	      else
+		__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	    }
+	    
+	    FT_Done_Face(face);
+	}
+	else {
+	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	    continue;
+	}
+
+	for (j = 0; j < numFaces; j++) {
+	    if (!FT_New_Face(__glcContextState::library, path, j, &face)) {
+		if (master->faceList->find(face->style_name))
+		    continue;
+		else {
+		    /* FIXME : 
+		       If there are several faces into the same file then we
+		       should indicate it inside faceFileName
+		     */
+		    if (inAppend) {
+			if (master->faceList->append(face->style_name))
+			    break;
+			if (master->faceFileName->append(path)) {
+			    master->faceList->remove(face->style_name);
+			    break;		    
+			}
+		    }
+		    else {
+			if (master->faceList->prepend(face->style_name))
+			    break;
+			if (master->faceFileName->prepend(path)) {
+			    master->faceList->remove(face->style_name);
+			    break;		    
+			}
+		    }
+		}
+		
+	    }
+	    else {
+		__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+		continue;
+	    }
+	    FT_Done_Face(face);
+	}
+    }
+    
+    if (inAppend) {
+      if (catalogList->append(inCatalog)) {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
+    }
+    else {
+      if (catalogList->prepend(inCatalog)) {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
+    }
+
+    fclose(file);
+}
+
+void __glcContextState::removeMasters(GLint inIndex)
+{
+    const char* fileName = "/fonts.dir";
+    char buffer[256];
+    char path[256];
+    int numFontFiles = 0;
+    int i = 0;
+    FILE *file;
+
+    /* TODO : use Unicode instead of ASCII */
+    strncpy(buffer, (const char*)catalogList->extract(inIndex, buffer, 256), 256);
+    strncpy(path, buffer, 256);
+    strncat(path, fileName, strlen(fileName));
+    
+    /* Open 'fonts.dir' */
+    file = fopen(path, "r");
+    if (!file) {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    /* Read the # of font files */
+    fgets(buffer, 256, file);
+    numFontFiles = strtol(buffer, NULL, 10);
+    
+    for (i = 0; i < numFontFiles; i++) {
+	int j = 0;
+	char *desc = NULL;
+	GLint index = 0;
+	
+	/* get the file name */
+	fgets(buffer, 256, file);
+	desc = (char *)__glcFindIndexList(buffer, 1, " ");
+	if (desc) {
+	    desc[-1] = 0;
+	    desc++;
+	}
+
+	for (j = 0; j < GLC_MAX_MASTER; j++) {
+	  __glcMaster *master = masterList[j];
+	    if (!master)
+		continue;
+	    index = master->faceFileName->getIndex(buffer);
+	    if (index) {
+		master->faceFileName->removeIndex(index);
+		master->faceList->removeIndex(index);
+		/* Characters from the font should be removed from the char list */
+	    }
+	    if (!master->faceFileName->getCount()) {
+
+	      for (i = 0; i < GLC_MAX_FONT; i++) {
+		if (fontList[i]) {
+		  if (fontList[i]->parent == master)
+		    glcDeleteFont(i + 1);
+		}
+	      }
+
+	      delete master;
+	      master = NULL;
+	      masterCount--;
+	    }
+	}
+    }
+    
+    fclose(file);
+    return;
 }

@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+  /* extern char* strdup(const char *s); */
+
 typedef struct {
   GLint face;
   GLint code;
@@ -21,9 +23,6 @@ extern GLint __glcGetFont(GLint inCode);
 
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyKey, destroyFunc destroyData, compareFunc compare, GLboolean inFill);
-
-/* Master helpers */
-extern void __glcDeleteMaster(GLint inMaster, __glcContextState *inState);
 
 #ifdef __cplusplus
 }

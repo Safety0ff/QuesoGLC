@@ -17,8 +17,6 @@ void testQueso(void)
     ctx = glcGenContext();
     glcContext(ctx);
     
-    glcAppendCatalog("/usr/lib/X11/fonts/Type1");
-    
     font = glcNewFontFromFamily(glcGenFontID(), "Courier");
     glcFont(font);
     glcFontFace(font, "Italic");

@@ -101,3 +101,15 @@ Arbitrary choices:
   management of the display lists (QuesoGLC uses binay trees which are not
   convenient to keep track of the order in which display lists have been
   created).
+
+- GLC specifications allows any implementation to load some "default masters"
+  during the initialization. This feature allows the user to access to some
+  default fonts like "Times" or "Courier", even if he did not call
+  glcAppendCatalog or glcPrependCatalog.
+  QuesoGLC is supposed to run on several different platforms. This portability
+  has a drawback : different platforms do not locate the font files to the same
+  place. So, in order to get rid of this limitation, QuesoGLC uses an
+  environment variable called GLC_PATH. This variable defines the path (in the
+  same format than PATH) to the directories which contain font files : each time
+  that glcGenContext is executed, QuesoGLC looks up in the directories listed
+  in GLC_PATH to find fonts files.

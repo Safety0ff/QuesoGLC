@@ -7,6 +7,7 @@
 
 #include "GL/glc.h"
 #include "ocontext.h"
+#include "internal.h"
 
 /** \ingroup global
   * Returns <b>GL_TRUE</b> if <i>inContext</i> is the ID of one of the client's
@@ -168,6 +169,9 @@ GLint glcGenContext(void)
 {
     int i = 0;
     __glcContextState *state = NULL;
+    char *path = NULL;
+    char *begin = NULL;
+    char *sep = NULL;
 
     pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
 
@@ -185,6 +189,23 @@ GLint glcGenContext(void)
     if (!state) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return 0;
+    }
+
+    // Read the GLC_PATH environment variable
+    if (getenv("GLC_PATH")) {
+      path = strdup(getenv("GLC_PATH"));
+      if (path) {
+	begin = path;
+	do {
+	  sep = (char *)__glcFindIndexList(begin, 1, ":");
+	  *(sep - 1) = 0;
+	  state->addMasters(begin, GL_TRUE);
+	  begin = sep;
+	} while (*sep);
+	free(path);
+      }
+      else
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
     }
 
     return i + 1;

@@ -65,6 +65,8 @@ class __glcContextState {
 
   __glcContextState(GLint inContext);
   ~__glcContextState();
+  void addMasters(const GLCchar* catalog, GLboolean append);
+  void removeMasters(GLint inIndex);
 
   static __glcContextState* getCurrent(void);
   static void raiseError(GLCenum inError);

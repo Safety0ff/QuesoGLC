@@ -11,8 +11,10 @@ BTree::BTree(void *inData, destroyFunc inDestroyFunc)
 
 BTree::~BTree()
 {
-  delete left;
-  delete right;
+  if (left)
+    delete left;
+  if (right)
+    delete right;
   if (destroy)
     destroy(data);
 }

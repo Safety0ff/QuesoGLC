@@ -48,8 +48,10 @@ void glcDeleteGLObjects(void)
     }
 
     /* Deletes display lists */
-    for (i = 0; i < state->masterCount; i++)
-      delete state->masterList[i]->displayList;
+    for (i = 0; i < state->masterCount; i++) {
+      if (state->masterList[i])
+	delete state->masterList[i]->displayList;
+    }
 
     /* Deletes texture objects */
     glDeleteTextures(state->textureObjectCount, state->textureObjectList);
