@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-/* Check GLC routines when no GL context has been bound */
+/* Check GLC routines in a multithreaded app when no GL context has been bound */
 
 pthread_mutex_t mutex;
 pthread_cond_t cond;
