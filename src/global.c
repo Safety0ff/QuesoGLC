@@ -382,8 +382,11 @@ void glcContext(GLint inContext)
     /* Is the context already current to a thread ? */
     if (state->isCurrent) {
       /* If the context is current to another thread => ERROR ! */
-      if (currentState->id != inContext)
+      if (!currentState)
 	__glcRaiseError(GLC_STATE_ERROR);
+      else
+	if (currentState->id != inContext)
+	  __glcRaiseError(GLC_STATE_ERROR);
 
       /* If we get there, this means that the context 'inContext'
        * is already current to one thread (whether it is the issuing thread
