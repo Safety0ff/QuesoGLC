@@ -15,6 +15,8 @@ void testQueso(void)
     ctx = glcGenContext();
     glcContext(ctx);
     
+    glcAppendCatalog("/usr/lib/X11/fonts/Type1");
+    
     printf("Catalogs : %d\nList : %s\n", glcGeti(GLC_CATALOG_COUNT), (const char *)glcGetListc(GLC_CATALOG_LIST, 0));
     
     numMasters = glcGeti(GLC_MASTER_COUNT);

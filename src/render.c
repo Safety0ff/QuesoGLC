@@ -11,78 +11,6 @@
 
 #define GLC_TEXTURE_SIZE 64
 
-static GLint __glcLookupFont(GLint inCode)
-{
-    GLint i = 0;
-    const GLint n = glcGeti(GLC_CURRENT_FONT_COUNT);
-    
-    for (i = 0; i < n; i++) {
-	const GLint font = glcGetListi(GLC_CURRENT_FONT_LIST, i);
-	if (glcGetFontMap(font, inCode))
-	    return font;
-    }
-    return 0;
-}
-
-static GLboolean __glcCallCallbackFunc(GLint inCode)
-{
-    GLCfunc callbackFunc = NULL;
-    GLboolean result = GL_FALSE;
-    __glcContextState *state = NULL;
-    
-    callbackFunc = glcGetCallbackFunc(GLC_OP_glcUnmappedCode);
-    if (!callbackFunc)
-	return GL_FALSE;
-
-    state = __glcContextState::getCurrent();
-    state->isInCallbackFunc = GL_TRUE;
-    result = (*callbackFunc)(inCode);
-    state->isInCallbackFunc = GL_FALSE;
-    
-    return result;
-}
-
-GLint __glcGetFont(GLint inCode)
-{
-    GLint font = 0;
-    
-    font = __glcLookupFont(inCode);
-    if (font)
-	return font;
-
-    if (__glcCallCallbackFunc(inCode)) {
-	font = __glcLookupFont(inCode);
-	if (font)
-	    return font;
-    }
-
-    if (glcIsEnabled(GLC_AUTO_FONT)) {
-	GLint i = 0;
-	GLint n = 0;
-	
-	n = glcGeti(GLC_FONT_COUNT);
-	for (i = 0; i < n; i++) {
-	    font = glcGetListi(GLC_FONT_LIST, i);
-	    if (glcGetFontMap(font, inCode)) {
-		glcAppendFont(font);
-		return font;
-	    }
-	}
-	
-	n = glcGeti(GLC_MASTER_COUNT);
-	for (i = 0; i < n; i++) {
-	    if (glcGetMasterMap(i, inCode)) {
-		font = glcNewFontFromMaster(glcGenFontID(), i);
-		if (font) {
-		    glcAppendFont(font);
-		    return font;
-		}
-	    }
-	}
-    }
-    return 0;
-}
-
 /* TODO : Render Bitmap fonts */
 static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
 {
@@ -410,20 +338,22 @@ void glcRenderChar(GLint inCode)
 {
     GLint repCode = 0;
     GLint font = 0;
-    
-    if (!glcGetCurrentContext()) {
+    __glcContextState *state = NULL;
+
+    state = __glcContextState::getCurrent();
+    if (!state) {
 	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
-    font = __glcGetFont(inCode);
+    font = state->getFont(inCode);
     if (font) {
 	__glcRenderChar(inCode, font);
 	return;
     }
 
     repCode = glcGeti(GLC_REPLACEMENT_CODE);
-    font = __glcGetFont(repCode);
+    font = state->getFont(repCode);
     if (repCode && font) {
 	__glcRenderChar(repCode, font);
 	return;
@@ -434,21 +364,21 @@ void glcRenderChar(GLint inCode)
 	GLint i = 0;
 	GLint n = 0;
 	
-	if (!__glcGetFont('\\') || !__glcGetFont('<') || !__glcGetFont('>'))
+	if (!state->getFont('\\') || !state->getFont('<') || !state->getFont('>'))
 	    return;
 
 	sprintf(buf,"%X", inCode);
 	n = strlen(buf);
 	for (i = 0; i < n; i++) {
-	    if (!__glcGetFont(buf[i]))
+	    if (!state->getFont(buf[i]))
 		return;
 	}
 	
-	__glcRenderChar('\\', __glcGetFont('\\'));
-	__glcRenderChar('<', __glcGetFont('<'));
+	__glcRenderChar('\\', state->getFont('\\'));
+	__glcRenderChar('<', state->getFont('<'));
 	for (i = 0; i < n; i++)
-	    __glcRenderChar(buf[i], __glcGetFont(buf[i]));
-	__glcRenderChar('>', __glcGetFont('>'));
+	    __glcRenderChar(buf[i], state->getFont(buf[i]));
+	__glcRenderChar('>', state->getFont('>'));
     }
 }
 

@@ -10,16 +10,13 @@
 extern "C" {
 #endif
 
-  /* extern char* strdup(const char *s); */
+extern char* strdup(const char *s);
 
 typedef struct {
   GLint face;
   GLint code;
   GLint renderMode;
 } __glcDisplayListKey;
-
-/* Font and rendering internal commands */
-extern GLint __glcGetFont(GLint inCode);
 
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyKey, destroyFunc destroyData, compareFunc compare, GLboolean inFill);

@@ -59,8 +59,7 @@ void glcDeleteFont(GLint inFont)
 
     __glcDeleteFont(inFont, state);
     font = state->fontList[inFont - 1];
-    FT_Done_Face(font->face);
-    free(font);
+    delete font;
     state->fontList[inFont - 1] = NULL;
     state->fontCount--;
 }
@@ -336,7 +335,6 @@ GLboolean glcIsFont(GLint inFont)
 static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextState *inState)
 {
     __glcFont *font = NULL;
-    char buffer[256];
 
     if ((inMaster < 0) || (inMaster >= inState->masterCount)) {
 	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
@@ -345,35 +343,14 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
 
     font = inState->fontList[inFont - 1];
     if (font) {
-	__glcDeleteFont(inFont, inState);
-	FT_Done_Face(font->face);
-    }
-    else {
-	font = (__glcFont *)malloc(sizeof(__glcFont));
-	font->id = inFont;
-	inState->fontList[inFont - 1] = font;
-	inState->fontCount++;
+      __glcDeleteFont(inFont, inState);
+      delete font;
     }
 
-    font->faceID = 0;
-    font->parent = inState->masterList[inMaster];
-    font->charMapCount = 0;
+    font = new __glcFont(inFont, inState->masterList[inMaster]);
+    inState->fontList[inFont - 1] = font;
+    inState->fontCount++;
 
-    if (FT_New_Face(__glcContextState::library, (const char*)font->parent->faceFileName->extract(0, buffer, 256), 0, &font->face)) {
-	/* Unable to load the face file, however this should not happen since
-	   it has been succesfully loaded when the master was created */
-	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
-	return 0;
-    }
-    
-    /* select a Unicode charmap */
-    if (FT_Select_Charmap(font->face, ft_encoding_unicode)) {
-	/* Arrghhh, no Unicode charmap is available. This should not happen
-	   since it has been tested at master creation */
-	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
-	return 0;
-    }
-    
     return inFont;
 }
 

@@ -449,3 +449,69 @@ void __glcContextState::removeMasters(GLint inIndex)
     fclose(file);
     return;
 }
+
+static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
+{
+    GLint i = 0;
+    
+    for (i = 0; i < inState->currentFontCount; i++) {
+	const GLint font = inState->currentFontList[i];
+	if (glcGetFontMap(font, inCode))
+	    return font;
+    }
+    return 0;
+}
+
+static GLboolean __glcCallCallbackFunc(GLint inCode, __glcContextState *inState)
+{
+    GLCfunc callbackFunc = NULL;
+    GLboolean result = GL_FALSE;
+    
+    callbackFunc = inState->callback;
+    if (!callbackFunc)
+	return GL_FALSE;
+
+    inState->isInCallbackFunc = GL_TRUE;
+    result = (*callbackFunc)(inCode);
+    inState->isInCallbackFunc = GL_FALSE;
+    
+    return result;
+}
+
+GLint __glcContextState::getFont(GLint inCode)
+{
+    GLint font = 0;
+    
+    font = __glcLookupFont(inCode, this);
+    if (font)
+	return font;
+
+    if (__glcCallCallbackFunc(inCode, this)) {
+	font = __glcLookupFont(inCode, this);
+	if (font)
+	    return font;
+    }
+
+    if (autoFont) {
+	GLint i = 0;
+	
+	for (i = 0; i < fontCount; i++) {
+	    font = glcGetListi(GLC_FONT_LIST, i);
+	    if (glcGetFontMap(font, inCode)) {
+		glcAppendFont(font);
+		return font;
+	    }
+	}
+	
+	for (i = 0; i < masterCount; i++) {
+	    if (glcGetMasterMap(i, inCode)) {
+		font = glcNewFontFromMaster(glcGenFontID(), i);
+		if (font) {
+		    glcAppendFont(font);
+		    return font;
+		}
+	    }
+	}
+    }
+    return 0;
+}

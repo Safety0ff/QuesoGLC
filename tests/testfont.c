@@ -12,8 +12,6 @@ void testQueso(void)
     ctx = glcGenContext();
     glcContext(ctx);
     
-    glcAppendCatalog("/usr/lib/X11/fonts/Type1");
-    
     glcFontFace(glcNewFontFromFamily(1, "Utopia"), "Bold");
     font = glcNewFontFromFamily(2, "Courier");
     glcFont(font);

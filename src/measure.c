@@ -92,12 +92,12 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 	return NULL;
     }
 
-    font = __glcGetFont(inCode);
+    font = state->getFont(inCode);
     if (font)
 	return __glcGetCharMetric(inCode, inMetric, outVec, font, state);
 
     repCode = glcGeti(GLC_REPLACEMENT_CODE);
-    font = __glcGetFont(repCode);
+    font = state->getFont(repCode);
     if (repCode && font)
 	return __glcGetCharMetric(repCode, inMetric, outVec, font, state);
 
