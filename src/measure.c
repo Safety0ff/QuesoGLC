@@ -18,10 +18,20 @@ static void __glcTransformVector(GLfloat* outVec, __glcContextState *inState)
 
 static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec, GLint inFont, __glcContextState *inState)
 {
-    FT_Face face = inState->fontList[inFont - 1]->face;
+    __glcFont *font = inState->fontList[inFont - 1];
+    FT_Face face = font->face;
     FT_Glyph_Metrics metrics = face->glyph->metrics;
     FT_Glyph glyph = NULL;
     FT_BBox boundBox;
+    GLint i = 0;
+    
+    /* TODO : use a dichotomic algo. instead*/
+    for (i = 0; i < font->charMapCount; i++) {
+	if (inCode == font->charMap[0][i]) {
+	    inCode = font->charMap[1][i];
+	    break;
+	}
+    }
     
     if (FT_Load_Char(face, inCode, FT_LOAD_NO_SCALE)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);

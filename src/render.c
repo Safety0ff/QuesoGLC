@@ -224,14 +224,14 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 		GLC_TEXTURE_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE,
 		pixmap.buffer);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     }
     else {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, GLC_TEXTURE_SIZE,
 		GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,
 		pixmap.buffer);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -266,6 +266,15 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
     __glcContextState *state = __glcGetCurrentState();
     __glcFont* font = state->fontList[inFont - 1];
     GLint glyphIndex = 0;
+    GLint i = 0;
+    
+    /* TODO : use a dichotomic algo. instead*/
+    for (i = 0; i < font->charMapCount; i++) {
+	if (inCode == font->charMap[0][i]) {
+	    inCode = font->charMap[1][i];
+	    break;
+	}
+    }
     
     if (FT_Set_Char_Size(font->face, 0, 1 << 16, state->resolution,  state->resolution)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
