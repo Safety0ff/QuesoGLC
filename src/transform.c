@@ -5,6 +5,8 @@
 #include "GL/glc.h"
 #include "internal.h"
 
+#define GLC_PI 3.1415926535
+
 void glcLoadIdentity(void)
 {
     __glcContextState *state = NULL;
@@ -56,7 +58,7 @@ void glcMultMatrix(const GLfloat *inMatrix)
 void glcRotate(GLfloat inAngle)
 {
     GLfloat tempMatrix[4];
-    GLfloat radian = inAngle * M_PI / 180.;
+    GLfloat radian = inAngle * GLC_PI / 180.;
     GLfloat sine = sin(radian);
     GLfloat cosine = cos(radian);
 
@@ -73,8 +75,8 @@ void glcScale(GLfloat inX, GLfloat inY)
     GLfloat tempMatrix[4];
 
     tempMatrix[0] = inX;
-    tempMatrix[1] = 1.;
-    tempMatrix[2] = 1.;
+    tempMatrix[1] = 0.;
+    tempMatrix[2] = 0.;
     tempMatrix[3] = inY;
     
     glcMultMatrix(tempMatrix);
