@@ -19,28 +19,30 @@
 /* $Id$ */
 
 /** \file
- *  defines the so-called "Global commands" described in chapter 3.4 of the GLC specs.
+ *  defines the so-called "Global commands" described in chapter 3.4 of the
+ *  GLC specs.
  */
 
 /** \defgroup global Global Commands
- *  Those commands do not use GLC context state variables and can therefore be executed successfully
- *  if the issuing thread has no current GLC context. 
+ *  Those commands do not use GLC context state variables and can therefore be
+ *  executed successfully if the issuing thread has no current GLC context. 
  *
- *  Each GLC context has a nonzero ID of type \b GLint. When a client is linked with a
- *  GLC library, the library maintains a list of IDs that contains one entry for each of
- *  the client's GLC contexts. The list is initially empty.
+ *  Each GLC context has a nonzero ID of type \b GLint. When a client is linked
+ *  with a GLC library, the library maintains a list of IDs that contains one
+ *  entry for each of the client's GLC contexts. The list is initially empty.
  *
- *  Each client thread has a private GLC context ID variable that always contains either
- *  the value zero, indicating that the thread has no current GLC context, or the ID of
- *  the thread's current GLC context. The initial value is zero.
+ *  Each client thread has a private GLC context ID variable that always
+ *  contains either the value zero, indicating that the thread has no current
+ *  GLC context, or the ID of the thread's current GLC context. The initial
+ *  value is zero.
  *
- *  When the ID of a GLC context is stored in the GLC context ID variable of a client
- *  thread, the context is said to be current to the thread. It is not possible for a
- *  GLC context to be current simultaneously to multiple threads. With the exception
- *  of the per-thread GLC error code and context ID variables, all of the GLC
- *  state variables that are used during the execution of a GLC command are stored
- *  in the issuing thread's current GLC context. To make a context current, call
- *  glcContext().
+ *  When the ID of a GLC context is stored in the GLC context ID variable of a
+ *  client thread, the context is said to be current to the thread. It is not
+ *  possible for a GLC context to be current simultaneously to multiple
+ *  threads.With the exception of the per-thread GLC error code and context ID
+ *  variables, all of the GLC state variables that are used during the
+ *  execution of a GLC command are stored in the issuing thread's current GLC
+ *  context. To make a context current, call glcContext().
  *
  *  When a client thread issues a GLC command, the thread's current GLC context
  *  executes the command.
@@ -49,8 +51,8 @@
  *  context are undefined. Because GLC issues GL commands, you must create a GL
  *  context and make it current before calling GLC.
  *
- *  All other GLC commands raise \b GLC_STATE_ERROR if the issuing thread has no current
- *  GLC context.
+ *  All other GLC commands raise \b GLC_STATE_ERROR if the issuing thread has
+ *  no current GLC context.
  */
 
 #include <stdlib.h>
@@ -233,10 +235,11 @@ void _init(void)
 
 
 /** \ingroup global
- *  This command checks whether \e inContext is the ID of one of the client's GLC context
- *  and returns \b GLC_TRUE if and only if it is.
+ *  This command checks whether \e inContext is the ID of one of the client's
+ *  GLC context and returns \b GLC_TRUE if and only if it is.
  *  \param inContext The context ID to be tested
- *  \return \b GL_TRUE if \e inContext is the ID of a GLC context, \b GL_FALSE otherwise
+ *  \return \b GL_TRUE if \e inContext is the ID of a GLC context,
+ *          \b GL_FALSE otherwise
  *  \sa glcDeleteContext()
  *  \sa glcGenContext()
  *  \sa glcGetAllContexts()
@@ -332,13 +335,13 @@ void glcDeleteContext(GLint inContext)
 
 
 /** \ingroup global
- *  Assigns the value \e inContext to the issuing thread's current GLC context ID
- *  variable. If another context is already current to the thread, no error is
- *  generated but the context is released and the context identified by \e inContext
- *  is made current to the thread.
+ *  Assigns the value \e inContext to the issuing thread's current GLC context
+ *  ID variable. If another context is already current to the thread, no error
+ *  is generated but the context is released and the context identified by
+ *  \e inContext is made current to the thread.
  *
- *  Call \e glcContext with \e inContext set to zero to release a thread's current
- *  context.
+ *  Call \e glcContext with \e inContext set to zero to release a thread's
+ *  current context.
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inContext is not zero
  *  and is not the ID of one of the client's GLC contexts. \n

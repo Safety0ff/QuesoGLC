@@ -19,11 +19,13 @@
 /* $Id$ */
 
 /** \file
- * defines the so-called "Context commands" described in chapter 3.5 of the GLC specs.
+ * defines the so-called "Context commands" described in chapter 3.5 of the GLC
+ * specs.
  */
 
 /** \defgroup context Context Commands
- *  Commands to get or modify informations of the context state of the current thread.
+ *  Commands to get or modify informations of the context state of the current
+ *  thread.
  */
 
 #include <stdlib.h>
@@ -42,15 +44,22 @@
  *  <table>
  *  <caption>Callback function variables</caption>
  *    <tr>
- *      <td>Name</td> <td>Enumerant</td> <td>Initial value</td> <td>Type signature</td>
+ *      <td>Name</td>
+ *      <td>Enumerant</td>
+ *      <td>Initial value</td>
+ *      <td>Type signature</td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_OP_glcUnmappedCode</b></td> <td>0x0020</td> <td><b>GLC_NONE</b></td> <td><b>GLboolean (*)(GLint)</b></td>
+ *      <td><b>GLC_OP_glcUnmappedCode</b></td>
+ *      <td>0x0020</td>
+ *      <td><b>GLC_NONE</b></td>
+ *      <td><b>GLboolean (*)(GLint)</b></td>
  *    </tr>
  *  </table>
  *  </center>
  *
- *  The callback function can access can access to client data in a thread-safe manner with glcGetPointer().
+ *  The callback function can access can access to client data in a thread-safe
+ *  manner with glcGetPointer().
  *  \param inOpcode Type of the callback function
  *  \param inFunc Callback function
  *  \sa glcGetCallbackFunc()
@@ -80,15 +89,17 @@ void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 
 
 /** \ingroup context
- *   This command assigns the value \e inPointer to the variable \b GLC_DATA_POINTER.
- *   It is used for access to client data from a callback function.
+ *  This command assigns the value \e inPointer to the variable
+ *  \b GLC_DATA_POINTER. It is used for access to client data from a callback
+ *  function.
  *
- *   \e glcDataPointer provides a way to store in a GLC context a pointer to arbitrary
- *   application data. A GLC callback fucntion can subsequently use the command
- *   glcGetPointer() to obtain access to these data in a thread-safe manner.
- *   \param inPointer The pointer to assign to \b GLC_DATA_POINTER
- *   \sa glcGetPointer()
- *   \sa glcCallbackFunc()
+ *  \e glcDataPointer provides a way to store in a GLC context a pointer to
+ *  arbitrary application data. A GLC callback fucntion can subsequently use
+ *  the command glcGetPointer() to obtain access to these data in a thread-safe
+ *  manner.
+ *  \param inPointer The pointer to assign to \b GLC_DATA_POINTER
+ *  \sa glcGetPointer()
+ *  \sa glcCallbackFunc()
  */
 void glcDataPointer(GLvoid *inPointer)
 {
@@ -143,11 +154,11 @@ void __glcDeleteGLObjects(__glcContextState *inState)
  *  of the GL objects that it owns.
  *
  *  GLC uses the command \c glDeleteLists to delete all of the GL objects named
- *  in \b GLC_LIST_OBJECT_LIST and uses the command \c glDeleteTextures to delete
- *  all of the GL objects named in \b GLC_TEXTURE_OBJECT_LIST. When an execution
- *  of glcDeleteGLObjects finishes, both of these lists are empty.
- *  \note \e glcDeleteGLObjects deletes only the objects that the current context
- *  owns, not all objects in all contexts.
+ *  in \b GLC_LIST_OBJECT_LIST and uses the command \c glDeleteTextures to
+ *  delete all of the GL objects named in \b GLC_TEXTURE_OBJECT_LIST. When an
+ *  execution of glcDeleteGLObjects finishes, both of these lists are empty.
+ *  \note \e glcDeleteGLObjects deletes only the objects that the current
+ *        context owns, not all objects in all contexts.
  *  \sa glcGetListi()
  */
 void glcDeleteGLObjects(void)
@@ -211,8 +222,8 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
 
 
 /** \ingroup context
- *  This command assigns the value \b GL_FALSE to the boolean variable identified
- *  by \e inAttrib.
+ *  This command assigns the value \b GL_FALSE to the boolean variable
+ *  identified by \e inAttrib.
  *  <center>
  *  <table>
  *  <caption>Boolean variables</caption>
@@ -242,16 +253,16 @@ void glcDisable(GLCenum inAttrib)
 
 
 /** \ingroup context
- *  This command assigns the value \b GL_TRUE to the boolean variable identified
- *  by \e inAttrib which must be chosen in the table above.
+ *  This command assigns the value \b GL_TRUE to the boolean variable
+ *  identified by \e inAttrib which must be chosen in the table above.
  *
- *  - \b GLC_AUTO_FONT : if enabled, GLC provides a font when the current GLC context
- *    has no fonts (i.e. provides a font to an application if the application does not
- *    want to set up fonts itself.
- *  - \b GLC_GL_OBJECTS : if enabled, GLC stores fonts in GL lists and textures in GL
- *    texture objects.
- *  - \b GLC_MIPMAP : if enabled, texture objects used by GLC are mipmapped using GLU's
- *    \c gluBuild2DMipmaps.
+ *  - \b GLC_AUTO_FONT : if enabled, GLC provides a font when the current GLC
+ *    context has no fonts (i.e. provides a font to an application if the
+ *    application does not want to set up fonts itself.
+ *  - \b GLC_GL_OBJECTS : if enabled, GLC stores fonts in GL lists and textures
+ *    in GL texture objects.
+ *  - \b GLC_MIPMAP : if enabled, texture objects used by GLC are mipmapped
+ *    using GLU's \c gluBuild2DMipmaps.
  *
  *  \param inAttrib A symbolic constant indicating a GLC capability.
  *  \sa glcDisable()
@@ -304,16 +315,23 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
  *  <table>
  *  <caption>String lists</caption>
  *    <tr>
- *      <td>Name</td> <td>Enumerant</td> <td>Initial value</td> <td>Element count variable</td>
+ *      <td>Name</td>
+ *      <td>Enumerant</td>
+ *      <td>Initial value</td>
+ *      <td>Element count variable</td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_CATALOG_LIST</b></td> <td>0x0080</td> <td>\<empty list\></td> <td><b>GLC_CATALOG_COUNT</b></td>
+ *      <td><b>GLC_CATALOG_LIST</b></td>
+ *      <td>0x0080</td>
+ *      <td>\<empty list\></td>
+ *      <td><b>GLC_CATALOG_COUNT</b></td>
  *    </tr>
  *  </table>
  *  </center>
  *
- *  The command raises a \b GLC_PARAMETER_ERROR if \e inIndex is less than zero or
- *  is greater than or equal to the value of the list's element count variable.
+ *  The command raises a \b GLC_PARAMETER_ERROR if \e inIndex is less than zero
+ *  or is greater than or equal to the value of the list's element count
+ *  variable.
  *  \param inAttrib The string list attribute
  *  \param inIndex The index from which to retrieve an element.
  *  \return the string list element
@@ -385,8 +403,8 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 
 
 /** \ingroup context
- *  This command returns the integer at offset \e inIndex from the first element
- *  in the integer list identified by \e inAttrib.
+ *  This command returns the integer at offset \e inIndex from the first
+ *  element in the integer list identified by \e inAttrib.
  *
  *  You can choose from the following integer lists, listed below with their
  *  element count variables :
@@ -394,25 +412,41 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
  *  <table>
  *  <caption>Integer lists</caption>
  *    <tr>
- *      <td>Name</td> <td>Enumerant</td> <td>Initial value</td> <td>Element count variable</td>
+ *      <td>Name</td>
+ *      <td>Enumerant</td>
+ *      <td>Initial value</td>
+ *      <td>Element count variable</td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_CURRENT_FONT_LIST</b></td> <td>0x0090</td> <td>\<empty list\></td> <td><b>GLC_CURRENT_FONT_COUNT</b></td>
+ *      <td><b>GLC_CURRENT_FONT_LIST</b></td>
+ *      <td>0x0090</td>
+ *      <td>\<empty list\></td>
+ *      <td><b>GLC_CURRENT_FONT_COUNT</b></td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_FONT_LIST</b></td> <td>0x0091</td> <td>\<empty list\></td> <td><b>GLC_FONT_COUNT</b></td>
+ *      <td><b>GLC_FONT_LIST</b></td>
+ *      <td>0x0091</td>
+ *      <td>\<empty list\></td>
+ *      <td><b>GLC_FONT_COUNT</b></td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_LIST_OBJECT_LIST</b></td> <td>0x0092</td> <td>\<empty list\></td> <td><b>GLC_LIST_OBJECT_COUNT</b></td>
+ *      <td><b>GLC_LIST_OBJECT_LIST</b></td>
+ *      <td>0x0092</td>
+ *      <td>\<empty list\></td>
+ *      <td><b>GLC_LIST_OBJECT_COUNT</b></td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_TEXTURE_OBJECT_LIST</b></td> <td>0x0093</td> <td>\<empty list\></td> <td><b>GLC_TEXTURE_OBJECT_COUNT</b></td>
+ *      <td><b>GLC_TEXTURE_OBJECT_LIST</b></td>
+ *      <td>0x0093</td>
+ *      <td>\<empty list\></td>
+ *      <td><b>GLC_TEXTURE_OBJECT_COUNT</b></td>
  *    </tr>
  *  </table>
  *  </center>
  *
  *  The command raises a \b GLC_PARAMETER_ERROR if \e inIndex is less than zero
- *  or is greater than or equal to the value of the list's element count variable.
+ *  or is greater than or equal to the value of the list's element count
+ *  variable.
  *  \param inAttrib The integer list attribute
  *  \param inIndex The index from which to retrieve the element.
  *  \return the element from the integer list.
@@ -531,7 +565,9 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
  *      <td>Name</td> <td>Enumerant</td> <td>Initial value</td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_DATA_POINTER</b></td> <td>0x00A0</td> <td><b>GLC_NONE</b></td>
+ *      <td><b>GLC_DATA_POINTER</b></td>
+ *      <td>0x00A0</td>
+ *      <td><b>GLC_NONE</b></td>
  *    </tr>
  *  </table>
  *  </center>
@@ -695,8 +731,8 @@ GLfloat glcGetf(GLCenum inAttrib)
 
 /** \ingroup context
  *  This command stores into \e outVec the value of the floating point vector
- *  identified by \e inAttrib. If the command does not raise an error, it returns
- *  \e outVec, otherwise it returns a \b NULL value.
+ *  identified by \e inAttrib. If the command does not raise an error, it
+ *  returns \e outVec, otherwise it returns a \b NULL value.
  *  <center>
  *  <table>
  *  <caption>Floating point vector variables</caption>
@@ -750,7 +786,9 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *    <td>Name</td> <td>Enumerant</td> <td>Initial value</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_CATALOG_COUNT</b></td> <td>0x00E0</td> <td>\<implementation specific\></td>
+ *    <td><b>GLC_CATALOG_COUNT</b></td>
+ *    <td>0x00E0</td>
+ *    <td>\<implementation specific\></td>
  *  </tr>
  *  <tr>
  *    <td><b>GLC_CURRENT_FONT_COUNT</b></td> <td>0x00E1</td> <td>0</td>
@@ -762,13 +800,17 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *    <td><b>GLC_LIST_OBJECT_COUNT</b></td> <td>0x00E3</td> <td>0</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_MASTER_COUNT</b></td> <td>0x00E4</td> <td>\<implementation specific\></td>
+ *    <td><b>GLC_MASTER_COUNT</b></td>
+ *    <td>0x00E4</td>
+ *    <td>\<implementation specific\></td>
  *  </tr>
  *  <tr>
  *    <td><b>GLC_MEASURED_CHAR_COUNT</b></td> <td>0x00E5</td> <td>0</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_RENDER_STYLE</b></td> <td>0x00E6</td> <td><b>GLC_BITMAP</b></td>
+ *    <td><b>GLC_RENDER_STYLE</b></td>
+ *    <td>0x00E6</td>
+ *    <td><b>GLC_BITMAP</b></td>
  *  </tr>
  *  <tr>
  *    <td><b>GLC_REPLACEMENT_CODE</b></td> <td>0x00E7</td> <td>0</td>
@@ -780,10 +822,14 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *    <td><b>GLC_TEXTURE_OBJECT_COUNT</b></td> <td>0x00E9</td> <td>0</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_VERSION_MAJOR</b></td> <td>0x00EA</td> <td>\<implementation specific\></td>
+ *    <td><b>GLC_VERSION_MAJOR</b></td>
+ *    <td>0x00EA</td>
+ *    <td>\<implementation specific\></td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_VERSION_MINOR</b></td> <td>0x00EB</td> <td>\<implementation specific\></td>
+ *    <td><b>GLC_VERSION_MINOR</b></td>
+ *    <td>0x00EB</td>
+ *    <td>\<implementation specific\></td>
  *  </tr>
  *  </table>
  *  </center>
@@ -972,12 +1018,12 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
  *
  *  The value of a character code in a returned string may exceed the range
  *  of the character encoding selected by \b GLC_STRING_TYPE. In this case,
- *  the returned character is converted to a character sequence <em>\\\<hexcode\></em>,
- *  where \\ is the character REVERSE SOLIDUS (U+5C), \< is the character
- *  LESS-THAN SIGN (U+3C), \> is the character GREATER-THAN SIGN (U+3E), and
- *  \e hexcode is the original character code represented as a sequence of
- *  hexadecimal digits. The sequence has no leading zeros, and alphabetic
- *  digits are in upper case.
+ *  the returned character is converted to a character sequence
+ *  <em>\\\<hexcode\></em>, where \\ is the character REVERSE SOLIDUS (U+5C),
+ *  \< is the character LESS-THAN SIGN (U+3C), \> is the character
+ *  GREATER-THAN SIGN (U+3E), and \e hexcode is the original character code
+ *  represented as a sequence of hexadecimal digits. The sequence has no
+ *  leading zeros, and alphabetic digits are in upper case.
  *  \param inStringType Value to assign to \b GLC_STRING_TYPE
  *  \sa glcGeti() with argument \b GLC_STRING_TYPE
  */
