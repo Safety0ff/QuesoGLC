@@ -166,10 +166,13 @@ access_font()
 
    if (have_context == GL_FALSE) {
 
-      /* Only get a context once.                                          */
-      /* Don't call glcGetError() after this glcGenContext() call because  */
-      /* it always returns GLC_STATE_ERROR.  That's probably a bug in GLC. */
-      /* So, just validate the context.  If it's OK, then go for it.       */
+      /* Only get a context once.                                           */
+      /* When using SGI's implementation of GLC, don't call glcGetError()   */
+      /* after  this  glcGenContext()  call  because  it  always  returns   */
+      /* GLC_STATE_ERROR. That's probably a bug in SGI's GLC. This behavior */
+      /* doesn't occur in QuesoGLC.                                         */ 
+      /* So, in order to let glclogo run with both implementations, just    */
+      /* validate the context. If it's OK, then go for it.                  */
       glc_context = glcGenContext();
       if (!glcIsContext(glc_context)) {
          fprintf(stderr, "Error - glcGenContext() failed.  Exiting.\n");
@@ -418,25 +421,3 @@ main(int argc, char **argv)
 
    return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
