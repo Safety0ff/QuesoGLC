@@ -1,0 +1,11 @@
+For now, QuesoGLC can only be built on POSIX platforms (including Linux) as long
+as the GNU make tool is installed.
+
+If you have GNU Make installed, simply type
+
+  ./configure
+  make
+  make install
+
+on the command line to configure, build and install QuesoGLC on your
+system. Note that the default installation path is "/usr/local".
