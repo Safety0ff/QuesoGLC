@@ -5,6 +5,14 @@ AC_CONFIG_HEADER(include/qglc_config.h:include/qglc_config.hin)
 AC_PROG_CC
 AC_PROG_CXX
 
+dnl Enable pthread support
+AC_ARG_ENABLE(
+	pthreads,
+	[  --enable-pthreads[=x]   enable POSIX threads support [default=yes]],
+	test "X$enableval" != "Xno" && glc_enable_pthreads=yes,
+	glc_enable_pthreads=yes
+)
+
 dnl Check GCC version
 	gccver=`gcc -v 2>&1 | tail -1 | awk '{print $3}'`
 	echo 'checking for gcc version...' $gccver
@@ -31,13 +39,17 @@ dnl Locate GDBM headers and libraries
 	fi
 
 dnl Locate pthread library
-	AC_CHECK_HEADER(pthread.h, , fail=y)
-	AC_CHECK_LIB(pthread, pthread_create, LIBS="-lpthread $LIBS", fail=y)
-	if test -n "$fail"; then
-		AC_MSG_ERROR([Unable to locate required pthread headers/library])
+	if test -n "$glc_enable_pthreads"; then
+		AC_CHECK_HEADER(pthread.h, , fail=y)
+		AC_CHECK_LIB(pthread, pthread_create, LIBS="-lpthread $LIBS", fail=y)
+		if test -n "$fail"; then
+			AC_MSG_ERROR([Unable to locate required pthread headers/library])
+		else
+			CPPFLAGS="-D_REENTRANT $CPPFLAGS"
+		fi
 	fi
 
-CPPFLAGS="`freetype-config --cflags`"
+CPPFLAGS="`freetype-config --cflags` $CPPFLAGS"
 	AC_CHECK_HEADER(ft2build.h, , fail=y)
 	AC_CHECK_LIB(freetype, FT_Init_FreeType, LIBS="`freetype-config --libs` $LIBS", fail=y)
 	if test -n "$fail"; then
