@@ -4,6 +4,7 @@
 
 #include "GL/glc.h"
 #include "internal.h"
+#include FT_GLYPH_H
 
 static void __glcTransformVector(GLfloat* outVec, __glcContextState *inState)
 {
@@ -15,12 +16,14 @@ static void __glcTransformVector(GLfloat* outVec, __glcContextState *inState)
     outVec[0] = temp;
 }
 
-static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum, GLfloat *outVec, GLint inFont, __glcContextState *inState)
+static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec, GLint inFont, __glcContextState *inState)
 {
     FT_Face face = inState->fontList[inFont - 1]->face;
     FT_Glyph_Metrics metrics = face->glyph->metrics;
+    FT_Glyph glyph = NULL;
+    FT_BBox boundBox;
     
-    if (FT_Load_Char(face, inCode, FT_LOAD_LINEAR_DESIGN)) {
+    if (FT_Load_Char(face, inCode, FT_LOAD_NO_SCALE)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
     }
@@ -29,26 +32,29 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum, GLfloat *outVec, GLint
 	case GLC_BASELINE:
 	    outVec[0] = 0.;
 	    outVec[1] = 0.;
-	    outVec[2] = metrics->horiAdvance;
-	    outVec[3] = metrics->vertAdvance;
+	    outVec[2] = metrics.horiAdvance;
+	    outVec[3] = metrics.vertAdvance;
 	    if (inState->renderStyle == GLC_BITMAP)
-		__glcTransformVector(&outVec[2]);
+		__glcTransformVector(&outVec[2], inState);
 	    return outVec;
 	case GLC_BOUNDS:
-	    outVec[0] = metrics->horiBearingX;
-	    outVec[1] = metrics->vertBearingY - metrics->height;
-	    outVec[2] = outVec[0] + metrics->width;
+	    FT_Get_Glyph(face->glyph, &glyph);
+	    FT_Glyph_Get_CBox(glyph, ft_glyph_bbox_unscaled, &boundBox);
+	    outVec[0] = boundBox.xMin;
+	    outVec[1] = boundBox.yMin;
+	    outVec[2] = boundBox.xMax;
 	    outVec[3] = outVec[1];
 	    outVec[4] = outVec[2];
-	    outVec[5] = metrics->vertBearingY;
+	    outVec[5] = boundBox.yMax;
 	    outVec[6] = outVec[0];
 	    outVec[7] = outVec[5];
 	    if (inState->renderStyle == GLC_BITMAP) {
-		__glcTransformVector(&outVec[0]);
-		__glcTransformVector(&outVec[2]);
-		__glcTransformVector(&outVec[4]);
-		__glcTransformVector(&outVec[6]);
+		__glcTransformVector(&outVec[0], inState);
+		__glcTransformVector(&outVec[2], inState);
+		__glcTransformVector(&outVec[4], inState);
+		__glcTransformVector(&outVec[6], inState);
 	    }
+	    FT_Done_Glyph(glyph);
 	    return outVec;
     }
     
@@ -93,8 +99,9 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 {
     __glcContextState *state = NULL;
-    FT_Size faceSize = NULL;
-    GLfloat xr = 0., yb = 0., yt = 0.
+    FT_Face face = NULL;
+    GLfloat advance = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
+    GLint i = 0;
 
     switch(inMetric) {
 	case GLC_BASELINE:
@@ -113,49 +120,52 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 
     for (i = 0; i < state->currentFontCount; i++) {
 	GLfloat temp = 0.;
-	faceSize = state->fontList[state->currentFontList[i]]->face->size;
+	face = state->fontList[state->currentFontList[i]]->face;
 	
-	/* These are estimations since there is no way to compute the
-	   max layouts without drawing ALL the glyphs (which should be
-	   a big performance hit) !!!
-	   Use face->bbox instead...
-	 */
-	temp = (GLfloat)faceSize->max_advance / x_ppem / 65536.;
-	if (temp > xr)
-	    xr =temp;
+	temp = (GLfloat)face->max_advance_width;
+	if (temp > advance)
+	    advance = temp;
 	
-	temp = (GLfloat)faceSize->ascender / y_ppem / 65536.;
+	temp = (GLfloat)face->bbox.yMax;
 	if (temp > yt)
-	    yt =temp;
+	    yt = temp;
 	
-	temp = (GLfloat)faceSize->descender / y_ppem / 65536.;
+	temp = (GLfloat)face->bbox.yMin;
 	if (temp > yb)
-	    xr =temp;
+	    yb = temp;
+
+	temp = (GLfloat)face->bbox.xMax;
+	if (temp > xr)
+	    xr = temp;
+	
+	temp = (GLfloat)face->bbox.xMin;
+	if (temp > xl)
+	    xl = temp;
     }
-    
-    outVec[0] = 0.;
     
     switch(inMetric) {
 	case GLC_BASELINE:
+	    outVec[0] = 0.;
 	    outVec[1] = 0.;
-	    outVec[2] = xr;
+	    outVec[2] = advance;
 	    outVec[3] = 0.;
-	    if (inState->renderStyle == GLC_BITMAP)
-		__glcTransformVector(&outVec[2]);
+	    if (state->renderStyle == GLC_BITMAP)
+		__glcTransformVector(&outVec[2], state);
 	    return outVec;
 	case GLC_BOUNDS:
-	    outVec[1] = -yb;
+	    outVec[0] = xl;
+	    outVec[1] = yb;
 	    outVec[2] = xr;
 	    outVec[3] = outVec[1];
 	    outVec[4] = outVec[2];
 	    outVec[5] = yt;
 	    outVec[6] = outVec[0];
 	    outVec[7] = outVec[5];
-	    if (inState->renderStyle == GLC_BITMAP) {
-		__glcTransformVector(&outVec[0]);
-		__glcTransformVector(&outVec[2]);
-		__glcTransformVector(&outVec[4]);
-		__glcTransformVector(&outVec[6]);
+	    if (state->renderStyle == GLC_BITMAP) {
+		__glcTransformVector(&outVec[0], state);
+		__glcTransformVector(&outVec[2], state);
+		__glcTransformVector(&outVec[4], state);
+		__glcTransformVector(&outVec[6], state);
 	    }
 	    return outVec;
     }
@@ -282,53 +292,74 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
     /* FIXME :
        1. Use Unicode instead of ASCII
        2. Computations performed below assume that the string is rendered
-	  horizontally
+	  horizontally from left to right.
      */
     for (i = 0; i < inCount; i++) {
+	/* For each character get the metrics */
 	glcGetCharMetric(s[i], GLC_BASELINE, baselineMetric);
 	glcGetCharMetric(s[i], GLC_BOUNDS, boundsMetric);
+	
+	/* If character are to be measured then store the results */
 	if (inMeasureChars) {
 	    for (j = 0; j < 4; j++)
 		state->measurementCharBuffer[i][j] = baselineMetric[j];
 	    for (j = 0; j < 8; j++)
 		state->measurementCharBuffer[i][j + 4] = boundsMetric[j];
 	}
+	
+	/* Initialize the left-most coordinate of the bounding box */
 	if (!i) {
 	    state->measurementStringBuffer[4] = boundsMetric[0];
 	    state->measurementStringBuffer[10] = boundsMetric[0];
 	}
+	
+	/* Compute string advance */
 	state->measurementStringBuffer[2] += baselineMetric[2];
+	
+	/* Compute the bottom value of the string */
 	if (state->measurementStringBuffer[5] > boundsMetric[1]) {
 	    state->measurementStringBuffer[5] = boundsMetric[1];
 	    state->measurementStringBuffer[7] = boundsMetric[1];
 	}
+	
+	/* Compute the top value of the string */
 	if (state->measurementStringBuffer[9] < boundsMetric[5]) {
 	    state->measurementStringBuffer[9] = boundsMetric[5];
 	    state->measurementStringBuffer[11] = boundsMetric[5];
 	}
-	state->measurementStringBuffer[6] += boundsMetric[4];
-	state->measurementStringBuffer[8] += boundsMetric[4];
+	
+	/* Add the advance to the right-most value of the bounding box in
+	   order to take bounding box width *and* space between characters
+	   into account */
+	state->measurementStringBuffer[6] += baselineMetric[2];
+	state->measurementStringBuffer[8] += baselineMetric[2];
     }
+    
+    /* Correction to the right-most value : since every character have been
+       taken into account, we do not need to take the space after the last
+       bounding box into account */
+    state->measurementStringBuffer[6] -= (baselineMetric[2] - boundsMetric[4]);
+    state->measurementStringBuffer[8] -= (baselineMetric[2] - boundsMetric[4]);
     
     if (state->renderStyle == GLC_BITMAP) {
 	for (i = 0; i < 4; i++)
 	    state->bitmapMatrix[i] = storeBitmapMatrix[i];
-	__glcTransformVector(&state->measurementStringBuffer[2]);
-	__glcTransformVector(&state->measurementStringBuffer[4]);
-	__glcTransformVector(&state->measurementStringBuffer[6]);
-	__glcTransformVector(&state->measurementStringBuffer[8]);
-	__glcTransformVector(&state->measurementStringBuffer[10]);
-	if (inMeasureChar)
+	__glcTransformVector(&state->measurementStringBuffer[2], state);
+	__glcTransformVector(&state->measurementStringBuffer[4], state);
+	__glcTransformVector(&state->measurementStringBuffer[6], state);
+	__glcTransformVector(&state->measurementStringBuffer[8], state);
+	__glcTransformVector(&state->measurementStringBuffer[10], state);
+	if (inMeasureChars)
 	    for (i = 0; i < inCount; i++) {
-		__glcTransformVector(&state->measurementCharBuffer[2]);
-		__glcTransformVector(&state->measurementCharBuffer[4]);
-		__glcTransformVector(&state->measurementCharBuffer[6]);
-		__glcTransformVector(&state->measurementCharBuffer[8]);
-		__glcTransformVector(&state->measurementCharBuffer[10]);
+		__glcTransformVector(&state->measurementCharBuffer[i][2], state);
+		__glcTransformVector(&state->measurementCharBuffer[i][4], state);
+		__glcTransformVector(&state->measurementCharBuffer[i][6], state);
+		__glcTransformVector(&state->measurementCharBuffer[i][8], state);
+		__glcTransformVector(&state->measurementCharBuffer[i][10], state);
 	    }
     }
     
-    if (inMeasureChar)
+    if (inMeasureChars)
 	state->measuredCharCount = inCount;
     else
 	state->measuredCharCount = 0;
