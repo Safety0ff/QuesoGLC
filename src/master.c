@@ -24,6 +24,9 @@
  */
 
 /** \defgroup master Master Commands
+ *  A master is a representation of a font that is stored outside QuesoGLC in a
+ *  standard format such as TrueType or Type1.
+ *
  *  Some GLC commands have a parameter \e inMaster. This parameter is an offset
  *  from the the first element in the GLC master list. The command raises
  *  \b GLC_PARAMETER_ERROR if \e inMaster is less than zero or is greater than
