@@ -13,10 +13,10 @@ class __glcMaster {
     GLint id;
     __glcStringList* faceList;	/* GLC_FACE_LIST */
     GLint charListCount;	/* GLC_CHAR_LIST_COUNT */
-    GLCchar* family;		/* GLC_FAMILY */
-    GLCchar* masterFormat;	/* GLC_MASTER_FORMAT */
-    GLCchar* vendor;		/* GLC_VENDOR */
-    GLCchar* version;		/* GLC_VERSION */
+    __glcUniChar* family;		/* GLC_FAMILY */
+    __glcUniChar* masterFormat;	/* GLC_MASTER_FORMAT */
+    __glcUniChar* vendor;		/* GLC_VENDOR */
+    __glcUniChar* version;		/* GLC_VERSION */
     GLint isFixedPitch;		/* GLC_IS_FIXED_PITCH */
     GLint maxMappedCode;	/* GLC_MAX_MAPPED_CODE */
     GLint minMappedCode;	/* GLC_MIN_MAPPED_CODE */

@@ -20,7 +20,7 @@ __glcContextState::__glcContextState(GLint inContext)
   setState(inContext, this);
   setCurrency(inContext, GL_FALSE);
 
-  catalogList = new __glcStringList(NULL, GLC_UCS1);
+  catalogList = new __glcStringList(NULL);
   if (!catalogList) {
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
@@ -63,6 +63,9 @@ __glcContextState::__glcContextState(GLint inContext)
 
   for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
     textureObjectList[j] = 0;
+
+  buffer = NULL;
+  bufferSize = 0;
 }
 
 __glcContextState::~__glcContextState()
@@ -86,6 +89,9 @@ __glcContextState::~__glcContextState()
       masterList[i] = NULL;
     }
   }
+
+  if (bufferSize)
+    free(buffer);
 
   glcDeleteGLObjects();
 }
@@ -329,6 +335,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
     /* open the font file and read it */
     if (!FT_New_Face(__glcContextState::library, path, 0, &face)) {
       numFaces = face->num_faces;
+      __glcUniChar s;
 
       /* If the face has no Unicode charmap, skip it */
       if (FT_Select_Charmap(face, ft_encoding_unicode))
@@ -338,7 +345,8 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
        * associated to a master.
        */
       for (j = 0; j < masterCount; j++) {
-	if (!strcmp(face->family_name, (const char*)masterList[j]->family))
+	s = __glcUniChar(face->family_name, GLC_UCS1);
+	if (!s.compare(&(masterList[j]->family)))
 	  break;
       }
 
@@ -377,8 +385,10 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 
     /* For each face in the font file */
     for (j = 0; j < numFaces; j++) {
+      __glcUniChar sp = __glcUniChar(path, GLC_UCS1);
       if (!FT_New_Face(__glcContextState::library, path, j, &face)) {
-	if (master->faceList->find(face->style_name))
+	s = __glcUniChar(face->style_name, GLC_UCS1);
+	if (master->faceList->find(&s))
 	  /* The current face in the font file has already been loaded in a
 	   * master, try the next one
 	   */
@@ -390,18 +400,18 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 	   */
 	  /* Append (or prepend) the new face and its file name to the master */
 	  if (inAppend) {
-	    if (master->faceList->append(face->style_name))
+	    if (master->faceList->append(&s))
 	      break;
-	    if (master->faceFileName->append(path)) {
-	      master->faceList->remove(face->style_name);
+	    if (master->faceFileName->append(&sp)) {
+	      master->faceList->remove(&s);
 	      break;		    
 	    }
 	  }
 	  else {
-	    if (master->faceList->prepend(face->style_name))
+	    if (master->faceList->prepend(&s))
 	      break;
-	    if (master->faceFileName->prepend(path)) {
-	      master->faceList->remove(face->style_name);
+	    if (master->faceFileName->prepend(&sp)) {
+	      master->faceList->remove(&s);
 	      break;		    
 	    }
 	  }
@@ -420,14 +430,15 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   }
 
   /* Append (or prepend) the directory name to the catalog list */
+  s = __glcUniChar(inCatalog, GLC_UCS1);
   if (inAppend) {
-    if (catalogList->append(inCatalog)) {
+    if (catalogList->append(&s)) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
   }
   else {
-    if (catalogList->prepend(inCatalog)) {
+    if (catalogList->prepend(&s)) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
@@ -448,6 +459,7 @@ void __glcContextState::removeMasters(GLint inIndex)
   int numFontFiles = 0;
   int i = 0;
   FILE *file;
+  __glcUniChar s;
 
   /* TODO : use Unicode instead of ASCII */
   strncpy(buffer, (const char*)catalogList->findIndex(inIndex), 256);
@@ -483,7 +495,8 @@ void __glcContextState::removeMasters(GLint inIndex)
       __glcMaster *master = masterList[j];
       if (!master)
 	continue;
-      index = master->faceFileName->getIndex(buffer);
+      s = __glcUniChar(buffer, GLC_UCS1);
+      index = master->faceFileName->getIndex(&s);
       if (!index)
 	continue; // The file is not in the current master, try the next one
 
@@ -638,4 +651,15 @@ void __glcContextState::unlock(void)
     pthread_mutex_unlock(&mutex);
 
   pthread_setspecific(lockKey, (void*)lockCount);
+}
+
+GLCchar* __glcContextState::queryBuffer(int inSize)
+{
+  if (inSize > bufferSize) {
+    buffer = (GLCchar*)realloc(buffer, inSize);
+    if (!buffer)
+      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+  }
+
+  return buffer;
 }

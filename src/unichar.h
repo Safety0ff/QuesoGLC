@@ -30,6 +30,7 @@ class __glcUniChar {
   int compare(__glcUniChar* inString);
   GLCchar* convert(GLCchar* dest, int inType,size_t n);
   int estimate(int inType);
+  void destroy(void);
 };
 
 #endif

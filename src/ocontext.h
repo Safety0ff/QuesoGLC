@@ -32,6 +32,9 @@ class __glcContextState {
   static void lock(void);
   static void unlock(void);
 
+  GLCchar *buffer;
+  GLint bufferSize;
+
  public:
   static FT_Library library;
   static GDBM_FILE unidb1, unidb2;
@@ -64,7 +67,6 @@ class __glcContextState {
   GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
-  char __glcBuffer[GLC_STRING_CHUNK];
 
   __glcContextState(GLint inContext);
   ~__glcContextState();
@@ -74,6 +76,7 @@ class __glcContextState {
 
   static __glcContextState* getCurrent(void);
   static void raiseError(GLCenum inError);
+  GLCchar* queryBuffer(int inSize);
 
   friend void glcContext(GLint inContext);
   friend void glcDeleteContext(GLint inContext);

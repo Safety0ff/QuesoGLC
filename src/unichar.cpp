@@ -20,6 +20,9 @@ int __glcUniChar::len(void)
   uniChar c;
   int length = 0;
 
+  if (!ptr)
+    return 0;
+
   c.ucs1 = (unsigned char*)ptr;
 
   switch(type) {
@@ -51,6 +54,9 @@ int __glcUniChar::len(void)
 /* Length of the string in bytes (including the NULL termination) */
 int __glcUniChar::lenBytes(void)
 {
+  if (!ptr)
+    return 0;
+
   switch(type) {
   case GLC_UCS1:
     return len() + 1;
@@ -254,4 +260,11 @@ int __glcUniChar::estimate(int inType)
       return 0;
     }
   return length;
+}
+
+void __glcUniChar::destroy(void)
+{
+  if (!ptr)
+    free(ptr);
+  ptr = NULL;
 }

@@ -122,30 +122,39 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
 
 const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 {
-    __glcContextState *state = NULL;
+  __glcContextState *state = NULL;
+  __glcUniChar *s = NULL;
+  GLCchar* buffer = NULL;
 
-    if (inAttrib != GLC_CATALOG_LIST) {
-	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
-	return GLC_NONE;
-    }
+  if (inAttrib != GLC_CATALOG_LIST) {
+    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
     
-    if (inIndex < 0) {
-	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
-	return GLC_NONE;
-    }
+  if (inIndex < 0) {
+    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
     
-    state = __glcContextState::getCurrent();
-    if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
-	return GLC_NONE;
-    }
+  state = __glcContextState::getCurrent();
+  if (!state) {
+    __glcContextState::raiseError(GLC_STATE_ERROR);
+    return GLC_NONE;
+  }
 
-    if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
-	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
-	return GLC_NONE;
-    }
-    
-    return state->catalogList->findIndex(inIndex);
+  if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
+    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+  
+  s = state->catalogList->findIndex(inIndex);
+  buffer = state->queryBuffer(s->lenBytes());
+  if (buffer)
+    s->dup(buffer, s->lenBytes());
+  else
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+
+  return buffer;
 }
 
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
@@ -230,49 +239,53 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
 
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
-    __glcContextState *state = NULL;
-    static const GLCchar* __glcExtensions = "";
-    static const GLCchar* __glcRelease = "draft Linux 2.x";
-    static const GLCchar* __glcVendor = "Queso Software";
+  static const GLCchar* __glcExtensions = "";
+  static const GLCchar* __glcRelease = "draft Linux 2.x";
+  static const GLCchar* __glcVendor = "Queso Software";
 
-    switch(inAttrib) {
-	case GLC_EXTENSIONS:
-	case GLC_RELEASE:
-	case GLC_VENDOR:
-	    break;
-	default:
-	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
-	    return GLC_NONE;
-    }
+  __glcContextState *state = NULL;
+  __glcUniChar s;
+  GLCchar *buffer = NULL;
+  int length = 0;
 
-    state = __glcContextState::getCurrent();
-    if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
-	return GLC_NONE;
-    }
-
-    switch(inAttrib) {
-	case GLC_EXTENSIONS:
-	  {
-	    __glcUniChar s = __glcUniChar(__glcExtensions, GLC_UCS1);
-	    s.convert(__glcContextState::buffer, GLC_STRING_CHUNK);
-	    return __glcContextState::buffer;
-	  }
-	case GLC_RELEASE:
-	  {
-	    __glcUniChar s = __glcUniChar(__glcRelease, GLC_UCS1);
-	    s.convert(__glcContextState::buffer, GLC_STRING_CHUNK);
-	    return __glcContextState::buffer;
-	  }
-	case GLC_VENDOR:
-	  {
-	    __glcUniChar s = __glcUniChar(__glcVendor, GLC_UCS1);
-	    s.convert(__glcContextState::buffer, GLC_STRING_CHUNK);
-	    return __glcContextState::buffer;
-	  }
-    }
-    
+  switch(inAttrib) {
+  case GLC_EXTENSIONS:
+  case GLC_RELEASE:
+  case GLC_VENDOR:
+    break;
+  default:
+    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
+  }
+
+  state = __glcContextState::getCurrent();
+  if (!state) {
+    __glcContextState::raiseError(GLC_STATE_ERROR);
+    return GLC_NONE;
+  }
+
+  switch(inAttrib) {
+  case GLC_EXTENSIONS:
+    s = __glcUniChar(__glcExtensions, GLC_UCS1);
+    break;
+  case GLC_RELEASE:
+    s = __glcUniChar(__glcRelease, GLC_UCS1);
+    break;
+  case GLC_VENDOR:
+    s = __glcUniChar(__glcVendor, GLC_UCS1);
+    break;
+  default:
+    return GLC_NONE;
+  }
+    
+  length = s.estimate(state->stringType);
+  buffer = state->queryBuffer(length);
+  if (buffer)
+    s.convert(buffer, state->stringType, length);
+  else
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+
+  return buffer;
 }
 
 GLfloat glcGetf(GLCenum inAttrib)

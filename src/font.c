@@ -85,6 +85,9 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 {
     __glcFont *font = NULL;
     GLint faceID = 0;
+    __glcUniChar UinFace = __glcUniChar(inFace, inState->stringType);
+    __glcUniChar s;
+    GLCchar* buffer = NULL;
 
     font = inState->fontList[inFont];
     
@@ -92,16 +95,23 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GL_FALSE;
     }
-    
-    faceID = font->parent->faceList->getIndex(inFace);
+
+    faceID = font->parent->faceList->getIndex(&UinFace);
     if (faceID == -1)
 	return GL_FALSE;
 
     font->faceID = faceID;
 
+    s = __glcUniChar(font->parent->faceFileName->findIndex(faceID), GLC_UCS1);
+    buffer = inState->queryBuffer(s.lenBytes());
+    if (!buffer) {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	return GL_FALSE;
+    }
+    s.dup(buffer, s.lenBytes());
+
     if (FT_New_Face(__glcContextState::library, 
-		    (const char*)font->parent->faceFileName->findIndex(faceID),
-		    0, &font->face)) {
+		    (const char*)buffer, 0, &font->face)) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;
     }
@@ -162,53 +172,66 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 
 void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
-    __glcFont *font = __glcVerifyFontParameters(inFont);
-    FT_UInt glyphIndex = 0;
-    GLint i = 0;
-    GLint code  = 0;
-    datum key, content;
-    
-    if (font) {
-	/* Verify that the glyph exists in the face */
-	glyphIndex = FT_Get_Char_Index(font->face, inCode);
-	if (!glyphIndex) {
-	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
-	    return;
-	}
-	/* Retrieve the Unicode code from its name */
-	key.dsize = strlen((const char*)inCharName) + 1;
-	key.dptr = (char *)inCharName;
-	content = gdbm_fetch(__glcContextState::unidb2, key);
-	if (!content.dptr) {
-	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-	    return;
-	}
-	code = (GLint)(*(content.dptr));
-	free(content.dptr);
-	/* Use a dichotomic algo instead */
-	for (i = 0; i < font->charMapCount; i++) {
-	    if (font->charMap[0][i] >= code)
-		break;
-	}
-	if (font->charMap[0][i] != code) {
-	    /* If the char is not yet registered then add it */
-	    if (font->charMapCount < GLC_MAX_CHARMAP) {
-		memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
-			(font->charMapCount - i) * 2 * sizeof(GLint));
-		font->charMapCount++;
-		font->charMap[0][i] = code;
-	    }
-	    else {
-		__glcContextState::raiseError(GLC_RESOURCE_ERROR);
-		return;
-	    }
-	}
-	font->charMap[1][i] = inCode;
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+  FT_UInt glyphIndex = 0;
+  GLint i = 0;
+  GLint code  = 0;
+  datum key, content;
+  __glcContextState *state = __glcContextState::getCurrent();
+  
+  if (font) {
+    __glcUniChar UinCharName = __glcUniChar(inCharName, state->stringType);
+    GLCchar* buffer = NULL;
+    int length = 0;
+
+    length = UinCharName.estimate(GLC_UCS1);
+    buffer = state->queryBuffer(length);
+    if (!buffer) {
+      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      return;
     }
-    else {
-	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    UinCharName(buffer, GLC_UCS1, length);
+
+    /* Verify that the glyph exists in the face */
+    glyphIndex = FT_Get_Char_Index(font->face, inCode);
+    if (!glyphIndex) {
+      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      return;
+    }
+    /* Retrieve the Unicode code from its name */
+    key.dsize = strlen((const char*)buffer) + 1;
+    key.dptr = (char *)buffer;
+    content = gdbm_fetch(__glcContextState::unidb2, key);
+    if (!content.dptr) {
+      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
+    code = (GLint)(*(content.dptr));
+    free(content.dptr);
+    /* Use a dichotomic algo instead */
+    for (i = 0; i < font->charMapCount; i++) {
+      if (font->charMap[0][i] >= code)
+	break;
+    }
+    if (font->charMap[0][i] != code) {
+      /* If the char is not yet registered then add it */
+      if (font->charMapCount < GLC_MAX_CHARMAP) {
+	memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
+		(font->charMapCount - i) * 2 * sizeof(GLint));
+	font->charMapCount++;
+	font->charMap[0][i] = code;
+      }
+      else {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
+      }
     }
+    font->charMap[1][i] = inCode;
+  }
+  else {
+    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
 }
 
 GLint glcGenFontID(void)
@@ -237,32 +260,51 @@ GLint glcGenFontID(void)
 
 const GLCchar* glcGetFontFace(GLint inFont)
 {
-    __glcFont *font = __glcVerifyFontParameters(inFont);
-    
-    if (font)
-	return font->parent->faceList->findIndex(font->faceID);
-    else
-	return GLC_NONE;
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+  __glcContextState *state = __glcContextState::getCurrent();
+
+  if (font) {
+    __glcUniChar *s = font->parent->faceList->findIndex(font->faceID);
+    GLCchar *buffer = NULL;
+
+    buffer = state->queryBuffer(s->lenBytes());
+    if (!buffer) {
+      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      return GLC_NONE;
+    }
+    s->dup(buffer, s->lenBytes());
+    return buffer;
+  }
+  else
+    return GLC_NONE;
 }
 
 const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 {
-    __glcFont *font = __glcVerifyFontParameters(inFont);
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+  __glcContextState *state = __glcContextState::getCurrent();
     
-    if (font) {
-	char* __glcBuffer = __glcContextState::getCurrent()->__glcBuffer;
-	if (inAttrib == GLC_CHAR_LIST) {
-	    if (FT_Get_Glyph_Name(font->face, inIndex, __glcBuffer, GLC_STRING_CHUNK)) {
-		__glcContextState::raiseError(GLC_INTERNAL_ERROR);
-		return GLC_NONE;
-	    }
-	    return (GLCchar *)__glcBuffer;
-	}
-	else
-	    return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
+  if (font) {
+    GLCchar *buffer = NULL;
+
+    buffer = state->queryBuffer(1024);
+    if (!buffer) {
+      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      return GLC_NONE;
+    }
+
+    if (inAttrib == GLC_CHAR_LIST) {
+      if (FT_Get_Glyph_Name(font->face, inIndex, buffer, GLC_STRING_CHUNK)) {
+	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
+	return GLC_NONE;
+      }
+      return (GLCchar *)buffer;
     }
     else
-	return GLC_NONE;
+      return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
+  }
+  else
+    return GLC_NONE;
 }
 
 const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)

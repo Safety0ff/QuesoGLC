@@ -9,10 +9,14 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
   parent = inParent;
   charMapCount = 0;
   id = inID;
+  __glcUniChar *s = parent->faceFileName->findIndex(0);
+  GLCchar *buffer = NULL;
+
+  buffer = (GLCchar*)malloc(s->lenBytes());
+  s->dup(buffer, s->lenBytes());
 
   if (FT_New_Face(__glcContextState::library, 
-		  (const char*)parent->faceFileName->findIndex(0),
-		  0, &face)) {
+		  (const char*)buffer, 0, &face)) {
 	/* Unable to load the face file, however this should not happen since
 	   it has been succesfully loaded when the master was created */
 	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
@@ -26,6 +30,8 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
 	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
 	return ;
     }
+
+    free(buffer);
 }
 
 __glcFont::~__glcFont()
