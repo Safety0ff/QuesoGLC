@@ -11,8 +11,8 @@
 #include "strlst.h"
 
 extern "C" {
-  void my_init(void);
-  void my_fini(void);
+  void __glcInitLibrary(void);
+  void __glcExitLibrary(void);
 }
 
 class __glcContextState {
@@ -22,6 +22,7 @@ class __glcContextState {
   static pthread_key_t contextKey;
   static pthread_key_t errorKey;
   static pthread_key_t lockKey;
+  static pthread_once_t initLibraryOnce;
 
   static __glcContextState* getState(GLint inContext);
   static void setState(GLint inContext, __glcContextState *inState);
@@ -85,8 +86,8 @@ class __glcContextState {
   friend GLCenum glcGetError(void);
   friend GLboolean glcIsContext(GLint inContext);
 
-  friend void my_init(void);
-  friend void my_fini(void);
+  friend void __glcInitLibrary(void);
+  friend void __glcExitLibrary(void);
 };
 
 #endif /* __glc_ocontext_h */

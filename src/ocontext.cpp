@@ -9,6 +9,7 @@ pthread_mutex_t __glcContextState::mutex;
 pthread_key_t __glcContextState::contextKey;
 pthread_key_t __glcContextState::errorKey;
 pthread_key_t __glcContextState::lockKey;
+pthread_once_t __glcContextState::initLibraryOnce = PTHREAD_ONCE_INIT;
 FT_Library __glcContextState::library;
 GDBM_FILE __glcContextState::unidb1 = NULL;
 GDBM_FILE __glcContextState::unidb2 = NULL;

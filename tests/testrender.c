@@ -2,9 +2,6 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
-extern void my_init(void);
-extern void my_fini(void);
-
 void testQueso(void)
 {
     int ctx = 0;
@@ -13,8 +10,6 @@ void testQueso(void)
     int ntex = 0;
     int ndl = 0;
     
-    my_init();
-
     glEnable(GL_TEXTURE_2D);
     
     ctx = glcGenContext();
@@ -72,5 +67,4 @@ void testQueso(void)
       printf("%d ", glcGetListi(GLC_LIST_OBJECT_LIST, i));
 
     printf("\n");
-    my_fini();
 }

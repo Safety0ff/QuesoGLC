@@ -2,9 +2,6 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
-extern void my_init(void);
-extern void my_fini(void);
-
 void testQueso(void)
 {
     int ctx = 0;
@@ -13,8 +10,6 @@ void testQueso(void)
     int i = 0;
     int j = 0;
     
-    my_init();
-
     ctx = glcGenContext();
     glcContext(ctx);
     
@@ -36,6 +31,4 @@ void testQueso(void)
 	    printf("- Face #%d : %s\n", j, (char *)glcGetMasterListc(i, GLC_FACE_LIST, j));
 	printf("- Master #%d maps 0x%X to %s\n", i, 65 + i, (char *)glcGetMasterMap(i, 65 + i));
     }
-    
-    my_fini();
 }

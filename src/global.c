@@ -9,12 +9,140 @@
 #include "ocontext.h"
 #include "internal.h"
 
+/* This function is supposed to be called when QuesoGLC is no longer needed.
+ * It frees the memory and closes the Unicode DB files
+ */
+void __glcExitLibrary(void)
+{
+  int i;
+
+  /* destroy remaining contexts */
+  for (i=0; i < GLC_MAX_CONTEXTS; i++) {
+    if (__glcContextState::isContext(i))
+      delete __glcContextState::getState(i);
+  }
+
+  /* destroy Common Area */
+  delete[] __glcContextState::isCurrent;
+  delete[] __glcContextState::stateList;
+
+  gdbm_close(__glcContextState::unidb1);
+  gdbm_close(__glcContextState::unidb2);
+
+  pthread_mutex_destroy(&__glcContextState::mutex);
+  pthread_key_delete(__glcContextState::contextKey);
+  pthread_key_delete(__glcContextState::errorKey);
+  pthread_key_delete(__glcContextState::lockKey);
+
+  FT_Done_FreeType(__glcContextState::library);
+}
+
+/* This function is supposed to be called before any of QuesoGLC
+ * function is used. It reserves memory and opens the Unicode DB files.
+ */
+void __glcInitLibrary(void)
+{
+  int i = 0;
+
+  // Creates the thread-local storage for the GLC error
+  // We create it first, so that the error value can be set
+  // if something goes wrong afterwards...
+  if (pthread_key_create(&__glcContextState::errorKey, NULL)) {
+    // Unfortunately we have not even been able to allocate a key
+    // for thread-local storage. Memory seems to be a really scarse
+    // resource here...
+    return;
+  }
+
+  // Initialize the "Common Area"
+
+  // Create array of state currency
+  __glcContextState::isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
+  if (!__glcContextState::isCurrent) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  // Create array of context states
+  __glcContextState::stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
+  if (!__glcContextState::stateList) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    delete[] __glcContextState::isCurrent;
+    return;
+  }
+
+  // Open the first Unicode database
+  __glcContextState::unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
+  if (!__glcContextState::unidb1) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Open the second Unicode database
+  __glcContextState::unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
+  if (!__glcContextState::unidb2) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Initialize the mutex
+  // At least this op can not fail !!!
+  pthread_mutex_init(&__glcContextState::mutex, NULL);
+
+  // Creates the thread-local storage for the context ID
+  if (pthread_key_create(&__glcContextState::contextKey, NULL)) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    gdbm_close(__glcContextState::unidb2);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Creates the thread-local storage for the lock count
+  if (pthread_key_create(&__glcContextState::lockKey, NULL)) {
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    gdbm_close(__glcContextState::unidb2);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // Initialize FreeType
+  if (FT_Init_FreeType(&__glcContextState::library)) {
+    // Well, if it fails there is nothing that can be done
+    // with QuesoGLC : abort...
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(__glcContextState::unidb1);
+    gdbm_close(__glcContextState::unidb2);
+    delete[] __glcContextState::isCurrent;
+    delete[] __glcContextState::stateList;
+    return;
+  }
+
+  // So far, there are no contexts
+  for (i=0; i< GLC_MAX_CONTEXTS; i++) {
+    __glcContextState::isCurrent[i] = GL_FALSE;
+    __glcContextState::stateList[i] = NULL;
+  }
+
+  atexit(__glcExitLibrary);
+}
+
 /** \ingroup global
   * Returns <b>GL_TRUE</b> if <i>inContext</i> is the ID of one of the client's
   * GLC contexts.
   */
 GLboolean glcIsContext(GLint inContext)
 {
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
     return GL_FALSE;
   else
@@ -27,6 +155,8 @@ GLboolean glcIsContext(GLint inContext)
 GLint glcGetCurrentContext(void)
 {
   __glcContextState *state = NULL;
+
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
 
   state = __glcContextState::getCurrent();
   if (!state)
@@ -46,6 +176,8 @@ GLint glcGetCurrentContext(void)
 void glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
+
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
 
   /* verify parameters are in legal bounds */
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS)) {
@@ -87,6 +219,8 @@ void glcContext(GLint inContext)
   char *extension = NULL;
   __glcContextState *state = NULL;
   GLint currentContext = 0;
+
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
 
   __glcContextState::lock();
 
@@ -184,6 +318,8 @@ GLint glcGenContext(void)
   int i = 0;
   __glcContextState *state = NULL;
 
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+
   __glcContextState::lock();
 
   /* Search for the first context ID that is unused */
@@ -251,6 +387,8 @@ GLint* glcGetAllContexts(void)
   int i = 0;
   GLint* contextArray = NULL;
 
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+
   /* Count the number of existing contexts (whether they are current to a thread
    * or not).
    */
@@ -283,132 +421,9 @@ GLCenum glcGetError(void)
 {
   GLCenum error = GLC_NONE;
 
+  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+
   error = (GLCenum)pthread_getspecific(__glcContextState::errorKey);
   __glcContextState::raiseError(GLC_NONE);
   return error;
-}
-
-/* This function is supposed to be called when QuesoGLC before any of its
- * function is used. It reserves memory and opens the Unicode DB files.
- */
-void my_init(void)
-{
-  int i = 0;
-
-  // Creates the thread-local storage for the GLC error
-  // We create it first, so that the error value can be set
-  // if something goes wrong afterwards...
-  if (pthread_key_create(&__glcContextState::errorKey, NULL)) {
-    // Unfortunately we have not even been able to allocate a key
-    // for thread-local storage. Memory seems to be a really scarse
-    // resource here...
-    return;
-  }
-
-  // Initialize the "Common Area"
-
-  // Create array of state currency
-  __glcContextState::isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
-  if (!__glcContextState::isCurrent) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  // Create array of context states
-  __glcContextState::stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
-  if (!__glcContextState::stateList) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    delete[] __glcContextState::isCurrent;
-    return;
-  }
-
-  // Open the first Unicode database
-  __glcContextState::unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
-  if (!__glcContextState::unidb1) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // Open the second Unicode database
-  __glcContextState::unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
-  if (!__glcContextState::unidb2) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // Initialize the mutex
-  // At least this op can not fail !!!
-  pthread_mutex_init(&__glcContextState::mutex, NULL);
-
-  // Creates the thread-local storage for the context ID
-  if (pthread_key_create(&__glcContextState::contextKey, NULL)) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    gdbm_close(__glcContextState::unidb2);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // Creates the thread-local storage for the lock count
-  if (pthread_key_create(&__glcContextState::lockKey, NULL)) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    gdbm_close(__glcContextState::unidb2);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // Initialize FreeType
-  if (FT_Init_FreeType(&__glcContextState::library)) {
-    // Well, if it fails there is nothing that can be done
-    // with QuesoGLC : abort...
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    gdbm_close(__glcContextState::unidb2);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // So far, there are no contexts
-  for (i=0; i< GLC_MAX_CONTEXTS; i++) {
-    __glcContextState::isCurrent[i] = GL_FALSE;
-    __glcContextState::stateList[i] = NULL;
-  }
-
-}
-
-/* This function is supposed to be called when QuesoGLC is no longer needed.
- * It frees the memory and closes the Unicode DB files
- */
-void my_fini(void)
-{
-  int i;
-
-  /* destroy remaining contexts */
-  for (i=0; i < GLC_MAX_CONTEXTS; i++) {
-    if (__glcContextState::isContext(i))
-      delete __glcContextState::getState(i);
-  }
-
-  /* destroy Common Area */
-  delete[] __glcContextState::isCurrent;
-  delete[] __glcContextState::stateList;
-
-  gdbm_close(__glcContextState::unidb1);
-  gdbm_close(__glcContextState::unidb2);
-
-  pthread_mutex_destroy(&__glcContextState::mutex);
-  pthread_key_delete(__glcContextState::contextKey);
-  pthread_key_delete(__glcContextState::errorKey);
-  pthread_key_delete(__glcContextState::lockKey);
-
-  FT_Done_FreeType(__glcContextState::library);
 }
