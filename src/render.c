@@ -18,8 +18,18 @@
  */
 /* $Id$ */
 
-/* This file defines the so-called "Rendering commands" described in chapter
- * 3.9 of the GLC specs.
+/** \file
+ * defines the so-called "Rendering commands" described in chapter 3.9 of the GLC specs.
+ */
+
+/** \defgroup render Rendering commands
+ * These are the commands that render characters to a GL render target. Those commands gather
+ * glyph datas according to the parameters that has been set in the state machine of GLC, and
+ * issue GL commands to render the characters layout to the GL render target.
+ *
+ * As a reminder, the render commands may issue GL commands, hence a GL context must
+ * be bound to the current thread such that the GLC commands produce the desired result.
+ * It is the responsibility of the GLC client to set up the underlying GL implementation.
  */
 
 #include <string.h>
@@ -396,8 +406,44 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   }
 }
 
-/* glcRenderChar:
- *   This command renders the character that inCode is mapped to
+/** \ingroup render
+ *  This command renders the character that \e inCode is mapped to.
+ *
+ *  GLC finds a font that maps \e inCode to a character such as LATIN CAPITAL LETTER A,
+ *  then uses one or more glyphs from the font to create a graphical layout that represents
+ *  the character. Finally, GLC issues a sequence of GL commands to draw the layout. Glyph
+ *  coordinates are defined in em units and are transformed during rendering to produce the
+ *  desired mapping of the glyph shape into the GL window coordinate system.
+ *
+ *  If \e glcRenderChar cannot find a font in the list \b GLC_CURRENT_FONT_LIST that maps
+ *  \e inCode, it attemps to produce an alternate rendering. If the value of the boolean
+ *  variable \b GLC_AUTO_FONT is set to \b GL_TRUE, \b glcRenderChar finds a font that has
+ *  the character that maps \e inCode. If the search succeeds, \e glcRenderChar appends the
+ *  font's ID to \b GLC_CURRENT_FONT_LIST and renders the character.
+ *
+ *  If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for \e inCode cannot
+ *  be found in any of those fonts, \e glcRenderChar goes through these steps :
+ *  -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero, \e glcRenderChar finds
+ *  a font that maps the replacement code, and renders the character that the replacement code
+ *  is mapped to.
+ *  -# If the variable \b GLC_REPLACEMENT_CODE is zero, or if the replacement code does not
+ *  result in a match, \e glcRenderChar checks whether a callback function is defined. If a
+ *  callback function is defined for \b GLC_OP_glcUnmappedCode, \e glcRenderChar calls the
+ *  function. The callback function provides \e inCode to the user and allows loading of the
+ *  appropriate font. After the callback returns, \e glcRenderChar tries to render \e inCode
+ *  again.
+ *  -# Otherwise, the command attemps to render the character sequence <em>\\\<hexcode\></em>,
+ *  where \\ is the character REVERSE SOLIDUS (U+5C), \< is the character LESS-THAN SIGN (U+3C),
+ *  \> is the character GREATER-THAN SIGN (U+3E), and \e hexcode is \e inCode represented as a
+ *  sequence of hexadecimal digits. The sequence has no leading zeros, and alphabetic digits are
+ *  in upper case. The GLC measurement commands treat the sequence as a single character.
+ *
+ *  \param inCode The character to render
+ *  \sa glcRenderString()
+ *  \sa glcRenderCountedString()
+ *  \sa glcReplacementCode()
+ *  \sa glcRenderStyle()
+ *  \sa glcCallbackFunc()
  */
 void glcRenderChar(GLint inCode)
 {
@@ -470,12 +516,17 @@ void glcRenderChar(GLint inCode)
   }
 }
 
-/* glcRenderCountedString:
- *   This command is identical to the command glcRenderChar, except that it
- *   renders a string of characters. The string comprises the first inCount
- *   elements of the array inString, which need not be followed by a zero
- *   element. The command raises GLC_PARAMETER_ERROR if inCount is less than
- *   zero.
+/** \ingroup render
+ *  This command is identical to the command glcRenderChar(), except that it
+ *  renders a string of characters. The string comprises the first \e inCount
+ *  elements of the array \e inString, which need not be followed by a zero
+ *  element.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inCount is less than zero.
+ *  \param inCount The number of elements in the string to be rendered
+ *  \param inString The array of characters from which to render \e inCount elements.
+ *  \sa glcRenderChar()
+ *  \sa glcRenderString()
  */
 void glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
@@ -507,9 +558,12 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
     glcRenderChar(__glcUniIndex(&UinString, i));
 }
 
-/* glcRenderString:
- *   This command is identical to the command glcRenderCountedString, except
- *   that inString is zero terminated, not counted.
+/** \ingroup render
+ *  This command is identical to the command glcRenderCountedString(), except
+ *  that \e inString is zero terminated, not counted.
+ *  \param inString A zero-terminated string of characters.
+ *  \sa glcRenderChar()
+ *  \sa glcRenderCountedString()
  */
 void glcRenderString(const GLCchar *inString)
 {
@@ -533,8 +587,31 @@ void glcRenderString(const GLCchar *inString)
   glcRenderCountedString(__glcUniLen(&UinString), inString);
 }
 
-/* glcRenderStyle:
- *   This command assigns the value inStyle to the variable GLC_RENDER_STYLE
+/** \ingroup render
+ *  This command assigns the value \e inStyle to the variable \b GLC_RENDER_STYLE.
+ *  Legal values for \e inStyle are defined in the table below :
+ *  <center>
+ *  <table>
+ *  <caption>Rendering styles</caption>
+ *    <tr>
+ *      <td>Name</td> <td>Enumerant</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_BITMAP</b></td> <td>0x0100</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_LINE</b></td> <td>0x0101</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_TEXTURE</b></td> <td>0x0102</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_TRIANGLE</b></td> <td>0x0103</td>
+ *    </tr>
+ *  </table>
+ *  </center>
+ *  \param inStyle The value to assign to the variable \b GLC_RENDER_STYLE.
+ *  \sa glcGeti() with argument \b GLC_RENDER_STYLE
  */
 void glcRenderStyle(GLCenum inStyle)
 {
@@ -564,10 +641,14 @@ void glcRenderStyle(GLCenum inStyle)
   return;
 }
 
-/* glcReplacementCode:
- *   This command assigns the value inCode to the variable GLC_REPLACEMENT_CODE
- *   The replacement code is the code which is used whenever glcRenderChar can
- *   not find a font that maps to a requested glyph
+/** \ingroup render
+ *  This command assigns the value \e inCode to the variable \b GLC_REPLACEMENT_CODE.
+ *  The replacement code is the code which is used whenever glcRenderChar() can
+ *  not find a font that owns a character which the parameter \e inCode of glcRenderChar()
+ *  maps to.
+ *  \param inCode An integer to assign to \b GLC_REPLACEMENT_CODE.
+ *  \sa glcGeti() with argument \b GLC_REPLACEMENT_CODE
+ *  \sa glcRenderChar()
  */
 void glcReplacementCode(GLint inCode)
 {
@@ -585,11 +666,14 @@ void glcReplacementCode(GLint inCode)
   return;
 }
 
-/* glcResolution:
- *   This command assigns the value inVal to the variable GLC_RESOLUTION.
- *   **QuesoGLC specificity** : the resolution is used by the algorithm of
- *   de Casteljau which determine how many segments should be used in order
- *   to approximate a Bezier curve.
+/** \ingroup render
+ *  This command assigns the value \e inVal to the variable \b GLC_RESOLUTION.
+ *  \note In QuesoGLC, the resolution is used by the algorithm of
+ *  de Casteljau which determine how many segments should be used in order
+ *  to approximate a Bezier curve. Bezier curves are generated when glcRenderChar()
+ *  is called with \b GLC_RENDER_STYLE set to \b GLC_TRIANGLE or \b GLC_LINE.
+ *  \param inVal A floating point number to be used as resolution.
+ *  \sa glcGeti() with argument GLC_RESOLUTION
  */
 void glcResolution(GLfloat inVal)
 {
