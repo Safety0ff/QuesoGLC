@@ -3,16 +3,19 @@
 
 __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
 {
-  FT_Face face;
+  __glcUniChar *s = inParent->faceFileName->findIndex(0);
+  GLCchar *buffer = NULL;
 
   faceID = 0;
   parent = inParent;
   charMapCount = 0;
   id = inID;
-  __glcUniChar *s = parent->faceFileName->findIndex(0);
-  GLCchar *buffer = NULL;
 
   buffer = (GLCchar*)malloc(s->lenBytes());
+  if (!buffer) {
+    face = NULL;
+    return;
+  }
   s->dup(buffer, s->lenBytes());
 
   if (FT_New_Face(__glcContextState::library, 

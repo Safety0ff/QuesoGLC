@@ -564,6 +564,8 @@ GLCchar* __glcContextState::queryBuffer(int inSize)
     buffer = (GLCchar*)realloc(buffer, inSize);
     if (!buffer)
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    else
+      bufferSize = inSize;
   }
 
   return buffer;

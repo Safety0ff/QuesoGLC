@@ -86,7 +86,7 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
     __glcFont *font = NULL;
     GLint faceID = 0;
     __glcUniChar UinFace = __glcUniChar(inFace, inState->stringType);
-    __glcUniChar s;
+    __glcUniChar *s = NULL;
     GLCchar* buffer = NULL;
 
     font = inState->fontList[inFont];
@@ -102,13 +102,13 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 
     font->faceID = faceID;
 
-    s = __glcUniChar(font->parent->faceFileName->findIndex(faceID), GLC_UCS1);
-    buffer = inState->queryBuffer(s.lenBytes());
+    s = font->parent->faceFileName->findIndex(faceID);
+    buffer = inState->queryBuffer(s->lenBytes());
     if (!buffer) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;
     }
-    s.dup(buffer, s.lenBytes());
+    s->dup(buffer, s->lenBytes());
 
     if (FT_New_Face(__glcContextState::library, 
 		    (const char*)buffer, 0, &font->face)) {
@@ -327,7 +327,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
   datum key, content;
 
   if (font) {
-    __glcUniChar s = __glcUniChar(content.dptr, GLC_UCS1);
+    __glcUniChar s;
     GLCchar *buffer = NULL;
     int length = 0;
     __glcContextState *state = __glcContextState::getCurrent();
@@ -354,6 +354,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
+    s = __glcUniChar(content.dptr, GLC_UCS1);
 
     length = s.estimate(state->stringType);
     buffer = state->queryBuffer(length);
