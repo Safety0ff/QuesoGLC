@@ -25,7 +25,8 @@ obj/%.o : tests/%.c
 obj/%.o : src/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 	
-$(LIBRARY) : obj/strlst.o obj/global.o obj/master.o  obj/font.o obj/render.o obj/scalable.o obj/context.o obj/transform.o
+$(LIBRARY) : obj/strlst.o obj/global.o obj/master.o  obj/font.o obj/render.o \
+		obj/scalable.o obj/context.o obj/transform.o obj/measure.o
 	$(AR) -r $@ $^
 
 clean:
