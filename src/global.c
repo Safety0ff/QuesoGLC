@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -57,12 +57,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#ifndef __MACOSX__
+#ifndef __APPLE__
 #include <GL/glx.h>
 #include <X11/Xlib.h>
 #endif
 #include <fcntl.h>
 #include <assert.h>
+#include <fontconfig/fontconfig.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -154,7 +155,7 @@ static void __glcFreeFunc(FT_Memory inMemory, void *inBlock)
 }
 
 static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
-			     long inNewSize, void* inBlock)
+			      long inNewSize, void* inBlock)
 {
   return __glcRealloc(inBlock, inNewSize);
 }
@@ -170,8 +171,11 @@ static void __glcInitLibrary(void)
 void _init(void)
 #endif
 {
-  /* Create and initialize the "Common Area" */
+  /* Initialize fontconfig */
+  if (!FcInit())
+    goto FatalError;
 
+  /* Create and initialize the "Common Area" */
   __glcCommonArea = (commonArea*)__glcMalloc(sizeof(commonArea));
   if (!__glcCommonArea)
     goto FatalError;
@@ -202,11 +206,8 @@ void _init(void)
   __glcCommonArea->memoryManager->realloc = __glcReallocFunc;
 
   /* Create and initialize the array of context states */
-  __glcCommonArea->stateList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-  if (!__glcCommonArea->stateList)
+  if (!__glcCreateList(&__glcCommonArea->stateList))
     goto FatalError;
-  __glcCommonArea->stateList->head = NULL;
-  __glcCommonArea->stateList->tail = NULL;
 
   __glcCommonArea->catalogList = __glcStrLstCreate(NULL);
   if (!__glcCommonArea->catalogList)
@@ -371,7 +372,7 @@ void glcContext(GLint inContext)
   char *version = NULL;
   char *extension = NULL;
 #endif
-#ifndef __MACOSX__
+#ifndef __APPLE__
   Display *dpy = NULL;
   Screen *screen = NULL;
 #endif
@@ -390,7 +391,7 @@ void glcContext(GLint inContext)
   area = __glcGetThreadArea();
   assert(area);
 
-#ifndef __MACOSX__
+#ifndef __APPLE__
   /* Get the screen on which drawing ops will be performed */
   dpy = glXGetCurrentDisplay();
   if (dpy) {
@@ -490,7 +491,7 @@ void glcContext(GLint inContext)
 #endif
 
   if (area->currentContext) {
-#ifndef __MACOSX__
+#ifndef __APPLE__
     if (dpy) {
       /* Compute the resolution of the screen in DPI (dots per inch) */
       if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
