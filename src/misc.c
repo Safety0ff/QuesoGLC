@@ -134,3 +134,31 @@ GLboolean __glcCreateList(FT_List* list)
   (*list)->tail = NULL;
   return GL_TRUE;
 }
+
+/* Duplicate a Unicode string */
+__glcUniChar* __glcUniCopy(__glcUniChar* inUniChar, GLint inStringType)
+{
+  __glcUniChar* outUniChar = NULL;
+  int length = 0;
+  GLCchar* buffer = NULL;
+
+  length = __glcUniEstimate(inUniChar, inStringType);
+  buffer = (GLCchar *)__glcMalloc(length);
+  if (!buffer) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  __glcUniConvert(inUniChar, buffer, inStringType, length);
+  outUniChar = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+  if (!outUniChar) {
+    __glcFree(buffer);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  outUniChar->ptr = buffer;
+  outUniChar->type = inStringType;
+
+  return outUniChar;
+}
