@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gdbm.h>
+#include <gdbm/ndbm.h>
+#include <fcntl.h>
 
 int main(int argc, char** argv)
 {
@@ -10,8 +11,8 @@ int main(int argc, char** argv)
     char buffer[256];
     char *end = NULL;
     int code = 0;
-    GDBM_FILE unicod1;
-    GDBM_FILE unicod2;
+    DBM *unicod1;
+    DBM *unicod2;
     datum key , content;
     
     if (argc < 2) {
@@ -28,16 +29,16 @@ int main(int argc, char** argv)
     }
     
     /* Opens the first database which converts code into Unicode names */
-    unicod1 = gdbm_open("unicode1.db", 0, GDBM_WRCREAT, 0666, NULL);
+    unicod1 = dbm_open("unicode1", O_CREAT | O_RDWR, 0666);
     if (!unicod1) {
-	printf("failed to open 'unicode1.db'\n");
+	printf("failed to open 'unicode1'\n");
 	return -1;
     }
 
     /* Opens the second database which converts Unicode names into code*/
-    unicod2 = gdbm_open("unicode2.db", 0, GDBM_WRCREAT, 0666, NULL);
+    unicod2 = dbm_open("unicode2", O_CREAT | O_RDWR, 0666);
     if (!unicod2) {
-	printf("failed to open 'unicode2.db'\n");
+	printf("failed to open 'unicode2'\n");
 	return -1;
     }
 
@@ -67,13 +68,13 @@ int main(int argc, char** argv)
 	
 	/* Stores key=code content=name into the first database
 		  key=name content=code into the second one */
-	gdbm_store(unicod1, key, content, GDBM_REPLACE);
-	gdbm_store(unicod2, content, key, GDBM_REPLACE);
+	dbm_store(unicod1, key, content, DBM_REPLACE);
+	dbm_store(unicod2, content, key, DBM_REPLACE);
     }    
 
     /* Closes the databases */
-    gdbm_close(unicod1);
-    gdbm_close(unicod2);
+    dbm_close(unicod1);
+    dbm_close(unicod2);
     
     /* Closes the Unicode Data file */
     fclose(uniFile);

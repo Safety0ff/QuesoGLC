@@ -356,10 +356,10 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       return;
     }
 
-    /* Use the GDBM database to retrieve the Unicode code from its name */
+    /* Use the NDBM database to retrieve the Unicode code from its name */
     key.dsize = strlen((const char*)buffer) + 1;
     key.dptr = (char *)buffer;
-    content = gdbm_fetch(__glcCommonArea->unidb2, key);
+    content = dbm_fetch(__glcCommonArea->unidb2, key);
     if (!content.dptr) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
@@ -520,10 +520,10 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     if (!glyphIndex)
       return GLC_NONE;
 
-    /* Uses GDBM to retrieve the Unicode name of the character */
+    /* Uses NDBM to retrieve the Unicode name of the character */
     key.dsize = sizeof(GLint);
     key.dptr = (char *)&inCode;
-    content = gdbm_fetch(__glcCommonArea->unidb1, key);
+    content = dbm_fetch(__glcCommonArea->unidb1, key);
     if (!content.dptr) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
@@ -541,7 +541,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     }
     __glcUniConvert(&s, buffer, state->stringType, length);
 
-    /* Free the place allocated by GDBM and return the result */
+    /* Free the place allocated by NDBM and return the result */
     __glcFree(content.dptr);
     return buffer;
   }

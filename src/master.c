@@ -203,7 +203,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   key.dsize = sizeof(GLint);
   key.dptr = (char *)&inCode;
   /* Search for the Unicode into the database */
-  content = gdbm_fetch(__glcCommonArea->unidb1, key);
+  content = dbm_fetch(__glcCommonArea->unidb1, key);
   if (!content.dptr) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE; /* Not found !! */
