@@ -76,7 +76,7 @@ typedef struct {
   GLint versionMinor;		/* GLC_VERSION_MINOR */
 
   FT_List stateList;
-  FT_List catalogList;		/* GLC_CATALOG_LIST */
+  FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
 #ifndef __WIN32__
   pthread_mutex_t mutex;	/* For concurrent accesses to the common area arrays */
 
