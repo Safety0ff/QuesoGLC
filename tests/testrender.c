@@ -55,5 +55,7 @@ void testQueso(void)
     glcRenderChar('Q');
     glcRenderString("uesoGLC");
     
+    printf("Textures : %d\n", glcGeti(GLC_TEXTURE_OBJECT_COUNT));
+    
     my_fini();
 }
