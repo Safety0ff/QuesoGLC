@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <GL/glu.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -208,14 +209,31 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 	return;
     }
 
-    /* TODO : Add the texture object to the GLC_TEXTURE_OBJECT_LIST */
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, GLC_TEXTURE_SIZE, GLC_TEXTURE_SIZE,
-	0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixmap.buffer);
+    if ((inState->glObjects)
+    && (inState->textureObjectCount <= GLC_MAX_TEXTURE_OBJECT)) {
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	inState->textureObjectList[inState->textureObjectCount] = texture;
+	inState->textureObjectCount++;
+    }
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    if (inState->mipmap) {
+	gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, GLC_TEXTURE_SIZE,
+		GLC_TEXTURE_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+		pixmap.buffer);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+    else {
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, GLC_TEXTURE_SIZE,
+		GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+		pixmap.buffer);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    }
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
