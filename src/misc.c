@@ -84,3 +84,41 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
     
     return (GLCchar *)&s[i];
 }
+
+GLCchar* __glcNameFromCode(GLint code)
+{
+  GLint position = -1;
+
+  if ((code < 0) || (code > __glcMaxCode))
+    return GLC_NONE;
+
+  position = __glcNameFromCodeArray[code];
+  if (position == -1)
+    return GLC_NONE;
+
+  return __glcCodeFromNameArray[position].name;
+}
+
+GLint __glcCodeFromName(GLCchar* name)
+{
+  int start = 0;
+  int end = __glcCodeFromNameSize;
+  int middle = (end + start) / 2;
+  int res = 0;
+
+  while (end - start > 1) {
+    res = strcmp(name, __glcCodeFromNameArray[middle].name);
+    if (res > 0)
+      start = middle;
+    else if (res < 0)
+      end = middle;
+    else
+      return __glcCodeFromNameArray[middle].code;
+    middle = (end + start) / 2;
+  }
+  if (strcmp(name, __glcCodeFromNameArray[start].name) == 0)
+    return __glcCodeFromNameArray[start].code;
+  if (strcmp(name, __glcCodeFromNameArray[end].name) == 0)
+    return __glcCodeFromNameArray[end].code;
+  return -1;
+}

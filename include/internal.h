@@ -49,6 +49,11 @@ extern "C" {
     GLuint list;
   } __glcDisplayListKey;
 
+  typedef struct {
+    GLint code;
+    GLCchar* name;
+  } __glcDataCodeFromName;
+
   /* Character renderers */
   extern void __glcRenderCharScalable(__glcFont* inFont,
 				      __glcContextState* inState, GLint inCode,
@@ -70,6 +75,10 @@ extern "C" {
   /* Deletes GL objects defined in context state */
   extern void __glcDeleteGLObjects(__glcContextState *inState);
 
+  extern const __glcDataCodeFromName __glcCodeFromNameArray[];
+  extern const GLint __glcNameFromCodeArray[];
+  extern const GLint __glcMaxCode;
+  extern const GLint __glcCodeFromNameSize;
   /* Find a Unicode name from its code */
   extern GLCchar* __glcNameFromCode(GLint code);
   /* Find a Unicode code from its name */
