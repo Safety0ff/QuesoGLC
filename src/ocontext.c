@@ -63,6 +63,18 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
+  This->masterList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  if (!This->masterList) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcStrLstDestroy(This->catalogList);
+    FT_Done_Library(This->library);
+    This->library = NULL;
+    __glcFree(This);
+    return NULL;    
+  }
+  This->masterList->head = NULL;
+  This->masterList->tail = NULL;
+
   This->isCurrent = GL_FALSE;
   This->id = inContext;
   This->pendingDelete = GL_FALSE;
@@ -79,7 +91,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->currentFontCount = 0;
   This->fontCount = 0;
   This->listObjectCount = 0;
-  This->masterCount = 0;
   This->measuredCharCount = 0;
   This->renderStyle = GLC_BITMAP;
   This->replacementCode = 0;
@@ -95,9 +106,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   for (j=0; j < GLC_MAX_FONT; j++)
     This->fontList[j] = NULL;
 
-  for (j=0; j < GLC_MAX_MASTER; j++)
-    This->masterList[j] = NULL;
-
   for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
     This->textureObjectList[j] = 0;
 
@@ -105,6 +113,19 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bufferSize = 0;
 
   return This;
+}
+
+
+
+/* This function is called from FT_List_Finalize() to destroy all
+ * remaining masters
+ */
+static void __glcMasterDestructor(FT_Memory memory, void *data, void *user)
+{
+  __glcMaster *master = (__glcMaster*)data;
+
+  if (master)
+    __glcMasterDestroy(master);
 }
 
 
@@ -133,17 +154,19 @@ void __glcCtxDestroy(__glcContextState *This)
     }
   }
 
-  for (i = 0; i < GLC_MAX_MASTER; i++) {
-    if (This->masterList[i]) {
-      __glcMasterDestroy(This->masterList[i]);
-      This->masterList[i] = NULL;
-    }
-  }
+  /* Must be called before the masters are destroyed since
+   * the display lists are stored in the masters.
+   */
+  __glcDeleteGLObjects(This);
+
+  /* destroy remaining masters */
+  FT_List_Finalize(This->masterList, __glcMasterDestructor,
+		   __glcCommonArea->memoryManager, NULL);
+  __glcFree(This->masterList);
 
   if (This->bufferSize)
     __glcFree(This->buffer);
 
-  __glcDeleteGLObjects(This);
   FT_Done_Library(This->library);
   __glcFree(This);
 }
@@ -366,6 +389,9 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 
     /* open the font file and read it */
     if (!FT_New_Face(This->library, path, 0, &face)) {
+      __glcMaster *master = NULL;
+      FT_ListNode node = NULL;
+
       numFaces = face->num_faces;
 
       /* If the face has no Unicode charmap, skip it */
@@ -375,37 +401,46 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       /* Determine if the family (i.e. "Times", "Courier", ...) is already
        * associated to a master.
        */
-      for (j = 0; j < This->masterCount; j++) {
+      for (node = This->masterList->head; node; node = node->next) {
+        master = (__glcMaster*)node->data;
+
 	s.ptr = face->family_name;
 	s.type = GLC_UCS1;
-	if (!__glcUniCompare(&s, This->masterList[j]->family))
+	if (!__glcUniCompare(&s, master->family))
 	  break;
       }
 
-      if (j < This->masterCount)
-	/* We have found the master corresponding to the family of the current
-	 * font file.
-	 */
-	master = This->masterList[j];
-      else {
+      if (!node) {
 	/* No master has been found. We must create one */
+        GLint id;
 
-	if (This->masterCount < GLC_MAX_MASTER - 1) {
-	  /* Create a new master and add it to the current context */
-	  master = __glcMasterCreate(face, desc, ext, This->masterCount,
-				     This->stringType);
-	  if (!master) {
-	    __glcRaiseError(GLC_RESOURCE_ERROR);
-	    continue;
-	  }
-	  /* FIXME : use the first free location instead of this one */
-	  This->masterList[This->masterCount++] = master;
-	}
-	else {
-	  /* We have already created the maximum number of masters allowed */
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  continue;
-	}
+        /* Create a new master and add it to the current context */
+        if (master)
+          /* master is already equal to the last master of masterList
+           * since the master list has been parsed in the "for" loop
+           * and no master has been found.
+           */
+          id = master->id + 1;
+        else
+          id = 1;
+
+        master = __glcMasterCreate(face, desc, ext, id,
+                                   This->stringType);
+        if (!master) {
+          __glcRaiseError(GLC_RESOURCE_ERROR);
+          continue;
+        }
+
+        node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+        if (!node) {
+          __glcMasterDestroy(master);
+          master = NULL;
+          __glcRaiseError(GLC_RESOURCE_ERROR);
+          continue;
+        }
+
+        node->data = master;
+        FT_List_Add(This->masterList, node);
       }
       FT_Done_Face(face);
     }
@@ -520,6 +555,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
     int j = 0;
     char *desc = NULL;
     GLint index = 0;
+    FT_ListNode node = NULL;
 
     /* get the file name */
     fgets(buffer, 256, file);
@@ -530,8 +566,10 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
     }
 
     /* Search the file name of the font in the masters */
-    for (j = 0; j < GLC_MAX_MASTER; j++) {
-      __glcMaster *master = This->masterList[j];
+    for (node = This->masterList->head; node; node = node->next) {
+      __glcMaster *master;
+
+      master = (__glcMaster*)node->data;
       if (!master)
 	continue;
       s.ptr = buffer;
@@ -570,7 +608,6 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       if (!__glcStrLstLen(master->faceFileName)) {
 	__glcMasterDestroy(master);
 	master = NULL;
-	This->masterCount--;
       }
     }
   }
@@ -652,6 +689,7 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
    */
   if (This->autoFont) {
     GLint i = 0;
+    FT_ListNode node = NULL;
 
     for (i = 0; i < This->fontCount; i++) {
       font = glcGetListi(GLC_FONT_LIST, i);
@@ -665,8 +703,8 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
      * master that maps 'inCode'. If the search succeeds, it creates a font
      * from the master and appends its ID to GLC_CURRENT_FONT_LIST.
      */
-    for (i = 0; i < This->masterCount; i++) {
-      if (glcGetMasterMap(i, inCode)) {
+    for (node = This->masterList->head; node; node = node->next) {
+      if (glcGetMasterMap(((__glcMaster*)node->data)->id, inCode)) {
 	font = glcNewFontFromMaster(glcGenFontID(), i);
 	if (font) {
 	  glcAppendFont(font);

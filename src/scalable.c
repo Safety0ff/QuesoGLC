@@ -293,6 +293,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
        * the key in it
        */
       list = inFont->parent->displayList;
+      /* FIXME : Is it really needed since the list is created when the master is created ? */
       if (!list) {
 	list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
 	if (!list) {

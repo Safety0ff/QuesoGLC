@@ -45,6 +45,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   __glcUniChar* s = NULL;
   GLCchar *buffer = NULL;
   GLint length = 0;
+  FT_ListNode node = NULL;
     
   /* Check some parameter.
    * NOTE : the verification of some parameters needs to get the current
@@ -68,12 +69,16 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   }
 
   /* Verify if inMaster is in legal bounds */
-  if ((inMaster < 0) || (inMaster >= state->masterCount)) {
+  for(node = state->masterList->head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    if (master->id == inMaster) break;
+  }
+
+  /* No master identified by inMaster has been found */
+  if (!node) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
-    
-  master = state->masterList[inMaster];
     
   switch(inAttrib) {
   case GLC_CHAR_LIST:
@@ -137,6 +142,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   FT_UInt glyphIndex = 0;
   datum key, content;
   GLint i = 0;
+  FT_ListNode node = NULL;
 
   /* Verify if the thread has a current context */
   state = __glcGetCurrent();
@@ -146,12 +152,16 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   }
 
   /* Check if inMaster is in legal bounds */
-  if ((inMaster < 0) || (inMaster >= state->masterCount)) {
+  for(node = state->masterList->head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    if (master->id == inMaster) break;
+  }
+
+  /* No master identified by inMaster has been found */
+  if (!node) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
-    
-  master = state->masterList[inMaster];
 
   /* We search for a font file that supports the requested inCode glyph */
   for (i = 0; (GLuint)i < __glcStrLstLen(master->faceFileName); i++) {
@@ -249,6 +259,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
   GLint length = 0;
+  FT_ListNode node = NULL;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -270,12 +281,16 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   }
 
   /* Check if inMaster is in legal bounds */
-  if ((inMaster < 0) || (inMaster >= state->masterCount)) {
+  for(node = state->masterList->head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    if (master->id == inMaster) break;
+  }
+
+  /* No master identified by inMaster has been found */
+  if (!node) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
-  
-  master = state->masterList[inMaster];
   
   /* Get the Unicode string which corresponds to the requested attribute */
   switch(inAttrib) {
@@ -315,6 +330,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
+  FT_ListNode node = NULL;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -337,12 +353,16 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   }
 
   /* Check if inMaster is in legal bounds */
-  if ((inMaster < 0) || (inMaster >= state->masterCount)) {
+  for(node = state->masterList->head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    if (master->id == inMaster) break;
+  }
+
+  /* No master identified by inMaster has been found */
+  if (!node) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
-
-  master = state->masterList[inMaster];
 
   /* returns the requested attribute */
   switch(inAttrib) {

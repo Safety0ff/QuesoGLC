@@ -58,8 +58,7 @@ typedef struct {
   __glcFont* fontList[GLC_MAX_FONT];
   GLint fontCount;		/* GLC_FONT_COUNT */
   GLint listObjectCount;	/* GLC_LIST_OBJECT_COUNT */
-  __glcMaster* masterList[GLC_MAX_MASTER];
-  GLint masterCount;		/* GLC_MASTER_COUNT */
+  FT_List masterList;
   GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */

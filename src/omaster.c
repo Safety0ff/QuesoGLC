@@ -120,10 +120,20 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
   This->id = inID;
-  This->displayList = NULL;
+  This->displayList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  if (!This->displayList)
+    goto error;
+
+  This->displayList->head = NULL;
+  This->displayList->tail = NULL;
+
   return This;
 
  error:
+  if (This->displayList)
+    __glcFree(This->displayList);
+  if (This->charList)
+    __glcFree(This->charList);
   if (This->vendor) {
     __glcUniDestroy(This->vendor);
     __glcFree(This->vendor);
@@ -151,6 +161,8 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
 void __glcMasterDestroy(__glcMaster *This)
 {
   FT_List_Finalize(This->charList, __glcListDestructor,
+		   __glcCommonArea->memoryManager, NULL);
+  FT_List_Finalize(This->displayList, __glcListDestructor,
 		   __glcCommonArea->memoryManager, NULL);
   __glcFree(This->charList);
   __glcFree(This->faceList);

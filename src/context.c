@@ -72,14 +72,12 @@ void glcDataPointer(GLvoid *inPointer)
 
 void __glcDeleteGLObjects(__glcContextState *inState)
 {
-  GLint i = 0;
+  FT_ListNode node = NULL;
 
   /* Deletes display lists */
-  for (i = 0; i < inState->masterCount; i++) {
-    if (inState->masterList[i])
-      FT_List_Finalize(inState->masterList[i]->displayList,
-		       __glcListDestructor, __glcCommonArea->memoryManager,
-		       NULL);
+  for(node = inState->masterList->head; node; node = node->next) {
+    FT_List_Finalize(((__glcMaster*)node->data)->displayList, __glcListDestructor,
+                     __glcCommonArea->memoryManager, NULL);
   }
 
   /* SPECIAL NOTE on Texture objects deletion :
@@ -281,8 +279,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 {
   __glcContextState *state = NULL;
-  GLint i = 0;
-  FT_ListNode dlTree = NULL;
+  FT_ListNode node = NULL;
 
   /* Check parameters */
   switch(inAttrib) {
@@ -343,9 +340,12 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
      * even know which glyph of which font of which master the requested index
      * of a display list represents...
      */
-    for (i = 0; i < state->masterCount; i++) {
-      FT_List list = state->masterList[i]->displayList;
+    for(node = state->masterList->head; node; node = node->next) {
+      FT_ListNode dlTree = NULL;
+      FT_List list = NULL;
       int j = 0;
+
+      list = ((__glcMaster*)node->data)->displayList;
 
       if (list) {
 	dlTree = list->head;
@@ -520,6 +520,7 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 GLint glcGeti(GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
+  FT_ListNode node = NULL;
 
   /* Check the parameters */
   switch(inAttrib) {
@@ -559,7 +560,11 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_LIST_OBJECT_COUNT:
     return state->listObjectCount;
   case GLC_MASTER_COUNT:
-    return state->masterCount;
+    node = state->masterList->tail;
+    if (node)
+      return ((__glcMaster*)node->data)->id;
+    else
+      return 0;
   case GLC_MEASURED_CHAR_COUNT:
     return state->measuredCharCount;
   case GLC_RENDER_STYLE:

@@ -592,15 +592,9 @@ GLboolean glcIsFont(GLint inFont)
  * deletes the font identified by inFont (if any) and create a new font which
  * is added to the list GLC_FONT_LIST.
  */
-static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextState *inState)
+static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster, __glcContextState *inState)
 {
     __glcFont *font = NULL;
-
-    /* Check if inMaster is in legal bounds */
-    if ((inMaster < 0) || (inMaster >= inState->masterCount)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
-	return 0;
-    }
 
     /* Get the font identified by inFont */
     font = inState->fontList[inFont - 1];
@@ -611,7 +605,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     }
 
     /* Create a new font and add it to the list GLC_FONT_LIST */
-    font = __glcFontCreate(inFont, inState->masterList[inMaster]);
+    font = __glcFontCreate(inFont, inMaster);
     inState->fontList[inFont - 1] = font;
     inState->fontCount++;
 
@@ -628,6 +622,8 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
 GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
     __glcContextState *state = NULL;
+    FT_ListNode node = NULL;
+    __glcMaster* master = NULL;
 
     /* Check if inFont is in legal bounds */
     if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
@@ -642,8 +638,20 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 	return 0;
     }
 
+    /* Check if inMaster is in legal bounds */
+    for(node = state->masterList->head; node; node = node->next) {
+      master = (__glcMaster*)node->data;
+      if (master->id == inMaster) break;
+    }
+
+    /* The master identified by inMaster has not been found */
+    if (!node) {
+	__glcRaiseError(GLC_PARAMETER_ERROR);
+	return 0;
+    }
+
     /* Create and return the new font */
-    return __glcNewFontFromMaster(inFont, inMaster, state);
+    return __glcNewFontFromMaster(inFont, master, state);
 }
 
 /* glcNewFontFromFamily:
@@ -659,7 +667,8 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 {
   __glcContextState *state = NULL;
-  int i = 0;
+  FT_ListNode node = NULL;
+  __glcMaster* master = NULL;
 
   /* Check if inFont is in legal bounds */
   if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
@@ -675,19 +684,21 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   }
 
   /* Search for a master which string attribute GLC_FAMILY is inFamily */
-  for (i = 0; i < state->masterCount; i++) {
+  for (node = state->masterList->head; node; node = node->next) {
     __glcUniChar UinFamily;
+
+    master = (__glcMaster*)node->data;
 
     UinFamily.ptr = (GLCchar*)inFamily;
     UinFamily.type = state->stringType;
-    if (!__glcUniCompare(&UinFamily, state->masterList[i]->family))
+    if (!__glcUniCompare(&UinFamily, master->family))
       break;
   }
  
-  if (i < state->masterCount)
+  if (node)
     /* A master has been found, create a new font and add it to the list
      * GLC_FONT_LIST */
-    return __glcNewFontFromMaster(inFont, i, state);
+    return __glcNewFontFromMaster(inFont, master, state);
   else {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
