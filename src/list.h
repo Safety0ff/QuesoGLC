@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,7 @@
 #ifndef __glc_list_h
 #define __glc_list_h
 
-#if __MACOSX__
+#if defined __APPLE__ && defined __MACH__
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
