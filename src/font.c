@@ -359,7 +359,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     /* Use the NDBM database to retrieve the Unicode code from its name */
     key.dsize = strlen((const char*)buffer) + 1;
     key.dptr = (char *)buffer;
-    content = dbm_fetch(__glcCommonArea->unidb2, key);
+    content = __glcDBFetch(__glcCommonArea->unidb2, key);
     if (!content.dptr) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
@@ -523,7 +523,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     /* Uses NDBM to retrieve the Unicode name of the character */
     key.dsize = sizeof(GLint);
     key.dptr = (char *)&inCode;
-    content = dbm_fetch(__glcCommonArea->unidb1, key);
+    content = __glcDBFetch(__glcCommonArea->unidb1, key);
     if (!content.dptr) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;

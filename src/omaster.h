@@ -29,7 +29,7 @@
 
 typedef struct {
   GLint id;
-  __glcStringList* faceList;	/* GLC_FACE_LIST */
+  FT_List faceList;	        /* GLC_FACE_LIST */
   FT_List charList;             /* GLC_CHAR_LIST */
   GLint charListCount;	        /* GLC_CHAR_LIST_COUNT */
   __glcUniChar* family;		/* GLC_FAMILY */
@@ -39,7 +39,7 @@ typedef struct {
   GLint isFixedPitch;		/* GLC_IS_FIXED_PITCH */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
-  __glcStringList* faceFileName;
+  FT_List faceFileName;
   FT_List displayList;
 } __glcMaster;
 

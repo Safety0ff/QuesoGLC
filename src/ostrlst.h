@@ -24,26 +24,22 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_LIST_H
 #include "GL/glc.h"
 #include "ounichar.h"
 
 #define GLC_STRING_CHUNK	256
 
-typedef struct __glcStringList__ {
-  __glcUniChar* string;	/* Pointer to the string */
-  struct __glcStringList__* next;
-  GLuint count;
-} __glcStringList;
-
-__glcStringList* __glcStrLstCreate(__glcUniChar* inString);
-void __glcStrLstDestroy(__glcStringList* This);
-GLint __glcStrLstAppend(__glcStringList* This, __glcUniChar* inString);
-GLint __glcStrLstPrepend(__glcStringList* This, __glcUniChar* inString);
-GLint __glcStrLstRemove(__glcStringList* This, __glcUniChar* inString);
-GLint __glcStrLstRemoveIndex(__glcStringList* This, GLuint inIndex);
-__glcUniChar* __glcStrLstFind(__glcStringList* This, __glcUniChar* inString);
-__glcUniChar* __glcStrLstFindIndex(__glcStringList* This, GLuint inIndex);
-GLint __glcStrLstGetIndex(__glcStringList* This, __glcUniChar* inString);
-GLint __glcStrLstConvert(__glcStringList* This, int inType);
+FT_List __glcStrLstCreate(__glcUniChar* inString);
+void __glcStrLstDestroy(FT_List This);
+GLint __glcStrLstAppend(FT_List This, __glcUniChar* inString);
+GLint __glcStrLstPrepend(FT_List This, __glcUniChar* inString);
+GLint __glcStrLstRemove(FT_List This, __glcUniChar* inString);
+GLint __glcStrLstRemoveIndex(FT_List This, GLuint inIndex);
+__glcUniChar* __glcStrLstFindIndex(FT_List This, GLuint inIndex);
+GLint __glcStrLstGetIndex(FT_List This, __glcUniChar* inString);
+GLuint __glcStrLstLen(FT_List This);
 
 #endif /* __glc_strlst_h */

@@ -18,271 +18,309 @@
  */
 /* $Id$ */
 
-/* Defines the methods of an object that is intended to managed string lists
- * This file and the object it defines will be removed in a (hopefully) near
- * future. Double linked lists defined by FreeType will be used instead.
+/* Defines the methods of an object that is used to manage string lists
  */
 
 #include "internal.h"
 #include "ostrlst.h"
 
-__glcStringList* __glcStrLstCreate(__glcUniChar* inString)
+
+
+/* Create a string list (i.e. a double linked list of Unicode strings) */
+FT_List __glcStrLstCreate(__glcUniChar* inString)
 {
   GLCchar *room = NULL;
-  __glcStringList *This = NULL;
+  FT_List This = NULL;
+  __glcUniChar *ustring = NULL;
+  FT_ListNode node = NULL;
 
-  This = (__glcStringList*)__glcMalloc(sizeof(__glcStringList));
+  This = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  This->head = NULL;
+  This->tail = NULL;
 
   if (inString) {
+    /* Make a local copy of the incoming string */
     room = (GLCchar *)__glcMalloc(__glcUniLenBytes(inString));
     __glcUniDup(inString, room, __glcUniLenBytes(inString));
-    This->string = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    This->string->ptr = room;
-    This->string->type = GLC_UCS1;
-    This->count = 1;
+
+    ustring = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+    ustring->ptr = room;
+    ustring->type = inString->type;
+    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+    node->data = ustring;
+    FT_List_Add(This, node);
   }
-  else {
-    This->string = NULL;
-    This->count = 0;
-  }
-  This->next = NULL;
 
   return This;
 }
 
-void __glcStrLstDestroy(__glcStringList *This)
+
+
+/* The string list destructor called by FT_List_Finalize() */
+void __glcStrLstDestructor(FT_Memory memory, void *data, void *user)
 {
-  if (This->next)
-    __glcStrLstDestroy(This->next);
+  __glcUniChar *ustring = (__glcUniChar *)data;
 
-  if (This->string) {
-    __glcUniDestroy(This->string);
-    __glcFree(This->string);
-  }
-
-  __glcFree(This);
+  if (ustring)
+    __glcUniDestroy(ustring);
 }
 
-GLint __glcStrLstAppend(__glcStringList *This, __glcUniChar* inString)
+/* Destroy a string list */
+void __glcStrLstDestroy(FT_List This)
 {
-  __glcStringList *item = This;
-  __glcStringList *current = This;
-  GLCchar *room = NULL;
-
-  if (!inString)
-    return -1;
-
-  if (This->count) {
-    __glcUniChar *s = NULL;
-
-    if (inString->type > This->string->type)
-      if (__glcStrLstConvert(This, inString->type))
-	return -1;
-
-    room = (GLCchar *)__glcMalloc(__glcUniLenBytes(inString));
-    if (!room)
-      return -1;
-
-    do {
-      item->count++;
-      current = item;
-      item = item->next;
-    } while (item);
-
-    __glcUniConvert(inString, room, current->string->type,
-		    __glcUniLenBytes(inString));
-    s = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    s->ptr = room;
-    s->type = current->string->type;
-    item = __glcStrLstCreate(s);
-
-    __glcFree(s);
-    __glcFree(room);
-
-    if (!item) {
-      item = This;
-      do {
-	item->count--;
-	item = item->next;
-      } while (item);
-      return -1;
-    }
-
-    current->next = item;
-  }
-  else {
-    room = (GLCchar *)__glcMalloc(__glcUniLenBytes(inString));
-    if (!room)
-      return -1;
-    __glcUniDup(inString, room, __glcUniLenBytes(inString));
-    This->string = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    This->string->ptr = room;
-    This->string->type = inString->type;
-    This->count = 1;
-  }
-
-  return 0;
+  FT_List_Finalize(This, __glcStrLstDestructor, __glcCommonArea->memoryManager,
+		   NULL);
 }
 
-GLint __glcStrLstPrepend(__glcStringList *This, __glcUniChar* inString)
-{
-  __glcStringList *item = NULL;
-  __glcUniChar* temp = NULL;
-  GLCchar *room = NULL;
 
-  if (This->count) {
-    if (inString->type > This->string->type)
-      if (__glcStrLstConvert(This, inString->type))
-	return -1;
 
-    room = (GLCchar *)__glcMalloc(__glcUniLenBytes(inString));
-    if (!room)
-      return -1;
-    __glcUniConvert(inString, room, This->string->type,
-		    __glcUniLenBytes(inString));
-    temp = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    temp->ptr = room;
-    temp->type = This->string->type;
-    item = __glcStrLstCreate(temp);
-
-    __glcFree(room);
-    __glcFree(temp);
-    if (!item)
-      return -1;
-
-    temp = This->string;
-    This->string = item->string;
-    item->string = temp;
-    item->next = This->next;
-    This->next = item;
-    item->count = This->count++;
-  }
-  else {
-    room = (GLCchar *)__glcMalloc(__glcUniLenBytes(inString));
-    if (!room)
-      return -1;
-    __glcUniDup(inString, room, __glcUniLenBytes(inString));
-    This->string = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    This->string->ptr = room;
-    This->string->type = inString->type;
-    This->count = 1;
-  }
-
-  return 0;
-}
-
-GLint __glcStrLstRemove(__glcStringList *This, __glcUniChar* inString)
-{
-  return __glcStrLstRemoveIndex(This, __glcStrLstGetIndex(This, inString));
-}
-
-GLint __glcStrLstRemoveIndex(__glcStringList *This, GLuint inIndex)
-{
-  __glcStringList *list = NULL;
-
-  /* String not found */
-  if ((inIndex >= This->count) || (inIndex < 0))
-    return -1;
-
-  if (!inIndex) {
-    __glcFree(This->string->ptr);
-    __glcFree(This->string);
-    
-    if (This->next) {
-      list = This->next;
-      This->string = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-      This->string = list->string;
-      list->string->ptr = NULL;
-      This->count = list->count;
-      This->next = list->next;
-      __glcStrLstDestroy(list);
-    }
-    else {
-      This->string = NULL;
-      This->count = 0;
-    }
-  }
-  else {
-    GLuint index = 0;
-    __glcStringList *current = This;
-    list = This;
-
-    while (index != inIndex) {
-      list->count--;
-      current = list;
-      list = list->next;
-      index++;
-    }
-    current->next = list->next;
-    __glcStrLstDestroy(list);
-  }
-
-  return 0;
-}
-
-__glcUniChar* __glcStrLstFind(__glcStringList *This, __glcUniChar* inString)
-{
-  return __glcStrLstFindIndex(This, __glcStrLstGetIndex(This, inString));
-}
-
-__glcUniChar* __glcStrLstFindIndex(__glcStringList *This, GLuint inIndex)
-{
-  __glcStringList *item = This;
-  GLuint index = 0;
-
-  if ((inIndex >= This->count) || (inIndex < 0))
-    return NULL;
-
-  while(index != inIndex) {
-    item = item->next;
-    index++;
-  };
-
-  return item->string;
-}
-
-GLint __glcStrLstGetIndex(__glcStringList *This, __glcUniChar* inString)
-{
-  __glcStringList *item = This;
-  int index = 0;
-
-  if (!This->string)
-    return -1;
-
-  do {
-    if (!__glcUniCompare(item->string, inString))
-      break;
-    item = item->next;
-    index++;
-  } while (item);
-
-  if (!item)
-    return -1;
-
-  return index;
-}
-
-GLint __glcStrLstConvert(__glcStringList *This, int inType)
+/* Convert a string list to the type 'inType'
+ * We assume that every string in a string list has the same type. Hence the
+ * need to convert the list to another if we plan to add a string which type
+ * is different from the list type.
+ * NOTE : we have made the assumption that the list is only converted to an
+ * 'upper' type, that is a type which has a bigger memory footprint.
+ */
+static void __glcStrLstConvert(FT_List This, int inType)
 {
   GLCchar *room = NULL;
   int size = 0;
-  __glcStringList *item = This;
+  FT_ListNode node = NULL;
+  __glcUniChar *ustring = NULL;
 
-  if (inType == This->string->type)
+  if (!This->head)
+    return;
+
+  node = This->head;
+  ustring = (__glcUniChar *)node->data;
+
+  /* No conversion needed */
+  if (inType == ustring->type)
+    return;
+
+  /* Convert each node of the list to the new type */
+  while (node) {
+    ustring = (__glcUniChar *)node->data;
+    size = __glcUniEstimate(ustring, inType);
+    room = (GLCchar *)__glcMalloc(size);
+    __glcUniConvert(ustring, room, inType, size);
+    __glcFree(ustring->ptr);
+    ustring->ptr = room;
+    ustring->type = inType;
+    node = node->next;
+  }
+}
+
+
+
+/* Create a node to be appended or prepended to the string list 'This'. */
+static FT_ListNode __glcStrLstCreateNode(FT_List This, __glcUniChar* inString)
+{
+  GLCchar *room = NULL;
+  FT_ListNode node = NULL;
+  __glcUniChar *s = NULL;
+
+  if (!inString)
+    return NULL;
+
+  s = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+
+  if (This->head) {
+    __glcUniChar *ustring = (__glcUniChar *)This->head->data;
+
+    /* If the string type differs from the list type then the list is
+     * converted to the string type. However conversion is only done if the
+     * the string type is bigger (in terms of memory footprint) than the
+     * list type.
+     */
+    if (inString->type > ustring->type)
+      __glcStrLstConvert(This, inString->type);
+
+    room = (GLCchar *)__glcMalloc(__glcUniEstimate(inString, ustring->type));
+
+    /* If the conversion of the list to the string type has not been made
+     * then it means that the string type is smaller (in terms of memory
+     * footprint) than the list type. In that case this is the string that
+     * is converted to the list type.
+     */
+    __glcUniConvert(inString, room, ustring->type,
+		    __glcUniEstimate(inString, ustring->type));
+    s->type = ustring->type;
+  }
+  else {
+    room = (GLCchar *)__glcMalloc(__glcUniLenBytes(inString));
+    __glcUniDup(inString, room, __glcUniLenBytes(inString));
+    s->type = inString->type;
+  }
+
+  s->ptr = room;
+
+  node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+  node->data = s;
+  return node;
+}
+
+
+
+/* Append the Unicode string 'inString' to the string list */
+GLint __glcStrLstAppend(FT_List This, __glcUniChar* inString)
+{
+  FT_ListNode node = __glcStrLstCreateNode(This, inString);
+
+  if (node) {
+    FT_List_Add(This, node);
+    return 0;
+  }
+  else
+    return -1;
+}
+
+
+
+/* Prepend the Unicode string 'inString' to the string list */
+GLint __glcStrLstPrepend(FT_List This, __glcUniChar* inString)
+{
+  FT_ListNode node = __glcStrLstCreateNode(This, inString);
+
+  if (node) {
+    FT_List_Insert(This, node);
+    return 0;
+  }
+  else
+    return -1;
+}
+
+
+
+/* Find a node which Unicode string equals inString.
+ * The function also returns the index of the node (which is needed because
+ * GLC often refers to items by their index).
+ */
+static FT_ListNode __glcStrLstFindNode(FT_List This, __glcUniChar* inString,
+				       GLint *inIndex)
+{
+  FT_ListNode node = NULL;
+
+  *inIndex = 0;
+
+  if (!This->head) {
+    *inIndex = -1;
+    return NULL;
+  }
+
+  node = This->head;
+
+  while (node) {
+    if (!__glcUniCompare((__glcUniChar *)node->data, inString)) break;
+    node = node->next;
+    (*inIndex)++;
+  }
+
+  if (!node)
+    *inIndex = -1;
+
+  return node;
+}
+
+
+
+/* Remove the node which contains inString from the string list */
+GLint __glcStrLstRemove(FT_List This, __glcUniChar* inString)
+{
+  __glcUniChar *ustring = NULL;
+  GLint index = 0;
+  FT_ListNode node = __glcStrLstFindNode(This, inString, &index);
+
+  if (!node)
+    return -1;
+
+  ustring = (__glcUniChar *)node->data;
+
+  FT_List_Remove(This, node);
+  __glcUniDestroy(ustring);
+  __glcFree(node);
+  return 0;
+}
+
+
+
+/* Find a node in the string list which index equals inIndex */
+static FT_ListNode __glcStrLstFindNodeIndex(FT_List This, GLuint inIndex)
+{
+  FT_ListNode node = NULL;
+  GLuint i = 0;
+
+  if (!This->head)
+    return NULL;
+
+  node = This->head;
+
+  for (i = 1; (i <= inIndex) && node; i++)
+    node = node->next;
+
+  return node;
+}
+
+
+
+/* Remove a node from the string list which index equals inIndex */
+GLint __glcStrLstRemoveIndex(FT_List This, GLuint inIndex)
+{
+  __glcUniChar *ustring = NULL;
+  FT_ListNode node = __glcStrLstFindNodeIndex(This, inIndex);
+
+  if (!node)
+    return -1;
+
+  ustring = (__glcUniChar *)node->data;
+
+  FT_List_Remove(This, node);
+  __glcUniDestroy(ustring);
+  __glcFree(node);
+  return 0;
+}
+
+
+
+/* Returns the string which index in the string list equals inIndex */
+__glcUniChar* __glcStrLstFindIndex(FT_List This, GLuint inIndex)
+{
+  FT_ListNode node = __glcStrLstFindNodeIndex(This, inIndex);
+
+  if (!node)
+    return NULL;
+
+  return (__glcUniChar *)node->data;
+}
+
+
+
+/* Get the index of a Unicode string in a string list
+ * Returns -1 in case of failure.
+ */
+GLint __glcStrLstGetIndex(FT_List This, __glcUniChar* inString)
+{
+  GLint index = 0;
+
+  __glcStrLstFindNode(This, inString, &index);
+  return index;
+}
+
+
+
+/* Calculates the number of elements of a list */
+GLuint __glcStrLstLen(FT_List This)
+{
+  FT_ListNode node = This->head;
+  GLuint length = 0;
+
+  if (!node)
     return 0;
 
-  do {
-    size = __glcUniEstimate(item->string, inType);
-    room = (GLCchar*)__glcMalloc(size);
-    if (!room)
-      return -1;
+  while (node) {
+    length++;
+    node = node->next;
+  }
 
-    __glcUniConvert(item->string, room, inType, size);
-    __glcFree(item->string->ptr);
-    item->string->ptr = room;
-    item->string->type = inType;
-    item = item->next;
-  } while(item);
-
-  return 0;
+  return length;
 }

@@ -24,19 +24,18 @@ really needed.
 	GLC_BITMAP
 6. (?) When a fatal error occurs inside QuesoGLC, it should do something more
    friendly than brute-force exiting.
-7. Get rid of gdbm (use ndbm instead)
-8. (?) Use setjmp/longjmp to manage memory-related errors.
-9. (?) Check that OpenGL is 1.1 or better and glX is 1.2 or better.
-10. (?) Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
-11. Keep track of the glX context that is current when a display list or a
+7. (?) Use setjmp/longjmp to manage memory-related errors.
+8. (?) Check that OpenGL is 1.1 or better and glX is 1.2 or better.
+9. (?) Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
+10. Keep track of the glX context that is current when a display list or a
     texture is made so that we make sure that we use the same glX context when
     a cached display list or a cached texture are used later.
-12. Try to optimize texture memory : draw several glyphs on each texture in
+11. Try to optimize texture memory : draw several glyphs on each texture in
     order to minimize unused texture space.
-13. (?) Support for loading of compressed files
-14. Separate platform specific code from the main code set.
-15. QuesoGLC should use a (big?) database where it would store masters and fonts
+12. (?) Support for loading of compressed files
+13. Separate platform specific code from the main code set.
+14. QuesoGLC should use a (big?) database where it would store masters and fonts
     it has used so far, in order to prevent the (very) long process of parsing
     font files each time it is launched.
-16. Add a build process with FT_Jam (the FreeType2 'make' tool)
-17. (?) Do not store the path for each file name
+15. (?) Add a build process with FT_Jam (the FreeType2 'make' tool)
+16. (?) Do not store the path for each file name

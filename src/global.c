@@ -178,9 +178,15 @@ void _init(void)
   if (!__glcCommonArea->unidb2)
     goto FatalError;
 
-  /* Initialize the mutex */
+  /* Initialize the mutex for access to the stateList array */
   if (pthread_mutex_init(&__glcCommonArea->mutex, NULL))
     goto FatalError;
+
+  /* Initialize the mutex for access to the DB */
+  if (pthread_mutex_init(&__glcCommonArea->dbMutex, NULL)) {
+    pthread_mutex_destroy(&__glcCommonArea->mutex);
+    goto FatalError;
+  }
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   atexit(__glcExitLibrary);
@@ -307,17 +313,24 @@ void glcDeleteContext(GLint inContext)
  */
 void glcContext(GLint inContext)
 {
+#if 0
   char *version = NULL;
   char *extension = NULL;
+  Display *dpy = NULL;
+  Screen *screen = NULL;
+#endif
   __glcContextState *currentState = NULL;
   __glcContextState *state = NULL;
   threadArea * area = NULL;
-  Display *dpy = NULL;
-  Screen *screen = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
+  if (inContext <= 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
   area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
@@ -422,9 +435,9 @@ void glcContext(GLint inContext)
    * However it may be useful if QuesoGLC tries to use some GL commands 
    * that are not part of OpenGL 1.0
    */
+#if 0
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
-#if 0
   /* Compute the resolution of the screen in DPI (dots per inch) */
   if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
     area->currentContext->displayDPIx =

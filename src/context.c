@@ -239,9 +239,12 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
     return GLC_NONE;
   }
 
+  /* Get the string at offset inIndex */
+  s = __glcStrLstFindIndex(state->catalogList, inIndex);
+
   /* Now we can check if inIndex identifies a member of the string list or 
    * not */
-  if ((inIndex < 0) || ((GLuint)inIndex >= state->catalogList->count)) {
+  if (!s) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
@@ -257,8 +260,6 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    glcStringType() is called.
    */
 
-  /* Get the string at offset inIndex */
-  s = __glcStrLstFindIndex(state->catalogList, inIndex);
   /* Allocate a buffer to store the string */
   buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));
 
@@ -550,7 +551,7 @@ GLint glcGeti(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
-    return state->catalogList->count;
+    return __glcStrLstLen(state->catalogList);
   case GLC_CURRENT_FONT_COUNT:
     return state->currentFontCount;
   case GLC_FONT_COUNT:

@@ -46,7 +46,7 @@ typedef struct {
   GLboolean autoFont;		/* GLC_AUTO_FONT */
   GLboolean glObjects;	/* GLC_GLOBJECTS */
   GLboolean mipmap;		/* GLC_MIPMAP */
-  __glcStringList* catalogList;/* GLC_CATALOG_LIST */
+  FT_List catalogList; /* GLC_CATALOG_LIST */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
   GLint currentFontList[GLC_MAX_CURRENT_FONT];
@@ -77,7 +77,8 @@ typedef struct {
 
 typedef struct {
   FT_List stateList;
-  pthread_mutex_t mutex;
+  pthread_mutex_t mutex; /* For concurrent accesses to the stateList array */
+  pthread_mutex_t dbMutex; /* For concurrent accesses to the DB */
   pthread_key_t threadKey;
 
   FT_Memory memoryManager;

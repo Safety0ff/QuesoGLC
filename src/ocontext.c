@@ -317,6 +317,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 			GLboolean inAppend)
 {
   const char* fileName = "/fonts.dir";
+  /* Those buffers should be declared dynamically */
   char buffer[256];
   char path[256];
   int numFontFiles = 0;
@@ -434,7 +435,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       if (!FT_New_Face(This->library, path, j, &face)) {
 	s.ptr = face->style_name;
 	s.type = GLC_UCS1;
-	if (!__glcStrLstFind(master->faceList, &s))
+	if (__glcStrLstGetIndex(master->faceList, &s) < 0)
 	  /* The current face in the font file is not already loaded in a
 	   * master : Append (or prepend) the new face and its file name to
 	   * the master.
@@ -577,7 +578,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       /* If the master is empty (i.e. does not contain any face) then
        * remove it.
        */
-      if (!master->faceFileName->count) {
+      if (!__glcStrLstLen(master->faceFileName)) {
 	__glcMasterDestroy(master);
 	master = NULL;
 	This->masterCount--;

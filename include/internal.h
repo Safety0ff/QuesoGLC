@@ -41,8 +41,12 @@ extern "C" {
   /* Find a token in a list of tokens separated by 'separator' */
   extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
 				     const GLCchar* inSeparator);
+
   /* Deletes GL objects defined in context state */
   void __glcDeleteGLObjects(__glcContextState *inState);
+
+  /* Fetch a key in the DB */
+  datum __glcDBFetch(DBM *dbf, datum key);
 
 #ifdef __cplusplus
 }
