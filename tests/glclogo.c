@@ -12,8 +12,13 @@
    program is -not- in the public domain. 
 */
 
+#ifdef __MACOSX__
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
+#else
 #include <GL/gl.h>
 #include <GL/glut.h>
+#endif
 #include <GL/glc.h>
 
 #include <stdio.h>            /* fprintf(), stderr            */

@@ -1,7 +1,11 @@
 /* $Id$ */
 #include "GL/glc.h"
 #include <stdio.h>
+#ifdef __MACOSX__
+#include <GLUT/glut.h>
+#else
 #include <GL/glut.h>
+#endif
 #include <stdlib.h>
 
 void display(void)
@@ -61,12 +65,12 @@ void display(void)
     ntex = glcGeti(GLC_TEXTURE_OBJECT_COUNT);
     printf("Textures : %d\n", ntex);
     for (i = 0; i < ntex; i++)
-      printf("%d ", glcGetListi(GLC_TEXTURE_OBJECT_LIST, i));
+      printf("%d ", (int)glcGetListi(GLC_TEXTURE_OBJECT_LIST, i));
 
     ndl = glcGeti(GLC_LIST_OBJECT_COUNT);
     printf("\nDisplay Lists : %d\n", ndl);
     for (i = 0; i < ndl; i++)
-      printf("%d ", glcGetListi(GLC_LIST_OBJECT_LIST, i));
+      printf("%d ", (int)glcGetListi(GLC_LIST_OBJECT_LIST, i));
 
     printf("\n");
 }
