@@ -21,7 +21,7 @@ int main(void)
   numMasters = glcGeti(GLC_MASTER_COUNT);
   printf("Masters : %d\n", numMasters);
 
-  for (i = 1; i <= numMasters; i++) {
+  for (i = 0; i < numMasters; i++) {
     numFaces = glcGetMasteri(i, GLC_FACE_COUNT);
     printf("Master #%d\n", i);
     printf("- Vendor : %s\n", (char *)glcGetMasterc(i, GLC_VENDOR));

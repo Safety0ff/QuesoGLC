@@ -398,7 +398,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
            */
           id = master->id + 1;
         else
-          id = 1;
+          id = 0;
 
         master = __glcMasterCreate(face, desc, ext, id,
                                    This->stringType);
