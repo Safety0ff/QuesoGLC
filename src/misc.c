@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,7 @@
  */
 /* $Id$ */
 
-/* This file defines miscellaneous functions used throughout the lib */
+/* This file defines miscellaneous utility routines used throughout the lib */
 
 #include <stdlib.h>
 #include "ocontext.h"
@@ -85,6 +85,7 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
     return (GLCchar *)&s[i];
 }
 
+/* Find a Unicode name from its code */
 GLCchar* __glcNameFromCode(GLint code)
 {
   GLint position = -1;
@@ -99,6 +100,7 @@ GLCchar* __glcNameFromCode(GLint code)
   return __glcCodeFromNameArray[position].name;
 }
 
+/* Find a Unicode code from its name */
 GLint __glcCodeFromName(GLCchar* name)
 {
   int start = 0;
@@ -121,4 +123,14 @@ GLint __glcCodeFromName(GLCchar* name)
   if (strcmp(name, __glcCodeFromNameArray[end].name) == 0)
     return __glcCodeFromNameArray[end].code;
   return -1;
+}
+
+/* Create an initialize a FreeType  double linked list */
+GLboolean __glcCreateList(FT_List* list)
+{
+  *list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  if (!(*list)) return GL_FALSE;
+  (*list)->head = NULL;
+  (*list)->tail = NULL;
+  return GL_TRUE;
 }
