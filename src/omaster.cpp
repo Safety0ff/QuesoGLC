@@ -30,39 +30,33 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   GLCchar *buffer = NULL;
   int length = 0;
 
+  vendor = NULL;
+  faceList = NULL;
+  faceFileName = NULL;
+  family = NULL;
+  masterFormat = NULL;
+  buffer = NULL;
+
+  faceList = new __glcStringList(NULL);
+  if (!faceList)
+    goto error;
+
+  faceFileName = new __glcStringList(NULL);
+  if (!faceFileName)
+    goto error;
+
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
    * may be free and should be used instead of using the last location
    */
   length = s.estimate(inStringType);
   buffer = (GLCchar *)__glcMalloc(length);
-  if (!buffer) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  if (!buffer)
+    goto error;
+
   s.convert(buffer, inStringType, length);
   family = new __glcUniChar(buffer, inStringType);
-  if (!family) {
-    __glcFree(buffer);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  faceList = new __glcStringList(NULL);
-  if (!faceList) {
-    family->destroy();
-    delete family;
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  faceFileName = new __glcStringList(NULL);
-  if (!faceFileName) {
-    delete faceList;
-    family->destroy();
-    delete family;
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  if (!family)
+    goto error;
 
   /* use file extension to determine the face format */
   s = __glcUniChar(NULL, GLC_UCS1);
@@ -74,24 +68,13 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   if (s.len()) {
     length = s.estimate(inStringType);
     buffer = (GLCchar*)__glcMalloc(length);
-    if (!buffer) {
-      delete faceList;
-      family->destroy();
-      delete family;
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
+    if (!buffer)
+      goto error;
+
     s.convert(buffer, inStringType, length);
     masterFormat = new __glcUniChar(buffer, inStringType);
-    if (!masterFormat) {
-      delete faceList;
-      delete faceFileName;
-      family->destroy();
-      delete family;
-      __glcFree(buffer);
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
+    if (!masterFormat)
+      goto error;
   }
   else
     masterFormat = NULL;
@@ -99,45 +82,18 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   s = __glcUniChar(inVendorName, GLC_UCS1);
   length = s.estimate(inStringType);
   buffer = (GLCchar*)__glcMalloc(length);
-  if (!buffer) {
-    delete faceList;
-    delete faceFileName;
-    family->destroy();
-    delete family;
-    masterFormat->destroy();
-    delete masterFormat;
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  if (!buffer)
+    goto error;
 
   s.convert(buffer, inStringType, length);
   vendor = new __glcUniChar(buffer, inStringType);
-  if (!vendor) {
-    delete faceList;
-    delete faceFileName;
-    family->destroy();
-    delete family;
-    masterFormat->destroy();
-    delete masterFormat;
-    __glcFree(buffer);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  if (!vendor)
+    goto error;
 
   charList = (FT_List)__glcMalloc(sizeof(*charList));
-  if (!charList) {
-    vendor->destroy();
-    delete vendor;
-    delete faceList;
-    delete faceFileName;
-    family->destroy();
-    delete family;
-    masterFormat->destroy();
-    delete masterFormat;
-    __glcFree(buffer);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  if (!charList)
+    goto error;
+
   charList->head = NULL;
   charList->tail = NULL;
 
@@ -148,6 +104,36 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   maxMappedCode = 0;
   id = inID;
   displayList = NULL;
+  return;
+
+ error:
+  if (vendor) {
+    vendor->destroy();
+    delete vendor;
+  }
+  if (faceList)
+    delete faceList;
+  if (faceFileName)
+    delete faceFileName;
+  if (family) {
+    family->destroy();
+    delete family;
+  }
+  if (masterFormat) {
+    masterFormat->destroy();
+    delete masterFormat;
+  }
+  if (buffer)
+    __glcFree(buffer);
+  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+
+  vendor = NULL;
+  faceList = NULL;
+  faceFileName = NULL;
+  family = NULL;
+  masterFormat = NULL;
+  buffer = NULL;
+  return;
 }
 
 __glcMaster::~__glcMaster()

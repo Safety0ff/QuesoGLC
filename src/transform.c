@@ -25,10 +25,15 @@
 
 #define GLC_PI 3.1415926535
 
+/* glcLoadIdentity:
+ *   This command assigns the value [1 0 0 1] to the floating point vector
+ *   variable GLC_BITMAP_MATRIX
+ */
 void glcLoadIdentity(void)
 {
     __glcContextState *state = NULL;
 
+    /* Check if the current thread owns a context state */
     state = __glcContextState::getCurrent();
     if (!state) {
 	__glcContextState::raiseError(GLC_STATE_ERROR);
@@ -41,10 +46,15 @@ void glcLoadIdentity(void)
     state->bitmapMatrix[3] = 1.;
 }
 
+/* glcLoadMatrix:
+ *   This command assigns the value [inMatrix[0] inMatrix[1] inMatrix[2]
+ *   inMatrix[3]] to the floating point vector variable GLC_BITMAP_MATRIX
+ */
 void glcLoadMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
 
+    /* Check if the current thread owns a context state */
     state = __glcContextState::getCurrent();
     if (!state) {
 	__glcContextState::raiseError(GLC_STATE_ERROR);
@@ -54,11 +64,16 @@ void glcLoadMatrix(const GLfloat *inMatrix)
     memcpy(state->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
 }
 
+/* glcMultMatrix:
+ *   This command multiply the floating point vector variable GLC_BITMAP_MATRIX
+ *   by in the incoming matrix inMatrix.
+ */
 void glcMultMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
     GLfloat tempMatrix[4];
 
+    /* Check if the current thread owns a context state */
     state = __glcContextState::getCurrent();
     if (!state) {
 	__glcContextState::raiseError(GLC_STATE_ERROR);
@@ -73,6 +88,13 @@ void glcMultMatrix(const GLfloat *inMatrix)
     state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2] + tempMatrix[3] * inMatrix[3];
 }
 
+/* glcRotate:
+ *   This command assigns the value [a b c d] to the floating point vector
+ *   variable GLC_BITMAP_MATRIX, where inAngle is measured in degrees,
+ *   theta = inAngle * pi / 180 and
+ *   [a c] = [matrix[0] matrix[2]] * [  cos(theta) sin(theta) ]
+ *   [b d]   [matrix[1] matrix[3]]   [ -sin(theta) cos(theta) ]
+ */
 void glcRotate(GLfloat inAngle)
 {
     GLfloat tempMatrix[4];
@@ -88,6 +110,12 @@ void glcRotate(GLfloat inAngle)
     glcMultMatrix(tempMatrix);
 }
 
+/* glcScale:
+ *   This command assigns the value [a b c d] to the floating point vector
+ *   variable GLC_BITMAP_MATRIX, where
+ *   [a c] = [matrix[0] matrix[2]] * [ inX  0  ]
+ *   [b d]   [matrix[1] matrix[3]]   [  0  inY ]
+ */
 void glcScale(GLfloat inX, GLfloat inY)
 {
     GLfloat tempMatrix[4];
