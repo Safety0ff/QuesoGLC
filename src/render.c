@@ -53,8 +53,6 @@
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
-#define GLC_TEXTURE_SIZE 64
-
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
 static void __glcRenderCharBitmap(__glcFont* inFont,
@@ -124,11 +122,20 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   __glcFree(pixmap.buffer);
 }
 
+
+static int __glcNextPowerOf2(int value)
+{
+  int power = 0;
+
+  for (power = 1; power < value; power <<= 1);
+
+  return power;
+}
+
 /* Internal function that renders glyph in textures */
 static void __glcRenderCharTexture(__glcFont* inFont,
 				   __glcContextState* inState, GLint inCode)
 {
-  FT_Matrix matrix;
   FT_Face face = inFont->face;
   FT_Outline outline = face->glyph->outline;
   FT_BBox boundBox;
@@ -139,24 +146,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   __glcDisplayListKey *dlKey = NULL;
   FT_ListNode node = NULL;
 
-  /* Check if a new texture can be created */
-  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, GLC_TEXTURE_SIZE,
-	       GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-  glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
-			   &format);
-  if (!format) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* compute glyph dimensions */
-  matrix.xx = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / GLC_POINT_SIZE);
-  matrix.xy = 0;
-  matrix.yx = 0;
-  matrix.yy = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / GLC_POINT_SIZE);
-
   /* Get the bounding box of the glyph */
-  FT_Outline_Transform(&outline, &matrix);
   FT_Outline_Get_CBox(&outline, &boundBox);
 
   /* Compute the sizes of the pixmap where the glyph will be drawn */
@@ -167,9 +157,19 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 
   width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64);
   height = (GLfloat)((boundBox.yMax - boundBox.yMin) / 64);
-  pixmap.width = GLC_TEXTURE_SIZE;
-  pixmap.rows = GLC_TEXTURE_SIZE;
+  pixmap.width = __glcNextPowerOf2((boundBox.xMax - boundBox.xMin) >> 6);
+  pixmap.rows = __glcNextPowerOf2((boundBox.yMax - boundBox.yMin) >> 6);
   pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
+
+  /* Check if a new texture can be created */
+  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, pixmap.width,
+	       pixmap.rows, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+  glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
+			   &format);
+  if (!format) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
   /* Fill the pixmap descriptor and the pixmap buffer */
   pixmap.pixel_mode = ft_pixel_mode_grays;	/* Anti-aliased rendering */
@@ -218,16 +218,16 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   if (inState->mipmap) {
-    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, GLC_TEXTURE_SIZE,
-		      GLC_TEXTURE_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, pixmap.width,
+		      pixmap.rows, GL_LUMINANCE, GL_UNSIGNED_BYTE,
 		      pixmap.buffer);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		    GL_LINEAR_MIPMAP_LINEAR);
   }
   else {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, GLC_TEXTURE_SIZE,
-		 GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, pixmap.width,
+		 pixmap.rows, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,
 		 pixmap.buffer);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -266,17 +266,17 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glTexCoord2f(0., 0.);
-  glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
-	     boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
-  glTexCoord2f(width / GLC_TEXTURE_SIZE, 0.);
-  glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
-	     boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
-  glTexCoord2f(width / GLC_TEXTURE_SIZE, height / GLC_TEXTURE_SIZE);
-  glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
-	     boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
-  glTexCoord2f(0., height / GLC_TEXTURE_SIZE);
-  glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
-	     boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
+  glVertex2f(boundBox.xMin / 64. / GLC_POINT_SIZE, 
+	     boundBox.yMin / 64. / GLC_POINT_SIZE);
+  glTexCoord2f(width / pixmap.width, 0.);
+  glVertex2f(boundBox.xMax / 64. / GLC_POINT_SIZE,
+	     boundBox.yMin / 64. / GLC_POINT_SIZE);
+  glTexCoord2f(width / pixmap.width, height / pixmap.rows);
+  glVertex2f(boundBox.xMax / 64. / GLC_POINT_SIZE,
+	     boundBox.yMax / 64. / GLC_POINT_SIZE);
+  glTexCoord2f(0., height / pixmap.rows);
+  glVertex2f(boundBox.xMin / 64. / GLC_POINT_SIZE,
+	     boundBox.yMax / 64. / GLC_POINT_SIZE);
   glEnd();
 
   /* Stores the glyph advance in the display list */
