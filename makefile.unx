@@ -34,7 +34,7 @@ all: $(TEST_OBJECTS) $(LIBRARY)
 
 clean:
 	rm -f config.*
-	rm -f $(OBJECTS) obj/*.o obj/*.oo
+	rm -f $(OBJECTS) obj/*.o
 	rm -f $(LIBRARY)
 	rm -f $(TEST_OBJECTS)
 	rm -fR docs/html docs/rtf
