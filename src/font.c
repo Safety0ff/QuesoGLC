@@ -161,12 +161,54 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
     }
 }
 
-/* NYI */
 void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
     __glcFont *font = __glcVerifyFontParameters(inFont);
+    FT_UInt glyphIndex = 0;
+    GLint i = 0;
+    GLint code  = 0;
+    datum key, content;
     
     if (font) {
+	/* Verify that the glyph exists in the face */
+	glyphIndex = FT_Get_Char_Index(font->face, inCode);
+	if (!glyphIndex) {
+	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    return;
+	}
+	/* Retrieve the Unicode code from its name */
+	key.dsize = strlen(inCharName) + 1;
+	key.dptr = (char *)inCharName;
+	content = gdbm_fetch(unicod2, key);
+	if (!content.dptr) {
+	    __glcRaiseError(GLC_RESOURCE_ERROR);
+	    return;
+	}
+	code = (GLint)(*(content.dptr));
+	free(content.dptr);
+	/* Use a dichotomic algo instead */
+	for (i = 0; i < font->charMapCount; i++) {
+	    if (font->charMap[0][i] >= code)
+		break;
+	}
+	if (font->charMap[0][i] != code) {
+	    /* If the char is not yet registered then add it */
+	    if (font->charMapCount < GLC_MAX_CHARMAP) {
+		memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
+			(font->charMapCount - i) * 2 * sizeof(GLint));
+		font->charMapCount++;
+		font->charMap[0][i] = code;
+	    }
+	    else {
+		__glcRaiseError(GLC_RESOURCE_ERROR);
+		return;
+	    }
+	}
+	font->charMap[1][i] = inCode;
+    }
+    else {
+	__glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
     }
 }
 
@@ -225,7 +267,8 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 {
     __glcFont *font = __glcVerifyFontParameters(inFont);
-    FT_UInt glyph_index = 0;
+    FT_UInt glyphIndex = 0;
+    datum key, content;
     
     if (font) {
 	if (font->charMapCount) {
@@ -239,13 +282,21 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 		}
 	    }
 	}
-	glyph_index = FT_Get_Char_Index(font->face, inCode);
-	if (!glyph_index)
+	glyphIndex = FT_Get_Char_Index(font->face, inCode);
+	if (!glyphIndex)
 	    return GLC_NONE;
-	if (FT_Get_Glyph_Name(font->face, glyph_index, __glcBuffer, GLC_STRING_CHUNK)) {
-	    __glcRaiseError(GLC_INTERNAL_ERROR);
+	/* Uses GDBM to retrieve the map name */
+	key.dsize = sizeof(GLint);
+	key.dptr = (char *)&inCode;
+	content = gdbm_fetch(unicod1, key);
+	if (!content.dptr) {
+	    __glcRaiseError(GLC_RESOURCE_ERROR);
 	    return GLC_NONE;
 	}
+	/* GDBM does not free the content data, so we copy the result to
+	  __glcBuffer then we free the content data */
+	strncpy(__glcBuffer, content.dptr, 256);
+	free(content.dptr);
 	return (GLCchar *)__glcBuffer;
     }
     else
