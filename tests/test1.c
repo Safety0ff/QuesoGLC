@@ -123,7 +123,80 @@ int main(void)
 		}
 	}
 
+	/* Verify that no error is pending */
+	err = glcGetError();
+	if (err) {
+	  printf("An error is pending : %X\n", err);
+	  return -1;
+	}
+	/* Verify that a context ID less than zero generates
+	 * a GLC_PARAMETER_ERROR
+	 */
+	glcContext(-1);
+	err = glcGetError();
+	if (err != GLC_PARAMETER_ERROR) {
+	  printf("Unexpected error : %X\n", err);
+	  return -1;
+	}
+	/* Verify that no error is pending */
+	err = glcGetError();
+	if (err) {
+	  printf("Another error is pending : %X\n", err);
+	  return -1;
+	}
+
+	/* Look for a context which has not been created yet */
+	i = 1;
+	while (glcIsContext(i)) i++;
+
+	/* Verify that we can not make current a context that has not
+	 * been created yet.
+	 */
+	glcContext(i);
+	err = glcGetError();
+	if (err != GLC_PARAMETER_ERROR) {
+	  printf("Unexpected error : %X\n", err);
+	  return -1;
+	}
+
+	/* Verify that no error is pending */
+	err = glcGetError();
+	if (err) {
+	  printf("An error is pending : %X\n", err);
+	  return -1;
+	}
+	/* Verify that a context ID less than zero generates
+	 * a GLC_PARAMETER_ERROR
+	 */
+	glcDeleteContext(-1);
+	err = glcGetError();
+	if (err != GLC_PARAMETER_ERROR) {
+	  printf("Unexpected error : %X\n", err);
+	  return -1;
+	}
+	/* Verify that no error is pending */
+	err = glcGetError();
+	if (err) {
+	  printf("Another error is pending : %X\n", err);
+	  return -1;
+	}
+
+	/* Verify that we can not make current a context that has not
+	 * been created yet.
+	 */
+	glcDeleteContext(i);
+	err = glcGetError();
+	if (err != GLC_PARAMETER_ERROR) {
+	  printf("Unexpected error : %X\n", err);
+	  return -1;
+	}
+
 	glcContext(ctx);
+	err = glcGetError();
+	if (err) {
+	  printf("Unexpected error : %X\n", err);
+	  return -1;
+	}
 
 	printf("Tests successful\n");
 
