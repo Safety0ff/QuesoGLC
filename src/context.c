@@ -145,7 +145,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 	return GLC_NONE;
     }
     
-    return state->catalogList->extract(inIndex, (GLCchar *)state->__glcBuffer, GLC_STRING_CHUNK);
+    return state->catalogList->findIndex(inIndex);
 }
 
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)

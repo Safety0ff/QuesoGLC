@@ -2,7 +2,8 @@ QuesoGLC 0.0.1
 
 These are things to do by order of preference :
 
-1. Use Unicode !!! (see www.unicode.org)
+1. Complete Unicode implementation (add conversion between formats and handle
+   GLC funcs with char I/O).
 2. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
 3. Separate platform specific code from the main code set.
 4. Improve performance (see 5. for example) !!! (Really needed)

@@ -41,8 +41,8 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 		return GLC_NONE;
 	    }
 	    else {
-		s = master->faceList->extract(inIndex, (GLCchar *) state->__glcBuffer, GLC_STRING_CHUNK);
-		break;
+	      s = master->faceList->findIndex(inIndex);
+	      break;
 	    }
 	default:
 	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
@@ -61,7 +61,6 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     FT_UInt glyphIndex = 0;
     datum key, content;
     GLint i = 0;
-    char buffer[256];
 
     state = __glcContextState::getCurrent();
     if (!state) {
@@ -77,7 +76,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     master = state->masterList[inMaster];
 
     for (i = 0; i < master->faceFileName->getCount(); i++) {
-	if (FT_New_Face(__glcContextState::library, (const char*)master->faceFileName->extract(i, buffer, 256), 0, &face)) {
+	if (FT_New_Face(__glcContextState::library, 
+			(const char*)master->faceFileName->findIndex(i),
+			0, &face)) {
 	    /* Unable to load the face file, however this should not happen since
 	       it has been succesfully loaded when the master was created */
 	    __glcContextState::raiseError(GLC_INTERNAL_ERROR);

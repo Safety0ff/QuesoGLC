@@ -85,7 +85,6 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 {
     __glcFont *font = NULL;
     GLint faceID = 0;
-    char buffer[256];
 
     font = inState->fontList[inFont];
     
@@ -100,7 +99,9 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 
     font->faceID = faceID;
 
-    if (FT_New_Face(__glcContextState::library, (const char*)font->parent->faceFileName->extract(faceID, buffer, 256), 0, &font->face)) {
+    if (FT_New_Face(__glcContextState::library, 
+		    (const char*)font->parent->faceFileName->findIndex(faceID),
+		    0, &font->face)) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;
     }
@@ -239,8 +240,7 @@ const GLCchar* glcGetFontFace(GLint inFont)
     __glcFont *font = __glcVerifyFontParameters(inFont);
     
     if (font)
-	return font->parent->faceList->extract(font->faceID, 
-		(GLCchar *)__glcContextState::getCurrent()->__glcBuffer, GLC_STRING_CHUNK);
+	return font->parent->faceList->findIndex(font->faceID);
     else
 	return GLC_NONE;
 }

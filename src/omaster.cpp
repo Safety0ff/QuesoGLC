@@ -11,14 +11,14 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
      */
     family = (GLCchar *)strdup((const char*)face->family_name);
 
-    faceList = new __glcStringList(inStringType);
+    faceList = new __glcStringList(NULL, inStringType);
     if (!faceList) {
       free(family);
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
 
-    faceFileName = new __glcStringList(inStringType);
+    faceFileName = new __glcStringList(NULL, inStringType);
     if (!faceFileName) {
       delete faceList;
       free(family);

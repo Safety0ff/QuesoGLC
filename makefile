@@ -16,7 +16,7 @@ LIBRARY = lib/libGLC.a
 BUILDER = buildDB
 C_SOURCES = context.c font.c global.c master.c measure.c render.c scalable.c \
 	  transform.c
-CPP_SOURCES = strlst.cpp btree.cpp ocontext.cpp omaster.cpp ofont.cpp
+CPP_SOURCES = strlst.cpp btree.cpp ocontext.cpp omaster.cpp ofont.cpp unichar.cpp
 LIB_OBJECTS = $(addprefix obj/, $(C_SOURCES:.c=.o)) $(addprefix obj/, $(CPP_SOURCES:.cpp=.oo))
 DATABASE = database/unicode1.db
 OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \

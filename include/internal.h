@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-extern char* strdup(const char *s);
+  //extern char* strdup(const char *s);
 
 typedef struct {
   GLint face;
