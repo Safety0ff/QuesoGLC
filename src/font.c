@@ -9,9 +9,9 @@ void glcAppendFont(GLint inFont)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -23,7 +23,7 @@ void glcAppendFont(GLint inFont)
 	state->currentFontCount++;
     }
     else
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 
     return;
 }
@@ -48,9 +48,9 @@ void glcDeleteFont(GLint inFont)
     __glcContextState *state = NULL;
     __glcFont *font = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -69,9 +69,9 @@ void glcFont(GLint inFont)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -91,7 +91,7 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
     font = inState->fontList[inFont];
     
     if (!font) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GL_FALSE;
     }
     
@@ -101,8 +101,8 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 
     font->faceID = faceID;
 
-    if (FT_New_Face(library, (const char*)font->parent->faceFileName->extract(faceID, buffer, 256), 0, &font->face)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+    if (FT_New_Face(__glcContextState::library, (const char*)font->parent->faceFileName->extract(faceID, buffer, 256), 0, &font->face)) {
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;
     }
     
@@ -113,14 +113,14 @@ static __glcFont* __glcVerifyFontParameters(GLint inFont)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return NULL;
     }
 
     if ((inFont < 1) || (inFont >= GLC_MAX_FONT)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return NULL;
     }
 
@@ -132,9 +132,9 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
     __glcContextState *state = NULL;
     __glcFont *font = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GL_FALSE;
     }
 
@@ -172,15 +172,15 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 	/* Verify that the glyph exists in the face */
 	glyphIndex = FT_Get_Char_Index(font->face, inCode);
 	if (!glyphIndex) {
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return;
 	}
 	/* Retrieve the Unicode code from its name */
 	key.dsize = strlen((const char*)inCharName) + 1;
 	key.dptr = (char *)inCharName;
-	content = gdbm_fetch(unicod2, key);
+	content = gdbm_fetch(__glcContextState::unidb2, key);
 	if (!content.dptr) {
-	    __glcRaiseError(GLC_RESOURCE_ERROR);
+	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	    return;
 	}
 	code = (GLint)(*(content.dptr));
@@ -199,14 +199,14 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 		font->charMap[0][i] = code;
 	    }
 	    else {
-		__glcRaiseError(GLC_RESOURCE_ERROR);
+		__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 		return;
 	    }
 	}
 	font->charMap[1][i] = inCode;
     }
     else {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return;
     }
 }
@@ -216,9 +216,9 @@ GLint glcGenFontID(void)
     __glcContextState *state = NULL;
     int i = 0;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
@@ -230,7 +230,7 @@ GLint glcGenFontID(void)
     if (i < GLC_MAX_FONT)
 	return i + 1;
     else {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return 0;
     }
 }
@@ -241,7 +241,7 @@ const GLCchar* glcGetFontFace(GLint inFont)
     
     if (font)
 	return font->parent->faceList->extract(font->faceID, 
-		(GLCchar *)__glcGetCurrentState()->__glcBuffer, GLC_STRING_CHUNK);
+		(GLCchar *)__glcContextState::getCurrent()->__glcBuffer, GLC_STRING_CHUNK);
     else
 	return GLC_NONE;
 }
@@ -251,10 +251,10 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
     __glcFont *font = __glcVerifyFontParameters(inFont);
     
     if (font) {
-	char* __glcBuffer = __glcGetCurrentState()->__glcBuffer;
+	char* __glcBuffer = __glcContextState::getCurrent()->__glcBuffer;
 	if (inAttrib == GLC_CHAR_LIST) {
 	    if (FT_Get_Glyph_Name(font->face, inIndex, __glcBuffer, GLC_STRING_CHUNK)) {
-		__glcRaiseError(GLC_INTERNAL_ERROR);
+		__glcContextState::raiseError(GLC_INTERNAL_ERROR);
 		return GLC_NONE;
 	    }
 	    return (GLCchar *)__glcBuffer;
@@ -273,7 +273,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     datum key, content;
     
     if (font) {
-	char* __glcBuffer = __glcGetCurrentState()->__glcBuffer;
+	char* __glcBuffer = __glcContextState::getCurrent()->__glcBuffer;
 	if (font->charMapCount) {
 	    GLint i = 0;
 	    
@@ -291,9 +291,9 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 	/* Uses GDBM to retrieve the map name */
 	key.dsize = sizeof(GLint);
 	key.dptr = (char *)&inCode;
-	content = gdbm_fetch(unicod1, key);
+	content = gdbm_fetch(__glcContextState::unidb1, key);
 	if (!content.dptr) {
-	    __glcRaiseError(GLC_RESOURCE_ERROR);
+	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	    return GLC_NONE;
 	}
 	/* GDBM does not free the content data, so we copy the result to
@@ -339,7 +339,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     char buffer[256];
 
     if ((inMaster < 0) || (inMaster >= inState->masterCount)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
 
@@ -359,10 +359,10 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     font->parent = inState->masterList[inMaster];
     font->charMapCount = 0;
 
-    if (FT_New_Face(library, (const char*)font->parent->faceFileName->extract(0, buffer, 256), 0, &font->face)) {
+    if (FT_New_Face(__glcContextState::library, (const char*)font->parent->faceFileName->extract(0, buffer, 256), 0, &font->face)) {
 	/* Unable to load the face file, however this should not happen since
 	   it has been succesfully loaded when the master was created */
-	__glcRaiseError(GLC_INTERNAL_ERROR);
+	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
 	return 0;
     }
     
@@ -370,7 +370,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     if (FT_Select_Charmap(font->face, ft_encoding_unicode)) {
 	/* Arrghhh, no Unicode charmap is available. This should not happen
 	   since it has been tested at master creation */
-	__glcRaiseError(GLC_INTERNAL_ERROR);
+	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
 	return 0;
     }
     
@@ -381,14 +381,14 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
     if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
 
@@ -400,14 +400,14 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     __glcContextState *state = NULL;
     int i = 0;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
     if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
 
@@ -419,7 +419,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     if (i < state->masterCount)
 	return __glcNewFontFromMaster(inFont, i, state);
     else {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return 0;
     }
 }

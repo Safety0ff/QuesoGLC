@@ -10,13 +10,13 @@ void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
     __glcContextState *state = NULL;
     
     if (inOpcode != GLC_OP_glcUnmappedCode) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
     
@@ -27,9 +27,9 @@ void glcDataPointer(GLvoid *inPointer)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -41,9 +41,9 @@ void glcDeleteGLObjects(void)
     __glcContextState *state = NULL;
     int i = 0;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -71,13 +71,13 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
 	case GLC_MIPMAP:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -108,13 +108,13 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
     __glcContextState *state = NULL;
 
     if (inOpcode != GLC_OP_glcUnmappedCode) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
@@ -126,23 +126,23 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
     __glcContextState *state = NULL;
 
     if (inAttrib != GLC_CATALOG_LIST) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
     if (inIndex < 0) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
     if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
@@ -160,38 +160,38 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 	case GLC_TEXTURE_OBJECT_LIST:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return 0;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
     switch(inAttrib) {
 	case GLC_CURRENT_FONT_LIST:
 	    if (inIndex > state->currentFontCount) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
+		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return 0;
 	    }
 	    return state->currentFontList[inIndex];
 	case GLC_FONT_LIST:
 	    if (inIndex > state->fontCount) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
+		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return 0;
 	    }
 	    return (state->fontList[inIndex] ? inIndex : 0);
 	case GLC_LIST_OBJECT_LIST:
 	    if (inIndex > state->listObjectCount) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
+		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return 0;
 	    }
 	    return state->listObjectList[inIndex];
 	case GLC_TEXTURE_OBJECT_LIST:
 	    if (inIndex > state->textureObjectCount) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
+		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return 0;
 	    }
 	    return state->textureObjectList[inIndex];
@@ -205,13 +205,13 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
     __glcContextState *state = NULL;
 
     if (inAttrib != GLC_DATA_POINTER) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
@@ -231,13 +231,13 @@ const GLCchar* glcGetc(GLCenum inAttrib)
 	case GLC_VENDOR:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return GLC_NONE;
     }
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
@@ -258,13 +258,13 @@ GLfloat glcGetf(GLCenum inAttrib)
     __glcContextState *state = NULL;
 
     if (inAttrib != GLC_RESOLUTION) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return 0.;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0.;
     }
 
@@ -276,13 +276,13 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
     __glcContextState *state = NULL;
 
     if (inAttrib != GLC_BITMAP_MATRIX) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return NULL;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return NULL;
     }
 
@@ -310,13 +310,13 @@ GLint glcGeti(GLCenum inAttrib)
 	case GLC_VERSION_MINOR:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return GLC_NONE;
     }
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
@@ -360,13 +360,13 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
 	case GLC_MIPMAP:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return GL_FALSE;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GL_FALSE;
     }
 
@@ -392,13 +392,13 @@ void glcStringType(GLCenum inStringType)
 	case GLC_UCS4:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 

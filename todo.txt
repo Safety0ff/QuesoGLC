@@ -2,14 +2,12 @@ QuesoGLC 0.0.1
 
 These are things to do by order of preference :
 
-1. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
-2. Use Unicode !!! (see www.unicode.org)
-3. Use a common area to store the global variables
-4. Use display lists if GLC_GL_OBJECTS is enabled
-5. Separate platform specific code from the main code set.
-6. Improve performance (see 7. for example) !!! (Really needed)
-7. Use a cache, in order not to load/unload face files too much
-8. Associate a glX context with a glc context.
-9. Use doxygen more
-10. Do not store the path for each file name ?
-11. QuesoGLC do not support face collections in one file.
+1. Use Unicode !!! (see www.unicode.org)
+2. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
+3. Separate platform specific code from the main code set.
+4. Improve performance (see 5. for example) !!! (Really needed)
+5. Use a cache, in order not to load/unload face files too much
+6. Associate a glX context with a glc context.
+7. Use doxygen more
+8. Do not store the path for each file name ?
+9. QuesoGLC do not support face collections in one file.

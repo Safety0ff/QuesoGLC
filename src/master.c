@@ -16,14 +16,14 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
     __glcMaster *master = NULL;
     GLCchar* s = GLC_NONE;
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
     if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
@@ -32,7 +32,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
     switch(inAttrib) {
 	case GLC_CHAR_LIST:
 	    if ((inIndex < 0) || (inIndex >= master->charListCount)) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
+		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return GLC_NONE;
 	    }
 	    else {
@@ -41,7 +41,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 	    }
 	case GLC_FACE_LIST:
 	    if ((inIndex < 0) || (inIndex >= master->faceList->getCount())) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
+		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return GLC_NONE;
 	    }
 	    else {
@@ -49,7 +49,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 		break;
 	    }
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return GLC_NONE;
     }
 
@@ -67,24 +67,24 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     GLint i = 0;
     char buffer[256];
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
     if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
     master = state->masterList[inMaster];
 
     for (i = 0; i < master->faceFileName->getCount(); i++) {
-	if (FT_New_Face(library, (const char*)master->faceFileName->extract(i, buffer, 256), 0, &face)) {
+	if (FT_New_Face(__glcContextState::library, (const char*)master->faceFileName->extract(i, buffer, 256), 0, &face)) {
 	    /* Unable to load the face file, however this should not happen since
 	       it has been succesfully loaded when the master was created */
-	    __glcRaiseError(GLC_INTERNAL_ERROR);
+	    __glcContextState::raiseError(GLC_INTERNAL_ERROR);
 	    return GLC_NONE;
 	}
 	glyphIndex = FT_Get_Char_Index(face, inCode);
@@ -98,9 +98,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     
     key.dsize = sizeof(GLint);
     key.dptr = (char *)&inCode;
-    content = gdbm_fetch(unicod1, key);
+    content = gdbm_fetch(__glcContextState::unidb1, key);
     if (!content.dptr) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GLC_NONE;
     }
     strncpy(state->__glcBuffer, content.dptr, 256);
@@ -114,14 +114,14 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     __glcContextState *state = NULL;
     __glcMaster *master = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return GLC_NONE;
     }
 
     if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
@@ -137,7 +137,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 	case GLC_VERSION:
 	    return master->version;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return GLC_NONE;
     }
     
@@ -149,14 +149,14 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     __glcContextState *state = NULL;
     __glcMaster *master = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
     if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
@@ -174,7 +174,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 	case GLC_MIN_MAPPED_CODE:
 	    return master->minMappedCode;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return GLC_NONE;
     }
     
@@ -252,7 +252,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
     /* Open 'fonts.dir' */
     file = fopen(path, "r");
     if (!file) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return 1;
     }
     
@@ -296,7 +296,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 	    ext++;
 	
 	/* open the font file and read it */
-	if (!FT_New_Face(library, path, 0, &face)) {
+	if (!FT_New_Face(__glcContextState::library, path, 0, &face)) {
 	    numFaces = face->num_faces;
 	    
 	    /* If the face has no Unicode charmap, skip it */
@@ -314,7 +314,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 		master = __glcCreateMaster(face, inState, desc, ext);
 		if (!master) {
 		    FT_Done_Face(face);
-		    __glcRaiseError(GLC_RESOURCE_ERROR);
+		    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 		    continue;
 		}
 	    }
@@ -322,12 +322,12 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 	    FT_Done_Face(face);
 	}
 	else {
-	    __glcRaiseError(GLC_RESOURCE_ERROR);
+	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	    continue;
 	}
 
 	for (j = 0; j < numFaces; j++) {
-	    if (!FT_New_Face(library, path, j, &face)) {
+	    if (!FT_New_Face(__glcContextState::library, path, j, &face)) {
 		if (master->faceList->find(face->style_name))
 		    continue;
 		else {
@@ -355,7 +355,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 		
 	    }
 	    else {
-		__glcRaiseError(GLC_RESOURCE_ERROR);
+		__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 		continue;
 	    }
 	    FT_Done_Face(face);
@@ -370,15 +370,15 @@ void glcAppendCatalog(const GLCchar* inCatalog)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
     if (!__glcUpdateMasters(inCatalog, state, GL_TRUE)) {
 	if (state->catalogList->append(inCatalog)) {
-	    __glcRaiseError(GLC_RESOURCE_ERROR);
+	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	    return;
 	}
     }
@@ -388,15 +388,15 @@ void glcPrependCatalog(const GLCchar* inCatalog)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
     if (!__glcUpdateMasters(inCatalog, state, GL_FALSE)) {
 	if (state->catalogList->prepend(inCatalog)) {
-	    __glcRaiseError(GLC_RESOURCE_ERROR);
+	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	    return;
 	}
     }
@@ -417,6 +417,9 @@ void __glcDeleteMaster(GLint inMaster, __glcContextState *inState) {
 		glcDeleteFont(i + 1);
 	}
     }
+
+    // FIXME : display list names have also to be removed from GLC_LIST_OBJECT
+    delete master->displayList;
     
     free(master);
     inState->masterCount--;
@@ -439,7 +442,7 @@ static void __glcRemoveCatalog(GLint inIndex, __glcContextState * inState)
     /* Open 'fonts.dir' */
     file = fopen(path, "r");
     if (!file) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -483,14 +486,14 @@ void glcRemoveCatalog(GLint inIndex)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
     if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
-	__glcRaiseError(GLC_PARAMETER_ERROR);
+	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	return;
     }
     

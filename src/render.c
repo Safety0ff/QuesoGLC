@@ -34,7 +34,7 @@ static GLboolean __glcCallCallbackFunc(GLint inCode)
     if (!callbackFunc)
 	return GL_FALSE;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     state->isInCallbackFunc = GL_TRUE;
     result = (*callbackFunc)(inCode);
     state->isInCallbackFunc = GL_FALSE;
@@ -115,7 +115,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
     pixmap.buffer = (GLubyte *)malloc(pixmap.rows * pixmap.pitch);
     if (!pixmap.buffer) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -129,9 +129,9 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     FT_Outline_Translate(&outline, -boundBox.xMin, -boundBox.yMin);
     
     /* render the glyph */
-    if (FT_Outline_Get_Bitmap(library, &outline, &pixmap)) {
+    if (FT_Outline_Get_Bitmap(__glcContextState::library, &outline, &pixmap)) {
 	free(pixmap.buffer);
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -190,7 +190,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 	GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
     glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &format);
     if (!format) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -219,7 +219,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     pixmap.num_grays = 256;
     pixmap.buffer = (GLubyte *)malloc(pixmap.rows * pixmap.pitch);
     if (!pixmap.buffer) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -233,9 +233,9 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     FT_Outline_Translate(&outline, -boundBox.xMin, -boundBox.yMin);
     
     /* render the glyph */
-    if (FT_Outline_Get_Bitmap(library, &outline, &pixmap)) {
+    if (FT_Outline_Get_Bitmap(__glcContextState::library, &outline, &pixmap)) {
 	free(pixmap.buffer);
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
 
@@ -271,13 +271,13 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     if (inState->glObjects) {
       list = (GLuint *)malloc(sizeof(GLuint));
       if (!list) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	free(pixmap.buffer);
 	return;
       }
       dlKey = (__glcDisplayListKey *)malloc(sizeof(__glcDisplayListKey));
       if (!dlKey) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	free(pixmap.buffer);
 	free(list);
 	return;
@@ -294,7 +294,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListDatum, 
 					  destroyDisplayListDatum, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	  free(pixmap.buffer);
 	  free(dlKey);
 	  free(list);
@@ -325,6 +325,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     
     if (inState->glObjects) {
       glEndList();
+      inState->listObjectList[inState->listObjectCount] = *list;
       inState->listObjectCount++;
       glCallList(*list);
     }
@@ -355,7 +356,7 @@ static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode, GLint ren
 
 static void __glcRenderChar(GLint inCode, GLint inFont)
 {
-    __glcContextState *state = __glcGetCurrentState();
+    __glcContextState *state = __glcContextState::getCurrent();
     __glcFont* font = state->fontList[inFont - 1];
     GLint glyphIndex = 0;
     GLint i = 0;
@@ -370,14 +371,14 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
     
     if (FT_Set_Char_Size(font->face, 0, 1 << 16, (unsigned int)state->resolution,
 	(unsigned int)state->resolution)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
     glyphIndex = FT_Get_Char_Index(font->face, inCode);
     
     if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_DEFAULT)) {
-	__glcRaiseError(GLC_INTERNAL_ERROR);
+	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
 	return;
     }
 
@@ -395,7 +396,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 	    __glcRenderCharScalable(font, state, inCode, destroyDisplayListDatum, compareDisplayListKeys, (state->renderStyle == GLC_TRIANGLE));
 	  return;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return;
     }
 }
@@ -406,7 +407,7 @@ void glcRenderChar(GLint inCode)
     GLint font = 0;
     
     if (!glcGetCurrentContext()) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -452,7 +453,7 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
     char *s = (char *)inString;
     
     if (!glcGetCurrentContext()) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -478,13 +479,13 @@ void glcRenderStyle(GLCenum inStyle)
 	case GLC_TRIANGLE:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -500,13 +501,13 @@ void glcReplacementCode(GLint inCode)
 	case GLC_REPLACEMENT_CODE:
 	    break;
 	default:
-	    __glcRaiseError(GLC_PARAMETER_ERROR);
+	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
 	    return;
     }
     
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -518,9 +519,9 @@ void glcResolution(GLfloat inVal)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 

@@ -1,3 +1,6 @@
+#ifndef __glc_btree_h
+#define __glc_btree_h
+
 #define AVL_BALANCED 0
 #define AVL_TO_LEFT  1
 #define AVL_TO_RIGHT -1
@@ -31,24 +34,20 @@ class BTree {
 class BSTree : public BTree {
   void *key;
   int factor;
-  static BSTree* garbage;
-  static int occurence;
+  int hide;
   compareFunc compare;
   destroyFunc destroyKey;
 
   friend int insertNode(BSTree **, void *, void *, int&);
   friend void rotateLeft(BSTree **);
   friend void rotateRight(BSTree **);
-  friend BSTree* mergeTree(BSTree *, BSTree *);
-
-  BSTree* allocNode(void *, void *);
-  void freeNode(BSTree *);
 
  public:
   BSTree(void *key, void *data, destroyFunc destroyKey, destroyFunc destroyData, compareFunc compare);
   ~BSTree();
   BSTree* insert(void *key, void *data);
-  BSTree* remove(void *key);
-  BSTree* merge(BSTree *tree);
+  void remove(void *key);
   void* lookup(void *key);
 };
+
+#endif /* __glc_btree_h */

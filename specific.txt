@@ -34,12 +34,14 @@ Non-conformance:
   returns 0 (zero) and glcGetMasteri(x, GLC_MAX_MAPPED_CODE) always returns
   0x7FFFFFFF. This non-conformance will not be fixed until FreeType provides
   some API entries to read directly into the charmaps.
+
 - In the current implementation, glcGetMasteri(x, GLC_CHAR_COUNT) always returns
   0 (zero) and glcGetMasterListc(x, GLC_CHAR_LIST, y) always generates a
   GLC_PARAMETER_ERROR whatever x and y are. As a consequence, glcFontMap does
   not check if its parameter inCharName is an element of the font's string list
   attribute GLC_CHAR_LIST. This non-conformance will not be fixed until FreeType
   provides some API entries to read directly into the charmaps.
+
 - In the current implementation, glcGetMasterc(GLC_VERSION) always return NULL.
 
 Extensions:
@@ -76,4 +78,16 @@ Arbitrary choices:
   through the GLC API as a single master with GLC_FAMILY="Courier",
   GLC_FACE_COUNT=4 and GLC_FACE_LIST=("Regular","Bold","Bold Italic","Italic").
 
-- As long as 
+- When the GLC_GL_OBJECTS state variable is set to GL_TRUE, QuesoGLC generates
+  display lists each time the user tries to render a character for the first
+  time. Afterwards, when the user asks QuesoGLC to render those characters,
+  QuesoGLC draws the display lists instead of re-processing the character. This
+  feature has however some limitations :
+      - QuesoGLC creates display lists "just on time". This means that no
+        display lists are stored for a given character until the user asks
+	QuesoGLC to render it.
+      -	QuesoGLC do not create display lists when the rendering mode is
+        GLC_BITMAP. Moreover the user should not try to create himself the
+	display lists by encapsulating glcRenderChar by a glNewList / glEndList
+	pair. This will fail because QuesoGLC deletes the picture used to
+	render the character as soon as the picture is drawn.

@@ -200,7 +200,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2, FT_V
 
 static void __glcCallbackError(GLenum inErrorCode)
 {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyDisplayListDatum, compareFunc compareDisplayListKeys, GLboolean inFill)
@@ -239,7 +239,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     rendererData.vertex = (GLdouble (*)[3]) malloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);
     if (!rendererData.vertex) {
 	gluDeleteTess(tess);
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -256,12 +256,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     if (inState->glObjects) {
       list = (GLuint *)malloc(sizeof(GLuint));
       if (!list) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
       }
       dlKey = (__glcDisplayListKey *)malloc(sizeof(__glcDisplayListKey));
       if (!dlKey) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	free(list);
 	return;
       }
@@ -277,7 +277,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
 	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListDatum, 
 					  destroyDisplayListDatum, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	  free(dlKey);
 	  free(list);
 	  return;
@@ -296,6 +296,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     
     if (inState->glObjects) {
       glEndList();
+      inState->listObjectList[inState->listObjectCount] = *list;
       inState->listObjectCount++;
       glCallList(*list);
     }

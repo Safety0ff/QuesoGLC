@@ -11,9 +11,9 @@ void glcLoadIdentity(void)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -27,9 +27,9 @@ void glcLoadMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -41,9 +41,9 @@ void glcMultMatrix(const GLfloat *inMatrix)
     __glcContextState *state = NULL;
     GLfloat tempMatrix[4];
 
-    state = __glcGetCurrentState();
+    state = __glcContextState::getCurrent();
     if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
+	__glcContextState::raiseError(GLC_STATE_ERROR);
 	return;
     }
 

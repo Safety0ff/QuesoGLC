@@ -41,56 +41,20 @@ int BTree::insertRight(void *inData)
   return 0;
 }
 
-BSTree* BSTree::garbage = NULL;
-int BSTree::occurence = 0;
-
 BSTree::BSTree(void *inKey, void *inData, destroyFunc inDestroyKey, destroyFunc inDestroyData, compareFunc inCompareFunc)
   :BTree(inData, inDestroyData)
 {
   key = inKey;
   factor = AVL_BALANCED;
+  hide = 0;
   compare = inCompareFunc;
   destroyKey = inDestroyKey;
-  occurence++;
 }
 
 BSTree::~BSTree()
 {
-  if (!(--occurence)) {
-    delete garbage;
-    garbage = NULL;
-  }
-
   if (destroyKey)
     destroyKey(key);
-}
-
-BSTree* BSTree::allocNode(void *inKey, void *inData)
-{
-  BSTree* newNode = NULL;
-
-  if (garbage) {
-    newNode = garbage;
-    garbage = (BSTree *)newNode->left;
-    newNode->data = inData;
-    newNode->left = NULL;
-    newNode->right = NULL;
-    newNode->destroy = destroy;
-    newNode->key = inKey;
-    newNode->factor = AVL_BALANCED;
-    newNode->destroyKey = destroyKey;
-  }
-  else
-    newNode = new BSTree(inKey, inData, destroyKey, destroy, compare);
-
-  return newNode;
-}
-
-void BSTree::freeNode(BSTree *node)
-{
-  node->left = garbage;
-  node->right = NULL;
-  garbage = node;
 }
 
 void rotateLeft(BSTree **root)
@@ -205,7 +169,7 @@ int insertNode(BSTree **root, void *inKey, void *inData, int& balance)
 
     if (!tree->left) {
 
-      tree->left = tree->allocNode(inKey, inData);
+      tree->left = new BSTree(inKey, inData, tree->destroyKey, tree->destroy, tree->compare);
       if (!tree->left)
 	return -1;
 
@@ -245,7 +209,7 @@ int insertNode(BSTree **root, void *inKey, void *inData, int& balance)
 
     if (!tree->right) {
 
-      tree->right = tree->allocNode(inKey, inData);
+      tree->right = new BSTree(inKey, inData, tree->destroyKey, tree->destroy, tree->compare);
       if (!tree->right)
 	return -1;
 
@@ -281,8 +245,20 @@ int insertNode(BSTree **root, void *inKey, void *inData, int& balance)
       }
     }
   }
-  else
-    return -1;
+  else {
+    if (!tree->hide)
+      return 1;
+    else {
+      if (tree->destroy)
+	tree->destroy(tree->data);
+
+      tree->data = inData;
+      tree->key = inKey;
+      tree->hide = 0;
+
+      balance = 1;
+    }
+  }
 
   return 0;
 }
@@ -323,55 +299,20 @@ void* BSTree::lookup(void *inKey)
   return retVal;
 }
 
-BSTree* mergeTree(BSTree *root, BSTree *tree)
-{
-  if (tree->left) {
-    root = mergeTree(root, (BSTree *)tree->left);
-    tree->left = NULL;
-  }
-
-  if (tree->right) {
-    root = mergeTree(root, (BSTree *)tree->right);
-    tree->right = NULL;
-  }
-
-  root = root->insert(tree->key, tree->data);
-
-  root->freeNode(tree);
-
-  return root;
-}
-
-BSTree* BSTree::merge(BSTree *tree)
-{
-  return mergeTree(this, tree);
-}
-
-BSTree* BSTree::remove(void *inKey)
+void BSTree::remove(void *inKey)
 {
   int valCmp = 0;
-  BSTree *parent = NULL;
   BSTree *node = this;
-  BSTree *root = this;
-  BSTree *nextNode = NULL;
 
   valCmp = compare(inKey, node->key);
 
   // Look for the node to remove and its parent
   while (valCmp && node) {
 
-    if (valCmp < 0) {
-
-      parent = node;
+    if (valCmp < 0)
       node = (BSTree *)node->left;
-
-    }
-    else if (valCmp > 0) {
-
-      parent = node;
+    else if (valCmp > 0)
       node = (BSTree *)node->right;
-
-    }
 
     valCmp = compare(inKey, node->key);
 
@@ -379,34 +320,9 @@ BSTree* BSTree::remove(void *inKey)
 
   // The node we are looking for does not exist
   if (!node)
-    return root;
+    return;
 
-  if (node->left || node->right) {
-    // Current node has no parent which means that
-    // we are deleting the root node
-    if (!parent) {
-      // If the left branch of the tree is left heavy
-      // then insert the right branch into the left one
-      if (((BSTree *)left)->factor == AVL_TO_LEFT)
-	root = ((BSTree *)left)->merge((BSTree *)right); 
-      else
-	root = ((BSTree *)right)->merge((BSTree *)left);
-    }
-    if (parent->left == node)
-      nextNode = (BSTree *)parent->right;
-    else
-      nextNode = (BSTree *)parent->left;
-    parent->left = NULL;
-    parent->right = NULL;
-    parent->factor = AVL_BALANCED;
-    if (left)
-      root = root->merge((BSTree *)node->left);
-    if (right)
-      root = root->merge((BSTree *)node->right);
-    if (nextNode)
-      root = root->merge(nextNode);
-  }
+  node->hide = 1;
 
-  freeNode(this);
-  return root;
+  return;
 }
