@@ -602,11 +602,11 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     if (font) {
       /* Delete the font */
       __glcDeleteFont(inFont, inState);
-      delete font;
+      __glcFontDestroy(font);
     }
 
     /* Create a new font and add it to the list GLC_FONT_LIST */
-    font = new __glcFont(inFont, inState->masterList[inMaster]);
+    font = __glcFontCreate(inFont, inState->masterList[inMaster]);
     inState->fontList[inFont - 1] = font;
     inState->fontCount++;
 

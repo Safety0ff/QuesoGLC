@@ -27,8 +27,7 @@
 #include "btree.h"
 #include "ostrlst.h"
 
-class __glcMaster {
- public:
+typedef struct {
   GLint id;
   __glcStringList* faceList;	/* GLC_FACE_LIST */
   FT_List charList;             /* GLC_CHAR_LIST */
@@ -42,9 +41,11 @@ class __glcMaster {
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
   __glcStringList* faceFileName;
   BSTree* displayList;
+} __glcMaster;
 
-  __glcMaster(FT_Face face, const char* inVendorName, const char* inFileExt, GLint inID, GLint inStringType);
-  ~__glcMaster();
-};
+__glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
+			       const char* inFileExt, GLint inID,
+			       GLint inStringType);
+void __glcMasterDestroy(__glcMaster *This);
 
 #endif /* __glc_omaster_h */

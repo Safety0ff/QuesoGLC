@@ -26,17 +26,16 @@
 #include "constant.h"
 #include "omaster.h"
 
-class __glcFont {
- public:
-    GLint id;
-    GLint faceID;
-    __glcMaster *parent;
-    FT_Face face;
-    FT_ULong charMap[2][GLC_MAX_CHARMAP];
-    GLint charMapCount;
+typedef struct {
+  GLint id;
+  GLint faceID;
+  __glcMaster *parent;
+  FT_Face face;
+  FT_ULong charMap[2][GLC_MAX_CHARMAP];
+  GLint charMapCount;
+} __glcFont;
 
-    __glcFont(GLint id, __glcMaster *parent);
-    ~__glcFont();
-};
+__glcFont*  __glcFontCreate(GLint id, __glcMaster *parent);
+void __glcFontDestroy(__glcFont *This);
 
 #endif /* __glc_ofont_h */

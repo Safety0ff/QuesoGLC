@@ -406,7 +406,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 
 	if (masterCount < GLC_MAX_MASTER - 1) {
 	  /* Create a new master and add it to the current context */
-	  master = new __glcMaster(face, desc, ext, masterCount, stringType);
+	  master = __glcMasterCreate(face, desc, ext, masterCount, stringType);
 	  if (!master) {
 	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	    continue;

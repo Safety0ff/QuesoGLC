@@ -22,30 +22,35 @@
 #include "ocontext.h"
 #include FT_LIST_H
 
-__glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inFileExt, GLint inID, GLint inStringType)
+__glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
+			       const char* inFileExt, GLint inID,
+			       GLint inStringType)
 {
   static char format1[] = "Type1";
   static char format2[] = "True Type";
   __glcUniChar s;
   GLCchar *buffer = NULL;
   int length = 0;
+  __glcMaster *This = NULL;
+
+  This = (__glcMaster*)__glcMalloc(sizeof(__glcMaster));
 
   s.ptr = face->family_name;
   s.type = GLC_UCS1;
 
-  vendor = NULL;
-  faceList = NULL;
-  faceFileName = NULL;
-  family = NULL;
-  masterFormat = NULL;
+  This->vendor = NULL;
+  This->faceList = NULL;
+  This->faceFileName = NULL;
+  This->family = NULL;
+  This->masterFormat = NULL;
   buffer = NULL;
 
-  faceList = __glcStrLstCreate(NULL);
-  if (!faceList)
+  This->faceList = __glcStrLstCreate(NULL);
+  if (!This->faceList)
     goto error;
 
-  faceFileName = __glcStrLstCreate(NULL);
-  if (!faceFileName)
+  This->faceFileName = __glcStrLstCreate(NULL);
+  if (!This->faceFileName)
     goto error;
 
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
@@ -57,11 +62,11 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     goto error;
 
   __glcUniConvert(&s, buffer, inStringType, length);
-  family = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-  if (!family)
+  This->family = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+  if (!This->family)
     goto error;
-  family->ptr = buffer;
-  family->type = inStringType;
+  This->family->ptr = buffer;
+  This->family->type = inStringType;
 
   /* use file extension to determine the face format */
   s.ptr = NULL;
@@ -77,14 +82,14 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
       goto error;
 
     __glcUniConvert(&s, buffer, inStringType, length);
-    masterFormat = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    masterFormat->ptr = buffer;
-    masterFormat->type = inStringType;
-    if (!masterFormat)
+    This->masterFormat = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+    This->masterFormat->ptr = buffer;
+    This->masterFormat->type = inStringType;
+    if (!This->masterFormat)
       goto error;
   }
   else
-    masterFormat = NULL;
+    This->masterFormat = NULL;
 
   s.ptr = (GLCchar*) inVendorName;
   length = __glcUniEstimate(&s, inStringType);
@@ -93,70 +98,66 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     goto error;
 
   __glcUniConvert(&s, buffer, inStringType, length);
-  vendor = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-  if (!vendor)
+  This->vendor = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+  if (!This->vendor)
     goto error;
-  vendor->ptr = buffer;
-  vendor->type = inStringType;
+  This->vendor->ptr = buffer;
+  This->vendor->type = inStringType;
 
-  charList = (FT_List)__glcMalloc(sizeof(*charList));
-  if (!charList)
+  This->charList = (FT_List)__glcMalloc(sizeof(This->charList));
+  if (!This->charList)
     goto error;
 
-  charList->head = NULL;
-  charList->tail = NULL;
+  This->charList->head = NULL;
+  This->charList->tail = NULL;
 
-  version = NULL;
-  isFixedPitch = face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? GL_TRUE : GL_FALSE;
-  charListCount = 0;
-  minMappedCode = 0x7fffffff;
-  maxMappedCode = 0;
-  id = inID;
-  displayList = NULL;
-  return;
+  This->version = NULL;
+  This->isFixedPitch = face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? GL_TRUE : GL_FALSE;
+  This->charListCount = 0;
+  This->minMappedCode = 0x7fffffff;
+  This->maxMappedCode = 0;
+  This->id = inID;
+  This->displayList = NULL;
+  return This;
 
  error:
-  if (vendor) {
-    __glcUniDestroy(vendor);
-    __glcFree(vendor);
+  if (This->vendor) {
+    __glcUniDestroy(This->vendor);
+    __glcFree(This->vendor);
   }
-  if (faceList)
-    delete faceList;
-  if (faceFileName)
-    delete faceFileName;
-  if (family) {
-    __glcUniDestroy(family);
-    __glcFree(family);
+  if (This->faceList)
+    __glcStrLstDestroy(This->faceList);
+  if (This->faceFileName)
+    __glcStrLstDestroy(This->faceFileName);
+  if (This->family) {
+    __glcUniDestroy(This->family);
+    __glcFree(This->family);
   }
-  if (masterFormat) {
-    __glcUniDestroy(masterFormat);
-    __glcFree(masterFormat);
+  if (This->masterFormat) {
+    __glcUniDestroy(This->masterFormat);
+    __glcFree(This->masterFormat);
   }
   if (buffer)
     __glcFree(buffer);
   __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 
-  vendor = NULL;
-  faceList = NULL;
-  faceFileName = NULL;
-  family = NULL;
-  masterFormat = NULL;
-  buffer = NULL;
-  return;
+  __glcFree(This);
+  return NULL;
 }
 
-__glcMaster::~__glcMaster()
+void __glcMasterDestroy(__glcMaster *This)
 {
-  FT_List_Finalize(charList, __glcListDestructor, __glcContextState::memoryManager, NULL);
-  __glcFree(charList);
-  delete faceList;
-  delete faceFileName;
-  __glcUniDestroy(family);
-  __glcUniDestroy(masterFormat);
-  __glcUniDestroy(vendor);
-  __glcFree(family);
-  __glcFree(masterFormat);
-  __glcFree(vendor);
-    
-  delete displayList;
+  FT_List_Finalize(This->charList, __glcListDestructor, __glcContextState::memoryManager, NULL);
+  __glcFree(This->charList);
+  __glcFree(This->faceList);
+  __glcFree(This->faceFileName);
+  __glcUniDestroy(This->family);
+  __glcUniDestroy(This->masterFormat);
+  __glcUniDestroy(This->vendor);
+  __glcFree(This->family);
+  __glcFree(This->masterFormat);
+  __glcFree(This->vendor);
+
+  __glcFree(This->displayList);
+  __glcFree(This);
 }
