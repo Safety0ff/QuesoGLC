@@ -578,7 +578,8 @@ GLint glcGenContext(void)
       begin = path;
       do {
 	sep = (char *)__glcFindIndexList(begin, 1, ":");
-	*(sep - 1) = 0;
+        if (--sep != begin + strlen(begin))
+	  *(sep++) = 0;
 	__glcCtxAddMasters(state, begin, GL_TRUE);
 	begin = sep;
       } while (*sep);
