@@ -22,10 +22,18 @@ void testQueso(void)
     glcFont(font);
     glcFontFace(font, "Italic");
     
+    glcRenderStyle(GLC_BITMAP);
+    glColor3f(1., 0., 0.);
+    glRasterPos2f(30., 300.);
+    glcScale(120., 120.);
+    glcRotate(10.);
+    glcRenderChar('O');
+    glcRenderString("penGL");
+    
     glcRenderStyle(GLC_TRIANGLE);
-    glTranslatef(30., 100., 0.);
-    glScalef(12., 12., 0.);
     glColor3f(1., 1., 0.);
+    glTranslatef(30., 100., 0.);
+    glScalef(120., 120., 0.);
     glcRenderChar('Q');
     glcRenderString("uesoGLC");
     
