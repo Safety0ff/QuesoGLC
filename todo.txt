@@ -7,11 +7,9 @@ Topics that are prepended by (?) are suggestions and I am not sure if they are
 really needed.
 
 1. Write an extensive set of test programs
-2. Use FreeType's double linked lists 
-   2.1. Rather than using my own silly code (string lists). It would therefore
-	help to minimize redundant code
-   2.2. Remove the hard-limited arrays of QuesoGLC (in other words, remove the
-	file include/constant.h) and replace them by linked lists.
+2. Use FreeType's double linked lists in order to remove the hard-limited arrays
+   of QuesoGLC (in other words, remove the file include/constant.h) and replace
+   them by linked lists.
 3. QuesoGLC does not support face collections in one file.
 4. Try to get rid of GLC_PATH
 5. Improve performance
