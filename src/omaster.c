@@ -118,18 +118,12 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorNa
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
   This->id = inID;
-  This->displayList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-  if (!This->displayList)
+
+  if (!__glcCreateList(&This->displayList))
     goto error;
 
-  This->displayList->head = NULL;
-  This->displayList->tail = NULL;
-
-  This->textureObjectList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-  if (!This->textureObjectList)
+  if (!__glcCreateList(&This->textureObjectList))
     goto error;
-  This->textureObjectList->head = NULL;
-  This->textureObjectList->tail = NULL;
 
   return This;
 
