@@ -500,11 +500,12 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcUniChar(inString, state->stringType);
+  UinString.ptr = (GLCchar*)inString;
+  UinString.type = state->stringType;
 
   /* Render the string */
   for (i = 0; i < inCount; i++)
-    glcRenderChar(UinString.index(i));
+    glcRenderChar(__glcUniIndex(&UinString, i));
 }
 
 /* glcRenderString:
@@ -526,10 +527,11 @@ void glcRenderString(const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcUniChar(inString, state->stringType);
+  UinString.ptr = (GLCchar*)inString;
+  UinString.type = state->stringType;
 
   /* Render the string */
-  glcRenderCountedString(UinString.len(), inString);
+  glcRenderCountedString(__glcUniLen(&UinString), inString);
 }
 
 /* glcRenderStyle:

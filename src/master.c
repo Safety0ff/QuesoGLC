@@ -102,10 +102,10 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   /* Allocate a buffer in order to store the string in the current string
    * type.
    */
-  length = s->estimate(state->stringType);
+  length = __glcUniEstimate(s, state->stringType);
   buffer = state->queryBuffer(length);
   if (buffer)
-    s->convert(buffer, state->stringType, length);
+    __glcUniConvert(s, buffer, state->stringType, length);
   else
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 
@@ -152,12 +152,12 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
      *        changed since the user provided the file name
      */
     s = master->faceFileName->findIndex(i);
-    buffer = state->queryBuffer(s->lenBytes());
+    buffer = state->queryBuffer(__glcUniLenBytes(s));
     if (!buffer) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return NULL;
     }
-    s->dup(buffer, s->lenBytes());
+    __glcUniDup(s, buffer, __glcUniLenBytes(s));
 
     if (FT_New_Face(state->library, 
 		    (const char*) buffer, 0, &face)) {
@@ -207,21 +207,23 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   /* The database gives the Unicode name in UCS1 encoding. We should now
    * change its encoding if needed.
    */
-  s = new __glcUniChar(content.dptr, GLC_UCS1);
+  s = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+  s->ptr = content.dptr;
+  s->type = GLC_UCS1;
 
   /* Allocates memory to perform the conversion */
-  length = s->estimate(state->stringType);
+  length = __glcUniEstimate(s, state->stringType);
   buffer = state->queryBuffer(length);
   if (!buffer) {
-    delete s;
+    __glcFree(s);
     __glcFree(content.dptr);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
 
   /* Perform the conversion */
-  s->convert(buffer, state->stringType, length);
-  delete s;
+  __glcUniConvert(s, buffer, state->stringType, length);
+  __glcFree(s);
   __glcFree(content.dptr);
     
   return buffer;
@@ -285,11 +287,11 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   /* Allocate memory in order to perform the conversion into the current
    * string type
    */
-  length = s->estimate(state->stringType);
+  length = __glcUniEstimate(s, state->stringType);
   buffer = state->queryBuffer(length);
   if (buffer)
     /* Convert into the current string type */
-    s->convert(buffer, state->stringType, length);
+    __glcUniConvert(s, buffer, state->stringType, length);
   else
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 

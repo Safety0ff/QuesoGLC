@@ -101,3 +101,10 @@ In the following example, GLC renders the string "Hello, world!" in red
     glcRenderString("Hello, world!");
 
 More examples can be found in the directory 'tests' of QuesoGLC.
+
+More info on QuesoGLC
+---------------------
+
+Although the GLC specs are the authoritative doc, some details are left
+implementation dependant. Read the file 'specific.txt' for more info about
+that topic concerning QuesoGLC.

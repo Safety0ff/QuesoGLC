@@ -158,10 +158,13 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 {
   __glcFont *font = NULL;
   GLint faceID = 0;
-  __glcUniChar UinFace = __glcUniChar(inFace, inState->stringType);
+  __glcUniChar UinFace;
   __glcUniChar *s = NULL;
   GLCchar* buffer = NULL;
   FT_Face newFace = NULL;
+
+   UinFace.ptr = (GLCchar*)inFace;
+   UinFace.type =  inState->stringType;
 
   /* Check if the font identified by inFont exists */
   font = inState->fontList[inFont];
@@ -184,12 +187,12 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
    *        prevent illegal accesses to __glcUniChar's 'ptr'.
    */
   s = font->parent->faceFileName->findIndex(faceID);
-  buffer = inState->queryBuffer(s->lenBytes());
+  buffer = inState->queryBuffer(__glcUniLenBytes(s));
   if (!buffer) {
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;
   }
-  s->dup(buffer, s->lenBytes());
+  __glcUniDup(s, buffer, __glcUniLenBytes(s));
 
   /* Open the new face */
   if (FT_New_Face(inState->library, 
@@ -324,19 +327,22 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     return;
   }
   else {
-    __glcUniChar UinCharName = __glcUniChar(inCharName, state->stringType);
+    __glcUniChar UinCharName;
     GLCchar* buffer = NULL;
     int length = 0;
 
+    UinCharName.ptr = (GLCchar*)inCharName;
+    UinCharName.type = state->stringType;
+
     /* Convert the character name identified by inCharName into the GLC_UCS1
      * format. The result is stored into 'buffer'. */
-    length = UinCharName.estimate(GLC_UCS1);
+    length = __glcUniEstimate(&UinCharName, GLC_UCS1);
     buffer = state->queryBuffer(length);
     if (!buffer) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
-    UinCharName.convert(buffer, GLC_UCS1, length);
+    __glcUniConvert(&UinCharName, buffer, GLC_UCS1, length);
 
     /* Verify that the glyph exists in the face */
     glyphIndex = FT_Get_Char_Index(font->face, inCode);
@@ -433,12 +439,12 @@ const GLCchar* glcGetFontFace(GLint inFont)
     GLCchar *buffer = NULL;
 
     /* Convert the string name of the face into the current string type */
-    buffer = state->queryBuffer(s->lenBytes());
+    buffer = state->queryBuffer(__glcUniLenBytes(s));
     if (!buffer) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
-    s->dup(buffer, s->lenBytes());
+    __glcUniDup(s, buffer, __glcUniLenBytes(s));
 
     /* returns the name */
     return buffer;
@@ -516,17 +522,18 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
-    s = __glcUniChar(content.dptr, GLC_UCS1);
+    s.ptr = content.dptr;
+    s.type = GLC_UCS1;
 
     /* Convert the Unicode to the current string type */
-    length = s.estimate(state->stringType);
+    length = __glcUniEstimate(&s, state->stringType);
     buffer = state->queryBuffer(length);
     if (!buffer) {
       __glcFree(content.dptr);
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
-    s.convert(buffer, state->stringType, length);
+    __glcUniConvert(&s, buffer, state->stringType, length);
 
     /* Free the place allocated by GDBM and return the result */
     __glcFree(content.dptr);
@@ -663,8 +670,11 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 
   /* Search for a master which string attribute GLC_FAMILY is inFamily */
   for (i = 0; i < state->masterCount; i++) {
-    __glcUniChar UinFamily = __glcUniChar(inFamily, state->stringType);
-    if (!UinFamily.compare(state->masterList[i]->family))
+    __glcUniChar UinFamily;
+
+    UinFamily.ptr = (GLCchar*)inFamily;
+    UinFamily.type = state->stringType;
+    if (!__glcUniCompare(&UinFamily, state->masterList[i]->family))
       break;
   }
  

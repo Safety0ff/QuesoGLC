@@ -37,12 +37,12 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
   charMapCount = 0;
   id = inID;
 
-  buffer = (GLCchar*)__glcMalloc(s->lenBytes());
+  buffer = (GLCchar*)__glcMalloc(__glcUniLenBytes(s));
   if (!buffer) {
     face = NULL;
     return;
   }
-  s->dup(buffer, s->lenBytes());
+  __glcUniDup(s, buffer, __glcUniLenBytes(s));
 
   if (FT_New_Face(state->library, 
 		  (const char*)buffer, 0, &face)) {

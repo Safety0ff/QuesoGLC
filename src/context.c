@@ -239,11 +239,11 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   /* Get the string at offset inIndex */
   s = state->catalogList->findIndex(inIndex);
   /* Allocate a buffer to store the string */
-  buffer = state->queryBuffer(s->lenBytes());
+  buffer = state->queryBuffer(__glcUniLenBytes(s));
 
   if (buffer)
     /* Copy the string into the buffer */
-    s->dup(buffer, s->lenBytes());
+    __glcUniDup(s, buffer, __glcUniLenBytes(s));
   else
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 
@@ -372,9 +372,9 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
-  static const GLCchar* __glcExtensions = "";
-  static const GLCchar* __glcRelease = "draft Linux 2.x";
-  static const GLCchar* __glcVendor = "Queso Software";
+  static GLCchar* __glcExtensions = (GLCchar*) "";
+  static GLCchar* __glcRelease = (GLCchar*) "draft Linux 2.x";
+  static GLCchar* __glcVendor = (GLCchar*) "Queso Software";
 
   __glcContextState *state = NULL;
   __glcUniChar s;
@@ -402,13 +402,16 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   /* Get the relevant string in a Unicode string in GLC_UCS1 format */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
-    s = __glcUniChar(__glcExtensions, GLC_UCS1);
+    s.ptr = __glcExtensions;
+    s.type = GLC_UCS1;
     break;
   case GLC_RELEASE:
-    s = __glcUniChar(__glcRelease, GLC_UCS1);
+    s.ptr = __glcRelease;
+    s.type = GLC_UCS1;
     break;
   case GLC_VENDOR:
-    s = __glcUniChar(__glcVendor, GLC_UCS1);
+    s.ptr = __glcVendor;
+    s.type = GLC_UCS1;
     break;
   default:
     return GLC_NONE;
@@ -416,11 +419,11 @@ const GLCchar* glcGetc(GLCenum inAttrib)
     
   /* Allocates a buffer which size equals the length of the transformed
    * string */
-  length = s.estimate(state->stringType);
+  length = __glcUniEstimate(&s, state->stringType);
   buffer = state->queryBuffer(length);
   if (buffer)
     /* Converts the string into the current string type */
-    s.convert(buffer, state->stringType, length);
+    __glcUniConvert(&s, buffer, state->stringType, length);
   else
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 

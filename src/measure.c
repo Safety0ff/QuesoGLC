@@ -308,7 +308,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
 	return 0;
     }
 
-    UinString = __glcUniChar(inString, state->stringType);
+    UinString.ptr = (GLCchar*)inString;
+    UinString.type = state->stringType;
 
     if (state->renderStyle == GLC_BITMAP) {
 	for (i = 0; i < 4; i++)
@@ -325,8 +326,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
      */
     for (i = 0; i < inCount; i++) {
 	/* For each character get the metrics */
-	glcGetCharMetric(UinString.index(i), GLC_BASELINE, baselineMetric);
-	glcGetCharMetric(UinString.index(i), GLC_BOUNDS, boundsMetric);
+	glcGetCharMetric(__glcUniIndex(&UinString, i), GLC_BASELINE, baselineMetric);
+	glcGetCharMetric(__glcUniIndex(&UinString, i), GLC_BOUNDS, boundsMetric);
 	
 	/* If character are to be measured then store the results */
 	if (inMeasureChars) {
@@ -407,7 +408,8 @@ GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
     return 0;
   }
 
-  UinString = __glcUniChar(inString, state->stringType);
+  UinString.ptr = (GLCchar*)inString;
+  UinString.type = state->stringType;
 
-  return glcMeasureCountedString(inMeasureChars, UinString.len(), inString);
+  return glcMeasureCountedString(inMeasureChars, __glcUniLen(&UinString), inString);
 }

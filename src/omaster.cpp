@@ -26,9 +26,12 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
 {
   static char format1[] = "Type1";
   static char format2[] = "True Type";
-  __glcUniChar s = __glcUniChar(face->family_name, GLC_UCS1);
+  __glcUniChar s;
   GLCchar *buffer = NULL;
   int length = 0;
+
+  s.ptr = face->family_name;
+  s.type = GLC_UCS1;
 
   vendor = NULL;
   faceList = NULL;
@@ -48,47 +51,53 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
    * may be free and should be used instead of using the last location
    */
-  length = s.estimate(inStringType);
+  length = __glcUniEstimate(&s, inStringType);
   buffer = (GLCchar *)__glcMalloc(length);
   if (!buffer)
     goto error;
 
-  s.convert(buffer, inStringType, length);
-  family = new __glcUniChar(buffer, inStringType);
+  __glcUniConvert(&s, buffer, inStringType, length);
+  family = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
   if (!family)
     goto error;
+  family->ptr = buffer;
+  family->type = inStringType;
 
   /* use file extension to determine the face format */
-  s = __glcUniChar(NULL, GLC_UCS1);
+  s.ptr = NULL;
   if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
-    s = __glcUniChar(format1, GLC_UCS1);
+    s.ptr = format1;
   if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
-    s = __glcUniChar(format2, GLC_UCS1);
+    s.ptr = format2;
 
-  if (s.len()) {
-    length = s.estimate(inStringType);
+  if (__glcUniLen(&s)) {
+    length = __glcUniEstimate(&s, inStringType);
     buffer = (GLCchar*)__glcMalloc(length);
     if (!buffer)
       goto error;
 
-    s.convert(buffer, inStringType, length);
-    masterFormat = new __glcUniChar(buffer, inStringType);
+    __glcUniConvert(&s, buffer, inStringType, length);
+    masterFormat = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+    masterFormat->ptr = buffer;
+    masterFormat->type = inStringType;
     if (!masterFormat)
       goto error;
   }
   else
     masterFormat = NULL;
 
-  s = __glcUniChar(inVendorName, GLC_UCS1);
-  length = s.estimate(inStringType);
+  s.ptr = (GLCchar*) inVendorName;
+  length = __glcUniEstimate(&s, inStringType);
   buffer = (GLCchar*)__glcMalloc(length);
   if (!buffer)
     goto error;
 
-  s.convert(buffer, inStringType, length);
-  vendor = new __glcUniChar(buffer, inStringType);
+  __glcUniConvert(&s, buffer, inStringType, length);
+  vendor = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
   if (!vendor)
     goto error;
+  vendor->ptr = buffer;
+  vendor->type = inStringType;
 
   charList = (FT_List)__glcMalloc(sizeof(*charList));
   if (!charList)
@@ -108,20 +117,20 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
 
  error:
   if (vendor) {
-    vendor->destroy();
-    delete vendor;
+    __glcUniDestroy(vendor);
+    __glcFree(vendor);
   }
   if (faceList)
     delete faceList;
   if (faceFileName)
     delete faceFileName;
   if (family) {
-    family->destroy();
-    delete family;
+    __glcUniDestroy(family);
+    __glcFree(family);
   }
   if (masterFormat) {
-    masterFormat->destroy();
-    delete masterFormat;
+    __glcUniDestroy(masterFormat);
+    __glcFree(masterFormat);
   }
   if (buffer)
     __glcFree(buffer);
@@ -142,12 +151,12 @@ __glcMaster::~__glcMaster()
   __glcFree(charList);
   delete faceList;
   delete faceFileName;
-  family->destroy();
-  masterFormat->destroy();
-  vendor->destroy();
-  delete family;
-  delete masterFormat;
-  delete vendor;
+  __glcUniDestroy(family);
+  __glcUniDestroy(masterFormat);
+  __glcUniDestroy(vendor);
+  __glcFree(family);
+  __glcFree(masterFormat);
+  __glcFree(vendor);
     
   delete displayList;
 }

@@ -23,34 +23,19 @@
 #include "GL/glc.h"
 #include <string.h>
 
-typedef union {
-  unsigned char *ucs1;
-  unsigned short *ucs2;
-  unsigned int *ucs4;
-} uniChar;
-
-class __glcStringList;
-
-class __glcUniChar {
+typedef struct {
   GLCchar *ptr;
   GLint type;
+} __glcUniChar;
 
- public:
-  friend __glcStringList;
-
-  __glcUniChar();
-  __glcUniChar(const GLCchar* inChar, GLint inType = GLC_UCS1);
-  ~__glcUniChar() {}
-
-  size_t len(void);
-  size_t lenBytes(void);
-  GLCchar* dup(GLCchar* dest, size_t n)
-    { return memmove(dest, ptr, lenBytes() > n ? n : lenBytes()); }
-  int compare(__glcUniChar* inString);
-  GLCchar* convert(GLCchar* dest, int inType,size_t n);
-  int estimate(int inType);
-  void destroy(void);
-  GLuint index(int inPos);
-};
+size_t __glcUniLen(__glcUniChar *This);
+size_t __glcUniLenBytes(__glcUniChar *This);
+GLCchar* __glcUniDup(__glcUniChar *This, GLCchar* dest, size_t n);
+int __glcUniCompare(__glcUniChar *This, __glcUniChar* inString);
+GLCchar* __glcUniConvert(__glcUniChar *This, GLCchar* dest, int inType,
+			 size_t n);
+int __glcUniEstimate(__glcUniChar *This, int inType);
+void __glcUniDestroy(__glcUniChar *This);
+GLuint __glcUniIndex(__glcUniChar *This, int inPos);
 
 #endif

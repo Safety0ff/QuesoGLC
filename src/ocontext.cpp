@@ -390,8 +390,9 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
        * associated to a master.
        */
       for (j = 0; j < masterCount; j++) {
-	s = __glcUniChar(face->family_name, GLC_UCS1);
-	if (!s.compare(masterList[j]->family))
+	s.ptr = face->family_name;
+	s.type = GLC_UCS1;
+	if (!__glcUniCompare(&s, masterList[j]->family))
 	  break;
       }
 
@@ -429,9 +430,13 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 
     /* For each face in the font file */
     for (j = 0; j < numFaces; j++) {
-      __glcUniChar sp = __glcUniChar(path, GLC_UCS1);
+      __glcUniChar sp;
+
+      sp.ptr = path;
+      sp.type = GLC_UCS1;
       if (!FT_New_Face(library, path, j, &face)) {
-	s = __glcUniChar(face->style_name, GLC_UCS1);
+	s.ptr = face->style_name;
+	s.type = GLC_UCS1;
 	if (!master->faceList->find(&s))
 	  /* The current face in the font file is not already loaded in a
 	   * master : Append (or prepend) the new face and its file name to
@@ -473,7 +478,8 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   }
 
   /* Append (or prepend) the directory name to the catalog list */
-  s = __glcUniChar(inCatalog, GLC_UCS1);
+  s.ptr = (GLCchar*)inCatalog;
+  s.type = GLC_UCS1;
   if (inAppend) {
     if (catalogList->append(&s)) {
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
@@ -538,7 +544,8 @@ void __glcContextState::removeMasters(GLint inIndex)
       __glcMaster *master = masterList[j];
       if (!master)
 	continue;
-      s = __glcUniChar(buffer, GLC_UCS1);
+      s.ptr = buffer;
+      s.type = GLC_UCS1;
       index = master->faceFileName->getIndex(&s);
       if (!index)
 	continue; // The file is not in the current master, try the next one

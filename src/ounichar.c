@@ -20,32 +20,32 @@
 #include <stdio.h>
 #include "internal.h"
 #include "unichar.h"
-#include "strlst.h"
 
-__glcUniChar::__glcUniChar()
-{
-  ptr = NULL;
-  type = GLC_UCS1;
-}
 
-__glcUniChar::__glcUniChar(const GLCchar *inChar, GLint inType)
-{
-  ptr = (GLCchar *)inChar;
-  type = inType;
+typedef union {
+  unsigned char *ucs1;
+  unsigned short *ucs2;
+  unsigned int *ucs4;
+} uniChar;
+
+GLCchar* __glcUniDup(__glcUniChar *This, GLCchar* dest, size_t n)
+{ 
+  return memmove(dest, This->ptr, 
+		 __glcUniLenBytes(This) > n ? n : __glcUniLenBytes(This));
 }
 
 /* Length of the string in characters */
-size_t __glcUniChar::len(void)
+size_t __glcUniLen(__glcUniChar *This)
 {
   uniChar c;
   size_t length = 0;
 
-  if (!ptr)
+  if (!This->ptr)
     return 0;
 
-  c.ucs1 = (unsigned char*)ptr;
+  c.ucs1 = (unsigned char*)This->ptr;
 
-  switch(type) {
+  switch(This->type) {
   case GLC_UCS1:
     while (*(c.ucs1)) {
       c.ucs1++;
@@ -72,18 +72,18 @@ size_t __glcUniChar::len(void)
 }
 
 /* Length of the string in bytes (including the NULL termination) */
-size_t __glcUniChar::lenBytes(void)
+size_t __glcUniLenBytes(__glcUniChar *This)
 {
-  if (!ptr)
+  if (!This->ptr)
     return 0;
 
-  switch(type) {
+  switch(This->type) {
   case GLC_UCS1:
-    return len() + 1;
+    return __glcUniLen(This) + 1;
   case GLC_UCS2:
-    return 2 * (len() + 1);
+    return 2 * (__glcUniLen(This) + 1);
   case GLC_UCS4:
-    return 4 * (len() + 1);
+    return 4 * (__glcUniLen(This) + 1);
   default:
     return 0;
   }
@@ -106,7 +106,7 @@ static int lenType(int inType)
 /* Compares two unicode strings. The API is based upon strcmp
  * Internally it converts both strings to GLC_UCS4 then compare
  */
-int __glcUniChar::compare(__glcUniChar* inString)
+int __glcUniCompare(__glcUniChar *This, __glcUniChar* inString)
 {
   GLCchar *s1 = NULL, *s2 = NULL;
   uniChar c1 , c2;
@@ -114,11 +114,11 @@ int __glcUniChar::compare(__glcUniChar* inString)
   int ret = 0;
 
   /* Reserve room to store the converted strings */
-  l1 = lenBytes() * 4 / lenType(type);
+  l1 = __glcUniLenBytes(This) * 4 / lenType(This->type);
   s1 = (GLCchar*)__glcMalloc(l1);
   if (!s1)
     return 0; /* 0 means that the strings are equal : may be we should use another value ?? */
-  l2 = inString->lenBytes() * 4 / lenType(inString->type);
+  l2 = __glcUniLenBytes(inString) * 4 / lenType(inString->type);
   s2 = (GLCchar*)__glcMalloc(l2);
   if (!s2) {
     __glcFree(s1);
@@ -126,8 +126,8 @@ int __glcUniChar::compare(__glcUniChar* inString)
   }
 
   /* Process the conversion */
-  convert(s1, GLC_UCS4, l1);
-  inString->convert(s2, GLC_UCS4, l2);
+  __glcUniConvert(This, s1, GLC_UCS4, l1);
+  __glcUniConvert(inString, s2, GLC_UCS4, l2);
 
   /* Compare */
   c1.ucs1 = (unsigned char*) s1;
@@ -153,9 +153,9 @@ int __glcUniChar::compare(__glcUniChar* inString)
 
 #define CONVERT_UP(LOW, TYPE_LOW, UP, TYPE_UP) \
 do { \
-   c1.ucs##LOW = (TYPE_LOW*)ptr; \
+   c1.ucs##LOW = (TYPE_LOW*)This->ptr; \
    c2.ucs##UP = (TYPE_UP*)dest; \
-   for(i = 0; i < len() + 1; i++) { \
+   for(i = 0; i < __glcUniLen(This) + 1; i++) { \
      *(c2.ucs##UP) = *(c1.ucs##LOW); \
      c1.ucs##LOW++; \
      c2.ucs##UP++; \
@@ -167,9 +167,9 @@ do { \
 
 #define CONVERT_DOWN(LOW, TYPE_LOW, SIZE_LOW, UP, TYPE_UP) \
 do { \
-  c1.ucs##UP = (TYPE_UP*) ptr; \
+  c1.ucs##UP = (TYPE_UP*)This->ptr; \
   c2.ucs##LOW = (TYPE_LOW*) dest; \
-  for (i = 0; i < len() + 1; i++) { \
+  for (i = 0; i < __glcUniLen(This) + 1; i++) { \
     if (*(c1.ucs##UP) < SIZE_LOW) { \
       *(c2.ucs##LOW) = *(c1.ucs##LOW); \
       c2.ucs##LOW++; \
@@ -192,7 +192,8 @@ do { \
 } while(0)
 
 /* Converts a Unicode String from one format to another */
-GLCchar* __glcUniChar::convert(GLCchar* dest, int inType, size_t n)
+GLCchar* __glcUniConvert(__glcUniChar *This, GLCchar* dest, int inType,
+			 size_t n)
 {
   uniChar c1, c2;
   size_t length = 0;
@@ -200,11 +201,11 @@ GLCchar* __glcUniChar::convert(GLCchar* dest, int inType, size_t n)
   char buffer[GLC_STRING_CHUNK];
   unsigned int i = 0, j = 0;
 
-  if (inType == type)
-    return dup(dest, n);
+  if (inType == This->type)
+    return __glcUniDup(This, dest, n);
 
-  if (inType > type) {
-    switch(type) {
+  if (inType > This->type) {
+    switch(This->type) {
     case GLC_UCS1:
       if (inType == GLC_UCS2)
 	CONVERT_UP(1, unsigned char, 2, unsigned short);
@@ -219,7 +220,7 @@ GLCchar* __glcUniChar::convert(GLCchar* dest, int inType, size_t n)
     }
   }
   else {
-    switch(type) {
+    switch(This->type) {
     case GLC_UCS2:
       CONVERT_DOWN(1, unsigned char, 256, 2, unsigned short);
       break;
@@ -239,7 +240,7 @@ GLCchar* __glcUniChar::convert(GLCchar* dest, int inType, size_t n)
 /* Estimates the length (in bytes including the NULL termination) of the
  * unicode string after conversion.
  */
-int __glcUniChar::estimate(int inType)
+int __glcUniEstimate(__glcUniChar *This, int inType)
 {
   int length = 0;
   size_t charSize = (size_t) lenType(inType);
@@ -248,16 +249,16 @@ int __glcUniChar::estimate(int inType)
   uniChar c;
   char buffer[256];
 
-  if (inType >= type)
-    return lenBytes() * charSize / lenType(type);
+  if (inType >= This->type)
+    return __glcUniLenBytes(This) * charSize / lenType(This->type);
 
-  c.ucs1 = (unsigned char *)ptr;
+  c.ucs1 = (unsigned char *)This->ptr;
 
   for (i = 0; i < charSize * 8; i++)
     maxSize *= 2;
 
-  for (i = 0; i < len() + 1; i++)
-    switch(type) {
+  for (i = 0; i < __glcUniLen(This) + 1; i++)
+    switch(This->type) {
     case GLC_UCS2:
       if (*(c.ucs2) >= maxSize) {
 	sprintf(buffer, "\\<%X>", *(c.ucs2));
@@ -282,20 +283,20 @@ int __glcUniChar::estimate(int inType)
   return length;
 }
 
-void __glcUniChar::destroy(void)
+void __glcUniDestroy(__glcUniChar *This)
 {
-  if (!ptr)
-    __glcFree(ptr);
-  ptr = NULL;
+  if (!This->ptr)
+    __glcFree(This->ptr);
+  This->ptr = NULL;
 }
 
-GLuint __glcUniChar::index(GLint inPos)
+GLuint __glcUniIndex(__glcUniChar *This, GLint inPos)
 {
   uniChar c;
 
-  c.ucs1 = (unsigned char*)ptr;
+  c.ucs1 = (unsigned char*)This->ptr;
 
-  switch(type) {
+  switch(This->type) {
   case GLC_UCS1:
     c.ucs1 += inPos;
     return (GLuint) (*(c.ucs1));
