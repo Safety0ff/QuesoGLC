@@ -581,7 +581,7 @@ void __glcContextState::removeMasters(GLint inIndex)
   return;
 }
 
-/* Return the ID of the first font in GLC_CURRENT_FONT_LIST the maps 'inCode'
+/* Return the ID of the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'
  * If there is no such font, the function returns zero
  */
 static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
