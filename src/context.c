@@ -138,12 +138,12 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 	return GLC_NONE;
     }
 
-    if ((inIndex < 0) || (inIndex >= state->catalogList.count)) {
+    if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
 	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return GLC_NONE;
     }
     
-    return __glcStringListExtractElement(&state->catalogList, inIndex, (GLCchar *)__glcBuffer, GLC_STRING_CHUNK);
+    return state->catalogList->extract(inIndex, (GLCchar *)__glcBuffer, GLC_STRING_CHUNK);
 }
 
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
@@ -319,7 +319,7 @@ GLint glcGeti(GLCenum inAttrib)
 
     switch(inAttrib) {
 	case GLC_CATALOG_COUNT:
-	    return state->catalogList.count;
+	    return state->catalogList->getCount();
 	case GLC_CURRENT_FONT_COUNT:
 	    return state->currentFontCount;
 	case GLC_FONT_COUNT:

@@ -95,14 +95,13 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 	return GL_FALSE;
     }
     
-    faceID = __glcStringListGetIndex(&font->parent->faceList, inFace);
+    faceID = font->parent->faceList->getIndex(inFace);
     if (faceID == -1)
 	return GL_FALSE;
 
     font->faceID = faceID;
 
-    if (FT_New_Face(library, __glcStringListExtractElement(&font->parent->faceFileName,
-		faceID, buffer, 256), 0, &font->face)) {
+    if (FT_New_Face(library, (const char*)font->parent->faceFileName->extract(faceID, buffer, 256), 0, &font->face)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;
     }
@@ -177,7 +176,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 	    return;
 	}
 	/* Retrieve the Unicode code from its name */
-	key.dsize = strlen(inCharName) + 1;
+	key.dsize = strlen((const char*)inCharName) + 1;
 	key.dptr = (char *)inCharName;
 	content = gdbm_fetch(unicod2, key);
 	if (!content.dptr) {
@@ -241,7 +240,7 @@ const GLCchar* glcGetFontFace(GLint inFont)
     __glcFont *font = __glcVerifyFontParameters(inFont);
     
     if (font)
-	return __glcStringListExtractElement(&font->parent->faceList, font->faceID, (GLCchar *)__glcBuffer, GLC_STRING_CHUNK);
+	return font->parent->faceList->extract(font->faceID, (GLCchar *)__glcBuffer, GLC_STRING_CHUNK);
     else
 	return GLC_NONE;
 }
@@ -356,8 +355,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     font->parent = inState->masterList[inMaster];
     font->charMapCount = 0;
 
-    if (FT_New_Face(library, __glcStringListExtractElement(&font->parent->faceFileName,
-		0, buffer, 256), 0, &font->face)) {
+    if (FT_New_Face(library, (const char*)font->parent->faceFileName->extract(0, buffer, 256), 0, &font->face)) {
 	/* Unable to load the face file, however this should not happen since
 	   it has been succesfully loaded when the master was created */
 	__glcRaiseError(GLC_INTERNAL_ERROR);
@@ -410,7 +408,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     }
 
     for (i = 0; i < state->masterCount; i++) {
-	if (!strcmp(inFamily, state->masterList[i]->family))
+	if (!strcmp((const char*)inFamily, (const char*)state->masterList[i]->family))
 	    break;
     }
     

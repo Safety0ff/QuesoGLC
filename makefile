@@ -1,4 +1,5 @@
 # $Id$
+C++ = g++
 CC = gcc
 CPPFLAGS = `freetype-config --cflags`
 ifdef DEBUGMODE
@@ -6,15 +7,19 @@ CFLAGS = -g
 else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
-CFLAGS += -Wall -Iinclude -ansi -pedantic-errors
+CFLAGS += -Wall -Iinclude -Isrc -ansi -pedantic-errors
 LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU -lglut -lX11 -lXext -lXmu -lgdbm
 ifdef DEBUGMODE
 LDFLAGS += -lefence
 endif
 LIBRARY = lib/libglc.a
 BUILDER = buildDB
+C_SOURCES = context.c font.c global.c master.c measure.c render.c scalable.c \
+	  transform.c
+CPP_SOURCES = strlst.cpp
+LIB_OBJECTS = $(addprefix obj/, $(C_SOURCES:.c=.o)) $(addprefix obj/, $(CPP_SOURCES:.cpp=.oo))
 DATABASE = database/unicode1.db
-OBJECTS = obj/common.o tests/testcommon tests/teststrlst tests/testmaster tests/testfont \
+OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
 	tests/testrender tests/testcontex
 
 all: $(DATABASE) $(OBJECTS) $(LIBRARY)
@@ -29,10 +34,12 @@ obj/%.o : tests/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 obj/%.o : src/%.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+	$(C++) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 	
-$(LIBRARY) : obj/strlst.o obj/global.o obj/master.o  obj/font.o obj/render.o \
-		obj/scalable.o obj/context.o obj/transform.o obj/measure.o
+obj/%.oo : src/%.cpp
+	$(C++) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+	
+$(LIBRARY) : $(LIB_OBJECTS)
 	$(AR) -r $@ $^
 
 database/$(BUILDER) : database/buildDB.c

@@ -138,7 +138,7 @@ static void __glcDeleteContext(GLint inContext)
     __glcContextStateList[inContext] = NULL;
     pthread_mutex_unlock(&__glcCommonAreaMutex);
 
-    __glcStringListDelete(&state->catalogList);
+    delete state->catalogList;
     for (i = 0; i < GLC_MAX_FONT; i++) {
 	__glcFont *font = NULL;
 	
@@ -182,7 +182,7 @@ void glcDeleteContext(GLint inContext)
     }
     
     if (__glcGetContextCurrency(inContext - 1))
-	__glcGetContextState(inContext - 1)->delete = GL_TRUE;
+	__glcGetContextState(inContext - 1)->pendingDelete = GL_TRUE;
     else
 	__glcDeleteContext(inContext - 1);
 }
@@ -253,7 +253,7 @@ void glcContext(GLint inContext)
 		__glcRaiseError(GLC_INTERNAL_ERROR);
 	    else {
 		/* execute pending deletion if any */
-		if (state->delete)
+		if (state->pendingDelete)
 		    __glcDeleteContext(currentContext - 1);
 	    }
 	}
@@ -306,8 +306,16 @@ GLint glcGenContext(void)
     __glcSetContextState(i, state);
     __glcSetContextCurrency(i, GL_FALSE);
     
+    state->catalogList = new __glcStringList(GLC_UCS1);
+    if (!state->catalogList) {
+	__glcSetContextState(i, NULL);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	free(state);
+	return 0;
+    }
+    
     state->id = i + 1;
-    state->delete = GL_FALSE;
+    state->pendingDelete = GL_FALSE;
     state->callback = GLC_NONE;
     state->dataPointer = NULL;
     state->autoFont = GL_TRUE;
@@ -346,12 +354,6 @@ GLint glcGenContext(void)
     for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
 	state->textureObjectList[j] = 0;
 
-    if (__glcStringListInit(&state->catalogList, state)) {
-	__glcSetContextState(i, NULL);
-	free(state);
-	return 0;
-    }
-    
     return i + 1;
 }
 

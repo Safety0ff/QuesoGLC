@@ -6,6 +6,10 @@
 #include "GL/glc.h"
 #include "internal.h"
 
+extern "C" {
+extern char* strdup(const char *s);
+}
+
 const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex)
 {
     __glcContextState *state = NULL;
@@ -36,12 +40,12 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 		return GLC_NONE;
 	    }
 	case GLC_FACE_LIST:
-	    if ((inIndex < 0) || (inIndex >= master->faceList.count)) {
+	    if ((inIndex < 0) || (inIndex >= master->faceList->getCount())) {
 		__glcRaiseError(GLC_PARAMETER_ERROR);
 		return GLC_NONE;
 	    }
 	    else {
-		s = __glcStringListExtractElement(&master->faceList, inIndex, (GLCchar *) __glcBuffer, GLC_STRING_CHUNK);
+		s = master->faceList->extract(inIndex, (GLCchar *) __glcBuffer, GLC_STRING_CHUNK);
 		break;
 	    }
 	default:
@@ -76,9 +80,8 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     
     master = state->masterList[inMaster];
 
-    for (i = 0; i < master->faceFileName.count; i++) {
-	if (FT_New_Face(library, __glcStringListExtractElement(&master->faceFileName,
-		i, buffer, 256), 0, &face)) {
+    for (i = 0; i < master->faceFileName->getCount(); i++) {
+	if (FT_New_Face(library, (const char*)master->faceFileName->extract(i, buffer, 256), 0, &face)) {
 	    /* Unable to load the face file, however this should not happen since
 	       it has been succesfully loaded when the master was created */
 	    __glcRaiseError(GLC_INTERNAL_ERROR);
@@ -90,7 +93,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 	FT_Done_Face(face);
     }
     
-    if (i == master->faceFileName.count)
+    if (i == master->faceFileName->getCount())
 	FT_Done_Face(face);
     
     key.dsize = sizeof(GLint);
@@ -163,7 +166,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
         case GLC_CHAR_COUNT:
 	    return master->charListCount;
 	case GLC_FACE_COUNT:
-	    return master->faceList.count;
+	    return master->faceList->getCount();
 	case GLC_IS_FIXED_PITCH:
 	    return master->isFixedPitch;
 	case GLC_MAX_MAPPED_CODE:
@@ -195,13 +198,15 @@ static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState, 
 
 	master->family = (GLCchar *)strdup((const char*)face->family_name);
 
-	if (__glcStringListInit(&master->faceList, inState)) {
+	master->faceList = new __glcStringList(inState->stringType);
+	if (!master->faceList) {
 	    free(master->family);
 	    free(master);
 	    return NULL;
 	}
-	if (__glcStringListInit(&master->faceFileName, inState)) {
-	    __glcStringListDelete(&master->faceList);
+	master->faceFileName = new __glcStringList(inState->stringType);
+	if (!master->faceFileName) {
+	    delete master->faceList;
 	    free(master->family);
 	    free(master);
 	    return NULL;
@@ -298,7 +303,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 		continue;
 	    
 	    for (j = 0; j < inState->masterCount; j++) {
-		if (!strcmp(face->family_name, inState->masterList[j]->family))
+		if (!strcmp(face->family_name, (const char*)inState->masterList[j]->family))
 		    break;
 	    }
 	    
@@ -322,7 +327,7 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 
 	for (j = 0; j < numFaces; j++) {
 	    if (!FT_New_Face(library, path, j, &face)) {
-		if (__glcStringListFind(&master->faceList, face->style_name))
+		if (master->faceList->find(face->style_name))
 		    continue;
 		else {
 		    /* FIXME : 
@@ -330,18 +335,18 @@ static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inSta
 		       should indicate it inside faceFileName
 		     */
 		    if (inAppend) {
-			if (__glcStringListAppend(&master->faceList, face->style_name))
+			if (master->faceList->append(face->style_name))
 			    break;
-			if (__glcStringListAppend(&master->faceFileName, path)) {
-			    __glcStringListRemove(&master->faceList, face->style_name);
+			if (master->faceFileName->append(path)) {
+			    master->faceList->remove(face->style_name);
 			    break;		    
 			}
 		    }
 		    else {
-			if (__glcStringListPrepend(&master->faceList, face->style_name))
+			if (master->faceList->prepend(face->style_name))
 			    break;
-			if (__glcStringListPrepend(&master->faceFileName, path)) {
-			    __glcStringListRemove(&master->faceList, face->style_name);
+			if (master->faceFileName->prepend(path)) {
+			    master->faceList->remove(face->style_name);
 			    break;		    
 			}
 		    }
@@ -371,7 +376,7 @@ void glcAppendCatalog(const GLCchar* inCatalog)
     }
 
     if (!__glcUpdateMasters(inCatalog, state, GL_TRUE)) {
-	if (__glcStringListAppend(&state->catalogList, inCatalog)) {
+	if (state->catalogList->append(inCatalog)) {
 	    __glcRaiseError(GLC_RESOURCE_ERROR);
 	    return;
 	}
@@ -389,7 +394,7 @@ void glcPrependCatalog(const GLCchar* inCatalog)
     }
 
     if (!__glcUpdateMasters(inCatalog, state, GL_FALSE)) {
-	if (__glcStringListPrepend(&state->catalogList, inCatalog)) {
+	if (state->catalogList->prepend(inCatalog)) {
 	    __glcRaiseError(GLC_RESOURCE_ERROR);
 	    return;
 	}
@@ -400,8 +405,8 @@ void __glcDeleteMaster(GLint inMaster, __glcContextState *inState) {
     __glcMaster *master = inState->masterList[inMaster];
     GLint i = 0;
     
-    __glcStringListDelete(&master->faceList);
-    __glcStringListDelete(&master->faceFileName);
+    delete master->faceList;
+    delete master->faceFileName;
     free(master->family);
     free(master->vendor);
     
@@ -426,7 +431,7 @@ static void __glcRemoveCatalog(GLint inIndex, __glcContextState * inState)
     FILE *file;
 
     /* TODO : use Unicode instead of ASCII */
-    strncpy(buffer, __glcStringListExtractElement(&inState->catalogList, inIndex, buffer, 256), 256);
+    strncpy(buffer, (const char*)inState->catalogList->extract(inIndex, buffer, 256), 256);
     strncpy(path, buffer, 256);
     strncat(path, fileName, strlen(fileName));
     
@@ -457,13 +462,13 @@ static void __glcRemoveCatalog(GLint inIndex, __glcContextState * inState)
 	for (j = 0; j < GLC_MAX_MASTER; j++) {
 	    if (!inState->masterList[j])
 		continue;
-	    index = __glcStringListGetIndex(&inState->masterList[j]->faceFileName, buffer);
+	    index = inState->masterList[j]->faceFileName->getIndex(buffer);
 	    if (index) {
-		__glcStringListRemoveIndex(&inState->masterList[j]->faceFileName, index);
-		__glcStringListRemoveIndex(&inState->masterList[j]->faceList, index);
+		inState->masterList[j]->faceFileName->removeIndex(index);
+		inState->masterList[j]->faceList->removeIndex(index);
 		/* Characters from the font should be removed from the char list */
 	    }
-	    if (!inState->masterList[j]->faceFileName.count)
+	    if (!inState->masterList[j]->faceFileName->getCount())
 		__glcDeleteMaster(j, inState);
 		inState->masterList[j] = NULL;
 	}
@@ -483,7 +488,7 @@ void glcRemoveCatalog(GLint inIndex)
 	return;
     }
 
-    if ((inIndex < 0) || (inIndex >= state->catalogList.count)) {
+    if ((inIndex < 0) || (inIndex >= state->catalogList->getCount())) {
 	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return;
     }

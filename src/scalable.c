@@ -244,9 +244,9 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLbo
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
     gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, !inFill);
 
-    gluTessCallback(tess, GLU_TESS_ERROR, __glcCallbackError);
-    gluTessCallback(tess, GLU_TESS_BEGIN, glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX, glVertex3dv);
+    gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
+    gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
+    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
     gluTessCallback(tess, GLU_TESS_END, glEnd);
 	
     gluTessNormal(tess, 0., 0., 1.);

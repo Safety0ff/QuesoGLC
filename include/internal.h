@@ -4,9 +4,9 @@
 #include <gdbm.h>
 
 #include "GL/glc.h"
+#include "strlst.h"
 
 #define GLC_INTERNAL_ERROR 	0x0043
-#define GLC_STRING_CHUNK	256
 
 #define GLC_MAX_CONTEXTS	16
 #define GLC_MAX_CURRENT_FONT	16
@@ -18,16 +18,13 @@
 #define GLC_MAX_MEASURE		GLC_STRING_CHUNK
 #define GLC_MAX_CHARMAP		256
 
-typedef struct {
-    GLCchar* list;		/* Pointer to the string */
-    GLint count;		/* # list elements */
-    GLint maxLength;		/* maximal length of the string */
-    GLint stringType;		/* string type : UCS1, UCS2 or UCS4 */
-} __glcStringList;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct {
     GLint id;
-    __glcStringList faceList;	/* GLC_FACE_LIST */
+    __glcStringList* faceList;	/* GLC_FACE_LIST */
     GLint charListCount;	/* GLC_CHAR_LIST_COUNT */
     GLCchar* family;		/* GLC_FAMILY */
     GLCchar* masterFormat;	/* GLC_MASTER_FORMAT */
@@ -36,7 +33,7 @@ typedef struct {
     GLint isFixedPitch;		/* GLC_IS_FIXED_PITCH */
     GLint maxMappedCode;	/* GLC_MAX_MAPPED_CODE */
     GLint minMappedCode;	/* GLC_MIN_MAPPED_CODE */
-    __glcStringList faceFileName;
+    __glcStringList* faceFileName;
 } __glcMaster;
 
 typedef struct {
@@ -50,13 +47,13 @@ typedef struct {
 
 typedef struct {
     GLint id;			/* Context ID */
-    GLboolean delete;		/* Is there a pending deletion ? */
+    GLboolean pendingDelete;	/* Is there a pending deletion ? */
     GLCfunc callback;		/* Callback function */
     GLvoid* dataPointer;	/* GLC_DATA_POINTER */
     GLboolean autoFont;		/* GLC_AUTO_FONT */
     GLboolean glObjects;	/* GLC_GLOBJECTS */
     GLboolean mipmap;		/* GLC_MIPMAP */
-    __glcStringList catalogList;/* GLC_CATALOG_LIST */
+    __glcStringList* catalogList;/* GLC_CATALOG_LIST */
     GLfloat resolution;		/* GLC_RESOLUTION */
     GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
     GLint currentFontList[GLC_MAX_CURRENT_FONT];
@@ -93,21 +90,16 @@ extern __glcContextState* __glcGetCurrentState(void);
 /* Font and rendering internal commands */
 extern GLint __glcGetFont(GLint inCode);
 
-/* Prototypes of helper functions for __glcStringList objects */
-extern GLint __glcStringListInit(__glcStringList *inStringList, __glcContextState *inState);
-extern void __glcStringListDelete(__glcStringList *inStringList);
-extern GLint __glcStringListAppend(__glcStringList *inStringList, const GLCchar* inString);
-extern GLint __glcStringListPrepend(__glcStringList *inStringList, const GLCchar* inString);
-extern GLint __glcStringListRemove(__glcStringList *inStringList, const GLCchar* inString);
-extern GLint __glcStringListRemoveIndex(__glcStringList *inStringList, GLint inIndex);
-extern GLCchar* __glcStringListFind(__glcStringList *inStringList, const GLCchar* inString);
-extern GLCchar* __glcStringListFindIndex(__glcStringList *inStringList, GLint inIndex);
-extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLint inIndex, const GLCchar* inSeparator);
-extern GLint __glcStringListGetIndex(__glcStringList *inStringList, const GLCchar* inString);
-extern GLCchar* __glcStringListExtractElement(__glcStringList *inStringList, GLint inIndex, GLCchar* inBuffer, GLint inBufferSize);
-
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLboolean inFill);
 
 /* Master helpers */
 extern void __glcDeleteMaster(GLint inMaster, __glcContextState *inState);
+
+/* Temporary functions */
+extern void my_init(void);
+extern void my_fini(void);
+
+#ifdef __cplusplus
+}
+#endif
