@@ -233,7 +233,7 @@ const GLCchar* glcGetc(GLCenum inAttrib)
     __glcContextState *state = NULL;
     static const GLCchar* __glcExtensions = "";
     static const GLCchar* __glcRelease = "draft Linux 2.x";
-    static const GLCchar* __glcVendor = "Queso";
+    static const GLCchar* __glcVendor = "Queso Software";
 
     switch(inAttrib) {
 	case GLC_EXTENSIONS:
@@ -253,11 +253,23 @@ const GLCchar* glcGetc(GLCenum inAttrib)
 
     switch(inAttrib) {
 	case GLC_EXTENSIONS:
-	    return __glcExtensions;
+	  {
+	    __glcUniChar s = __glcUniChar(__glcExtensions, GLC_UCS1);
+	    s.convert(__glcContextState::buffer, GLC_STRING_CHUNK);
+	    return __glcContextState::buffer;
+	  }
 	case GLC_RELEASE:
-	    return __glcRelease;
+	  {
+	    __glcUniChar s = __glcUniChar(__glcRelease, GLC_UCS1);
+	    s.convert(__glcContextState::buffer, GLC_STRING_CHUNK);
+	    return __glcContextState::buffer;
+	  }
 	case GLC_VENDOR:
-	    return __glcVendor;
+	  {
+	    __glcUniChar s = __glcUniChar(__glcVendor, GLC_UCS1);
+	    s.convert(__glcContextState::buffer, GLC_STRING_CHUNK);
+	    return __glcContextState::buffer;
+	  }
     }
     
     return GLC_NONE;

@@ -6,7 +6,7 @@ CC_SOURCE = $(addprefix src/,$(CC_FILES))
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o)) $(addprefix obj/, $(CC_FILES:.cpp=.oo))
 TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
-	tests/testrender tests/testcontex
+	tests/testrender tests/testcontex tests/tstunicd
 
 LIBRARY = lib/libGLC.a
 DATABASE = database/unicode1.db
@@ -19,6 +19,8 @@ CXX = @CXX@
 LIBS=@LIBS@ -lstdc++
 CPPFLAGS=@CPPFLAGS@
 LDFLAGS=@LDFLAGS@
+INCLUDE_DIR=@prefix@/include
+LIB_DIR=@prefix@/lib
 
 ifdef DEBUGMODE
 CFLAGS = -g
@@ -62,3 +64,8 @@ clean:
 distclean: clean
 	rm -f makefile configure stamp-h
 	rm -f include/qglc_config.h
+
+install : $(LIBRARY)
+	mkdir -p $(INCLUDE_DIR)/GL
+	cp include/GL/glc.h $(INCLUDE_DIR)/GL/.
+	cp lib/libGLC.a $(LIB_DIR)/.

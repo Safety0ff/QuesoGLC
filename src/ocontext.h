@@ -21,6 +21,7 @@ class __glcContextState {
   static pthread_mutex_t mutex;
   static pthread_key_t contextKey;
   static pthread_key_t errorKey;
+  static pthread_key_t lockKey;
 
   static void initQueso(void);
   static __glcContextState* getState(GLint inContext);
@@ -28,6 +29,8 @@ class __glcContextState {
   static GLboolean getCurrency(GLint inContext);
   static void setCurrency(GLint inContext, GLboolean isCurrent);
   static GLboolean isContext(GLint inContext);
+  static void lock(void);
+  static void unlock(void);
 
  public:
   static FT_Library library;

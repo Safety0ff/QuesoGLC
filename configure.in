@@ -69,6 +69,8 @@ AC_SUBST(LIBS)
 AC_SUBST(CPPFLAGS)
 AC_SUBST(CC)
 AC_SUBST(CXX)
+AC_SUBST(libdir)
+AC_SUBST(prefix)
 
 AC_OUTPUT(makefile:makefile.unx,
   [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h])

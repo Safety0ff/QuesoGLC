@@ -154,6 +154,16 @@ void __glcContextState::initQueso(void)
     return;
   }
 
+  // Creates the thread-local storage for the lock count
+  if (pthread_key_create(&lockKey, NULL)) {
+    raiseError(GLC_RESOURCE_ERROR);
+    gdbm_close(unidb1);
+    gdbm_close(unidb2);
+    delete[] isCurrent;
+    delete[] stateList;
+    return;
+  }
+
   // Initialize FreeType
   if (FT_Init_FreeType(&library)) {
     // Well, if it fails there is nothing that can be done
@@ -185,9 +195,9 @@ __glcContextState* __glcContextState::getState(GLint inContext)
 {
   __glcContextState *state = NULL;
 
-  pthread_mutex_lock(&mutex);
+  lock();
   state = stateList[inContext];
-  pthread_mutex_unlock(&mutex);
+  unlock();
 
   return state;
 }
@@ -195,9 +205,9 @@ __glcContextState* __glcContextState::getState(GLint inContext)
 /* Set the context state of a given context */
 void __glcContextState::setState(GLint inContext, __glcContextState *inState)
 {
-  pthread_mutex_lock(&mutex);
+  lock();
   stateList[inContext] = inState;
-  pthread_mutex_unlock(&mutex);
+  unlock();
 }
 
 /* Raise an error. This function must be called each time the current error
@@ -221,28 +231,28 @@ GLboolean __glcContextState::getCurrency(GLint inContext)
 {
   GLboolean current = GL_FALSE;
 
-  pthread_mutex_lock(&mutex);
+  lock();
   current = isCurrent[inContext];
-  pthread_mutex_unlock(&mutex);
+  unlock();
 
   return current;
 }
 
 /* Make a context current or release it. This value is intended to determine
  * if a context is current to a thread or not. Array isCurrent[] exists
- * because there is no simple way to get the contextKey value of for
+ * because there is no simple way to get the contextKey value of
  * other threads (we do not even know how many threads have been created)
  */
 void __glcContextState::setCurrency(GLint inContext, GLboolean current)
 {
-  pthread_mutex_lock(&mutex);
+  lock();
   isCurrent[inContext] = current;
-  pthread_mutex_unlock(&mutex);
+  unlock();
 }
 
 /* Determine if a context ID is associated to a context state or not. This is
- * a different notion than the currency of a context : a context state may exist
- * without being associated to a thread.
+ * a different notion than the currency of a context : a context state may
+ * exist without being associated to a thread.
  */
 GLboolean __glcContextState::isContext(GLint inContext)
 {
@@ -251,10 +261,10 @@ GLboolean __glcContextState::isContext(GLint inContext)
   return (state ? GL_TRUE : GL_FALSE);
 }
 
-/* This function is called by glcAppendCatalog and glcPrependCatalog. It has been
- * associated to the contextState class rather than the master class because
- * glcAppendCatalog and glcPrependCatalog might create several masters. Moreover
- * it associates the new masters (if any) to the current context.
+/* This function is called by glcAppendCatalog and glcPrependCatalog. It has
+ * been associated to the contextState class rather than the master class
+ * because glcAppendCatalog and glcPrependCatalog might create several masters.
+ * Moreover it associates the new masters (if any) to the current context.
  */
 void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 {
@@ -266,7 +276,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   int i = 0;
   FILE *file;
 
-  /* TODO : use Unicode instead of ASCII */
+  /* TODO : use Unicode instead of ASCII ? */
   strncpy(path, s, 256);
   strncat(path, fileName, strlen(fileName));
 
@@ -427,8 +437,8 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   fclose(file);
 }
 
-/* This function is called by glcRemoveCatalog. It has included in the
- * context state class for the same reasons then addMasters
+/* This function is called by glcRemoveCatalog. It has been included in the
+ * context state class for the same reasons than addMasters was.
  */
 void __glcContextState::removeMasters(GLint inIndex)
 {
@@ -515,8 +525,8 @@ void __glcContextState::removeMasters(GLint inIndex)
   return;
 }
 
-/* Return the ID of the first fontin GLC_CURRENT_FONT_LIST the maps 'inCode'
- * If there is no such font, the fuction returns zero
+/* Return the ID of the first font in GLC_CURRENT_FONT_LIST the maps 'inCode'
+ * If there is no such font, the function returns zero
  */
 static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
 {
@@ -530,8 +540,8 @@ static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
   return 0;
 }
 
-/* Calls the callback function (does various tests to determine if it is possible)
- * and returns GL_TRUE if it has succeeded or GL_FALSE otherwise.
+/* Calls the callback function (does various tests to determine if it is
+ * possible) and returns GL_TRUE if it has succeeded or GL_FALSE otherwise.
  */
 static GLboolean __glcCallCallbackFunc(GLint inCode, __glcContextState *inState)
 {
@@ -553,10 +563,10 @@ static GLboolean __glcCallCallbackFunc(GLint inCode, __glcContextState *inState)
   return result;
 }
 
-/* Returns the ID of the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'.
- * If there is no such font, the function attempts to append a new font from
- * GLC_FONT_LIST (or from a master) to GLC_CURRENT_FONT_LIST. If the attempt fails
- * the function returns zero.
+/* Returns the ID of the first font in GLC_CURRENT_FONT_LIST that maps
+ * 'inCode'. If there is no such font, the function attempts to append a new
+ * font from GLC_FONT_LIST (or from a master) to GLC_CURRENT_FONT_LIST. If the
+ * attempt fails the function returns zero.
  */
 GLint __glcContextState::getFont(GLint inCode)
 {
@@ -577,8 +587,8 @@ GLint __glcContextState::getFont(GLint inCode)
   }
 
   /* If the value of the boolean variable GLC_AUTOFONT is GL_TRUE then search
-   * GLC_FONT_LIST for the first font that maps 'inCode'. If the search succeeds,
-   * then append the font's ID to GLC_CURRENT_FONT_LIST.
+   * GLC_FONT_LIST for the first font that maps 'inCode'. If the search
+   * succeeds, then append the font's ID to GLC_CURRENT_FONT_LIST.
    */
   if (autoFont) {
     GLint i = 0;
@@ -591,9 +601,9 @@ GLint __glcContextState::getFont(GLint inCode)
       }
     }
 
-    /* Otherwise, the function searches the GLC master list for the first master
-     * that maps 'inCode'. If the search succeeds, it creates a font from the
-     * master and appends its ID to GLC_CURRENT_FONT_LIST.
+    /* Otherwise, the function searches the GLC master list for the first
+     * master that maps 'inCode'. If the search succeeds, it creates a font
+     * from the master and appends its ID to GLC_CURRENT_FONT_LIST.
      */
     for (i = 0; i < masterCount; i++) {
       if (glcGetMasterMap(i, inCode)) {
@@ -606,4 +616,26 @@ GLint __glcContextState::getFont(GLint inCode)
     }
   }
   return 0;
+}
+
+void __glcContextState::lock(void)
+{
+  int lockCount = (int)pthread_getspecific(lockKey);
+
+  if (!lockCount)
+    pthread_mutex_lock(&mutex);
+
+  lockCount++;
+  pthread_setspecific(lockKey, (void*)lockCount);
+}
+
+void __glcContextState::unlock(void)
+{
+  int lockCount = (int)pthread_getspecific(lockKey);
+
+  lockCount--;
+  if (!lockCount)
+    pthread_mutex_unlock(&mutex);
+
+  pthread_setspecific(lockKey, (void*)lockCount);
 }

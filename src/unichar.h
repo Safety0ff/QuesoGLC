@@ -10,20 +10,26 @@ typedef union {
   unsigned int *ucs4;
 } uniChar;
 
+class __glcStringList;
+
 class __glcUniChar {
- public:
   GLCchar *ptr;
   GLint type;
 
+  friend __glcStringList;
+
+ public:
   __glcUniChar();
   __glcUniChar(const GLCchar* inChar, GLint inType = GLC_UCS1);
   ~__glcUniChar() {}
 
   int len(void);
   int lenBytes(void);
-  GLCchar* copy(__glcUniChar* dest) 
-    { return (GLCchar *)memcpy(dest->ptr, ptr, lenBytes()); }
+  GLCchar* dup(GLCchar* dest, size_t n)
+    { return memmove(dest, ptr, lenBytes() > n ? n : lenBytes()); }
   int compare(__glcUniChar* inString);
+  GLCchar* convert(GLCchar* dest, int inType,size_t n);
+  int estimate(int inType);
 };
 
 #endif

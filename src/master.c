@@ -57,6 +57,8 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 {
     __glcContextState *state = NULL;
     __glcMaster *master = NULL;
+    char buffer[GLC_STRING_CHUNK];
+    __glcUniChar s = __glcUniChar(buffer, GLC_UCS1);
     FT_Face face;
     FT_UInt glyphIndex = 0;
     datum key, content;
@@ -100,8 +102,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GLC_NONE;
     }
-    strncpy(state->__glcBuffer, content.dptr, 256);
+    strncpy(buffer, content.dptr, GLC_STRING_CHUNK);
     free(content.dptr);
+    s.convert(state->__glcBuffer, state->stringType, GLC_STRING_CHUNK);
     
     return (const GLCchar*)state->__glcBuffer;
 }

@@ -77,33 +77,37 @@ void glcDeleteContext(GLint inContext)
 }
 
 /** \ingroup global
-  * Assigns the value <i>inContext</i> to the issuing thread's current GLC context
-  * ID variable. The command raises <b>GLC_PARAMETER_ERROR</b> if <i>inContext</i>
-  * is not zero and is not the ID of one of the client's GLC contexts.
-  * The command raises <b>GLC_STATE_ERROR</b> if <i>inContext</i> is the ID of a
-  * GLC context that is current to a thread other than the issuing thread.
-  * The command raises <b>GLC_STATE_ERROR</b> if the issuing thread is executing
-  * a callback function that has been called from GLC.
+  * Assigns the value <i>inContext</i> to the issuing thread's current GLC
+  * context ID variable. The command raises <b>GLC_PARAMETER_ERROR</b> if
+  * <i>inContext</i> is not zero and is not the ID of one of the client's GLC
+  * contexts. The command raises <b>GLC_STATE_ERROR</b> if <i>inContext</i> is
+  * the ID of a GLC context that is current to a thread other than the issuing
+  * thread. The command raises <b>GLC_STATE_ERROR</b> if the issuing thread is
+  * executing a callback function that has been called from GLC.
   */
 void glcContext(GLint inContext)
 {
   char *version = NULL;
   char *extension = NULL;
+  __glcContextState *state = NULL;
+  GLint currentContext = 0;
 
   /* Make sure that QuesoGLC has been initialized */
   pthread_once(&__glcContextState::initOnce, __glcContextState::initQueso);
 
-  if (inContext) {
-    GLint currentContext = 0;
+  lock();
 
+  if (inContext) {
     /* verify that parameters are in legal bounds */
     if ((inContext < 0) || (inContext > GLC_MAX_CONTEXTS)) {
       __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      unlock();
       return;
     }
     /* verify that the context exists */
     if (!__glcContextState::isContext(inContext - 1)) {
       __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      unlock();
       return;
     }
 
@@ -114,9 +118,10 @@ void glcContext(GLint inContext)
      * function that has been called from GLC
      */
     if (currentContext) {
-      __glcContextState *state = __glcContextState::getCurrent();
+      state = __glcContextState::getCurrent();
       if (state->isInCallbackFunc) {
 	__glcContextState::raiseError(GLC_STATE_ERROR);
+	unlock();
 	return;
       }
     }
@@ -131,32 +136,14 @@ void glcContext(GLint inContext)
        * is already current to one thread (whether it is the issueing thread
        * or not) : there is nothing else to be done.
        */
+      unlock();
       return;
     }
 
     /* Release old current context if any */
     if (currentContext) {
-      __glcContextState *state = NULL;
-
       __glcContextState::setCurrency(currentContext - 1, GL_FALSE);
       state = __glcContextState::getState(currentContext - 1);
-
-      if (!state) {
-	/* This test is done for the sake of completeness since we have already
-	 * tested that the context 'inContext' exists. However if state is
-	 * NULL, this means that an internal error has occured. If it is the
-	 * case, then it is likely to be race condition : another thread has
-	 * deleted the context since we tested if it exists. However this should
-	 * not happen since we use a mutex.
-	 */
-	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
-	return;
-      }
-      else {
-	/* execute pending deletion if any */
-	if (state->pendingDelete)
-	  delete state;
-      }
     }
 
     /* Make the context current to the thread */
@@ -171,12 +158,21 @@ void glcContext(GLint inContext)
     currentContext = glcGetCurrentContext();
 
     if (currentContext) {
+      state = __glcContextState::getState(currentContext - 1);
       /* Deassociate the context from the issuing thread */
       pthread_setspecific(__glcContextState::contextKey, NULL);
       /* Release the context */
       __glcContextState::setCurrency(currentContext - 1, GL_FALSE);
     }
   }
+
+  /* execute pending deletion if any */
+  if (currentContext && state) {
+    if (state->pendingDelete)
+      delete state;
+  }
+
+  unlock();
 
   /* We read the version and extensions of the OpenGL client. We do it
    * for compliance with the specifications because we do not use it.
@@ -323,6 +319,7 @@ void my_fini(void)
   pthread_mutex_destroy(&__glcContextState::mutex);
   pthread_key_delete(__glcContextState::contextKey);
   pthread_key_delete(__glcContextState::errorKey);
+  pthread_key_delete(__glcContextState::lockKey);
 
   FT_Done_FreeType(__glcContextState::library);
 }
