@@ -26,10 +26,8 @@ void testQueso(void)
     glTranslatef(100., 100., 0.);
     glScalef(10., 10., 0.);
     glColor3f(1., 1., 0.);
-    glcRenderChar('A');
-    glcRenderChar('l');
-    glTranslatef(-50., 100., 0.);
-    glcRenderString("QuesoGLC");
+    glcRenderChar('Q');
+    glcRenderString("uesoGLC");
     
     my_fini();
 }
