@@ -18,17 +18,33 @@ static GLint __glcLookupFont(GLint inCode)
     return 0;
 }
 
-GLint __glcGetFont(GLint inCode)
+static GLboolean __glcCallCallbackFunc(GLint inCode)
 {
     GLCfunc callbackFunc = NULL;
+    GLboolean result = GL_FALSE;
+    __glcContextState *state = NULL;
+    
+    callbackFunc = glcGetCallbackFunc(GLC_OP_glcUnmappedCode);
+    if (!callbackFunc)
+	return GL_FALSE;
+
+    state = __glcGetCurrentState();
+    state->isInCallbackFunc = GL_TRUE;
+    result = (*callbackFunc)(inCode);
+    state->isInCallbackFunc = GL_FALSE;
+    
+    return result;
+}
+
+GLint __glcGetFont(GLint inCode)
+{
     GLint font = 0;
     
     font = __glcLookupFont(inCode);
     if (font)
 	return font;
 
-    callbackFunc = glcGetCallbackFunc(GLC_OP_glcUnmappedCode);
-    if (callbackFunc && (*callbackFunc)(inCode)) {
+    if (__glcCallCallbackFunc(inCode)) {
 	font = __glcLookupFont(inCode);
 	if (font)
 	    return font;

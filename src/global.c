@@ -226,6 +226,18 @@ void glcContext(GLint inContext)
 	
 	currentContext = glcGetCurrentContext();
 	
+	/* Check if glcGenContext has been called from within a callback
+	 * function that has been called from GLC
+	 */
+	if (currentContext) {
+	    __glcContextState *state = __glcGetCurrentState();
+	    
+	    if (state->isInCallbackFunc) {
+		__glcRaiseError(GLC_STATE_ERROR);
+		return;
+	    }
+	}
+	
 	/* Is the context already current ? */
 	if (__glcGetContextCurrency(inContext - 1)) {
 	    /* If the context is current to another thread -> ERROR ! */
@@ -325,6 +337,7 @@ GLint glcGenContext(void)
     state->textureObjectCount = 0;
     state->versionMajor = 0;
     state->versionMinor = 2;
+    state->isInCallbackFunc = GL_FALSE;
     
     for (j=0; j < GLC_MAX_CURRENT_FONT; j++)
 	state->currentFontList[j] = 0;

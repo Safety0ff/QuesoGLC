@@ -215,8 +215,6 @@ extern GLboolean glcIsContext (GLint inContext);
 
 /** \defgroup context Context Commands
   * \{ */
-  *
-  * \{ */
 /** \name Context commands
   * \{ */
 extern void glcCallbackFunc (GLCenum inOpcode, GLCfunc inFunc);
@@ -239,8 +237,6 @@ extern void glcStringType (GLCenum inStringType);
 
 /** \defgroup master Master Commands
   * \{ */
-  *
-  * \{ */
 /** \name Master commands
   * \{ */
 extern void glcAppendCatalog (const GLCchar *inCatalog);
@@ -255,8 +251,6 @@ extern void glcRemoveCatalog (GLint inIndex);
 /** \} */
 
 /** \defgroup font Font Commands
-  * \{ */
-  *
   * \{ */
 /** \name Font commands
   * \{ */
@@ -281,8 +275,6 @@ extern GLint glcNewFontFromMaster (GLint inFont, GLint inMaster);
 
 /** \defgroup transform Transformation Commands
   * \{ */
-  *
-  * \{ */
 /** \name Transformation commands
   * \{ */
 extern void glcLoadIdentity (void);
@@ -294,8 +286,6 @@ extern void glcScale (GLfloat inX, GLfloat inY);
 /** \} */
 
 /** \defgroup render Rendering Commands
-  * \{ */
-  *
   * \{ */
 /** \name Rendering commands
   * \{ */
@@ -309,8 +299,6 @@ extern void glcResolution (GLfloat inVal);
 /** \} */
 
 /** \defgroup measure Measurement Commands
-  * \{ */
-  *
   * \{ */
 /** \name Measurement commands
   * \{ */

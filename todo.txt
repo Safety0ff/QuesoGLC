@@ -9,7 +9,4 @@ These are things to do by order of preference :
 5. Use a cache, in order not to load/unload face files too much
 6. Improve performance !!! (Really needed)
 7. Associate a glX context with a glc context.
-8. Change glEnable to use multiple or'ed parameters
 9. Use doxygen more
-10. Change QuesoGLC's summary on Sourceforge : use "OpenGL Character Renderer (GLC)"
-    instead of "OpenGLC".

@@ -76,6 +76,7 @@ typedef struct {
     GLint versionMinor;		/* GLC_VERSION_MINOR */
     GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
     GLfloat measurementStringBuffer[12];
+    GLboolean isInCallbackFunc;
 } __glcContextState;
 
 /* Global internal variables */
