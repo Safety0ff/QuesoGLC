@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, Bertrand Coconnier
+ * Copyright (c) 2002-2004, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,21 +17,31 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
+/* Defines the methods of an object that is intended to managed contexts */
+
 #include <stdio.h>
 
-#include "ocontext.h"
 #include "internal.h"
+#include "ocontext.h"
 #include FT_MODULE_H
 #include FT_LIST_H
 
 commonArea *__glcCommonArea = NULL;
 
+/* Creates a new context : returns a struct that contains the GLC state
+ * of the new context
+ */
 __glcContextState* __glcCtxCreate(GLint inContext)
 {
   GLint j = 0;
   __glcContextState *This = NULL;
 
   This = (__glcContextState*)__glcMalloc(sizeof(__glcContextState));
+  if (!This) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
 
   __glcSetState(inContext, This);
   __glcSetCurrency(inContext, GL_FALSE);
@@ -96,9 +106,17 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   return This;
 }
 
+/* Destroys a context : it first destroys all the objects (whether they are
+ * internal GLC objects or GL textures or GL display lists) that have been
+ * created during the life of the context. Then it releases the memory occupied
+ * by the GLC state struct.
+ */
 void __glcCtxDestroy(__glcContextState *This)
 {
   int i = 0;
+
+  if (!This)
+    return; /* Ooops!! Something is wrong in the lib */
 
   __glcStrLstDestroy(This->catalogList);
 
@@ -108,6 +126,7 @@ void __glcCtxDestroy(__glcContextState *This)
     font = This->fontList[i];
     if (font) {
       glcDeleteFont(i + 1);
+      This->fontList[i] = NULL;
     }
   }
 
@@ -123,6 +142,7 @@ void __glcCtxDestroy(__glcContextState *This)
 
   glcDeleteGLObjects();
   FT_Done_Library(This->library);
+  __glcFree(This);
 }
 
 /* Get the current context of the issuing thread */
@@ -680,9 +700,16 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
   return 0;
 }
 
+/* Since the common area can be accessed by any thread, this function should
+ * be called before any access (read or write) to the common area. Otherwise
+ * race conditons can occur.
+ * __glcLock/__glcUnlock can be nested : they keep track of the number of
+ * time they have been called and the mutex will be released as soon as
+ * __glcUnlock() will be called as many time __glcLock().
+ */
 void __glcLock(void)
 {
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
@@ -701,9 +728,13 @@ void __glcLock(void)
 #endif
 }
 
+/* Unlock the mutex in order to allow other threads to amke accesses to the
+ * common area.
+ * See also the note on nested calls in __glcLock's description.
+ */
 void __glcUnlock(void)
 {
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
@@ -721,6 +752,17 @@ void __glcUnlock(void)
 #endif
 }
 
+/* Sometimes informations may need to be stored temporarily by a thread.
+ * The so-called 'buffer' is created for that purpose. Notice that it is a
+ * component of the GLC state struct hence its lifetime is the same as the
+ * GLC state's lifetime.
+ * __glcCtxQueryBuffer() should be called whenever the buffer is to be used
+ * in order to check if it is big enough to store infos.
+ * Note that the only memory management function used below is 'realloc' which
+ * means that the buffer goes bigger and bigger until it is freed. No function
+ * is provided to reduce its size so it should be freed and re-allocated
+ * manually in case of emergency ;-)
+ */
 GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
 {
   if (inSize > This->bufferSize) {
@@ -734,11 +776,18 @@ GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
   return This->buffer;
 }
 
+/* Each thread has to store specific informations so they can retrieved later.
+ * __glcGetThreadArea() returns a struct which contains thread specific info
+ * for GLC. Notice that even if the lib does not support threads, this function
+ * must be used.
+ * If the 'threadArea' of the current thread does not exist, it is created and
+ * initialized.
+ */
 threadArea* __glcGetThreadArea(void)
 {
   threadArea *area = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
   area = (threadArea*)pthread_getspecific(__glcCommonArea->threadKey);
 #else
   area = __glcCommonArea->area;
@@ -752,7 +801,7 @@ threadArea* __glcGetThreadArea(void)
     area->currentContext = NULL;
     area->errorState = GLC_NONE;
     area->lockState = 0;
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
     pthread_setspecific(__glcCommonArea->threadKey, (void*)area);
 #endif
   }

@@ -1,6 +1,10 @@
 Changes made from the "Birth" release to the "Baby" release:
 -----------------------------------------------------------
 
+- Fixed glcGetAllContexts which returned wrong context IDs and did not zero-
+  terminate the array.
+- Fixed the error path in __glcInitLibrary where glcCommonArea was freed before
+  its members.
 - Added many comments to the sources.
 - Removed the stupid parameter GLC_INTERNAL_ERROR
 - QuesoGLC now computes automatically the resolution of the screen in DPI using

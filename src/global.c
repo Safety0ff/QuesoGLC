@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, Bertrand Coconnier
+ * Copyright (c) 2002-2004, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,25 +17,39 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
+/* This file defines the so-called "Global commands" described in chapter 3.4
+ * of the GLC specs. These are commands which do not use GLC context state
+ * variables and which can therefore be executed succesfully if the issuing
+ * thread has no current GLC context. All other GLC commands raise
+ * GLC_STATE_ERROR if the issuing thread has no current GLC context.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <GL/glx.h>
 #include <X11/Xlib.h>
 
 #include "GL/glc.h"
-#include "ocontext.h"
 #include "internal.h"
+#include "ocontext.h"
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
 pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
 #else
 GLboolean __glcInitOnce = GL_FALSE;
 #endif
+#endif
 
-/* This function is supposed to be called when QuesoGLC is no longer needed.
+/* This function is called when QuesoGLC is no longer needed.
  * It frees the memory and closes the Unicode DB files
  */
-void __glcExitLibrary(void)
+#ifdef QUESOGLC_STATIC_LIBRARY
+static void __glcExitLibrary(void)
+#else
+void _fini(void)
+#endif
 {
   int i;
 
@@ -45,6 +59,9 @@ void __glcExitLibrary(void)
       __glcCtxDestroy(__glcGetState(i));
   }
 
+  if (!__glcCommonArea)
+    return;
+
   /* destroy Common Area */
   __glcFree(__glcCommonArea->isCurrent);
   __glcFree(__glcCommonArea->stateList);
@@ -52,17 +69,18 @@ void __glcExitLibrary(void)
   gdbm_close(__glcCommonArea->unidb1);
   gdbm_close(__glcCommonArea->unidb2);
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
   pthread_mutex_destroy(&__glcCommonArea->mutex);
 #endif
 
   __glcFree(__glcCommonArea->memoryManager);
+  __glcFree(__glcCommonArea);
 }
 
 /* This function is called each time a pthread is cancelled or exits in order
  * to free its specific area
  */
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
 static void __glcFreeThreadArea(void *keyValue)
 {
   threadArea *area = (threadArea*)keyValue;
@@ -89,12 +107,18 @@ static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
   return __glcRealloc(inBlock, inNewSize);
 }
 
-/* This function is supposed to be called before any of QuesoGLC
- * function is used. It reserves memory and opens the Unicode DB files.
+/* This function is called before any function of QuesoGLC
+ * is used. It reserves memory and opens the Unicode DB files.
  */
-void __glcInitLibrary(void)
+#ifdef QUESOGLC_STATIC_LIBRARY
+static void __glcInitLibrary(void)
+#else
+void _init(void)
+#endif
 {
   int i = 0;
+
+  /* Creates and initializes the "Common Area" */
 
   __glcCommonArea = (commonArea*)__glcMalloc(sizeof(commonArea));
   if (!__glcCommonArea)
@@ -102,24 +126,23 @@ void __glcInitLibrary(void)
 
   __glcCommonArea->isCurrent = NULL;
   __glcCommonArea->stateList = NULL;
-#ifndef _REENTRANT
+#ifndef QUESOGLC_USE_THREAD
   __glcCommonArea->area = NULL;
 #endif
   __glcCommonArea->unidb1 = NULL;
   __glcCommonArea->unidb2 = NULL;
   __glcCommonArea->memoryManager = NULL;
 
-  /* Creates the thread-local storage for the GLC error */
-#ifdef _REENTRANT
+  /* Creates the thread-local storage for GLC errors */
+#ifdef QUESOGLC_USE_THREAD
   if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
     goto FatalError;
-#else
+#endif
+#if defined QUESOGLC_STATIC_LIBRARY && !defined QUESOGLC_USE_THREAD
   __glcInitOnce = GL_TRUE;
 #endif
 
-  /* Initializes the "Common Area" */
-
-  __glcCommonArea->memoryManager = (FT_Memory)__glcMalloc(sizeof(*__glcCommonArea->memoryManager));
+  __glcCommonArea->memoryManager = (FT_Memory)__glcMalloc(sizeof(struct FT_MemoryRec_));
   if (!__glcCommonArea->memoryManager)
     goto FatalError;
 
@@ -151,7 +174,7 @@ void __glcInitLibrary(void)
   /* Initialize the mutex
    * At least this op can not fail !!!
    */
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
   pthread_mutex_init(&__glcCommonArea->mutex, NULL);
 #endif
 
@@ -161,14 +184,13 @@ void __glcInitLibrary(void)
     __glcCommonArea->stateList[i] = NULL;
   }
 
+#ifdef QUESOGLC_STATIC_LIBRARY
   atexit(__glcExitLibrary);
+#endif
   return;
 
  FatalError:
   __glcRaiseError(GLC_RESOURCE_ERROR);
-  if (__glcCommonArea) {
-    __glcFree(__glcCommonArea);
-  }
   if (__glcCommonArea->memoryManager) {
     __glcFree(__glcCommonArea->memoryManager);
     __glcCommonArea->memoryManager = NULL;
@@ -185,6 +207,9 @@ void __glcInitLibrary(void)
     gdbm_close(__glcCommonArea->unidb1);
     __glcCommonArea->unidb1 = NULL;
   }
+  if (__glcCommonArea) {
+    __glcFree(__glcCommonArea);
+  }
   perror("GLC Fatal Error");
   exit(-1);
 }
@@ -195,11 +220,13 @@ void __glcInitLibrary(void)
  */
 GLboolean glcIsContext(GLint inContext)
 {
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
 
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
@@ -209,17 +236,19 @@ GLboolean glcIsContext(GLint inContext)
 }
 
 /* glcGetCurrentContext:
- *   Returns the value of the issueing thread's current GLC context ID variable
+ *   Returns the value of the issuing thread's current GLC context ID variable
  */
 GLint glcGetCurrentContext(void)
 {
   __glcContextState *state = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
 
   state = __glcGetCurrent();
@@ -236,17 +265,19 @@ GLint glcGetCurrentContext(void)
  *   deleted during the execution of the next glcContext() command that causes
  *   it not to be current to any client thread. The command raises
  *   GLC_PARAMETER_ERROR if inContext is not the ID of one of the client's GLC
- *    contexts.
+ *   contexts.
  */
 void glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
 
   /* verify if parameters are in legal bounds */
@@ -295,11 +326,13 @@ void glcContext(GLint inContext)
   Display *dpy = NULL;
   Screen *screen = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
   area = __glcGetThreadArea();
   if (!area) {
@@ -310,6 +343,7 @@ void glcContext(GLint inContext)
     exit(-1);
   }
 
+#if 0
   /* Get the screen on which drawing ops will be performed */
   dpy = glXGetCurrentDisplay();
   if (!dpy) {
@@ -319,6 +353,7 @@ void glcContext(GLint inContext)
   }
   /* WARNING ! This may not be relevant if the display has several screens */
   screen = DefaultScreenOfDisplay(dpy);
+#endif
 
   /* Lock the "Common Area" in order to prevent race conditions */
   __glcLock();
@@ -347,7 +382,7 @@ void glcContext(GLint inContext)
       state = __glcGetCurrent();
       if (state->isInCallbackFunc) {
 	__glcRaiseError(GLC_STATE_ERROR);
-      __glcUnlock();
+	__glcUnlock();
 	return;
       }
     }
@@ -409,16 +444,19 @@ void glcContext(GLint inContext)
    */
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
-
+#if 0
   /* Compute the resolution of the screen in DPI (dots per inch) */
   if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
-    area->currentContext->displayDPIx = (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
-    area->currentContext->displayDPIy = (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
+    area->currentContext->displayDPIx =
+      (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
+    area->currentContext->displayDPIy =
+      (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
   }
   else {
     area->currentContext->displayDPIx = 72;
     area->currentContext->displayDPIy = 72;
   }
+#endif
 }
 
 /* glcGenContext:
@@ -429,11 +467,13 @@ GLint glcGenContext(void)
   int i = 0;
   __glcContextState *state = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
 
   /* Lock the "Common Area" in order to prevent race conditions */
@@ -507,11 +547,13 @@ GLint* glcGetAllContexts(void)
   int i = 0;
   GLint* contextArray = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
 
   /* Count the number of existing contexts (whether they are current to a
@@ -523,16 +565,18 @@ GLint* glcGetAllContexts(void)
   }
 
   /* Allocate memory to store the array */
-  contextArray = (GLint *)__glcMalloc(sizeof(GLint) * count);
+  contextArray = (GLint *)malloc(sizeof(GLint) * (count+1));
   if (!contextArray) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
+  contextArray[count] = 0;
+
   /* Copy the context IDs to the array */
   for (i = GLC_MAX_CONTEXTS - 1; i >= 0; i--) {
     if (__glcIsContext(i))
-      contextArray[--count] = i;
+      contextArray[--count] = i+1;
   }
 
   return contextArray;
@@ -548,11 +592,13 @@ GLCenum glcGetError(void)
   GLCenum error = GLC_NONE;
   threadArea * area = NULL;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
   if (!__glcInitOnce)
     __glcInitLibrary();
+#endif
 #endif
   area = __glcGetThreadArea();
   if (!area) {

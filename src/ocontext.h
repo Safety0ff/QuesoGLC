@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, Bertrand Coconnier
+ * Copyright (c) 2002-2004, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,10 +17,11 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
 #ifndef __glc_ocontext_h
 #define __glc_ocontext_h
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
 #include <pthread.h>
 #endif
 #include <gdbm.h>
@@ -78,7 +79,7 @@ typedef struct {
 typedef struct {
   GLboolean *isCurrent;
   __glcContextState **stateList;
-#ifdef _REENTRANT
+#ifdef QUESOGLC_USE_THREAD
   pthread_mutex_t mutex;
   pthread_key_t threadKey;
 #else
@@ -89,15 +90,14 @@ typedef struct {
   GDBM_FILE unidb1, unidb2;
 } commonArea;
 
-#ifdef _REENTRANT
+#ifdef QUESOGLC_STATIC_LIBRARY
+#ifdef QUESOGLC_USE_THREAD
 extern pthread_once_t initLibraryOnce;
 #else
 extern GLboolean initOnce;
 #endif
+#endif
 extern commonArea *__glcCommonArea;
-
-void __glcInitLibrary(void);
-void __glcExitLibrary(void);
 
 __glcContextState* __glcCtxCreate(GLint inContext);
 void __glcCtxDestroy(__glcContextState *This);

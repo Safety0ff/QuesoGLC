@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, Bertrand Coconnier
+ * Copyright (c) 2002-2004, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,11 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
+/* This file defines the so-called "Context commands" described in chapter 3.5
+ * of the GLC specs.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 

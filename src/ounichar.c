@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, Bertrand Coconnier
+ * Copyright (c) 2002-2004, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,12 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
+/* Defines the methods of an object that is intended to managed Unicode
+ * characters. GLC is designed to support large coded character set defined
+ * by the standards ISO/IEC 10646-1:1993 and Unicode 1.1
+ */
+
 #include <stdio.h>
 #include "internal.h"
 #include "ounichar.h"

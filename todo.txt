@@ -1,8 +1,10 @@
 QuesoGLC 0.0.1
 
 These are things to do by order of preference. It does not mean however that
-contributions should only concern the first topic. Topics that are prepended
-by (?) are suggestions but I am not sure however if they are really needed.
+contributions should only concern the first topic nor that contributions that
+are not related to this list will be rejected.
+Topics that are prepended by (?) are suggestions and I am not sure if they are
+really needed.
 
 1. Write an extensive set of test programs
 2. Use FreeType's double linked lists 

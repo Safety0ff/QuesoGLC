@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, Bertrand Coconnier
+ * Copyright (c) 2002-2004, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,12 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
-/*#include "internal.h"*/
+
+/* Defines the methods of an object that is intended to managed string lists
+ * This file and the object it defines will be removed in a (hopefully) near
+ * future. Double linked lists defined by FreeType will be used instead.
+ */
+
 #include "internal.h"
 #include "ostrlst.h"
 
