@@ -17,3 +17,5 @@ Changes made fom the "Birth" release to the "Baby" release:
   __glcRealloc. This helps debugging and memory leaks detection more easy.
 - Variables GLC_MIN_MAPPED_CODE, GLC_MAX_MAPPED_CODE, GLC_CHAR_COUNT and the
   list GLC_CHAR_LIST are now updated when a new font file is added to a master.
+- Changed license of QuesoGLC into LGPL
+
