@@ -1,6 +1,8 @@
 Changes made from the "0.1" release to the "0.1.1" release:
 -----------------------------------------------------------
 
+- Fixed invalid preprocessing tokens of test4 that prevented it to be compiled
+  with pedantic-errors enabled.
 - QuesoGLC now uses Doxygen for its documentation.
 
 Changes made from the "Birth" release to the "0.1" release:
