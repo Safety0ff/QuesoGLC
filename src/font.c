@@ -18,8 +18,24 @@
  */
 /* $Id$ */
 
-/* This file defines the so-called "Font commands" described in chapter 3.7
- * of the GLC specs
+/** \file 
+ *  defines the so-called "Font commands" described in chapter 3.7 of the GLC specs
+ */
+
+/** \defgroup font Font commands
+ *  A font is a stylistically consistent set of glyphs that can be used to
+ *  render some set of characters. Each font has a family name (for example
+ *  Palatino) and a state variable that selects one of the faces (for
+ *  example Regular, Bold, Italic, BoldItalic) that the font contains. A
+ *  typeface is the combination of a family and a face (for example
+ *  Palatino Bold).
+ *
+ *  A font is an instantiation of a master.
+ *
+ *  Most of the commands in this category have a parameter \e inFont. Unless
+ *  otherwise specified, these commands raise \b GLC_PARAMETER_ERROR if
+ *  \e inIndex is less than zero or is greater than or equal to the value of
+ *  the variable \b GLC_CATALOG_COUNT.
  */
 
 #include <string.h>
@@ -67,10 +83,16 @@ static __glcFont* __glcVerifyFontParameters(GLint inFont)
 
 
 
-/* glcAppendFont:
- *   This command appends inFont to the list GLC_CURRENT_FONT_LIST. The command
- *   raises GLC_PARAMETER_ERROR if inFont is an element in the list
- *   GLC_CURRENT_FONT_LIST at the beginning of command execution.
+/** \ingroup font
+ *  This command appends \e inFont to the list \b GLC_CURRENT_FONT_LIST. The command
+ *  raises \b GLC_PARAMETER_ERROR if \e inFont is an element in the list
+ *  \b GLC_CURRENT_FONT_LIST at the beginning of command execution.
+ *  \param inFont The ID of the font to append to the list \b GLC_CURRENT_FONT_LIST
+ *  \sa glcGetListc() with argument \b GLC_CURRENT_FONT_LIST
+ *  \sa glcGeti() with argument \b GLC_CURRENT_FONT_COUNT
+ *  \sa glcFont()
+ *  \sa glcNewFontFromFamily()
+ *  \sa glcNewFontFromMaster()
  */
 void glcAppendFont(GLint inFont)
 {
@@ -123,10 +145,17 @@ static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
 
 
 
-/* glcDeleteFont:
- *   This command deletes the font identified by inFont. If inFont is an
- *   element in the list GLC_CURRENT_FONT_LIST, the command removes that
- *   element from the list.
+/** \ingroup font
+ *  This command deletes the font identified by \e inFont. If \e inFont is an
+ *  element in the list \b GLC_CURRENT_FONT_LIST, the command removes that
+ *  element from the list.
+ *  \param inFont The ID of the font to delete
+ *  \sa glcGetListi() with argument \b GLC_FONT_LIST
+ *  \sa glcGeti() with argument \b GLC_FONT_COUNT
+ *  \sa glcIsFont()
+ *  \sa glcGenFontID()
+ *  \sa glcNewFontFromFamily()
+ *  \sa glcNewFontFromMaster()
  */
 void glcDeleteFont(GLint inFont)
 {
@@ -149,11 +178,15 @@ void glcDeleteFont(GLint inFont)
 
 
 
-/* glcFont:
- *   This command begins by removing all elements from the list
- *   GLC_CURRENT_FONT_LIST. If inFont is nonzero, the command then appends
- *   inFont to the list. Otherwise, the command does not raise an error and
- *   the list remains empty.
+/** \ingroup font
+ *  This command begins by removing all elements from the list
+ *  \b GLC_CURRENT_FONT_LIST. If \e inFont is nonzero, the command then appends
+ *  \e inFont to the list. Otherwise, the command does not raise an error and
+ *  the list remains empty.
+ *  \param inFont The ID of a font.
+ *  \sa glcGetListc() with argument \b GLC_CURRENT_FONT_LIST
+ *  \sa glcGeti() with argument \b GLC_CURRENT_FONT_COUNT
+ *  \sa glcAppendFont()
  */
 void glcFont(GLint inFont)
 {
@@ -268,18 +301,29 @@ static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace,
 
 
 
-/* glcFontFace:
- *   This command attempts to set the current face of the font identified by
- *   inFont to the face identified by the string inFace. If inFace is not an
- *   element of the font's string list attribute GLC_FACE_LIST, the command
- *   leaves the font's current face unchanged and returns GL_FALSE. If the
- *   command suceeds, it returns GL_TRUE.
- *   If inFont is zero, the command iterates over the GLC_CURRENT_FONT_LIST.
- *   For each of the fonts named therein, the command attempts to set the
- *   font's current face to the face in that font that is identified by inFace.
- *   In this case, the command returns GL_TRUE if GLC_CURRENT_FONT_LIST
- *   contains one or more elements and the command successfully sets the
- *   current face of each of the fonts named in the list.
+/** \ingroup font
+ *  This command attempts to set the current face of the font identified by
+ *  \e inFont to the face identified by the string \e inFace. Examples for
+ *  font faces are strings like <tt>"Normal"</tt>, <tt>"Bold"</tt> or
+ *  <tt>"Bold Italic"</tt>. In contrast to some systems that have a different
+ *  font for each face, GLC allows you to have the face be an attribute of
+ *  the font.
+ *
+ *  If \e inFace is not an element of the font's string list attribute
+ *  \b GLC_FACE_LIST, the command leaves the font's current face unchanged and
+ *  returns \b GL_FALSE. If the command suceeds, it returns \b GL_TRUE.
+ *
+ *  If \e inFont is zero, the command iterates over the \b GLC_CURRENT_FONT_LIST.
+ *  For each of the fonts named therein, the command attempts to set the
+ *  font's current face to the face in that font that is identified by \e inFace.
+ *  In this case, the command returns \b GL_TRUE if \b GLC_CURRENT_FONT_LIST
+ *  contains one or more elements and the command successfully sets the
+ *  current face of each of the fonts named in the list.
+ *  \param inFont The ID of the font to be changed
+ *  \param inFace The face for \e inFont
+ *  \return \b GL_TRUE if the command succeeded to set the face \e inFace
+ *          to the font \e inFont. \b GL_FALSE is returned otherwise.
+ *  \sa glcGetFontFace()
  */
 GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 {
@@ -318,12 +362,28 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 
 
 
-/* glcFontMap:
- *   This command modifies the map of the font identified by inFont such that
- *   the font maps inCode to the character whose name is the string inCharName.
- *   If inCharName is GLC_NONE, inCode is removed from the font's map. The
- *   command raises GLC_PARAMETER_ERROR if inCharName is not GLC_NONE or an
- *   element of the font string's list attribute GLC_CHAR_LIST.
+/** \ingroup font
+ *  This command modifies the map of the font identified by \e inFont such that
+ *  the font maps \e inCode to the character whose name is the string \e inCharName.
+ *  If \e inCharName is \b GLC_NONE,\e inCode is removed from the font's map.
+ *
+ *  Every font has an associated font map. A font map is a table of entries that
+ *  map integer values to the name string that identifies the character.
+ *
+ *  Every character code used in QuesoGLC is an element of the Universal
+ *  Multiple-Octet Coded Character Set (UCS) defined by the standards ISO/IEC
+ *  10646-1:1993 and Unicode 2.0 (unless otherwise specified). A UCS code is
+ *  denoted as \e U+hexcode, where \e hexcode is a sequence of hexadecimal
+ *  digits. Each UCS code corresponds to a character that has a unique name
+ *  string. For example, the code \e U+41 corresponds to the character
+ *  <em>LATIN CAPITAL LETTER A</em>.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inCharName is not \b GLC_NONE
+ *  or an element of the font string's list attribute \b GLC_CHAR_LIST.
+ *  \param inFont The ID of the font
+ *  \param inCode The integer ID of a character
+ *  \param inCharName The string name of a character
+ *  \sa glcGetFontMap()
  */
 void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
@@ -424,9 +484,14 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 
 
 
-/* glcGenFontID:
- *   This command returns a font ID that is not an element of the list
- *   GLC_FONT_LIST
+/** \ingroup font
+ *  This command returns a font ID that is not an element of the list
+ *  \b GLC_FONT_LIST.
+ *  \return a new font ID
+ *  \sa glcDeleteFont()
+ *  \sa glcIsFont()
+ *  \sa glcNewFontFromFamily()
+ *  \sa glcNewFontFromMaster()
  */
 GLint glcGenFontID(void)
 {
@@ -450,9 +515,12 @@ GLint glcGenFontID(void)
 
 
 
-/* glcGetFontFace:
- *   This command returns the string name of the current face of the font
- *   identified by inFont.
+/** \ingroup font
+ *  This command returns the string name of the current face of the font
+ *  identified by \e inFont.
+ *  \param inFont The font ID
+ *  \return the string name of the font \e inFont
+ *  \sa glcFontFace()
  */
 const GLCchar* glcGetFontFace(GLint inFont)
 {
@@ -481,9 +549,47 @@ const GLCchar* glcGetFontFace(GLint inFont)
 
 
 
-/* glcGetFontListc:
- *   This command is identical to the command glcGetMasterListc, except that
- *   it operates on a font (identified by inFont), not a master.
+/** \ingroup font
+ *  This command returns an attribute of the font identified by \e inFont that
+ *  is a string from a string list identified by \e inAttrib. The command returns
+ *  the string at offset \e inIndex from the first element in \e inAttrib. For
+ *  example, if \e inFont has a face list (\c Regular, \c Bold, \c Italic ) and
+ *  \e inIndex is \c 2, then the command returns \c Italic if you query \b GLC_FACE_LIST.
+ *
+ *  Every GLC state variable that is a list has an associated integer element
+ *  count whose value is the number of elements in the list.
+ *
+ *  Below are the string list attributes associated with each GLC master and font
+ *  and their element count attributes :
+ * <center>
+ * <table>
+ * <caption>Master/font string list attributes</caption>
+ *   <tr>
+ *     <td>Name</td> <td>Enumerant</td> <td>Element count attribute</td>
+ *   </tr>
+ *   <tr>
+ *     <td><b>GLC_CHAR_LIST</b></td>
+ *     <td>0x0050</td>
+ *     <td><b>GLC_CHAR_COUNT</b></td>
+ *   </tr>
+ *   <tr>
+ *     <td><b>GLC_FACE_LIST</b></td>
+ *     <td>0x0051</td>
+ *     <td><b>GLC_FACE_COUNT</b></td>
+ *   </tr>
+ * </table>
+ * </center>
+ *  \n The command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than
+ *  zero or is greater than or equal to the value of the list element count
+ *  attribute.
+ *  \param inFont The font ID
+ *  \param inAttrib The string list from which a string is requested
+ *  \param inIndex The offset from the first element of the list associated
+ *                 with \e inAttrib
+ *  \return a string attribute of \e inFont identified by \e inAttrib
+ *  \sa glcGetMasterListc()
+ *  \sa glcGetFontc()
+ *  \sa glcGetFonti()
  */
 const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 {
@@ -509,9 +615,25 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 
 
 
-/* glcGetFontMap:
- *   This command is identical to the command glcGetMasterMap, except that it
- *   operates on a font (identified by inFont), not a master.
+/** \ingroup font
+ *  This command returns the string name of the character that the font identified
+ *  by \e inFont maps \e inCode to.
+ *
+ *  Every font has an associated font map. A font map is a table of entries that
+ *  map integer values to the name string that identifies the character.
+ *
+ *  To change the map, that is, associate a different name string with the integer
+ *  ID of a font, use glcFontMap().
+ *
+ *  If \e inCode cannot be mapped in the font, the command returns \b GLC_NONE.
+ *  \note Changing the map of a font is possible but changing the map for a
+ *        master is not.
+ *  \param inFont The integer ID of the font from which to select the character
+ *  \param inCode The integer ID of the character in the font map
+ *  \return the string name of the character that the font \e inFont maps
+ *          \e inCode to.
+ *  \sa glcGetMasterMap()
+ *  \sa glcFontMap()
  */
 const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 {
@@ -569,9 +691,36 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 
 
 
-/* glcGetFontc:
- *   This command is identical to the command glcGetMasterc, except that it
- *   operates on a font (identified by inFont), not a master
+/** \ingroup font
+ *  This command returns a string attribute of the font identified by
+ *  \e inFont. The table below lists the string attributes that are
+ *  associated with each GLC master and font.
+ *  <center>
+ *  <table>
+ *  <caption>Master/font string attributes</caption>
+ *    <tr>
+ *      <td>Name</td> <td>Enumerant</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_FAMILY</b></td> <td>0x0060</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_MASTER_FORMAT</b></td> <td>0x0061</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_VENDOR</b></td> <td>0x0062</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_VERSION</b></td> <td>0x0063</td>
+ *    </tr>
+ *  </table>
+ *  </center>
+ *  \param inFont The font for which the attribute is requested
+ *  \param inAttrib The requested string attribute
+ *  \return the string attribute \e inAttrib of the font \e inFont
+ *  \sa glcGetMasterc()
+ *  \sa glcGetFonti()
+ *  \sa glcGetFontListc()
  */
 const GLCchar* glcGetFontc(GLint inFont, GLCenum inAttrib)
 {
@@ -585,9 +734,40 @@ const GLCchar* glcGetFontc(GLint inFont, GLCenum inAttrib)
 
 
 
-/* glcGetFonti:
- *   This command is identical to the command glcGetMasteri, except that it
- *   operates on a font (identified by inFont), not a master
+/** \ingroup font
+ *  This command returns an integer attribute of the font identified by
+ *  \e inFont. The attribute is identified by \e inAttrib. The table below
+ *  lists the integer attributes that are associated with each GLC master
+ *  and font.
+ *  <center>
+ *  <table>
+ *  <caption>Master/font integer attributes</caption>
+ *    <tr>
+ *      <td>Name</td> <td>Enumerant</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_CHAR_COUNT</b></td> <td>0x0070</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_FACE_COUNT</b></td> <td>0x0071</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_IS_FIXED_PITCH</b></td> <td>0x0072</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_MAX_MAPPED_CODE</b></td> <td>0x0073</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_MIN_MAPPED_CODE</b></td> <td>0x0074</td>
+ *    </tr>
+ *  </table>
+ *  </center>
+ *  \param inFont The font for which the attribute is requested.
+ *  \param inAttrib The requested integer attribute
+ *  \return the value of the specified integer attribute
+ *  \sa glcGetMasteri()
+ *  \sa glcGetFontc()
+ *  \sa glcGetFontListc()
  */
 GLint glcGetFonti(GLint inFont, GLCenum inAttrib)
 {
@@ -601,9 +781,15 @@ GLint glcGetFonti(GLint inFont, GLCenum inAttrib)
 
 
 
-/* glcIsFont:
- *   This command returns GL_TRUE if inFont is the ID of a font. If inFont is
- *   not the ID of a font, the command does not raise an error.
+/** \ingroup font
+ *  This command returns \b GL_TRUE if \e inFont is the ID of a font. If
+ *  \e inFont is not the ID of a font, the command does not raise an error.
+ *  \param inFont The element to be tested
+ *  \return \b GL_TRUE if \e inFont is the ID of a font, \b GL_FALSE
+ *          otherwise.
+ *  \sa glcGenFontID()
+ *  \sa glcNewFontFromFamily()
+ *  \sa glcNewFontFromMaster()
  */
 GLboolean glcIsFont(GLint inFont)
 {
@@ -654,12 +840,21 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
 
 
 
-/* glcNewFontFromMaster:
- *   This command creates a new font from the master identified by inMaster.
- *   The ID of the new font is inFont. If the command succeeds, it returns
- *   inFont. If inFont is the ID of a font at the beginning of command
- *   execution, the command executes the command glcDeleteFont(inFont) before
- *   creating the new font.
+/** \ingroup font
+ *  This command creates a new font from the master identified by \e inMaster.
+ *  The ID of the new font is \e inFont. If the command succeeds, it returns
+ *  \e inFont. If \e inFont is the ID of a font at the beginning of command
+ *  execution, the command executes the command \c glcDeleteFont(inFont) before
+ *  creating the new font.
+ *  \param inFont The ID of the new font
+ *  \param inMaster The master from which to create the new font
+ *  \return The ID of the new font if the command succceeds, \c 0 otherwise.
+ *  \sa glcGetListi() with argument \b GLC_FONT_LIST
+ *  \sa glcGeti() with argument GLC_FONT_COUNT
+ *  \sa glcIsFont()
+ *  \sa glcGenFontID()
+ *  \sa glcNewFontFromFamily()
+ *  \sa glcDeleteFont()
  */
 GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
@@ -703,15 +898,26 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 
 
 
-/* glcNewFontFromFamily:
- *   This command performs a sequential search beginning with the first element
- *   of the GLC master list, looking for the first master whose string
- *   attribute GLC_FAMILY equals inFamily. If there is no such master the
- *   command returns zero. Otherwise, the command creates a new font from the
- *   master. The ID of the new font is inFont. If the command succeeds, it
- *   returns inFont. If inFont is the ID of a font at the beginning of command
- *   execution, the command executes the command glcDeleteFont(inFont) before
- *   creating the new font.
+/** \ingroup font
+ *  This command performs a sequential search beginning with the first element
+ *  of the GLC master list, looking for the first master whose string
+ *  attribute \b GLC_FAMILY equals \e inFamily. If there is no such master the
+ *  command returns zero. Otherwise, the command creates a new font from the
+ *  master. The ID of the new font is \e inFont.
+ *
+ *  If the command succeeds, it returns \e inFont. If \e inFont is the ID of a
+ *  font at the beginning of command execution, the command executes the command
+ *  \c glcDeleteFont(inFont) before creating the new font.
+ *  \param inFont The ID of the new font.
+ *  \param inFamily The font family, that is, the string that \b GLC_FAMILY
+ *                  attribute has to match.
+ *  \return the ID of the new font if the command succeeds, \c 0 otherwise.
+ *  \sa glcGetListi() with argument \b GLC_FONT_LIST
+ *  \sa glcGeti() with argument GLC_FONT_COUNT
+ *  \sa glcIsFont()
+ *  \sa glcGenFontID()
+ *  \sa glcNewFontFromMaster()
+ *  \sa glcDeleteFont()
  */
 GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 {
