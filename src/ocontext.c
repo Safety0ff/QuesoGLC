@@ -177,7 +177,7 @@ __glcContextState* __glcGetState(GLint inContext)
   __glcLock();
   node = __glcCommonArea->stateList->head;
   while (node) {
-    state = node->data;
+    state = (__glcContextState *)node->data;
     if (state) {
       if (state->id == inContext) break;
     }

@@ -326,7 +326,7 @@ void glcContext(GLint inContext)
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
-  if (inContext <= 0) {
+  if (inContext < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
@@ -425,7 +425,7 @@ void glcContext(GLint inContext)
 				      currentState);
       if (node) {
 	FT_List_Remove(__glcCommonArea->stateList, node);
-	__glcCtxDestroy(state);
+	__glcCtxDestroy(currentState);
 	__glcFree(node);
       }
     }
