@@ -1,12 +1,12 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
-	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c ocontext.c \
+	  transform.c misc.c ounichar.c omaster.c ofont.c ocontext.c \
 	  database.c
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
-TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex \
-	tests/teststrlst tests/test1 tests/test2 tests/test3 \
-	tests/test4 tests/test5 tests/testrender tests/glclogo
+TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
+	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
+	       tests/testrender
 
 LIB_NAME = lib/libGLC
 LIBRARY = @LIBRARY@
@@ -28,7 +28,7 @@ CFLAGS = -g
 else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
-CFLAGS += -Wall -ansi -pedantic-errors -Werror
+CFLAGS += -Wall -pedantic-errors -Werror
 CPPFLAGS += -Iinclude -Isrc
 
 all: $(TEST_OBJECTS) $(LIBRARY)
@@ -43,7 +43,6 @@ clean:
 distclean: clean
 	rm -f makefile makefile.dep stamp-h
 	rm -f include/qglc_config.h
-	rm -f include/qglc_config.hin
 
 install : $(LIBRARY)
 	mkdir -p $(INCLUDE_DIR)/GL
