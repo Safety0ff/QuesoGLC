@@ -139,35 +139,42 @@ static __glcFont* __glcVerifyFontParameters(GLint inFont)
 
 GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 {
-    __glcContextState *state = NULL;
-    __glcFont *font = NULL;
+  __glcContextState *state = NULL;
+  __glcFont *font = NULL;
 
-    state = __glcContextState::getCurrent();
-    if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
-	return GL_FALSE;
+  state = __glcContextState::getCurrent();
+  if (!state) {
+    __glcContextState::raiseError(GLC_STATE_ERROR);
+    return GL_FALSE;
+  }
+
+  if (!glcIsFont(inFont))
+    return GL_FALSE;
+
+  font = state->fontList[inFont - 1];
+  
+  if (font) {
+    if (font->face) {
+      FT_Done_Face(font->face);
+      font->face = NULL;
+    }
+    return __glcFontFace(inFont - 1, inFace, state);
+  }
+  else {
+    int i = 0;
+    GLboolean result = GL_TRUE;
+
+    for(i = 0; i < state->currentFontCount; i++) {
+      FT_Face *face = &state->fontList[state->currentFontList[i] - 1]->face;
+      if (*face) {
+	FT_Done_Face(*face);
+	*face = NULL;
+      }
+      result |= __glcFontFace(state->currentFontList[i] - 1, inFace, state);
     }
 
-    if (!glcIsFont(inFont))
-	return GL_FALSE;
-
-    font = state->fontList[inFont - 1];
-    
-    if (inFont) {
-	FT_Done_Face(font->face);
-	return __glcFontFace(inFont - 1, inFace, state);
-    }
-    else {
-	int i = 0;
-	GLboolean result = GL_TRUE;
-	
-	for(i = 0; i < state->currentFontCount; i++) {
-	    FT_Done_Face(state->fontList[state->currentFontList[i] - 1]->face);
-	    result |= __glcFontFace(state->currentFontList[i] - 1, inFace, state);
-	}
-	
-	return result;
-    }
+    return result;
+  }
 }
 
 void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)

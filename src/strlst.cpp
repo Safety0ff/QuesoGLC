@@ -22,8 +22,11 @@ __glcStringList::__glcStringList(__glcUniChar* inString)
 
 __glcStringList::~__glcStringList()
 {
+  if (next)
+    delete next;
+
   if (string) {
-    free(string->ptr);
+    string->destroy();
     delete string;
   }
 }
@@ -44,25 +47,38 @@ GLint __glcStringList::append(__glcUniChar* inString)
       if (convert(inString->type))
 	return -1;
 
+    room = (GLCchar *)malloc(inString->lenBytes());
+    if (!room)
+      return -1;
+
     do {
       item->count++;
       current = item;
       item = item->next;
     } while (item);
 
-    room = (GLCchar *)malloc(inString->lenBytes());
     inString->convert(room, current->string->type, inString->lenBytes());
     s = new __glcUniChar(room, current->string->type);
     item = new __glcStringList(s);
 
+    delete s;
+    free(room);
+
     if (!item) {
-      free(room);
+      item = this;
+      do {
+	item->count--;
+	item = item->next;
+      } while (item);
       return -1;
     }
+
     current->next = item;
   }
   else {
     room = (GLCchar *)malloc(inString->lenBytes());
+    if (!room)
+      return -1;
     inString->dup(room, inString->lenBytes());
     string = new __glcUniChar(room, inString->type);
     count = 1;
@@ -83,6 +99,8 @@ GLint __glcStringList::prepend(__glcUniChar* inString)
 	return -1;
 
     room = (GLCchar *)malloc(inString->lenBytes());
+    if (!room)
+      return -1;
     inString->convert(room, string->type, inString->lenBytes());
     temp = new __glcUniChar(room, string->type);
     item = new __glcStringList(temp);
@@ -101,6 +119,8 @@ GLint __glcStringList::prepend(__glcUniChar* inString)
   }
   else {
     room = (GLCchar *)malloc(inString->lenBytes());
+    if (!room)
+      return -1;
     inString->dup(room, inString->lenBytes());
     string = new __glcUniChar(room, inString->type);
     count = 1;

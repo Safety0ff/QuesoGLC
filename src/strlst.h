@@ -11,11 +11,11 @@
 #define GLC_STRING_CHUNK	256
 
 class __glcStringList {
+ public:
   __glcUniChar* string;	/* Pointer to the string */
   __glcStringList* next;
   GLuint count;
 
- public:
   inline GLint getCount(void) { return count; }
 
   __glcStringList(__glcUniChar* inString);

@@ -20,6 +20,7 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
 	/* Unable to load the face file, however this should not happen since
 	   it has been succesfully loaded when the master was created */
 	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
+	face = NULL;
 	return;
     }
     
@@ -28,6 +29,8 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
 	/* Arrghhh, no Unicode charmap is available. This should not happen
 	   since it has been tested at master creation */
 	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
+	FT_Done_Face(face);
+	face = NULL;
 	return ;
     }
 

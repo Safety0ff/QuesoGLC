@@ -13,12 +13,12 @@ typedef union {
 class __glcStringList;
 
 class __glcUniChar {
+ public:
   GLCchar *ptr;
   GLint type;
 
   friend __glcStringList;
 
- public:
   __glcUniChar();
   __glcUniChar(const GLCchar* inChar, GLint inType = GLC_UCS1);
   ~__glcUniChar() {}

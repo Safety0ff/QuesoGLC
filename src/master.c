@@ -68,7 +68,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
   int length = 0;
-  FT_Face face;
+  FT_Face face = NULL;
   FT_UInt glyphIndex = 0;
   datum key, content;
   GLint i = 0;
@@ -100,16 +100,23 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
       /* Unable to load the face file, however this should not happen since
 	 it has been succesfully loaded when the master was created */
       __glcContextState::raiseError(GLC_INTERNAL_ERROR);
+      face = NULL;
       return GLC_NONE;
     }
     glyphIndex = FT_Get_Char_Index(face, inCode);
     if (glyphIndex)
       break;
-    FT_Done_Face(face);
+    if (face) {
+      FT_Done_Face(face);
+      face = NULL;
+    }
   }
     
   if (i == master->faceFileName->getCount())
-    FT_Done_Face(face);
+    if (face) {
+      FT_Done_Face(face);
+      face = NULL;
+    }
     
   key.dsize = sizeof(GLint);
   key.dptr = (char *)&inCode;
