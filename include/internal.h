@@ -2,7 +2,9 @@
 #include <stdlib.h>
 
 #include "GL/glc.h"
+#ifndef __MACOSX__
 #include "qglc_config.h"
+#endif
 #include "ofont.h"
 #include "ocontext.h"
 

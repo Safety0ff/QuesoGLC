@@ -1,4 +1,8 @@
+#ifdef __MACOSX__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 #include "GL/glc.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,6 +157,7 @@ int main(void)
 		return -1;
 	}
 	printf("Main Thread : Mutex destroyed\n");
+        printf("\nTests successful !\n");
 
 	return 0;
 }

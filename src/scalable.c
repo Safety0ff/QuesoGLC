@@ -20,7 +20,11 @@
 
 /* Draws characters of scalable fonts */
 
+#ifdef __MACOSX__
+#include <OpenGL/glu.h>
+#else
 #include <GL/glu.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 

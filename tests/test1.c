@@ -1,6 +1,11 @@
+#ifdef __MACOSX__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 #include "GL/glc.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 /* Check GLC routines when no GL context has been bound */
 
@@ -14,7 +19,7 @@ int main(void)
 	/* 1. Check that no error is pending */
 	err = glcGetError();
 	if (err) {
-		printf("GLC error pending : 0x%X\n", err);
+		printf("GLC error pending : 0x%X\n", (int)err);
 		return -1;
 	}
 
@@ -30,7 +35,7 @@ int main(void)
 	for (i=0; i<16; i++) {
 		if (glcIsContext(i+1)) {
 			printf("Context %d already exists\n", i+1);
-			return;
+			return -1;
 		}
 	}
 
@@ -41,7 +46,7 @@ int main(void)
 		glcDeleteContext(i+1);
 		err = glcGetError();
 		if (err != GLC_PARAMETER_ERROR) {
-			printf("Unexpected GLC Error : 0x%X\n", err);
+			printf("Unexpected GLC Error : 0x%X\n", (int)err);
 			return -1;
 		}
 	}
@@ -50,12 +55,12 @@ int main(void)
 	for (i=0; i<16; i++) {
 		ctx = glcGenContext();
 		if (!ctx) {
-			printf("GLC error : %d\n", glcGetError());
+			printf("GLC error : %d\n", (int)glcGetError());
 			return -1;
 		}
 		if (ctx != i+1) {
-			printf("Creation of context %d failed\n", ctx);
-			printf("GLC error : %d\n", glcGetError());
+			printf("Creation of context %d failed\n", (int)ctx);
+			printf("GLC error : %d\n", (int)glcGetError());
 			return -1;
 		}
 	}
@@ -82,7 +87,7 @@ int main(void)
 	if (!glcGenContext()) {
 		err = glcGetError();
 		if (err != GLC_RESOURCE_ERROR) {
-			printf("Unexpected GLC error : 0x%X\n", err);
+			printf("Unexpected GLC error : 0x%X\n", (int)err);
 			return -1;
 		}
 	}
@@ -90,7 +95,7 @@ int main(void)
 	/* 7. Check that there is no current context */
 	if (glcGetCurrentContext())
 		printf("Unexpected current context %d\n",
-			glcGetCurrentContext());
+			(int)glcGetCurrentContext());
 
 	/* 8. Check that a destroyed context can be reclaimed
 	 *    by glcGenContext()
@@ -112,7 +117,7 @@ int main(void)
 
 	ctx = glcGenContext();
 	if (!ctx) {
-		printf("GLC Error : 0x%X\n", glcGetError());
+		printf("GLC Error : 0x%X\n", (int)glcGetError());
 		return -1;
 	}
 
@@ -126,7 +131,7 @@ int main(void)
 	/* Verify that no error is pending */
 	err = glcGetError();
 	if (err) {
-	  printf("An error is pending : %X\n", err);
+	  printf("An error is pending : %X\n", (int)err);
 	  return -1;
 	}
 	/* Verify that a context ID less than zero generates
@@ -135,13 +140,13 @@ int main(void)
 	glcContext(-1);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", err);
+	  printf("Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 	/* Verify that no error is pending */
 	err = glcGetError();
 	if (err) {
-	  printf("Another error is pending : %X\n", err);
+	  printf("Another error is pending : %X\n", (int)err);
 	  return -1;
 	}
 
@@ -155,14 +160,14 @@ int main(void)
 	glcContext(i);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", err);
+	  printf("Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 
 	/* Verify that no error is pending */
 	err = glcGetError();
 	if (err) {
-	  printf("An error is pending : %X\n", err);
+	  printf("An error is pending : %X\n", (int)err);
 	  return -1;
 	}
 	/* Verify that a context ID less than zero generates
@@ -171,13 +176,13 @@ int main(void)
 	glcDeleteContext(-1);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", err);
+	  printf("Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 	/* Verify that no error is pending */
 	err = glcGetError();
 	if (err) {
-	  printf("Another error is pending : %X\n", err);
+	  printf("Another error is pending : %X\n", (int)err);
 	  return -1;
 	}
 
@@ -187,14 +192,14 @@ int main(void)
 	glcDeleteContext(i);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", err);
+	  printf("Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 
 	glcContext(ctx);
 	err = glcGetError();
 	if (err) {
-	  printf("Unexpected error : %X\n", err);
+	  printf("Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 

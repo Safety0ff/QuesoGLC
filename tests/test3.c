@@ -1,5 +1,6 @@
 #include "GL/glc.h"
 #include <pthread.h>
+#include <stdio.h>
 
 GLint ctx;
 int magic = 0xdeadbeef;
@@ -17,7 +18,7 @@ void* da_thread(void *arg)
   glcContext(ctx);
   err = glcGetError();
   if (err != GLC_STATE_ERROR) {
-    printf("Thread 2 : Unexpected error : 0x%X\n", err);
+    printf("Thread 2 : Unexpected error : 0x%X\n", (int)err);
     return &magic;
   }
 
@@ -25,12 +26,12 @@ void* da_thread(void *arg)
   glcDeleteContext(ctx);
   err = glcGetError();
   if (err) {
-    printf("Thread 2 : Unexpected error : 0x%X\n", err);
+    printf("Thread 2 : Unexpected error : 0x%X\n", (int)err);
     return &magic;
   }
   /* Check that the context has not been deleted yet. */
   if (!glcIsContext(ctx)) {
-    printf("Thread 2 : Unexpected deletion of context %d\n",ctx);
+    printf("Thread 2 : Unexpected deletion of context %d\n", (int)ctx);
     return &magic;
   }
 
@@ -49,7 +50,7 @@ int main(void)
   glcContext(ctx);
   err = glcGetError();
   if (err) {
-    printf("Main Thread : Unexpected error : 0x%X\n", err);
+    printf("Main Thread : Unexpected error : 0x%X\n", (int)err);
     return -1;
   }
 
@@ -95,7 +96,7 @@ int main(void)
   glcDeleteContext(ctx2);
   err = glcGetError();
   if (err) {
-    printf("Main Thread : Unexpected GLC error 0x%x\n", err);
+    printf("Main Thread : Unexpected GLC error 0x%x\n", (int)err);
     return -1;
   }
 

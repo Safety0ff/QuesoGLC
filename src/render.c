@@ -25,7 +25,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __MACOSX__
+#include <OpenGL/glu.h>
+#else
 #include <GL/glu.h>
+#endif
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -436,7 +440,7 @@ void glcRenderChar(GLint inCode)
       return;
 
     /* Check if a font maps hexadecimal digits */
-    sprintf(buf,"%X", inCode);
+    sprintf(buf,"%X", (int)inCode);
     n = strlen(buf);
     for (i = 0; i < n; i++) {
       if (!__glcCtxGetFont(state, buf[i]))

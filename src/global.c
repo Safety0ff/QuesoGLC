@@ -27,8 +27,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifndef __MACOSX__
 #include <GL/glx.h>
 #include <X11/Xlib.h>
+#endif
 #include <fcntl.h>
 
 #include "GL/glc.h"

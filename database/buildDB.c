@@ -2,7 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __MACOSX__
+#include <ndbm.h>
+#else
 #include <gdbm/ndbm.h>
+#endif
 #include <fcntl.h>
 
 int main(int argc, char** argv)

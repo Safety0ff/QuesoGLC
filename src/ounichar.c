@@ -296,7 +296,7 @@ void __glcUniDestroy(__glcUniChar *This)
   This->ptr = NULL;
 }
 
-GLuint __glcUniIndex(__glcUniChar *This, GLint inPos)
+GLuint __glcUniIndex(__glcUniChar *This, int inPos)
 {
   uniChar c;
 

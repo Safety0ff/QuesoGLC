@@ -1,7 +1,11 @@
 #if !defined(__glc_h_)
 #define __glc_h_
 
+#if __MACOSX__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #if defined(__cplusplus)
     extern "C" {

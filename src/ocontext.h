@@ -22,7 +22,11 @@
 #define __glc_ocontext_h
 
 #include <pthread.h>
+#ifdef __MACOSX__
+#include <ndbm.h>
+#else
 #include <gdbm/ndbm.h>
+#endif
 
 #include "GL/glc.h"
 #include "constant.h"
