@@ -31,46 +31,9 @@
 #include "omaster.h"
 #include "ostrlst.h"
 
-extern "C" {
-  void __glcInitLibrary(void);
-  void __glcExitLibrary(void);
-}
-
-class __glcContextState;
-
 typedef struct {
-  __glcContextState* currentContext;
-  GLCenum errorState;
-  GLint lockState;
-} threadArea;
-
-class __glcContextState {
-  static GLboolean *isCurrent;
-  static __glcContextState **stateList;
-#ifdef _REENTRANT
-  static pthread_mutex_t mutex;
-  static pthread_key_t threadKey;
-  static pthread_once_t initLibraryOnce;
-#else
-  static GLint initOnce;
-  static threadArea* area;
-#endif
-
-  static __glcContextState* getState(GLint inContext);
-  static void setState(GLint inContext, __glcContextState *inState);
-  static GLboolean getCurrency(GLint inContext);
-  static void setCurrency(GLint inContext, GLboolean isCurrent);
-  static GLboolean isContext(GLint inContext);
-  static void lock(void);
-  static void unlock(void);
-  static threadArea* getThreadArea(void);
-
   GLCchar *buffer;
   GLint bufferSize;
-
- public:
-  static FT_Memory memoryManager;
-  static GDBM_FILE unidb1, unidb2;
 
   GLuint displayDPIx;
   GLuint displayDPIy;
@@ -104,27 +67,57 @@ class __glcContextState {
   GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
+} __glcContextState;
 
-  __glcContextState(GLint inContext);
-  ~__glcContextState();
-  void addMasters(const GLCchar* catalog, GLboolean append);
-  void removeMasters(GLint inIndex);
-  GLint getFont(GLint code);
+typedef struct {
+  __glcContextState* currentContext;
+  GLCenum errorState;
+  GLint lockState;
+} threadArea;
 
-  static __glcContextState* getCurrent(void);
-  static void raiseError(GLCenum inError);
-  GLCchar* queryBuffer(int inSize);
+typedef struct {
+  GLboolean *isCurrent;
+  __glcContextState **stateList;
+#ifdef _REENTRANT
+  pthread_mutex_t mutex;
+  pthread_key_t threadKey;
+#else
+  threadArea* area;
+#endif
 
-  friend void glcContext(GLint inContext);
-  friend void glcDeleteContext(GLint inContext);
-  friend GLint glcGenContext(void);
-  friend GLint* glcGetAllContexts(void);
-  friend GLint glcGetCurrentContext(void);
-  friend GLCenum glcGetError(void);
-  friend GLboolean glcIsContext(GLint inContext);
+  FT_Memory memoryManager;
+  GDBM_FILE unidb1, unidb2;
+} commonArea;
 
-  friend void __glcInitLibrary(void);
-  friend void __glcExitLibrary(void);
-};
+#ifdef _REENTRANT
+extern pthread_once_t initLibraryOnce;
+#else
+extern GLboolean initOnce;
+#endif
+extern commonArea *__glcCommonArea;
+
+void __glcInitLibrary(void);
+void __glcExitLibrary(void);
+
+__glcContextState* __glcCtxCreate(GLint inContext);
+void __glcCtxDestroy(__glcContextState *This, __glcContextState *This);
+void __glcCtxAddMasters(__glcContextState *This, const GLCchar* catalog,
+			GLboolean append);
+void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex);
+GLint __glcCtxGetFont(__glcContextState *This, GLint code);
+GLCchar* __glcCtxQueryBuffer(__glcContextState *This, int inSize);
+
+__glcContextState* __glcGetState(GLint inContext);
+void __glcSetState(GLint inContext, __glcContextState *inState);
+GLboolean __glcGetCurrency(GLint inContext);
+void __glcSetCurrency(GLint inContext, GLboolean isCurrent);
+GLboolean __glcIsContext(GLint inContext);
+void __glcLock(void);
+void __glcUnlock(void);
+
+__glcContextState* __glcGetCurrent(void);
+void __glcRaiseError(GLCenum inError);
+
+threadArea* __glcGetThreadArea(void);
 
 #endif /* __glc_ocontext_h */

@@ -34,9 +34,9 @@ void glcLoadIdentity(void)
     __glcContextState *state = NULL;
 
     /* Check if the current thread owns a context state */
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -55,9 +55,9 @@ void glcLoadMatrix(const GLfloat *inMatrix)
     __glcContextState *state = NULL;
 
     /* Check if the current thread owns a context state */
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return;
     }
 
@@ -74,9 +74,9 @@ void glcMultMatrix(const GLfloat *inMatrix)
     GLfloat tempMatrix[4];
 
     /* Check if the current thread owns a context state */
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return;
     }
 

@@ -24,120 +24,113 @@
 #include FT_MODULE_H
 #include FT_LIST_H
 
-GLboolean* __glcContextState::isCurrent = NULL;
-__glcContextState** __glcContextState::stateList = NULL;
-#ifdef _REENTRANT
-pthread_mutex_t __glcContextState::mutex;
-pthread_key_t __glcContextState::threadKey;
-pthread_once_t __glcContextState::initLibraryOnce = PTHREAD_ONCE_INIT;
-#else
-GLint __glcContextState::initOnce = GL_FALSE;
-threadArea* __glcContextState::area = NULL;
-#endif
-GDBM_FILE __glcContextState::unidb1 = NULL;
-GDBM_FILE __glcContextState::unidb2 = NULL;
-FT_Memory __glcContextState::memoryManager = NULL;
+commonArea *__glcCommonArea = NULL;
 
-__glcContextState::__glcContextState(GLint inContext)
+__glcContextState* __glcCtxCreate(GLint inContext)
 {
   GLint j = 0;
+  __glcContextState *This = NULL;
 
-  setState(inContext, this);
-  setCurrency(inContext, GL_FALSE);
+  This = (__glcContextState*)__glcMalloc(sizeof(__glcContextState));
 
-  if (FT_New_Library(__glcContextState::memoryManager, &library)) {
-    setState(inContext, NULL);
-    raiseError(GLC_RESOURCE_ERROR);
-    library = NULL;
-    return;
+  __glcSetState(inContext, This);
+  __glcSetCurrency(inContext, GL_FALSE);
+
+  if (FT_New_Library(__glcCommonArea->memoryManager, &This->library)) {
+    __glcSetState(inContext, NULL);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    This->library = NULL;
+    return NULL;
   }
-  FT_Add_Default_Modules(library);
+  FT_Add_Default_Modules(This->library);
 
-  catalogList = __glcStrLstCreate(NULL);
-  if (!catalogList) {
-    setState(inContext, NULL);
-    raiseError(GLC_RESOURCE_ERROR);
-    FT_Done_Library(library);
-    library = NULL;
-    return;
+  This->catalogList = __glcStrLstCreate(NULL);
+  if (!This->catalogList) {
+    __glcSetState(inContext, NULL);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FT_Done_Library(This->library);
+    This->library = NULL;
+    return NULL;
   }
 
-  id = inContext + 1;
-  pendingDelete = GL_FALSE;
-  callback = GLC_NONE;
-  dataPointer = NULL;
-  autoFont = GL_TRUE;
-  glObjects = GL_TRUE;
-  mipmap = GL_TRUE;
-  resolution = 0.05;
-  bitmapMatrix[0] = 1.;
-  bitmapMatrix[1] = 0.;
-  bitmapMatrix[2] = 0.;
-  bitmapMatrix[3] = 1.;
-  currentFontCount = 0;
-  fontCount = 0;
-  listObjectCount = 0;
-  masterCount = 0;
-  measuredCharCount = 0;
-  renderStyle = GLC_BITMAP;
-  replacementCode = 0;
-  stringType = GLC_UCS1;
-  textureObjectCount = 0;
-  versionMajor = 0;
-  versionMinor = 2;
-  isInCallbackFunc = GL_FALSE;
+  This->id = inContext + 1;
+  This->pendingDelete = GL_FALSE;
+  This->callback = GLC_NONE;
+  This->dataPointer = NULL;
+  This->autoFont = GL_TRUE;
+  This->glObjects = GL_TRUE;
+  This->mipmap = GL_TRUE;
+  This->resolution = 0.05;
+  This->bitmapMatrix[0] = 1.;
+  This->bitmapMatrix[1] = 0.;
+  This->bitmapMatrix[2] = 0.;
+  This->bitmapMatrix[3] = 1.;
+  This->currentFontCount = 0;
+  This->fontCount = 0;
+  This->listObjectCount = 0;
+  This->masterCount = 0;
+  This->measuredCharCount = 0;
+  This->renderStyle = GLC_BITMAP;
+  This->replacementCode = 0;
+  This->stringType = GLC_UCS1;
+  This->textureObjectCount = 0;
+  This->versionMajor = 0;
+  This->versionMinor = 2;
+  This->isInCallbackFunc = GL_FALSE;
 
   for (j=0; j < GLC_MAX_CURRENT_FONT; j++)
-    currentFontList[j] = 0;
+    This->currentFontList[j] = 0;
 
   for (j=0; j < GLC_MAX_FONT; j++)
-    fontList[j] = NULL;
+    This->fontList[j] = NULL;
 
   for (j=0; j < GLC_MAX_MASTER; j++)
-    masterList[j] = NULL;
+    This->masterList[j] = NULL;
 
   for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
-    textureObjectList[j] = 0;
+    This->textureObjectList[j] = 0;
 
-  buffer = NULL;
-  bufferSize = 0;
+  This->buffer = NULL;
+  This->bufferSize = 0;
+
+  return This;
 }
 
-__glcContextState::~__glcContextState()
+void __glcCtxDestroy(__glcContextState *This)
 {
   int i = 0;
 
-  delete catalogList;
+  __glcStrLstDestroy(This->catalogList);
 
   for (i = 0; i < GLC_MAX_FONT; i++) {
     __glcFont *font = NULL;
 
-    font = fontList[i];
+    font = This->fontList[i];
     if (font) {
       glcDeleteFont(i + 1);
     }
   }
 
   for (i = 0; i < GLC_MAX_MASTER; i++) {
-    if (masterList[i]) {
-      delete masterList[i];
-      masterList[i] = NULL;
+    if (This->masterList[i]) {
+      __glcMasterDestroy(This->masterList[i]);
+      This->masterList[i] = NULL;
     }
   }
 
-  if (bufferSize)
-    __glcFree(buffer);
+  if (This->bufferSize)
+    __glcFree(This->buffer);
 
   glcDeleteGLObjects();
-  FT_Done_Library(library);
+  FT_Done_Library(This->library);
 }
 
 /* Get the current context of the issuing thread */
-__glcContextState* __glcContextState::getCurrent(void)
+__glcContextState* __glcGetCurrent(void)
 {
   threadArea *area = NULL;
 
-  area = getThreadArea();
+  area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
      * since the threadArea does not exist. May be we should issue
@@ -150,34 +143,34 @@ __glcContextState* __glcContextState::getCurrent(void)
 }
 
 /* Get the context state of a given context */
-__glcContextState* __glcContextState::getState(GLint inContext)
+__glcContextState* __glcGetState(GLint inContext)
 {
   __glcContextState *state = NULL;
 
-  lock();
-  state = stateList[inContext];
-  unlock();
+  __glcLock();
+  state = __glcCommonArea->stateList[inContext];
+  __glcUnlock();
 
   return state;
 }
 
 /* Set the context state of a given context */
-void __glcContextState::setState(GLint inContext, __glcContextState *inState)
+void __glcSetState(GLint inContext, __glcContextState *inState)
 {
-  lock();
-  stateList[inContext] = inState;
-  unlock();
+  __glcLock();
+  __glcCommonArea->stateList[inContext] = inState;
+  __glcUnlock();
 }
 
 /* Raise an error. This function must be called each time the current error
  * of the issuing thread must be set
  */
-void __glcContextState::raiseError(GLCenum inError)
+void __glcRaiseError(GLCenum inError)
 {
   GLCenum error = GLC_NONE;
   threadArea *area = NULL;
 
-  area = getThreadArea();
+  area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
      * since the threadArea does not exist. May be we should issue
@@ -196,13 +189,13 @@ void __glcContextState::raiseError(GLCenum inError)
 }
 
 /* Determine whether a context is current to a thread or not */
-GLboolean __glcContextState::getCurrency(GLint inContext)
+GLboolean __glcGetCurrency(GLint inContext)
 {
   GLboolean current = GL_FALSE;
 
-  lock();
-  current = isCurrent[inContext];
-  unlock();
+  __glcLock();
+  current = __glcCommonArea->isCurrent[inContext];
+  __glcUnlock();
 
   return current;
 }
@@ -212,20 +205,20 @@ GLboolean __glcContextState::getCurrency(GLint inContext)
  * because there is no simple way to get the contextKey value of
  * other threads (we do not even know how many threads have been created)
  */
-void __glcContextState::setCurrency(GLint inContext, GLboolean current)
+void __glcSetCurrency(GLint inContext, GLboolean current)
 {
-  lock();
-  isCurrent[inContext] = current;
-  unlock();
+  __glcLock();
+  __glcCommonArea->isCurrent[inContext] = current;
+  __glcUnlock();
 }
 
 /* Determine if a context ID is associated to a context state or not. This is
  * a different notion than the currency of a context : a context state may
  * exist without being associated to a thread.
  */
-GLboolean __glcContextState::isContext(GLint inContext)
+GLboolean __glcIsContext(GLint inContext)
 {
-  __glcContextState *state = getState(inContext);
+  __glcContextState *state = __glcGetState(inContext);
 
   return (state ? GL_TRUE : GL_FALSE);
 }
@@ -257,7 +250,8 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
 
     data = (FT_ULong*)__glcMalloc(sizeof(charCode));
     if (!data) {
-      FT_List_Finalize(list, __glcListDestructor, __glcContextState::memoryManager, NULL);
+      FT_List_Finalize(list, __glcListDestructor,
+		       __glcCommonArea->memoryManager, NULL);
       __glcFree(list);
       return -1;
     }
@@ -266,7 +260,8 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
     node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
     if (!node) {
       __glcFree(data);
-      FT_List_Finalize(list, __glcListDestructor, __glcContextState::memoryManager, NULL);
+      FT_List_Finalize(list, __glcListDestructor,
+		       __glcCommonArea->memoryManager, NULL);
       __glcFree(list);
       __glcFree(data);
       return -1;
@@ -318,7 +313,8 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
  * because glcAppendCatalog and glcPrependCatalog might create several masters.
  * Moreover it associates the new masters (if any) to the current context.
  */
-void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
+void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
+			GLboolean inAppend)
 {
   const char* fileName = "/fonts.dir";
   char buffer[256];
@@ -335,7 +331,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   /* Open 'fonts.dir' */
   file = fopen(path, "r");
   if (!file) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
@@ -379,7 +375,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       ext++;
 
     /* open the font file and read it */
-    if (!FT_New_Face(library, path, 0, &face)) {
+    if (!FT_New_Face(This->library, path, 0, &face)) {
       numFaces = face->num_faces;
 
       /* If the face has no Unicode charmap, skip it */
@@ -389,34 +385,35 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       /* Determine if the family (i.e. "Times", "Courier", ...) is already
        * associated to a master.
        */
-      for (j = 0; j < masterCount; j++) {
+      for (j = 0; j < This->masterCount; j++) {
 	s.ptr = face->family_name;
 	s.type = GLC_UCS1;
-	if (!__glcUniCompare(&s, masterList[j]->family))
+	if (!__glcUniCompare(&s, This->masterList[j]->family))
 	  break;
       }
 
-      if (j < masterCount)
+      if (j < This->masterCount)
 	/* We have found the master corresponding to the family of the current
 	 * font file.
 	 */
-	master = masterList[j];
+	master = This->masterList[j];
       else {
 	/* No master has been found. We must create one */
 
-	if (masterCount < GLC_MAX_MASTER - 1) {
+	if (This->masterCount < GLC_MAX_MASTER - 1) {
 	  /* Create a new master and add it to the current context */
-	  master = __glcMasterCreate(face, desc, ext, masterCount, stringType);
+	  master = __glcMasterCreate(face, desc, ext, This->masterCount,
+				     This->stringType);
 	  if (!master) {
-	    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	    __glcRaiseError(GLC_RESOURCE_ERROR);
 	    continue;
 	  }
 	  /* FIXME : use the first free location instead of this one */
-	  masterList[masterCount++] = master;
+	  This->masterList[This->masterCount++] = master;
 	}
 	else {
 	  /* We have already created the maximum number of masters allowed */
-	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  continue;
 	}
       }
@@ -424,7 +421,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
     }
     else {
       /* FreeType is not able to open the font file, try the next one */
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      __glcRaiseError(GLC_RESOURCE_ERROR);
       continue;
     }
 
@@ -434,7 +431,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 
       sp.ptr = path;
       sp.type = GLC_UCS1;
-      if (!FT_New_Face(library, path, j, &face)) {
+      if (!FT_New_Face(This->library, path, j, &face)) {
 	s.ptr = face->style_name;
 	s.type = GLC_UCS1;
 	if (!__glcStrLstFind(master->faceList, &s))
@@ -470,7 +467,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       /* FreeType is not able to read this face in the font file, 
        * try the next one.
        */
-	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
 	continue;
       }
       FT_Done_Face(face);
@@ -481,14 +478,14 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
   s.ptr = (GLCchar*)inCatalog;
   s.type = GLC_UCS1;
   if (inAppend) {
-    if (__glcStrLstAppend(catalogList, &s)) {
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    if (__glcStrLstAppend(This->catalogList, &s)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
   }
   else {
-    if (__glcStrLstPrepend(catalogList, &s)) {
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    if (__glcStrLstPrepend(This->catalogList, &s)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
   }
@@ -500,7 +497,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
 /* This function is called by glcRemoveCatalog. It has been included in the
  * context state class for the same reasons than addMasters was.
  */
-void __glcContextState::removeMasters(GLint inIndex)
+void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 {
   const char* fileName = "/fonts.dir";
   char buffer[256];
@@ -511,15 +508,15 @@ void __glcContextState::removeMasters(GLint inIndex)
   __glcUniChar s;
 
   /* TODO : use Unicode instead of ASCII */
-  strncpy(buffer, (const char*)__glcStrLstFindIndex(catalogList, inIndex),
-	  256);
+  strncpy(buffer, (const char*)__glcStrLstFindIndex(This->catalogList,
+						    inIndex), 256);
   strncpy(path, buffer, 256);
   strncat(path, fileName, strlen(fileName));
 
   /* Open 'fonts.dir' */
   file = fopen(path, "r");
   if (!file) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
@@ -542,7 +539,7 @@ void __glcContextState::removeMasters(GLint inIndex)
 
     /* Search the file name of the font in the masters */
     for (j = 0; j < GLC_MAX_MASTER; j++) {
-      __glcMaster *master = masterList[j];
+      __glcMaster *master = This->masterList[j];
       if (!master)
 	continue;
       s.ptr = buffer;
@@ -553,14 +550,15 @@ void __glcContextState::removeMasters(GLint inIndex)
 
       /* Removes the corresponding faces in the font list */
       for (i = 0; i < GLC_MAX_FONT; i++) {
-	__glcFont *font = fontList[i];
+	__glcFont *font = This->fontList[i];
 	if (font) {
 	  if ((font->parent == master) && (font->faceID == index)) {
 	    /* Eventually remove the font from the current font list */
 	    for (j = 0; j < GLC_MAX_CURRENT_FONT; j++) {
-	      if (currentFontList[j] == i) {
-		memmove(&currentFontList[j], &currentFontList[j + 1], currentFontCount - j - 1);
-		currentFontCount--;
+	      if (This->currentFontList[j] == i) {
+		memmove(&This->currentFontList[j], &This->currentFontList[j+1],
+			This->currentFontCount-j-1);
+		This->currentFontCount--;
 		break;
 	      }
 	    }
@@ -580,7 +578,7 @@ void __glcContextState::removeMasters(GLint inIndex)
       if (!master->faceFileName->count) {
 	delete master;
 	master = NULL;
-	masterCount--;
+	This->masterCount--;
       }
     }
   }
@@ -632,11 +630,11 @@ static GLboolean __glcCallCallbackFunc(GLint inCode, __glcContextState *inState)
  * font from GLC_FONT_LIST (or from a master) to GLC_CURRENT_FONT_LIST. If the
  * attempt fails the function returns zero.
  */
-GLint __glcContextState::getFont(GLint inCode)
+GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
 {
   GLint font = 0;
 
-  font = __glcLookupFont(inCode, this);
+  font = __glcLookupFont(inCode, This);
   if (font)
     return font;
 
@@ -644,8 +642,8 @@ GLint __glcContextState::getFont(GLint inCode)
    * The callback function should return GL_TRUE if it succeeds in appending to
    * GLC_CURRENT_FONT_LIST the ID of a font that maps 'inCode'.
    */
-  if (__glcCallCallbackFunc(inCode, this)) {
-    font = __glcLookupFont(inCode, this);
+  if (__glcCallCallbackFunc(inCode, This)) {
+    font = __glcLookupFont(inCode, This);
     if (font)
       return font;
   }
@@ -654,10 +652,10 @@ GLint __glcContextState::getFont(GLint inCode)
    * GLC_FONT_LIST for the first font that maps 'inCode'. If the search
    * succeeds, then append the font's ID to GLC_CURRENT_FONT_LIST.
    */
-  if (autoFont) {
+  if (This->autoFont) {
     GLint i = 0;
 
-    for (i = 0; i < fontCount; i++) {
+    for (i = 0; i < This->fontCount; i++) {
       font = glcGetListi(GLC_FONT_LIST, i);
       if (glcGetFontMap(font, inCode)) {
 	glcAppendFont(font);
@@ -669,7 +667,7 @@ GLint __glcContextState::getFont(GLint inCode)
      * master that maps 'inCode'. If the search succeeds, it creates a font
      * from the master and appends its ID to GLC_CURRENT_FONT_LIST.
      */
-    for (i = 0; i < masterCount; i++) {
+    for (i = 0; i < This->masterCount; i++) {
       if (glcGetMasterMap(i, inCode)) {
 	font = glcNewFontFromMaster(glcGenFontID(), i);
 	if (font) {
@@ -682,12 +680,12 @@ GLint __glcContextState::getFont(GLint inCode)
   return 0;
 }
 
-void __glcContextState::lock(void)
+void __glcLock(void)
 {
 #ifdef _REENTRANT
   threadArea *area = NULL;
 
-  area = getThreadArea();
+  area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
      * since the threadArea does not exist. May be we should issue
@@ -697,18 +695,18 @@ void __glcContextState::lock(void)
   }
 
   if (!area->lockState)
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&__glcCommonArea->mutex);
 
   area->lockState++;
 #endif
 }
 
-void __glcContextState::unlock(void)
+void __glcUnlock(void)
 {
 #ifdef _REENTRANT
   threadArea *area = NULL;
 
-  area = getThreadArea();
+  area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
      * since the threadArea does not exist. May be we should issue
@@ -719,29 +717,31 @@ void __glcContextState::unlock(void)
 
   area->lockState--;
   if (!area->lockState)
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&__glcCommonArea->mutex);
 #endif
 }
 
-GLCchar* __glcContextState::queryBuffer(int inSize)
+GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
 {
-  if (inSize > bufferSize) {
-    buffer = (GLCchar*)__glcRealloc(buffer, inSize);
-    if (!buffer)
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+  if (inSize > This->bufferSize) {
+    This->buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);
+    if (!This->buffer)
+      __glcRaiseError(GLC_RESOURCE_ERROR);
     else
-      bufferSize = inSize;
+      This->bufferSize = inSize;
   }
 
-  return buffer;
+  return This->buffer;
 }
 
-threadArea* __glcContextState::getThreadArea(void)
+threadArea* __glcGetThreadArea(void)
 {
-#ifdef _REENTRANT
   threadArea *area = NULL;
 
-  area = (threadArea*)pthread_getspecific(__glcContextState::threadKey);
+#ifdef _REENTRANT
+  area = (threadArea*)pthread_getspecific(__glcCommonArea->threadKey);
+#else
+  area = __glcCommonArea->area;
 #endif
 
   if (!area) {
@@ -753,7 +753,7 @@ threadArea* __glcContextState::getThreadArea(void)
     area->errorState = GLC_NONE;
     area->lockState = 0;
 #ifdef _REENTRANT
-    pthread_setspecific(threadKey, (void*)area);
+    pthread_setspecific(__glcCommonArea->threadKey, (void*)area);
 #endif
   }
 

@@ -52,7 +52,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outV
     }
     
     if (FT_Load_Char(face, inCode, FT_LOAD_NO_SCALE)) {
-	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
     }
     
@@ -100,22 +100,22 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 	case GLC_BOUNDS:
 	    break;
 	default:
-	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+	    __glcRaiseError(GLC_PARAMETER_ERROR);
 	    return NULL;
     }
     
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return NULL;
     }
 
-    font = state->getFont(inCode);
+    font = __glcCtxGetFont(state, inCode);
     if (font)
 	return __glcGetCharMetric(inCode, inMetric, outVec, font, state);
 
     repCode = glcGeti(GLC_REPLACEMENT_CODE);
-    font = state->getFont(repCode);
+    font = __glcCtxGetFont(state, repCode);
     if (repCode && font)
 	return __glcGetCharMetric(repCode, inMetric, outVec, font, state);
 
@@ -136,13 +136,13 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 	case GLC_BOUNDS:
 	    break;
 	default:
-	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+	    __glcRaiseError(GLC_PARAMETER_ERROR);
 	    return NULL;
     }
     
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return NULL;
     }
 
@@ -210,18 +210,18 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric, GLfloat *outVec
 	case GLC_BOUNDS:
 	    break;
 	default:
-	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+	    __glcRaiseError(GLC_PARAMETER_ERROR);
 	    return NULL;
     }
     
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return NULL;
     }
 
     if ((inIndex < 0) || (inIndex >= state->measuredCharCount)) {
-	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
+	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return NULL;
     }
     
@@ -256,13 +256,13 @@ GLfloat* glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 	case GLC_BOUNDS:
 	    break;
 	default:
-	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+	    __glcRaiseError(GLC_PARAMETER_ERROR);
 	    return NULL;
     }
     
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return NULL;
     }
 
@@ -298,13 +298,13 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount, const GLC
     __glcUniChar UinString;
 
     if (inCount <= 0) {
-	__glcContextState::raiseError(GLC_PARAMETER_ERROR);
+	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
     
-    state = __glcContextState::getCurrent();
+    state = __glcGetCurrent();
     if (!state) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 	return 0;
     }
 
@@ -402,9 +402,9 @@ GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
   __glcContextState *state = NULL;
   __glcUniChar UinString;
 
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
 

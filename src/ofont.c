@@ -26,10 +26,10 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
   __glcUniChar *s = __glcStrLstFindIndex(inParent->faceFileName, 0);
   GLCchar *buffer = NULL;
   __glcFont *This = NULL;
-  __glcContextState *state = __glcContextState::getCurrent();
+  __glcContextState *state = __glcGetCurrent();
 
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
 
@@ -51,7 +51,7 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
 		  (const char*)buffer, 0, &This->face)) {
     /* Unable to load the face file, however this should not happen since
        it has been succesfully loaded when the master was created */
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(buffer);
     __glcFree(This);
     return NULL;
@@ -63,7 +63,7 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
   if (FT_Select_Charmap(This->face, ft_encoding_unicode)) {
     /* Arrghhh, no Unicode charmap is available. This should not happen
        since it has been tested at master creation */
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     FT_Done_Face(This->face);
     __glcFree(This);
     return NULL;

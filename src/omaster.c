@@ -139,7 +139,7 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   }
   if (buffer)
     __glcFree(buffer);
-  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+  __glcRaiseError(GLC_RESOURCE_ERROR);
 
   __glcFree(This);
   return NULL;
@@ -147,7 +147,8 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
 
 void __glcMasterDestroy(__glcMaster *This)
 {
-  FT_List_Finalize(This->charList, __glcListDestructor, __glcContextState::memoryManager, NULL);
+  FT_List_Finalize(This->charList, __glcListDestructor,
+		   __glcCommonArea->memoryManager, NULL);
   __glcFree(This->charList);
   __glcFree(This->faceList);
   __glcFree(This->faceFileName);

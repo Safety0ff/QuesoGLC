@@ -218,7 +218,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2, FT_V
 
 static void __glcCallbackError(GLenum inErrorCode)
 {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyDisplayListKey, destroyFunc destroyDisplayListData, compareFunc compareDisplayListKeys, GLboolean inFill)
@@ -253,7 +253,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);
     if (!rendererData.vertex) {
 	gluDeleteTess(tess);
-	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
     }
     
@@ -270,12 +270,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     if (inState->glObjects) {
       list = (GLuint *)__glcMalloc(sizeof(GLuint));
       if (!list) {
-	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
       }
       dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
       if (!dlKey) {
-	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(list);
 	return;
       }
@@ -291,7 +291,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
 	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListKey, 
 					  destroyDisplayListData, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
-	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  __glcFree(dlKey);
 	  __glcFree(list);
 	  return;

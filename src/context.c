@@ -33,14 +33,14 @@ void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 
   /* Check parameters */
   if (inOpcode != GLC_OP_glcUnmappedCode) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
@@ -55,9 +55,9 @@ void glcDataPointer(GLvoid *inPointer)
   __glcContextState *state = NULL;
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
@@ -78,9 +78,9 @@ void glcDeleteGLObjects(void)
   GLint i = 0;
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
@@ -116,14 +116,14 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
   case GLC_MIPMAP:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
@@ -168,14 +168,14 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
 
   /* Check the parameters */
   if (inOpcode != GLC_OP_glcUnmappedCode) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
@@ -196,7 +196,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 
   /* Check the parameters */
   if (inAttrib != GLC_CATALOG_LIST) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
@@ -207,21 +207,21 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    * of specs). We are done !
    */
   if (inIndex < 0) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
   /* Now we can check if inIndex identifies a member of the string list or 
    * not */
   if ((inIndex < 0) || ((GLuint)inIndex >= state->catalogList->count)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
@@ -239,13 +239,13 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   /* Get the string at offset inIndex */
   s = __glcStrLstFindIndex(state->catalogList, inIndex);
   /* Allocate a buffer to store the string */
-  buffer = state->queryBuffer(__glcUniLenBytes(s));
+  buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));
 
   if (buffer)
     /* Copy the string into the buffer */
     __glcUniDup(s, buffer, __glcUniLenBytes(s));
   else
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
 
   return buffer;
 }
@@ -271,7 +271,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
   case GLC_TEXTURE_OBJECT_LIST:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   }
 
@@ -282,14 +282,14 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
    * of specs). We are done !
    */
   if (inIndex < 0) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
 
@@ -299,13 +299,13 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
     if (inIndex > state->currentFontCount) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
     return state->currentFontList[inIndex];
   case GLC_FONT_LIST:
     if (inIndex > state->fontCount) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
     /* Verify that the requested font still exists. If it does then return its
@@ -314,7 +314,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     return (state->fontList[inIndex] ? inIndex : 0);
   case GLC_LIST_OBJECT_LIST:
     if (inIndex > state->listObjectCount) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
     /* In order to get the display list name, we have to perform a search
@@ -333,7 +333,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     return *dlName;
   case GLC_TEXTURE_OBJECT_LIST:
     if (inIndex > state->textureObjectCount) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
     return state->textureObjectList[inIndex];
@@ -352,14 +352,14 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
 
   /* Check the parameter */
   if (inAttrib != GLC_DATA_POINTER) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
@@ -388,14 +388,14 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   case GLC_VENDOR:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
@@ -420,12 +420,12 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   /* Allocates a buffer which size equals the length of the transformed
    * string */
   length = __glcUniEstimate(&s, state->stringType);
-  buffer = state->queryBuffer(length);
+  buffer = __glcCtxQueryBuffer(state, length);
   if (buffer)
     /* Converts the string into the current string type */
     __glcUniConvert(&s, buffer, state->stringType, length);
   else
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
 
   return buffer;
 }
@@ -440,14 +440,14 @@ GLfloat glcGetf(GLCenum inAttrib)
 
   /* Check the parameter */
   if (inAttrib != GLC_RESOLUTION) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0.;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return 0.;
   }
 
@@ -465,14 +465,14 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 
   /* Check the parameters */
   if (inAttrib != GLC_BITMAP_MATRIX) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
     
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
 
@@ -505,14 +505,14 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_VERSION_MINOR:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
 
@@ -562,14 +562,14 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
   case GLC_MIPMAP:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GL_FALSE;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GL_FALSE;
   }
 
@@ -601,14 +601,14 @@ void glcStringType(GLCenum inStringType)
   case GLC_UCS4:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
   /* Check if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 

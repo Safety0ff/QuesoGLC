@@ -1,6 +1,6 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
-	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c
-CC_FILES = btree.cpp ocontext.cpp
+	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c ocontext.c
+CC_FILES = btree.cpp
 
 CC_SOURCE = $(addprefix src/,$(CC_FILES))
 C_SOURCE = $(addprefix src/,$(C_FILES))

@@ -26,6 +26,12 @@
 #include "ocontext.h"
 #include "internal.h"
 
+#ifdef _REENTRANT
+pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
+#else
+GLboolean __glcInitOnce = GL_FALSE;
+#endif
+
 /* This function is supposed to be called when QuesoGLC is no longer needed.
  * It frees the memory and closes the Unicode DB files
  */
@@ -35,22 +41,22 @@ void __glcExitLibrary(void)
 
   /* destroy remaining contexts */
   for (i=0; i < GLC_MAX_CONTEXTS; i++) {
-    if (__glcContextState::isContext(i))
-      delete __glcContextState::getState(i);
+    if (__glcIsContext(i))
+      delete __glcGetState(i);
   }
 
   /* destroy Common Area */
-  delete[] __glcContextState::isCurrent;
-  delete[] __glcContextState::stateList;
+  __glcFree(__glcCommonArea->isCurrent);
+  __glcFree(__glcCommonArea->stateList);
 
-  gdbm_close(__glcContextState::unidb1);
-  gdbm_close(__glcContextState::unidb2);
+  gdbm_close(__glcCommonArea->unidb1);
+  gdbm_close(__glcCommonArea->unidb2);
 
 #ifdef _REENTRANT
-  pthread_mutex_destroy(&__glcContextState::mutex);
+  pthread_mutex_destroy(&__glcCommonArea->mutex);
 #endif
 
-  __glcFree(__glcContextState::memoryManager);
+  __glcFree(__glcCommonArea->memoryManager);
 }
 
 /* This function is called each time a pthread is cancelled or exits in order
@@ -90,77 +96,93 @@ void __glcInitLibrary(void)
 {
   int i = 0;
 
+  __glcCommonArea = (commonArea*)__glcMalloc(sizeof(commonArea));
+  if (!__glcCommonArea)
+    goto FatalError;
+
+  __glcCommonArea->isCurrent = NULL;
+  __glcCommonArea->stateList = NULL;
+#ifndef _REENTRANT
+  __glcCommonArea->area = NULL;
+#endif
+  __glcCommonArea->unidb1 = NULL;
+  __glcCommonArea->unidb2 = NULL;
+  __glcCommonArea->memoryManager = NULL;
+
   // Creates the thread-local storage for the GLC error
 #ifdef _REENTRANT
-  if (pthread_key_create(&__glcContextState::threadKey, __glcFreeThreadArea))
+  if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
     goto FatalError;
 #else
-  __glcContextState::initOnce = GL_TRUE;
+  __glcInitOnce = GL_TRUE;
 #endif
 
   // Initializes the "Common Area"
 
-  __glcContextState::memoryManager = (FT_Memory)__glcMalloc(sizeof(*__glcContextState::memoryManager));
-  if (!__glcContextState::memoryManager)
+  __glcCommonArea->memoryManager = (FT_Memory)__glcMalloc(sizeof(*__glcCommonArea->memoryManager));
+  if (!__glcCommonArea->memoryManager)
     goto FatalError;
 
-  __glcContextState::memoryManager->user = NULL;
-  __glcContextState::memoryManager->alloc = __glcAllocFunc;
-  __glcContextState::memoryManager->free = __glcFreeFunc;
-  __glcContextState::memoryManager->realloc = __glcReallocFunc;
+  __glcCommonArea->memoryManager->user = NULL;
+  __glcCommonArea->memoryManager->alloc = __glcAllocFunc;
+  __glcCommonArea->memoryManager->free = __glcFreeFunc;
+  __glcCommonArea->memoryManager->realloc = __glcReallocFunc;
 
   // Creates the array of state currency
-  __glcContextState::isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
-  if (!__glcContextState::isCurrent)
+  __glcCommonArea->isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
+  if (!__glcCommonArea->isCurrent)
     goto FatalError;
 
   // Creates the array of context states
-  __glcContextState::stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
-  if (!__glcContextState::stateList)
+  __glcCommonArea->stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
+  if (!__glcCommonArea->stateList)
     goto FatalError;
 
   // Open the first Unicode database
-  __glcContextState::unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
-  if (!__glcContextState::unidb1)
+  __glcCommonArea->unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
+  if (!__glcCommonArea->unidb1)
     goto FatalError;
 
   // Open the second Unicode database
-  __glcContextState::unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
-  if (!__glcContextState::unidb2)
+  __glcCommonArea->unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
+  if (!__glcCommonArea->unidb2)
     goto FatalError;
 
   // Initialize the mutex
   // At least this op can not fail !!!
 #ifdef _REENTRANT
-  pthread_mutex_init(&__glcContextState::mutex, NULL);
+  pthread_mutex_init(&__glcCommonArea->mutex, NULL);
 #endif
 
   // So far, there are no contexts
   for (i=0; i< GLC_MAX_CONTEXTS; i++) {
-    __glcContextState::isCurrent[i] = GL_FALSE;
-    __glcContextState::stateList[i] = NULL;
+    __glcCommonArea->isCurrent[i] = GL_FALSE;
+    __glcCommonArea->stateList[i] = NULL;
   }
 
   atexit(__glcExitLibrary);
   return;
 
  FatalError:
-  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-  if (__glcContextState::memoryManager) {
-    __glcFree(__glcContextState::memoryManager);
-    __glcContextState::memoryManager = NULL;
+  __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (__glcCommonArea) {
+    __glcFree(__glcCommonArea);
   }
-  if (__glcContextState::isCurrent) {
-    delete[] __glcContextState::isCurrent;
-    __glcContextState::isCurrent = NULL;
+  if (__glcCommonArea->memoryManager) {
+    __glcFree(__glcCommonArea->memoryManager);
+    __glcCommonArea->memoryManager = NULL;
   }
-  if (__glcContextState::stateList) {
-    delete[] __glcContextState::stateList;
-    __glcContextState::stateList = NULL;
+  if (__glcCommonArea->isCurrent) {
+    delete[] __glcCommonArea->isCurrent;
+    __glcCommonArea->isCurrent = NULL;
   }
-  if (__glcContextState::unidb1) {
-    gdbm_close(__glcContextState::unidb1);
-    __glcContextState::unidb1 = NULL;
+  if (__glcCommonArea->stateList) {
+    delete[] __glcCommonArea->stateList;
+    __glcCommonArea->stateList = NULL;
+  }
+  if (__glcCommonArea->unidb1) {
+    gdbm_close(__glcCommonArea->unidb1);
+    __glcCommonArea->unidb1 = NULL;
   }
   perror("GLC Fatal Error");
   exit(-1);
@@ -173,16 +195,16 @@ void __glcInitLibrary(void)
 GLboolean glcIsContext(GLint inContext)
 {
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
 
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
     return GL_FALSE;
   else
-    return __glcContextState::isContext(inContext - 1);
+    return __glcIsContext(inContext - 1);
 }
 
 /* glcGetCurrentContext:
@@ -193,13 +215,13 @@ GLint glcGetCurrentContext(void)
   __glcContextState *state = NULL;
 
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
 
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state)
     return 0;
   else
@@ -220,37 +242,37 @@ void glcDeleteContext(GLint inContext)
   __glcContextState *state = NULL;
 
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
 
   /* verify if parameters are in legal bounds */
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
-  state = __glcContextState::getState(inContext - 1);
+  state = __glcGetState(inContext - 1);
 
   /* verify if the context has been created */
   if (!state) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
-  __glcContextState::lock();
+  __glcLock();
 
-  if (__glcContextState::getCurrency(inContext - 1))
+  if (__glcGetCurrency(inContext - 1))
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else {
     delete state;
-    __glcContextState::stateList[inContext - 1] = NULL;
+    __glcCommonArea->stateList[inContext - 1] = NULL;
   }
 
-  __glcContextState::unlock();
+  __glcUnlock();
 }
 
 /* glcContext:
@@ -273,12 +295,12 @@ void glcContext(GLint inContext)
   Screen *screen = NULL;
 
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
-  area = __glcContextState::getThreadArea();
+  area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
      * since the threadArea does not exist.
@@ -291,26 +313,26 @@ void glcContext(GLint inContext)
   dpy = glXGetCurrentDisplay();
   if (!dpy) {
     /* No GLX context is associated with the current thread. */
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
   /* WARNING ! This may not be relevant if the display has several screens */
   screen = DefaultScreenOfDisplay(dpy);
 
   /* Lock the "Common Area" in order to prevent race conditions */
-  __glcContextState::lock();
+  __glcLock();
 
   if (inContext) {
     /* verify that parameters are in legal bounds */
     if ((inContext < 0) || (inContext > GLC_MAX_CONTEXTS)) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
-      __glcContextState::unlock();
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      __glcUnlock();
       return;
     }
     /* verify that the context exists */
-    if (!__glcContextState::isContext(inContext - 1)) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
-      __glcContextState::unlock();
+    if (!__glcIsContext(inContext - 1)) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      __glcUnlock();
       return;
     }
 
@@ -321,37 +343,37 @@ void glcContext(GLint inContext)
      * function that has been called from GLC
      */
     if (currentContext) {
-      state = __glcContextState::getCurrent();
+      state = __glcGetCurrent();
       if (state->isInCallbackFunc) {
-	__glcContextState::raiseError(GLC_STATE_ERROR);
-      __glcContextState::unlock();
+	__glcRaiseError(GLC_STATE_ERROR);
+      __glcUnlock();
 	return;
       }
     }
 
     /* Is the context already current to a thread ? */
-    if (__glcContextState::getCurrency(inContext - 1)) {
+    if (__glcGetCurrency(inContext - 1)) {
       /* If the context is current to another thread => ERROR ! */
       if (currentContext != inContext)
-	__glcContextState::raiseError(GLC_STATE_ERROR);
+	__glcRaiseError(GLC_STATE_ERROR);
 
       /* If we get there, this means that the context 'inContext'
        * is already current to one thread (whether it is the issuing thread
        * or not) : there is nothing else to be done.
        */
-      __glcContextState::unlock();
+      __glcUnlock();
       return;
     }
 
     /* Release old current context if any */
     if (currentContext) {
-      __glcContextState::setCurrency(currentContext - 1, GL_FALSE);
-      state = __glcContextState::getState(currentContext - 1);
+      __glcSetCurrency(currentContext - 1, GL_FALSE);
+      state = __glcGetState(currentContext - 1);
     }
 
     /* Make the context current to the thread */
-    area->currentContext = __glcContextState::stateList[inContext - 1];
-    __glcContextState::setCurrency(inContext - 1, GL_TRUE);
+    area->currentContext = __glcCommonArea->stateList[inContext - 1];
+    __glcSetCurrency(inContext - 1, GL_TRUE);
   }
   else {
     /* inContext is null, the current thread must release its context if any */
@@ -361,11 +383,11 @@ void glcContext(GLint inContext)
     currentContext = glcGetCurrentContext();
 
     if (currentContext) {
-      state = __glcContextState::getState(currentContext - 1);
+      state = __glcGetState(currentContext - 1);
       /* Deassociate the context from the issuing thread */
       area->currentContext = NULL;
       /* Release the context */
-      __glcContextState::setCurrency(currentContext - 1, GL_FALSE);
+      __glcSetCurrency(currentContext - 1, GL_FALSE);
     }
   }
 
@@ -373,11 +395,11 @@ void glcContext(GLint inContext)
   if (currentContext && state) {
     if (state->pendingDelete) {
       delete state;
-      __glcContextState::stateList[currentContext - 1] = NULL;
+      __glcCommonArea->stateList[currentContext - 1] = NULL;
     }
   }
 
-  __glcContextState::unlock();
+  __glcUnlock();
 
   /* We read the version and extensions of the OpenGL client. We do it
    * for compliance with the specifications because we do not use it.
@@ -407,39 +429,39 @@ GLint glcGenContext(void)
   __glcContextState *state = NULL;
 
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
 
   /* Lock the "Common Area" in order to prevent race conditions */
-  __glcContextState::lock();
+  __glcLock();
 
   /* Search for the first context ID that is unused */
   for (i=0 ; i<GLC_MAX_CONTEXTS; i++) {
-    if (!__glcContextState::isContext(i))
+    if (!__glcIsContext(i))
       break;
   }
 
   if (i == GLC_MAX_CONTEXTS) {
     /* All the contexts are used. We can not generate a new one => ERROR !!! */
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    __glcContextState::unlock();
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcUnlock();
     return 0;
   }
 
   /* Create a new context */
-  state = new __glcContextState(i);
+  state = __glcCtxCreate(i);
   if (!state) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    __glcContextState::unlock();
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcUnlock();
     return 0;
   }
 
-  __glcContextState::stateList[i] = state;
+  __glcCommonArea->stateList[i] = state;
 
-  __glcContextState::unlock();
+  __glcUnlock();
 
   /* Check if the GLC_PATH environment variable is exported */
   if (getenv("GLC_PATH")) {
@@ -457,14 +479,14 @@ GLint glcGenContext(void)
       do {
 	sep = (char *)__glcFindIndexList(begin, 1, ":");
 	*(sep - 1) = 0;
-	state->addMasters(begin, GL_TRUE);
+	__glcCtxAddMasters(state, begin, GL_TRUE);
 	begin = sep;
       } while (*sep);
       __glcFree(path);
     }
     else {
       /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      __glcRaiseError(GLC_RESOURCE_ERROR);
       return 0;
     }
   }
@@ -485,9 +507,9 @@ GLint* glcGetAllContexts(void)
   GLint* contextArray = NULL;
 
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
 
@@ -495,20 +517,20 @@ GLint* glcGetAllContexts(void)
    * thread or not).
    */
   for (i=0; i < GLC_MAX_CONTEXTS; i++) {
-    if (__glcContextState::isContext(i))
+    if (__glcIsContext(i))
       count++;
   }
 
   /* Allocate memory to store the array */
   contextArray = (GLint *)__glcMalloc(sizeof(GLint) * count);
   if (!contextArray) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
   /* Copy the context IDs to the array */
   for (i = GLC_MAX_CONTEXTS - 1; i >= 0; i--) {
-    if (__glcContextState::isContext(i))
+    if (__glcIsContext(i))
       contextArray[--count] = i;
   }
 
@@ -526,12 +548,12 @@ GLCenum glcGetError(void)
   threadArea * area = NULL;
 
 #ifdef _REENTRANT
-  pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #else
-  if (!__glcContextState::initOnce)
+  if (!__glcInitOnce)
     __glcInitLibrary();
 #endif
-  area = __glcContextState::getThreadArea();
+  area = __glcGetThreadArea();
   if (!area) {
     /* This is a severe problem : we can not even issue an error
      * since the threadArea does not exist.
@@ -541,6 +563,6 @@ GLCenum glcGetError(void)
   }
 
   error = area->errorState;
-  __glcContextState::raiseError(GLC_NONE);
+  __glcRaiseError(GLC_NONE);
   return error;
 }

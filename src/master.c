@@ -51,20 +51,20 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   case GLC_FACE_LIST:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Verify if a context is current to the thread */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
   /* Verify if inMaster is in legal bounds */
   if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
     
@@ -74,7 +74,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   case GLC_CHAR_LIST:
     /* Verify if inIndex is in legal bounds */
     if ((inIndex < 0) || (inIndex >= master->charListCount)) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
     else {
@@ -89,7 +89,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   case GLC_FACE_LIST:
     /* Verify if inIndex is in legal bounds */
     if ((inIndex < 0) || ((GLuint)inIndex >= master->faceList->count)) {
-      __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
     else {
@@ -103,11 +103,11 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
    * type.
    */
   length = __glcUniEstimate(s, state->stringType);
-  buffer = state->queryBuffer(length);
+  buffer = __glcCtxQueryBuffer(state, length);
   if (buffer)
     __glcUniConvert(s, buffer, state->stringType, length);
   else
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
 
   return buffer;
 }
@@ -130,15 +130,15 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   GLint i = 0;
 
   /* Verify if the thread has a current context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
   /* Check if inMaster is in legal bounds */
   if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
     
@@ -152,9 +152,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
      *        changed since the user provided the file name
      */
     s = __glcStrLstFindIndex(master->faceFileName, i);
-    buffer = state->queryBuffer(__glcUniLenBytes(s));
+    buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));
     if (!buffer) {
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      __glcRaiseError(GLC_RESOURCE_ERROR);
       return NULL;
     }
     __glcUniDup(s, buffer, __glcUniLenBytes(s));
@@ -163,7 +163,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 		    (const char*) buffer, 0, &face)) {
       /* Unable to load the face file, however this should not happen since
 	 it has been succesfully loaded when the master was created */
-      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+      __glcRaiseError(GLC_RESOURCE_ERROR);
       face = NULL;
       continue;
     }
@@ -198,9 +198,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   key.dsize = sizeof(GLint);
   key.dptr = (char *)&inCode;
   /* Search for the Unicode into the database */
-  content = gdbm_fetch(__glcContextState::unidb1, key);
+  content = gdbm_fetch(__glcCommonArea->unidb1, key);
   if (!content.dptr) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE; /* Not found !! */
   }
 
@@ -213,11 +213,11 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 
   /* Allocates memory to perform the conversion */
   length = __glcUniEstimate(s, state->stringType);
-  buffer = state->queryBuffer(length);
+  buffer = __glcCtxQueryBuffer(state, length);
   if (!buffer) {
     __glcFree(s);
     __glcFree(content.dptr);
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
 
@@ -249,20 +249,20 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   case GLC_VERSION:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Verify if the thread owns a GLC context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
   /* Check if inMaster is in legal bounds */
   if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
   
@@ -288,12 +288,12 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
    * string type
    */
   length = __glcUniEstimate(s, state->stringType);
-  buffer = state->queryBuffer(length);
+  buffer = __glcCtxQueryBuffer(state, length);
   if (buffer)
     /* Convert into the current string type */
     __glcUniConvert(s, buffer, state->stringType, length);
   else
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
 
   return buffer;  
 }
@@ -316,20 +316,20 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   case GLC_MIN_MAPPED_CODE:
     break;
   default:
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
   /* Verify that the thread owns a context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
 
   /* Check if inMaster is in legal bounds */
   if ((inMaster < 0) || (inMaster >= state->masterCount)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
@@ -360,14 +360,14 @@ void glcAppendCatalog(const GLCchar* inCatalog)
   __glcContextState *state = NULL;
 
   /* Verify that the thread owns a context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
   /* append the catalog */
-  state->addMasters(inCatalog, GL_TRUE);
+  __glcCtxAddMasters(state, inCatalog, GL_TRUE);
 }
 
 /* glcPrependCatalog:
@@ -378,14 +378,14 @@ void glcPrependCatalog(const GLCchar* inCatalog)
   __glcContextState *state = NULL;
 
   /* Verify that the thread owns a context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
   /* prepend the catalog */
-  state->addMasters(inCatalog, GL_FALSE);
+  __glcCtxAddMasters(state, inCatalog, GL_FALSE);
 }
 
 /* glcRemoveCatalog:
@@ -399,18 +399,18 @@ void glcRemoveCatalog(GLint inIndex)
   __glcContextState *state = NULL;
 
   /* Verify that the thread owns a context */
-  state = __glcContextState::getCurrent();
+  state = __glcGetCurrent();
   if (!state) {
-    __glcContextState::raiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
   /* Verify that the parameter inIndex is in legal bounds */
   if ((inIndex < 0) || ((GLuint)inIndex >= state->catalogList->count)) {
-    __glcContextState::raiseError(GLC_PARAMETER_ERROR);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
   /* removes the catalog */
-  state->removeMasters(inIndex);
+  __glcCtxRemoveMasters(state, inIndex);
 }
