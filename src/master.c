@@ -192,7 +192,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   buffer = state->queryBuffer(length);
   if (!buffer) {
     delete s;
-    free(content.dptr);
+    __glcFree(content.dptr);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
@@ -200,7 +200,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   /* Perform the conversion */
   s->convert(buffer, state->stringType, length);
   delete s;
-  free(content.dptr);
+  __glcFree(content.dptr);
     
   return buffer;
 }

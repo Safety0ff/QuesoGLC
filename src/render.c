@@ -40,7 +40,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     
     /* Fill the pixmap descriptor and the pixmap buffer */
     pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
-    pixmap.buffer = (GLubyte *)malloc(pixmap.rows * pixmap.pitch);
+    pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
     if (!pixmap.buffer) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -57,7 +57,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
-	free(pixmap.buffer);
+	__glcFree(pixmap.buffer);
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
@@ -68,18 +68,18 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
 	-face->glyph->advance.x * inState->bitmapMatrix[1] / 64.,
 	pixmap.buffer);
     
-    free(pixmap.buffer);
+    __glcFree(pixmap.buffer);
 }
 
 static void destroyDisplayListKey(void *inKey)
 {
-  free(inKey);
+  __glcFree(inKey);
 }
 
 static void destroyDisplayListData(void *inData)
 {
   glDeleteLists(*((GLuint *)inData), 1);
-  free(inData);
+  __glcFree(inData);
 }
 
 static int compareDisplayListKeys(void *inKey1, void *inKey2)
@@ -149,7 +149,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     /* Fill the pixmap descriptor and the pixmap buffer */
     pixmap.pixel_mode = ft_pixel_mode_grays;	/* Anti-aliased rendering */
     pixmap.num_grays = 256;
-    pixmap.buffer = (GLubyte *)malloc(pixmap.rows * pixmap.pitch);
+    pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
     if (!pixmap.buffer) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -166,7 +166,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
-	free(pixmap.buffer);
+	__glcFree(pixmap.buffer);
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
@@ -202,17 +202,17 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
     if (inState->glObjects) {
-      list = (GLuint *)malloc(sizeof(GLuint));
+      list = (GLuint *)__glcMalloc(sizeof(GLuint));
       if (!list) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
-	free(pixmap.buffer);
+	__glcFree(pixmap.buffer);
 	return;
       }
-      dlKey = (__glcDisplayListKey *)malloc(sizeof(__glcDisplayListKey));
+      dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
       if (!dlKey) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
-	free(pixmap.buffer);
-	free(list);
+	__glcFree(pixmap.buffer);
+	__glcFree(list);
 	return;
       }
 
@@ -228,9 +228,9 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 					  destroyDisplayListData, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
 	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-	  free(pixmap.buffer);
-	  free(dlKey);
-	  free(list);
+	  __glcFree(pixmap.buffer);
+	  __glcFree(dlKey);
+	  __glcFree(list);
 	  return;
 	}
       }
@@ -265,7 +265,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     else
       glBindTexture(GL_TEXTURE_2D, 0);
     
-    free(pixmap.buffer);
+    __glcFree(pixmap.buffer);
 }
 
 static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode, GLint renderMode)

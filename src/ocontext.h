@@ -1,7 +1,9 @@
 #ifndef __glc_ocontext_h
 #define __glc_ocontext_h
 
+#ifdef _REENTRANT
 #include <pthread.h>
+#endif
 #include <gdbm.h>
 
 #include "GL/glc.h"
@@ -26,9 +28,14 @@ typedef struct {
 class __glcContextState {
   static GLboolean *isCurrent;
   static __glcContextState **stateList;
+#ifdef _REENTRANT
   static pthread_mutex_t mutex;
   static pthread_key_t threadKey;
   static pthread_once_t initLibraryOnce;
+#else
+  static GLint initOnce;
+  static threadArea* area;
+#endif
 
   static __glcContextState* getState(GLint inContext);
   static void setState(GLint inContext, __glcContextState *inState);

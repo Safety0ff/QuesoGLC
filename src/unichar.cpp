@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "internal.h"
 #include "unichar.h"
 #include "strlst.h"
 
@@ -95,13 +96,13 @@ int __glcUniChar::compare(__glcUniChar* inString)
 
   /* Reserve room to store the converted strings */
   l1 = lenBytes() * 4 / lenType(type);
-  s1 = malloc(l1);
+  s1 = (GLCchar*)__glcMalloc(l1);
   if (!s1)
     return 0; /* 0 means that the strings are equal : may be we should use another value ?? */
   l2 = inString->lenBytes() * 4 / lenType(inString->type);
-  s2 = malloc(l2);
+  s2 = (GLCchar*)__glcMalloc(l2);
   if (!s2) {
-    free(s1);
+    __glcFree(s1);
     return 0; /* 0 means that strings are equal : may be we should use another value ?? */
   }
 
@@ -126,8 +127,8 @@ int __glcUniChar::compare(__glcUniChar* inString)
   if (*(c1.ucs4) > *(c2.ucs4))
     ret = 1;
 
-  free(s1);
-  free(s2);
+  __glcFree(s1);
+  __glcFree(s2);
   return ret;
 }
 
@@ -265,7 +266,7 @@ int __glcUniChar::estimate(int inType)
 void __glcUniChar::destroy(void)
 {
   if (!ptr)
-    free(ptr);
+    __glcFree(ptr);
   ptr = NULL;
 }
 

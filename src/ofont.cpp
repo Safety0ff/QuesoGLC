@@ -1,3 +1,4 @@
+#include "internal.h"
 #include "ocontext.h"
 #include "ofont.h"
 
@@ -17,7 +18,7 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
   charMapCount = 0;
   id = inID;
 
-  buffer = (GLCchar*)malloc(s->lenBytes());
+  buffer = (GLCchar*)__glcMalloc(s->lenBytes());
   if (!buffer) {
     face = NULL;
     return;
@@ -43,7 +44,7 @@ __glcFont::__glcFont(GLint inID, __glcMaster *inParent)
 	return ;
     }
 
-    free(buffer);
+    __glcFree(buffer);
 }
 
 __glcFont::~__glcFont()

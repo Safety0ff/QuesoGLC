@@ -214,7 +214,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       return;
     }
     code = (GLint)(*(content.dptr));
-    free(content.dptr);
+    __glcFree(content.dptr);
     /* Use a dichotomic algo instead */
     for (i = 0; i < font->charMapCount; i++) {
       if (font->charMap[0][i] >= code)
@@ -359,13 +359,13 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     length = s.estimate(state->stringType);
     buffer = state->queryBuffer(length);
     if (!buffer) {
-      free(content.dptr);
+      __glcFree(content.dptr);
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
     s.convert(buffer, state->stringType, length);
 
-    free(content.dptr);
+    __glcFree(content.dptr);
     return buffer;
   }
   else

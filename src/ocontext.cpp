@@ -5,9 +5,14 @@
 
 GLboolean* __glcContextState::isCurrent = NULL;
 __glcContextState** __glcContextState::stateList = NULL;
+#ifdef _REENTRANT
 pthread_mutex_t __glcContextState::mutex;
 pthread_key_t __glcContextState::threadKey;
 pthread_once_t __glcContextState::initLibraryOnce = PTHREAD_ONCE_INIT;
+#else
+GLint __glcContextState::initOnce = GL_FALSE;
+threadArea* __glcContextState::area = NULL;
+#endif
 GDBM_FILE __glcContextState::unidb1 = NULL;
 GDBM_FILE __glcContextState::unidb2 = NULL;
 
@@ -98,7 +103,7 @@ __glcContextState::~__glcContextState()
   }
 
   if (bufferSize)
-    free(buffer);
+    __glcFree(buffer);
 
   glcDeleteGLObjects();
   FT_Done_FreeType(library);
@@ -567,6 +572,7 @@ GLint __glcContextState::getFont(GLint inCode)
 
 void __glcContextState::lock(void)
 {
+#ifdef _REENTRANT
   threadArea *area = NULL;
 
   area = getThreadArea();
@@ -582,10 +588,12 @@ void __glcContextState::lock(void)
     pthread_mutex_lock(&mutex);
 
   area->lockState++;
+#endif
 }
 
 void __glcContextState::unlock(void)
 {
+#ifdef _REENTRANT
   threadArea *area = NULL;
 
   area = getThreadArea();
@@ -600,12 +608,13 @@ void __glcContextState::unlock(void)
   area->lockState--;
   if (!area->lockState)
     pthread_mutex_unlock(&mutex);
+#endif
 }
 
 GLCchar* __glcContextState::queryBuffer(int inSize)
 {
   if (inSize > bufferSize) {
-    buffer = (GLCchar*)realloc(buffer, inSize);
+    buffer = (GLCchar*)__glcRealloc(buffer, inSize);
     if (!buffer)
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     else
@@ -617,19 +626,23 @@ GLCchar* __glcContextState::queryBuffer(int inSize)
 
 threadArea* __glcContextState::getThreadArea(void)
 {
+#ifdef _REENTRANT
   threadArea *area = NULL;
 
   area = (threadArea*)pthread_getspecific(__glcContextState::threadKey);
+#endif
 
   if (!area) {
-    area = (threadArea*)malloc(sizeof(threadArea));
+    area = (threadArea*)__glcMalloc(sizeof(threadArea));
     if (!area)
       return NULL;
 
     area->currentContext = NULL;
     area->errorState = GLC_NONE;
     area->lockState = 0;
+#ifdef _REENTRANT
     pthread_setspecific(threadKey, (void*)area);
+#endif
   }
 
   return area;

@@ -14,7 +14,7 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
    * may be free and should be used instead of using the last location
    */
   length = s.estimate(inStringType);
-  buffer = (GLCchar *) malloc(length);
+  buffer = (GLCchar *)__glcMalloc(length);
   if (!buffer) {
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
@@ -22,7 +22,7 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
   s.convert(buffer, inStringType, length);
   family = new __glcUniChar(buffer, inStringType);
   if (!family) {
-    free(buffer);
+    __glcFree(buffer);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
   }
@@ -54,7 +54,7 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
 
   if (s.len()) {
     length = s.estimate(inStringType);
-    buffer = (GLCchar*)malloc(length);
+    buffer = (GLCchar*)__glcMalloc(length);
     if (!buffer) {
       delete faceList;
       family->destroy();
@@ -69,7 +69,7 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
       delete faceFileName;
       family->destroy();
       delete family;
-      free(buffer);
+      __glcFree(buffer);
       __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       return;
     }
@@ -79,7 +79,7 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
 
   s = __glcUniChar(inVendorName, GLC_UCS1);
   length = s.estimate(inStringType);
-  buffer = (GLCchar*)malloc(length);
+  buffer = (GLCchar*)__glcMalloc(length);
   if (!buffer) {
     delete faceList;
     delete faceFileName;
@@ -100,7 +100,7 @@ __glcMaster::__glcMaster(FT_Face face, const char* inVendorName, const char* inF
     delete family;
     masterFormat->destroy();
     delete masterFormat;
-    free(buffer);
+    __glcFree(buffer);
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
     return;
   }

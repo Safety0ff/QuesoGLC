@@ -1,6 +1,7 @@
 /* $Id$ */
 /* Methods of __glcStringList objects 
  */
+#include "internal.h"
 #include "strlst.h"
 
 __glcStringList::__glcStringList(__glcUniChar* inString)
@@ -8,7 +9,7 @@ __glcStringList::__glcStringList(__glcUniChar* inString)
   GLCchar *room = NULL;
 
   if (inString) {
-    room = (GLCchar *)malloc(inString->lenBytes());
+    room = (GLCchar *)__glcMalloc(inString->lenBytes());
     inString->dup(room, inString->lenBytes());
     string = new __glcUniChar(room, inString->type);
     count = 1;
@@ -47,7 +48,7 @@ GLint __glcStringList::append(__glcUniChar* inString)
       if (convert(inString->type))
 	return -1;
 
-    room = (GLCchar *)malloc(inString->lenBytes());
+    room = (GLCchar *)__glcMalloc(inString->lenBytes());
     if (!room)
       return -1;
 
@@ -62,7 +63,7 @@ GLint __glcStringList::append(__glcUniChar* inString)
     item = new __glcStringList(s);
 
     delete s;
-    free(room);
+    __glcFree(room);
 
     if (!item) {
       item = this;
@@ -76,7 +77,7 @@ GLint __glcStringList::append(__glcUniChar* inString)
     current->next = item;
   }
   else {
-    room = (GLCchar *)malloc(inString->lenBytes());
+    room = (GLCchar *)__glcMalloc(inString->lenBytes());
     if (!room)
       return -1;
     inString->dup(room, inString->lenBytes());
@@ -98,14 +99,14 @@ GLint __glcStringList::prepend(__glcUniChar* inString)
       if (convert(inString->type))
 	return -1;
 
-    room = (GLCchar *)malloc(inString->lenBytes());
+    room = (GLCchar *)__glcMalloc(inString->lenBytes());
     if (!room)
       return -1;
     inString->convert(room, string->type, inString->lenBytes());
     temp = new __glcUniChar(room, string->type);
     item = new __glcStringList(temp);
 
-    free(room);
+    __glcFree(room);
     delete temp;
     if (!item)
       return -1;
@@ -118,7 +119,7 @@ GLint __glcStringList::prepend(__glcUniChar* inString)
     item->count = count++;
   }
   else {
-    room = (GLCchar *)malloc(inString->lenBytes());
+    room = (GLCchar *)__glcMalloc(inString->lenBytes());
     if (!room)
       return -1;
     inString->dup(room, inString->lenBytes());
@@ -143,7 +144,7 @@ GLint __glcStringList::removeIndex(GLuint inIndex)
     return -1;
 
   if (!inIndex) {
-    free(string->ptr);
+    __glcFree(string->ptr);
     delete string;
     
     if (next) {
@@ -230,12 +231,12 @@ GLint __glcStringList::convert(int inType)
 
   do {
     size = item->string->estimate(inType);
-    room = (GLCchar*)malloc(size);
+    room = (GLCchar*)__glcMalloc(size);
     if (!room)
       return -1;
 
     item->string->convert(room, inType, size);
-    free(item->string->ptr);
+    __glcFree(item->string->ptr);
     item->string->ptr = room;
     item->string->type = inType;
     item = item->next;

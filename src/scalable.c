@@ -232,7 +232,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     rendererData.tolerance = inState->resolution * 64. * inFont->face->units_per_EM;
     
     /* FIXME : may be we should use a bigger array ? */
-    rendererData.vertex = (GLdouble (*)[3]) malloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);
+    rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);
     if (!rendererData.vertex) {
 	gluDeleteTess(tess);
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
@@ -250,15 +250,15 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     gluTessNormal(tess, 0., 0., 1.);
 
     if (inState->glObjects) {
-      list = (GLuint *)malloc(sizeof(GLuint));
+      list = (GLuint *)__glcMalloc(sizeof(GLuint));
       if (!list) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
       }
-      dlKey = (__glcDisplayListKey *)malloc(sizeof(__glcDisplayListKey));
+      dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
       if (!dlKey) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
-	free(list);
+	__glcFree(list);
 	return;
       }
 
@@ -274,8 +274,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
 					  destroyDisplayListData, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
 	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-	  free(dlKey);
-	  free(list);
+	  __glcFree(dlKey);
+	  __glcFree(list);
 	  return;
 	}
       }
@@ -298,5 +298,5 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
 
     gluDeleteTess(tess);
     
-    free(rendererData.vertex);
+    __glcFree(rendererData.vertex);
 }
