@@ -302,7 +302,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster, __glcContextSt
     }
 
     font->faceID = 0;
-    font->parent = inState->masterList[inMaster - 1];
+    font->parent = inState->masterList[inMaster];
     font->charMapCount = 0;
 
     if (FT_New_Face(library, __glcStringListExtractElement(&font->parent->faceFileName,
@@ -334,7 +334,7 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
 	return 0;
     }
 
-    if ((inFont < 1) || (inFont >= GLC_MAX_FONT)) {
+    if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
 	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
@@ -353,7 +353,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 	return 0;
     }
 
-    if ((inFont < 1) || (inFont >= GLC_MAX_FONT)) {
+    if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
 	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
@@ -364,7 +364,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     }
     
     if (i < state->masterCount)
-	return __glcNewFontFromMaster(inFont, i + 1, state);
+	return __glcNewFontFromMaster(inFont, i, state);
     else {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return 0;
