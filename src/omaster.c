@@ -25,21 +25,18 @@
 #include "ocontext.h"
 #include FT_LIST_H
 
-__glcMaster* __glcMasterCreate(const FcChar8* familyName, const FcChar8* inVendorName,
-			       const char* inFileExt, GLint inID, GLboolean fixed,
-			       GLint inStringType)
+__glcMaster* __glcMasterCreate(const FcChar8* familyName,
+			       const FcChar8* inVendorName,
+			       const char* inFileExt, GLint inID,
+			       GLboolean fixed, GLint inStringType)
 {
   static char format1[] = "Type1";
   static char format2[] = "True Type";
-  __glcUniChar s;
   __glcMaster *This = NULL;
 
   This = (__glcMaster*)__glcMalloc(sizeof(__glcMaster));
   if (!This)
     return NULL;
-
-  s.ptr = (GLCchar*)familyName;
-  s.type = GLC_UCS1;
 
   This->vendor = NULL;
   This->faceList = NULL;
@@ -52,27 +49,18 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const FcChar8* inVendo
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
    * may be free and should be used instead of using the last location
    */
-  This->family = __glcUniCopy(&s, inStringType);
+  This->family = (FcChar8*)strdup((const char*)familyName);
   if (!This->family)
     goto error;
 
   /* use file extension to determine the face format */
-  s.ptr = NULL;
   if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
-    s.ptr = format1;
+    This->masterFormat = (FcChar8*)format1;
   if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
-    s.ptr = format2;
+    This->masterFormat = (FcChar8*)format2;
 
-  if (__glcUniLen(&s)) {
-    This->masterFormat = __glcUniCopy(&s, inStringType);
-    if (!This->masterFormat)
-      goto error;
-  }
-  else
-    This->masterFormat = NULL;
-
-  s.ptr= (GLCchar*)inVendorName;
-  This->vendor = __glcUniCopy(&s, inStringType);
+  /* We assume that the format of data strings in font files is GLC_UCS1 */
+  This->vendor = (FcChar8*)strdup((const char*)inVendorName);
   if (!This->vendor)
     goto error;
 
@@ -102,18 +90,12 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const FcChar8* inVendo
   if (This->charList)
     FcCharSetDestroy(This->charList);
   if (This->vendor) {
-    __glcUniDestroy(This->vendor);
     __glcFree(This->vendor);
   }
   if (This->faceList)
     __glcFree(This->faceList);
   if (This->family) {
-    __glcUniDestroy(This->family);
     __glcFree(This->family);
-  }
-  if (This->masterFormat) {
-    __glcUniDestroy(This->masterFormat);
-    __glcFree(This->masterFormat);
   }
   __glcRaiseError(GLC_RESOURCE_ERROR);
 
@@ -131,11 +113,7 @@ void __glcMasterDestroy(__glcMaster *This)
   __glcFree(This->displayList);
   FcCharSetDestroy(This->charList);
   __glcFree(This->faceList);
-  __glcUniDestroy(This->family);
-  __glcUniDestroy(This->masterFormat);
-  __glcUniDestroy(This->vendor);
   __glcFree(This->family);
-  __glcFree(This->masterFormat);
   __glcFree(This->vendor);
 
   __glcFree(This);

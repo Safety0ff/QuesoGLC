@@ -100,9 +100,6 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 {
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
-  __glcUniChar* s = NULL;
-  GLCchar *buffer = NULL;
-  GLint length = 0;
   FT_ListNode node = NULL;
   FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
   FcChar32 count = 0;
@@ -163,7 +160,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
         count += value;  
       }
       base = FcCharSetNextPage(master->charList, map, &next);
-    } while ((base != FC_CHARSET_DONE) && (next != FC_CHARSET_DONE));
+    } while (base != FC_CHARSET_DONE);
     /* The character has not been found */
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
@@ -176,21 +173,14 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
-    s = ((__glcFaceDescriptor*)node->data)->styleName;
-    break;
+    assert(node->data);
+    return __glcConvertFromUtf8ToBuffer(state,
+				 ((__glcFaceDescriptor*)node->data)->styleName,
+					state->stringType);
+  default:
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
   }
-
-  /* Allocate a buffer in order to store the string in the current string
-   * type.
-   */
-  length = __glcUniEstimate(s, state->stringType);
-  buffer = __glcCtxQueryBuffer(state, length);
-  if (buffer)
-    __glcUniConvert(s, buffer, state->stringType, length);
-  else
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-
-  return buffer;
 }
 
 
@@ -226,11 +216,10 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 {
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
-  __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
-  GLint length = 0;
   FT_ListNode node = NULL;
   __glcFaceDescriptor* faceDesc = NULL;
+  FcChar8* name = NULL;
 
   /* Verify if the thread has a current context */
   state = __glcGetCurrent();
@@ -279,34 +268,19 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   /* The database gives the Unicode name in UCS1 encoding. We should now
    * change its encoding if needed.
    */
-  s = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-  if (!s) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
-  }
-  s->ptr = __glcNameFromCode(inCode);
-  s->type = GLC_UCS1;
-  if (!s->ptr) {
-    __glcFree(s);
+  name = __glcNameFromCode(inCode);
+  if (!name) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
-  /* Allocates memory to perform the conversion */
-  length = __glcUniEstimate(s, state->stringType);
-  buffer = __glcCtxQueryBuffer(state, length);
+  /* Performs the conversion */
+  buffer = __glcConvertFromUtf8ToBuffer(state, name, state->stringType);
   if (!buffer) {
-    __glcFree(s);
-    /* __glcFree(content.dptr); */
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
 
-  /* Perform the conversion */
-  __glcUniConvert(s, buffer, state->stringType, length);
-  __glcFree(s);
-  /* __glcFree(content.dptr); */
-    
   return buffer;
 }
 
@@ -347,10 +321,9 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
-  __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
-  GLint length = 0;
   FT_ListNode node = NULL;
+  FcChar8* s = NULL;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -404,16 +377,12 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     break;
   }
 
-  /* Allocate memory in order to perform the conversion into the current
-   * string type
-   */
-  length = __glcUniEstimate(s, state->stringType);
-  buffer = __glcCtxQueryBuffer(state, length);
-  if (buffer)
-    /* Convert into the current string type */
-    __glcUniConvert(s, buffer, state->stringType, length);
-  else
+  /* Convert the string and store it in the context buffer */
+  buffer = __glcConvertFromUtf8ToBuffer(state, s, state->stringType);
+  if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GLC_NONE;
+  }
 
   return buffer;  
 }

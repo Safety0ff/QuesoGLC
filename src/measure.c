@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -19,15 +19,17 @@
 /* $Id$ */
 
 /* \file
- * defines the so-called "Measurement commands" described in chapter 3.10 of the GLC specs
+ * defines the so-called "Measurement commands" described in chapter 3.10 of
+ * the GLC specs.
  */
 
 /** \defgroup measure Measurement commands
- *  Those commands returns metrics (bounding box, baseline) of character or string layouts.
- *  Glyphs coordinates are defined in <em>em units</em> and are transformed during rendering
- *  to produce the desired mapping of the glyph shape into the GL window coordinate system.
- *  Moreover, GLC can return some metrics for a character and string layouts. The table below
- *  lists the metrics that are available :
+ *  Those commands returns metrics (bounding box, baseline) of character or
+ *  string layouts. Glyphs coordinates are defined in <em>em units</em> and are
+ *  transformed during rendering to produce the desired mapping of the glyph
+ *  shape into the GL window coordinate system. Moreover, GLC can return some
+ *  metrics for a character and string layouts. The table below lists the
+ *  metrics that are available :
  *  <center>
  *  <table>
  *  <caption>Metrics for character and string layout</caption>
@@ -39,18 +41,20 @@
  *      <td>[ x<sub>l</sub> y<sub>l</sub> x<sub>r</sub> y<sub>r</sub> ]</td>
  *    </tr>
  *    <tr>
- *      <td><b>GLC_BOUNDS</b></td> <td>0x0031</td>
- *      <td>[ x<sub>lb</sub> y<sub>lb</sub> x<sub>rb</sub> y<sub>rb</sub>
- *            x<sub>lt</sub> y<sub>lt</sub> x<sub>rt</sub> y<sub>rt</sub> ]</td>
+ *     <td><b>GLC_BOUNDS</b></td> <td>0x0031</td>
+ *     <td>[ x<sub>lb</sub> y<sub>lb</sub> x<sub>rb</sub> y<sub>rb</sub>
+ *           x<sub>lt</sub> y<sub>lt</sub> x<sub>rt</sub> y<sub>rt</sub> ]</td>
  *    </tr>
  *  </table>
  *  </center>
- *  \n \b GLC_BASELINE is the line segment from the origin of the layout to the origin of the
- *  following layout. \b GLC_BOUNDS is the bounding box of the layout.
+ *  \n \b GLC_BASELINE is the line segment from the origin of the layout to the
+ *  origin of the following layout. \b GLC_BOUNDS is the bounding box of the
+ *  layout.
  *  \image html measure.png
- *  \n Each point <em>(x,y)</em> is computed in em coordinates, with the origin of a layout at
- *  <em>(0,0)</em>. If the value of the variable \b GLC_RENDER_STYLE is \b GLC_BITMAP, each
- *  point is transformed by the 2x2 \b GLC_BITMAP_MATRIX.
+ *  \n Each point <em>(x,y)</em> is computed in em coordinates, with the origin
+ *  of a layout at <em>(0,0)</em>. If the value of the variable
+ *  \b GLC_RENDER_STYLE is \b GLC_BITMAP, each point is transformed by the 2x2
+ *  \b GLC_BITMAP_MATRIX.
  */
 
 #include <string.h>
@@ -157,8 +161,10 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
  *  metric identified by \e inMetric. If the command does not raise an error,
  *  its return value is \e outVec.
  *  \param inCode The character to measure.
- *  \param inMetric The metric to measure, either \b GLC_BASELINE or \b GLC_BOUNDS.
- *  \param outVec A vector in which to store value of \e inMetric for specified character.
+ *  \param inMetric The metric to measure, either \b GLC_BASELINE or
+ *                   \b GLC_BOUNDS.
+ *  \param outVec A vector in which to store value of \e inMetric for specified
+ *                 character.
  *  \returns \e outVec if the command succeeds, \b NULL otherwise.
  *  \sa glcGetMaxCharMetric()
  *  \sa glcGetStringCharMetric()
@@ -207,15 +213,17 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 
 /** \ingroup measure
  *  This command measures the layout that would result from rendering all
- *  mapped characters at the same origin. This contrats with glcGetStringCharMetric(),
- *  which measurs characters as  part of a string, that is, influenced by kerning,
- *  ligatures, and so on.
+ *  mapped characters at the same origin. This contrats with
+ *  glcGetStringCharMetric(), which measurs characters as  part of a string,
+ *  that is, influenced by kerning, ligatures, and so on.
  *
  *  The command stores in \e outVec the value of the metric identified by
  *  \e inMetric. If the command does not raise an error, its return value
  *  is \e outVec.
- *  \param inMetric The metric to measure, either \b GLC_BASELINE or \b GLC_BOUNDS.
- *  \param outVec A vector in which to store value of \e inMetric for all mapped character.
+ *  \param inMetric The metric to measure, either \b GLC_BASELINE or
+ *                  \b GLC_BOUNDS.
+ *  \param outVec A vector in which to store value of \e inMetric for all
+ *                mapped character.
  *  \returns \e outVec if the command succeeds, \b NULL otherwise.
  *  \sa glcGetCharMetric()
  *  \sa glcGetStringCharMetric()
@@ -309,8 +317,8 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 
 /** \ingroup measure
  *  This command retrieves a character metric from the GLC measurement buffer
- *  and stores it in \e outVec. To store a string in the measurement buffer, call
- *  glcMeasureCountedString() or glcMeasureString().
+ *  and stores it in \e outVec. To store a string in the measurement buffer,
+ *  call glcMeasureCountedString() or glcMeasureString().
  *
  *  The character is identified by \e inIndex, and the metric is identified by
  *  \e inMetric.
@@ -344,13 +352,15 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  }
  *  \endcode
  *  \note
- *  \e glcGetStringCharMetric is useful if you're interested in the metrics of a
- *  character as it appears in astring, that is, influenced by kerning, ligatures,
- *  and so on. To measure a charcter as if it started at the origin, call glcGetCharMetric().
+ *  \e glcGetStringCharMetric is useful if you're interested in the metrics of
+ *  a character as it appears in astring, that is, influenced by kerning,
+ *  ligatures, and so on. To measure a charcter as if it started at the origin,
+ *  call glcGetCharMetric().
  *  \param inIndex Specifies which element in the string to measure.
- *  \param inMetric The metric to measure, either \b GLC_BASELINE or \b GLC_BOUNDS.
- *  \param outVec A vector in which to store value of \e inMetric for the character
- *                identified by \e inIndex.
+ *  \param inMetric The metric to measure, either \b GLC_BASELINE or
+ *                  \b GLC_BOUNDS.
+ *  \param outVec A vector in which to store value of \e inMetric for the
+ *                character identified by \e inIndex.
  *  \returns \e outVec if the command succeeds, \b NULL otherwise.
  *  \sa glcGetCharMetric()
  *  \sa glcGetMaxCharMetric()
@@ -420,13 +430,14 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 /** \ingroup measure
  *  This command retrieves a string metric from the GLC measurement buffer
  *  and stores it in \e outVec. The metric is identified by \e inMetric. To
- *  store a string from the GLC measurement buffer, call glcMeasureCountedString()
- *  or glcMeasureString().
+ *  store a string from the GLC measurement buffer, call
+ *  glcMeasureCountedString() or glcMeasureString().
  *
  *  If the command does not raise an error, its return value is \e outVec.
- *  \param inMetric The metric to measure, either \b GLC_BASELINE or \b GLC_BOUNDS.
- *  \param outVec A vector in which to store value of \e inMetric for the character
- *                identified by \e inIndex.
+ *  \param inMetric The metric to measure, either \b GLC_BASELINE or
+ *         \b GLC_BOUNDS.
+ *  \param outVec A vector in which to store value of \e inMetric for the
+ *                character identified by \e inIndex.
  *  \returns \e outVec if the command succeeds, \b NULL otherwise.
  *  \sa glcGetCharMetric()
  *  \sa glcGetMaxCharMetric()
@@ -487,59 +498,15 @@ GLfloat* glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 
 
 
-/** \ingroup measure
- *  This command is identical to the command glcRenderCountedString(), except
- *  that instead of rendering a string, the command measures the resulting
- *  layout and stores the measurement in the GLC measurement buffer. The
- *  string comprises the first \e inCount elements of the array \e inString, which
- *  need not be followed by a zero element. 
- *
- *  If the value \e inMeasureChars is nonzero, the command computes metrics for
- *  each character and for the overall string, and it assigns the value
- *  \e inCount to the variable \b GLC_MEASURED_CHARACTER_COUNT. Otherwise, the
- *  command computes metrics only for the overall string, and it assigns the
- *  value zero to the variable \b GLC_MEASURED_CHARACTER_COUNT.
- *
- *  If the command does not raise an error, its return value is the value of
- *  the variable \b GLC_MEASURED_CHARACTER_COUNT.
- *
- *  The command raises \b GLC_PARAMETER_ERROR if \e inCount is less than zero.
- *  \param inMeasureChars Specifies whether to compute metrics only for the
- *                        string or for the characters as well.
- *  \param inCount The number of elements to measure, starting at the first
- *                 element.
- *  \param inString The string to be measured.
- *  \returns the variable \b GLC_MEASURED_CHARACTER_COUNT if the command succeeds,
- *           zero otherwise.
- *  \sa glcGeti() with argument GLC_MEASURED_CHAR_COUNT
- *  \sa glcGetStringCharMetric()
- *  \sa glcGetStringMetric()
- */
-GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
-			      const GLCchar* inString)
+GLint __glcMeasureCountedString(__glcContextState *state,
+				GLboolean inMeasureChars, GLint inCount,
+				const FcChar8* inString)
 {
-  __glcContextState *state = NULL;
   GLint i = 0, j = 0;
   GLfloat baselineMetric[4] = {0., 0., 0., 0.};
   GLfloat boundsMetric[8] = {0., 0., 0., 0., 0., 0., 0., 0.};
   GLfloat storeBitmapMatrix[4] = {0., 0., 0., 0.};
-  __glcUniChar UinString;
-
-  /* Check the parameters */
-  if (inCount < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return 0;
-  }
-
-  /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return 0;
-  }
-
-  UinString.ptr = (GLCchar*)inString;
-  UinString.type = state->stringType;
+  const FcChar8* ptr = NULL;
 
   if (state->renderStyle == GLC_BITMAP) {
     for (i = 0; i < 4; i++)
@@ -554,11 +521,14 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
    * Computations performed below assume that the string is rendered
    * horizontally from left to right.
    */
+  ptr = inString;
   for (i = 0; i < inCount; i++) {
+    FcChar32 code = 0;
+
+    ptr += FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
     /* For each character get the metrics */
-    glcGetCharMetric(__glcUniIndex(&UinString, i), GLC_BASELINE,
-		     baselineMetric);
-    glcGetCharMetric(__glcUniIndex(&UinString, i), GLC_BOUNDS, boundsMetric);
+    glcGetCharMetric(code, GLC_BASELINE, baselineMetric);
+    glcGetCharMetric(code, GLC_BOUNDS, boundsMetric);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars) {
@@ -631,6 +601,69 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 
 
 /** \ingroup measure
+ *  This command is identical to the command glcRenderCountedString(), except
+ *  that instead of rendering a string, the command measures the resulting
+ *  layout and stores the measurement in the GLC measurement buffer. The
+ *  string comprises the first \e inCount elements of the array \e inString,
+ *  which need not be followed by a zero element. 
+ *
+ *  If the value \e inMeasureChars is nonzero, the command computes metrics for
+ *  each character and for the overall string, and it assigns the value
+ *  \e inCount to the variable \b GLC_MEASURED_CHARACTER_COUNT. Otherwise, the
+ *  command computes metrics only for the overall string, and it assigns the
+ *  value zero to the variable \b GLC_MEASURED_CHARACTER_COUNT.
+ *
+ *  If the command does not raise an error, its return value is the value of
+ *  the variable \b GLC_MEASURED_CHARACTER_COUNT.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inCount is less than zero.
+ *  \param inMeasureChars Specifies whether to compute metrics only for the
+ *                        string or for the characters as well.
+ *  \param inCount The number of elements to measure, starting at the first
+ *                 element.
+ *  \param inString The string to be measured.
+ *  \returns the variable \b GLC_MEASURED_CHARACTER_COUNT if the command
+ *           succeeds, zero otherwise.
+ *  \sa glcGeti() with argument GLC_MEASURED_CHAR_COUNT
+ *  \sa glcGetStringCharMetric()
+ *  \sa glcGetStringMetric()
+ */
+GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
+			      const GLCchar* inString)
+{
+  __glcContextState *state = NULL;
+  GLint count = 0;
+  FcChar8* UinString = NULL;
+
+  /* Check the parameters */
+  if (inCount < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return 0;
+  }
+
+  /* Verify if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return 0;
+  }
+
+  UinString = __glcConvertToUtf8(inString, state->stringType);
+  if (!UinString) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0;
+  }
+
+  count = __glcMeasureCountedString(state, inMeasureChars, inCount, UinString);
+
+  free(UinString);
+
+  return count;
+}
+
+
+
+/** \ingroup measure
  *  This command measures the layout that would result from rendering a string
  *  and stores the measurements in the GLC measurement buffer. This command
  *  is indetical to the command glcMeasureCountedString(), except
@@ -641,8 +674,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
  *  \param inMeasureChars Specifies whether to compute metrics only for the
  *                        string or for the characters as well.
  *  \param inString The string to be measured.
- *  \returns the variable \b GLC_MEASURED_CHARACTER_COUNT if the command succeeds,
- *           zero otherwise.
+ *  \returns the variable \b GLC_MEASURED_CHARACTER_COUNT if the command
+ *           succeeds, zero otherwise.
  *  \sa glcGeti() with argument GLC_MEASURED_CHAR_COUNT
  *  \sa glcGetStringCharMetric()
  *  \sa glcGetStringMetric()
@@ -650,7 +683,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
 {
   __glcContextState *state = NULL;
-  __glcUniChar UinString;
+  FcChar8* UinString = NULL;
+  GLint count = 0;
 
   /* Verify if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -659,9 +693,16 @@ GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
     return 0;
   }
 
-  UinString.ptr = (GLCchar*)inString;
-  UinString.type = state->stringType;
+  UinString = __glcConvertToUtf8(inString, state->stringType);
+  if (!UinString) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0;
+  }
 
-  return glcMeasureCountedString(inMeasureChars, __glcUniLen(&UinString),
-				 inString);
+  count = __glcMeasureCountedString(state, inMeasureChars,
+				    strlen((const char*)UinString), UinString);
+
+  free(UinString);
+
+  return count;
 }

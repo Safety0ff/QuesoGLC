@@ -26,11 +26,11 @@
 #include FT_FREETYPE_H
 #include "GL/glc.h"
 #include "constant.h"
-#include "ounichar.h"
+
 
 typedef struct {
-	__glcUniChar* fileName;
-	__glcUniChar* styleName;
+	FcChar8* fileName;
+	FcChar8* styleName;
 	int indexInFile;
 	FcCharSet* charSet;
 } __glcFaceDescriptor;
@@ -39,10 +39,10 @@ typedef struct {
   GLint id;
   FT_List faceList;	        /* GLC_FACE_LIST */
   FcCharSet* charList;          /* GLC_CHAR_LIST */
-  __glcUniChar* family;		/* GLC_FAMILY */
-  __glcUniChar* masterFormat;	/* GLC_MASTER_FORMAT */
-  __glcUniChar* vendor;		/* GLC_VENDOR */
-  __glcUniChar* version;	/* GLC_VERSION */
+  FcChar8* family;		/* GLC_FAMILY */
+  FcChar8* masterFormat;	/* GLC_MASTER_FORMAT */
+  FcChar8* vendor;		/* GLC_VENDOR */
+  FcChar8* version;	        /* GLC_VERSION */
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
@@ -50,9 +50,10 @@ typedef struct {
   FT_List textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
 } __glcMaster;
 
-__glcMaster* __glcMasterCreate(const FcChar8* familyName, const FcChar8* inVendorName,
-			       const char* inFileExt, GLint inID, GLboolean fixed,
-			       GLint inStringType);
+__glcMaster* __glcMasterCreate(const FcChar8* familyName,
+			       const FcChar8* inVendorName,
+			       const char* inFileExt, GLint inID,
+			       GLboolean fixed, GLint inStringType);
 void __glcMasterDestroy(__glcMaster *This);
 
 #endif /* __glc_omaster_h */

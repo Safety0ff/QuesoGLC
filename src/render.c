@@ -531,7 +531,8 @@ void glcRenderChar(GLint inCode)
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inCount is less than zero.
  *  \param inCount The number of elements in the string to be rendered
- *  \param inString The array of characters from which to render \e inCount elements.
+ *  \param inString The array of characters from which to render \e inCount
+ *                  elements.
  *  \sa glcRenderChar()
  *  \sa glcRenderString()
  */
@@ -539,7 +540,8 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
   GLint i = 0;
   __glcContextState *state = NULL;
-  __glcUniChar UinString;
+  FcChar8* UinString = NULL;
+  FcChar8* ptr = NULL;
 
   /* Check if inCount is positive */
   if (inCount < 0) {
@@ -557,12 +559,21 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString.ptr = (GLCchar*)inString;
-  UinString.type = state->stringType;
+  UinString = __glcConvertToUtf8(inString, state->stringType);
+  if (!UinString) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
   /* Render the string */
-  for (i = 0; i < inCount; i++)
-    glcRenderChar(__glcUniIndex(&UinString, i));
+  ptr = UinString;
+  for (i = 0; i < inCount; i++) {
+    FcChar32 code = 0;
+    ptr += FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    glcRenderChar(code);
+  }
+
+  __glcFree(UinString);
 }
 
 /** \ingroup render
@@ -575,7 +586,9 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
 void glcRenderString(const GLCchar *inString)
 {
   __glcContextState *state = NULL;
-  __glcUniChar UinString;
+  FcChar8* UinString = NULL;
+  FcChar8* ptr = NULL;
+  FcChar32 code = 0;
 
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -587,16 +600,26 @@ void glcRenderString(const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString.ptr = (GLCchar*)inString;
-  UinString.type = state->stringType;
+  UinString = __glcConvertToUtf8(inString, state->stringType);
+  if (!UinString) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
   /* Render the string */
-  glcRenderCountedString(__glcUniLen(&UinString), inString);
+  ptr = UinString;
+  do {
+    ptr += FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    glcRenderChar(code);
+  } while (*ptr);
+
+  __glcFree(UinString);
 }
 
 /** \ingroup render
- *  This command assigns the value \e inStyle to the variable \b GLC_RENDER_STYLE.
- *  Legal values for \e inStyle are defined in the table below :
+ *  This command assigns the value \e inStyle to the variable
+ *  \b GLC_RENDER_STYLE. Legal values for \e inStyle are defined in the table
+ *  below :
  *  <center>
  *  <table>
  *  <caption>Rendering styles</caption>
@@ -649,10 +672,10 @@ void glcRenderStyle(GLCenum inStyle)
 }
 
 /** \ingroup render
- *  This command assigns the value \e inCode to the variable \b GLC_REPLACEMENT_CODE.
- *  The replacement code is the code which is used whenever glcRenderChar() can
- *  not find a font that owns a character which the parameter \e inCode of glcRenderChar()
- *  maps to.
+ *  This command assigns the value \e inCode to the variable
+ *  \b GLC_REPLACEMENT_CODE. The replacement code is the code which is used
+ *  whenever glcRenderChar() can not find a font that owns a character which
+ *  the parameter \e inCode of glcRenderChar() maps to.
  *  \param inCode An integer to assign to \b GLC_REPLACEMENT_CODE.
  *  \sa glcGeti() with argument \b GLC_REPLACEMENT_CODE
  *  \sa glcRenderChar()
@@ -677,8 +700,9 @@ void glcReplacementCode(GLint inCode)
  *  This command assigns the value \e inVal to the variable \b GLC_RESOLUTION.
  *  \note In QuesoGLC, the resolution is used by the algorithm of
  *  de Casteljau which determine how many segments should be used in order
- *  to approximate a Bezier curve. Bezier curves are generated when glcRenderChar()
- *  is called with \b GLC_RENDER_STYLE set to \b GLC_TRIANGLE or \b GLC_LINE.
+ *  to approximate a Bezier curve. Bezier curves are generated when
+ *  glcRenderChar() is called with \b GLC_RENDER_STYLE set to \b GLC_TRIANGLE
+ *  or \b GLC_LINE.
  *  \param inVal A floating point number to be used as resolution.
  *  \sa glcGeti() with argument GLC_RESOLUTION
  */

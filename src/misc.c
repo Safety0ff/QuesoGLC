@@ -137,34 +137,6 @@ GLboolean __glcCreateList(FT_List* list)
   return GL_TRUE;
 }
 
-/* Duplicate a Unicode string */
-__glcUniChar* __glcUniCopy(__glcUniChar* inUniChar, GLint inStringType)
-{
-  __glcUniChar* outUniChar = NULL;
-  int length = 0;
-  GLCchar* buffer = NULL;
-
-  length = __glcUniEstimate(inUniChar, inStringType);
-  buffer = (GLCchar *)__glcMalloc(length);
-  if (!buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  __glcUniConvert(inUniChar, buffer, inStringType, length);
-  outUniChar = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-  if (!outUniChar) {
-    __glcFree(buffer);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  outUniChar->ptr = buffer;
-  outUniChar->type = inStringType;
-
-  return outUniChar;
-}
-
 /* Convert a character from UCS1 to UTF-8 and return the number of bytes
  * needed to encode the char.
  */
@@ -279,50 +251,53 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
     {
       FcChar8* ucs1 = NULL;
 
-      for (len = 0, ucs1 = (FcChar8*)inString; ucs1; ucs1++,
-	     len += __glcUcs1ToUtf8(*ucs1, buffer));
+      for (len = 0, ucs1 = (FcChar8*)inString; *ucs1;
+	     len += __glcUcs1ToUtf8(*ucs1++, buffer));
       string = (FcChar8*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
-      for (ucs1 = (FcChar8*)inString, ptr = string; ucs1; ucs1++,
-	     ptr += __glcUcs1ToUtf8(*ucs1, ptr));
+      for (ucs1 = (FcChar8*)inString, ptr = string; *ucs1;
+	     ptr += __glcUcs1ToUtf8(*ucs1++, ptr));
       *ptr = 0;
     }
+    break;
   case GLC_UCS2:
     {
       FcChar16* ucs2 = NULL;
 
-      for (len = 0, ucs2 = (FcChar16*)inString; ucs2; ucs2++,
-	     len += __glcUcs2ToUtf8(*ucs2, buffer));
+      for (len = 0, ucs2 = (FcChar16*)inString; *ucs2;
+	     len += __glcUcs2ToUtf8(*ucs2++, buffer));
       string = (FcChar8*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
-      for (ucs2 = (FcChar16*)inString, ptr = string; ucs2; ucs2++,
-	     ptr += __glcUcs2ToUtf8(*ucs2, ptr));
+      for (ucs2 = (FcChar16*)inString, ptr = string; *ucs2;
+	     ptr += __glcUcs2ToUtf8(*ucs2++, ptr));
       *ptr = 0;
     }
+    break;
   case GLC_UCS4:
     {
       FcChar32* ucs4 = NULL;
 
-      for (len = 0, ucs4 = (FcChar32*)inString; ucs4; ucs4++,
-	     len += FcUcs4ToUtf8(*ucs4, buffer));
+      for (len = 0, ucs4 = (FcChar32*)inString; *ucs4;
+	     len += FcUcs4ToUtf8(*ucs4++, buffer));
       string = (FcChar8*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
-      for (ucs4 = (FcChar32*)inString, ptr = string; ucs4; ucs4++,
-	     ptr += FcUcs4ToUtf8(*ucs4, ptr));
+      for (ucs4 = (FcChar32*)inString, ptr = string; *ucs4;
+	     ptr += FcUcs4ToUtf8(*ucs4++, ptr));
       *ptr = 0;
     }
+    break;
   default:
     return NULL;
   }
@@ -347,64 +322,185 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
       FcChar8 buffer[GLC_OUT_OF_RANGE_LEN];
       FcChar8* ucs1 = NULL;
 
-      for (utf8 = inString; utf8;
-	   utf8 += __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
-				   &len_buffer))
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
+				&len_buffer);
 	len += len_buffer;
+      }
+
       string = (GLCchar*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      utf8 = inString;
       ucs1 = (FcChar8*)string;
-      for (utf8 = inString; utf8;
-	   utf8 += __glcUtf8ToUcs1(utf8, ucs1, strlen((const char*)utf8),
-				   &len_buffer))
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs1(utf8, ucs1, strlen((const char*)utf8),
+				&len_buffer);
 	ucs1 += len_buffer;
+      }
       *ucs1 = 0;
     }
+    break;
   case GLC_UCS2:
     {
       FcChar16 buffer[GLC_OUT_OF_RANGE_LEN];
       FcChar16* ucs2 = NULL;
 
-      for (utf8 = inString; utf8;
-	   utf8 += __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
-				   &len_buffer))
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
+				&len_buffer);
 	len += len_buffer;
+      }
+
       string = (GLCchar*)__glcMalloc((len+1)*sizeof(FcChar16));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      utf8 = inString;
       ucs2 = (FcChar16*)string;
-      for (utf8 = inString; utf8;
-	   utf8 += __glcUtf8ToUcs2(utf8, ucs2, strlen((const char*)utf8),
-				   &len_buffer))
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs2(utf8, ucs2, strlen((const char*)utf8),
+				&len_buffer);
 	ucs2 += len_buffer;
+      }
       *ucs2 = 0;
     }
+    break;
   case GLC_UCS4:
     {
       FcChar32 buffer = 0;
       FcChar32* ucs4 = NULL;
 
-      for (utf8 = inString, len = 0; utf8;
-	   utf8 += FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8)),
-	     len++)
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
+	len++;
+      }
+
       string = (GLCchar*)__glcMalloc((len+1)*sizeof(FcChar32));
+      if (!string) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return NULL;
+      }
+      
+      utf8 = inString;
+      ucs4 = (FcChar32*)string;
+      while(*utf8)
+	utf8 += FcUtf8ToUcs4(utf8, ucs4++, strlen((const char*)utf8));
+
+      *ucs4 = 0;
+    }
+    break;
+  default:
+    return NULL;
+  }
+  return string;
+}
+
+
+/* Convert 'inString' from the UTF-8 format and return a copy of the
+ * converted string in the context buffer.
+ */
+GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
+				      const FcChar8* inString,
+				      const GLint inStringType)
+{
+  GLCchar* string = NULL;
+  const FcChar8* utf8 = NULL;
+  int len_buffer = 0;
+  int len = 0;
+
+  switch(inStringType) {
+  case GLC_UCS1:
+    {
+      FcChar8 buffer[GLC_OUT_OF_RANGE_LEN];
+      FcChar8* ucs1 = NULL;
+
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
+				&len_buffer);
+	len += len_buffer;
+      }
+
+      string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar8));
+      if (!string) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return NULL;
+      }
+
+      ucs1 = (FcChar8*)string;
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs1(utf8, ucs1, strlen((const char*)utf8),
+				&len_buffer);
+	ucs1 += len_buffer;
+      }
+
+      *ucs1 = 0;
+    }
+    break;
+  case GLC_UCS2:
+    {
+      FcChar16 buffer[GLC_OUT_OF_RANGE_LEN];
+      FcChar16* ucs2 = NULL;
+
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
+				&len_buffer);
+	len += len_buffer;
+      }
+
+      string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar16));
+      if (!string) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return NULL;
+      }
+
+      ucs2 = (FcChar16*)string;
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += __glcUtf8ToUcs2(utf8, ucs2, strlen((const char*)utf8),
+				&len_buffer);
+	ucs2 += len_buffer;
+      }
+      *ucs2 = 0;
+    }
+    break;
+  case GLC_UCS4:
+    {
+      FcChar32 buffer = 0;
+      FcChar32* ucs4 = NULL;
+
+      utf8 = inString;
+      while(*utf8) {
+	utf8 += FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
+	len++;
+      }
+
+      string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
       
-      for (utf8 = inString, ucs4 = (FcChar32*)string; utf8;
-	   utf8 += FcUtf8ToUcs4(utf8, ucs4, strlen((const char*)utf8)), ucs4++)
+      utf8 = inString;
+      ucs4 = (FcChar32*)string;
+      while(*utf8)
+	utf8 += FcUtf8ToUcs4(utf8, ucs4++, strlen((const char*)utf8));
+
       *ucs4 = 0;
     }
+    break;
   default:
     return NULL;
   }

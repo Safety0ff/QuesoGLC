@@ -632,9 +632,6 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   static GLCchar* __glcVendor = (GLCchar*) "Queso Software";
 
   __glcContextState *state = NULL;
-  __glcUniChar s;
-  GLCchar *buffer = NULL;
-  GLint length = 0;
 
   /* Check the parameters */
   switch(inAttrib) {
@@ -657,32 +654,14 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   /* Get the relevant string in a Unicode string in GLC_UCS1 format */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
-    s.ptr = __glcExtensions;
-    s.type = GLC_UCS1;
-    break;
+    return __glcConvertFromUtf8ToBuffer(state, __glcExtensions, GLC_UCS1);
   case GLC_RELEASE:
-    s.ptr = __glcRelease;
-    s.type = GLC_UCS1;
-    break;
+    return __glcConvertFromUtf8ToBuffer(state, __glcRelease, GLC_UCS1);
   case GLC_VENDOR:
-    s.ptr = __glcVendor;
-    s.type = GLC_UCS1;
-    break;
+    return __glcConvertFromUtf8ToBuffer(state, __glcVendor, GLC_UCS1);
   default:
     return GLC_NONE;
   }
-
-  /* Allocates a buffer which size equals the length of the transformed
-   * string */
-  length = __glcUniEstimate(&s, state->stringType);
-  buffer = __glcCtxQueryBuffer(state, length);
-  if (buffer)
-    /* Converts the string into the current string type */
-    __glcUniConvert(&s, buffer, state->stringType, length);
-  else
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-
-  return buffer;
 }
 
 

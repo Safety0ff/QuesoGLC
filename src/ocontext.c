@@ -229,14 +229,18 @@ void __glcRaiseError(GLCenum inError)
 static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
 {
   FcChar32 charCode;
-  FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
+  FcChar32 base = 0;
+  FcChar32 next = 0;
+  FcChar32 prev_base = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
 
   /* Update the minimum mapped code */
   base = FcCharSetFirstPage(charSet, map, &next);
   for (i = 0; i < FC_CHARSET_MAP_SIZE; i++)
     if (map[i]) break;
-  assert(i < FC_CHARSET_MAP_SIZE); /* If the map contains no char then something went wrong... */
+  assert(i < FC_CHARSET_MAP_SIZE); /* If the map contains no char then
+				    * something went wrong... */
   for (j = 0; j < 32; j++)
     if ((map[i] >> j) & 1) break;
   charCode = base + (i << 5) + j;
@@ -246,17 +250,15 @@ static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
   /* Update the maximum mapped code */
   base = FcCharSetFirstPage(charSet, map, &next);
   do {
+    prev_base = base;
     base = FcCharSetNextPage(charSet, map, &next);
-  } while ((base != FC_CHARSET_DONE) && (next != FC_CHARSET_DONE));
-  assert(base != FC_CHARSET_DONE); /* Must be checked so that the loop can end
-                                    * even in severe conditions. However in
-                                    * nominal conditions it should not occur.
-                                    */
+  } while (base != FC_CHARSET_DONE);
+
   for (i = FC_CHARSET_MAP_SIZE - 1; i >= 0; i--)
     if (map[i]) break;
   for (j = 31; j >= 0; j--)
     if ((map[i] >> j) & 1) break;
-  charCode = base + (i << 5) + j;
+  charCode = prev_base + (i << 5) + j;
   if (inMaster->maxMappedCode < charCode)
     inMaster->maxMappedCode = charCode;
 
@@ -276,7 +278,6 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 {
   /* Those buffers should be declared dynamically */
   int i = 0;
-  __glcUniChar s;
   FcConfig *config = FcConfigGetCurrent();
   struct stat dirStat;
   FcFontSet *fontSet = NULL;
@@ -350,11 +351,13 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     FT_ListNode node = NULL;
 
     /* get the file name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName) == FcResultTypeMismatch)
+    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
+	== FcResultTypeMismatch)
       continue;
 
     /* get the vendor name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &vendorName) == FcResultTypeMismatch)
+    if (FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &vendorName)
+	== FcResultTypeMismatch)
       vendorName = NULL;
 
     /* get the extension of the file */
@@ -367,14 +370,13 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     /* Determine if the family (i.e. "Times", "Courier", ...) is already
      * associated to a master.
      */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName) == FcResultTypeMismatch)
+    if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName)
+	== FcResultTypeMismatch)
       continue;
-    s.ptr = (GLCchar*)familyName;
-    s.type = GLC_UCS1;
     for (node = This->masterList->head; node; node = node->next) {
       master = (__glcMaster*)node->data;
 
-      if (!__glcUniCompare(&s, master->family))
+      if (!strcmp((const char*)familyName, (const char*)master->family))
 	break;
     }
 
@@ -393,10 +395,12 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       else
 	id = 0;
 
-      if (FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed) == FcResultTypeMismatch)
+      if (FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed)
+	  == FcResultTypeMismatch)
 	continue;
 
-      master = __glcMasterCreate(familyName, vendorName, ext, id, (fixed != FC_PROPORTIONAL),
+      master = __glcMasterCreate(familyName, vendorName, ext, id,
+				 (fixed != FC_PROPORTIONAL),
 				 This->stringType);
       if (!master) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -421,22 +425,20 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
      * if the master has just been created above. We should check if the
      * master needs to be destroyed since it won't contain a thing.
      */
-    if (FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName) == FcResultTypeMismatch)
+    if (FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName)
+	== FcResultTypeMismatch)
       continue;
-    s.ptr = (GLCchar*)styleName;
-    s.type = GLC_UCS1;
 
     for (node = master->faceList->head; node; node = node->next) {
       __glcFaceDescriptor* faceDesc = NULL;
       
       assert(node->data);
       faceDesc = (__glcFaceDescriptor*)node->data;
-      if (!__glcUniCompare(faceDesc->styleName, &s))
+      if (!strcmp((const char*)faceDesc->styleName, (const char*)styleName))
 	break;
     }
 
     if (!node) {
-      __glcUniChar sp;
       FcCharSet *charSet = NULL;
       __glcFaceDescriptor* faceDesc = NULL;
       int index = 0;
@@ -446,12 +448,11 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
        * master : Append (or prepend) the new face and its file name to
        * the master.
        */
-      sp.ptr = (GLCchar*)fileName;
-      sp.type = GLC_UCS1;
-
-      if (FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet) == FcResultTypeMismatch)
+      if (FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet)
+	  == FcResultTypeMismatch)
         continue;
-      if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index) == FcResultTypeMismatch)
+      if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index)
+	  == FcResultTypeMismatch)
 	continue;
 
       __glcUpdateCharList(master, charSet);
@@ -471,7 +472,10 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 	return;
       }
 
-      faceDesc->fileName = __glcUniCopy(&sp, GLC_UCS1);
+      /* Filenames are kept in their original format which is supposed to
+       * be compatible with strlen()
+       */
+      faceDesc->fileName = (FcChar8*)strdup((const char*)fileName);
       if (!faceDesc->fileName) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(newNode);
@@ -479,10 +483,9 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 	FcFontSetDestroy(fontSet);
 	return;
       }
-      faceDesc->styleName = __glcUniCopy(&s, This->stringType);
+      faceDesc->styleName = (FcChar8*)strdup((const char*)styleName);
       if (!faceDesc->styleName) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcUniDestroy(faceDesc->fileName);
 	__glcFree(faceDesc->fileName);
 	__glcFree(newNode);
 	__glcFree(faceDesc);
@@ -493,9 +496,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       faceDesc->charSet = FcCharSetCreate();
       if (!faceDesc->charSet) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcUniDestroy(faceDesc->fileName);
 	__glcFree(faceDesc->fileName);
-	__glcUniDestroy(faceDesc->styleName);
 	__glcFree(faceDesc->styleName);
 	__glcFree(newNode);
 	__glcFree(faceDesc);
@@ -606,7 +607,6 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
   FcStrSetDestroy(subDirs); /* Sub directories are not scanned */
 
   for (i = 0; i < fontSet->nfont; i++) {
-    __glcUniChar s;
     FT_ListNode node = NULL;
     FcChar8 *fileName = NULL;
 
@@ -625,16 +625,13 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       if (!master)
 	continue;
 
-      s.ptr = fileName;
-      s.type = GLC_UCS1;
-
       for (faceNode = master->faceList->head; faceNode;
 	   faceNode = faceNode->next) {
 	__glcFaceDescriptor* faceDesc = NULL;
 
 	assert(faceNode->data);
 	faceDesc = (__glcFaceDescriptor*)faceNode->data;
-	if (!__glcUniCompare(faceDesc->fileName, &s))
+	if (!strcmp((const char*)faceDesc->fileName, (const char*)fileName))
 	  break;
       }
 

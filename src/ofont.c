@@ -28,7 +28,6 @@
 
 __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
 {
-  __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
   __glcFont *This = NULL;
   __glcContextState *state = __glcGetCurrent();
@@ -43,8 +42,6 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-  s = ((__glcFaceDescriptor*)inParent->faceList->head->data)->fileName;
-
   This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
 
   This->faceDesc = NULL;
@@ -52,15 +49,8 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
   This->charMapCount = 0;
   This->id = inID;
 
-  buffer = (GLCchar*)__glcMalloc(__glcUniLenBytes(s));
-  if (!buffer) {
-    __glcFree(This);
-    return NULL;
-  }
-  __glcUniDup(s, buffer, __glcUniLenBytes(s));
-
   if (FT_New_Face(state->library, 
-		  (const char*)buffer, 0, &This->face)) {
+		  (const char*)((__glcFaceDescriptor*)inParent->faceList->head->data)->fileName, 0, &This->face)) {
     /* Unable to load the face file, however this should not happen since
        it has been succesfully loaded when the master was created */
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -68,8 +58,6 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
     __glcFree(This);
     return NULL;
   }
-
-  __glcFree(buffer);
 
   /* select a Unicode charmap */
   if (FT_Select_Charmap(This->face, ft_encoding_unicode)) {

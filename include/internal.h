@@ -83,9 +83,6 @@ extern "C" {
   extern GLint __glcCodeFromName(GLCchar* name);
   /* Create an initialize a FreeType  double linked list */
   extern GLboolean __glcCreateList(FT_List* list);
-  /* Duplicate a Unicode string */
-  extern __glcUniChar* __glcUniCopy(__glcUniChar* inUniChar,
-				    GLint inStringType);
 
   /* Duplicate a string in UTF-8 format */
   extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
@@ -94,6 +91,10 @@ extern "C" {
   extern GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
 				       const GLint inStringType);
 
+  /* Duplicate a UTF-8 string to the context buffer */
+  extern GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
+					       const FcChar8* inString,
+					       const GLint inStringType);
 #ifdef __cplusplus
 }
 #endif
