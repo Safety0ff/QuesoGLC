@@ -118,6 +118,7 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 	/* These are estimations since there is no way to compute the
 	   max layouts without drawing ALL the glyphs (which should be
 	   a big performance hit) !!!
+	   Use face->bbox instead...
 	 */
 	temp = (GLfloat)faceSize->max_advance / x_ppem / 65536.;
 	if (temp > xr)
