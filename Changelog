@@ -1,6 +1,11 @@
 Changes made from the "Birth" release to the "Baby" release:
 -----------------------------------------------------------
 
+- Now uses NDBM (which is much more portable) instead of GDBM
+- Fixed a bug in glcDeleteContext() where QuesoGLC tried to destroy the GL
+  objects of the current context instead of those of the context to be deleted.
+- Contexts are now stored in a linked list and their number is not limited to
+  16 anymore.
 - Fixed glcGetAllContexts which returned wrong context IDs and did not zero-
   terminate the array.
 - Fixed the error path in __glcInitLibrary where glcCommonArea was freed before
@@ -15,8 +20,6 @@ Changes made from the "Birth" release to the "Baby" release:
   deleted from the 'stateList' array.
 - QuesoGLC now has the ability to use custom memory manager routines
   (see __glcFree, __glcMalloc and __glcRealloc)
-- QuesoGLC can now be built without the "pthread" library. However the "pthread"
-  library is still being mandatory for multi-thread support.
 - FreeType2 now uses a custom memory manager based on __glcFree, __glcMalloc and
   __glcRealloc. This helps debugging and detection of memory leaks.
 - Variables GLC_MIN_MAPPED_CODE, GLC_MAX_MAPPED_CODE, GLC_CHAR_COUNT and the
