@@ -316,20 +316,28 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
    */
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
-    if (inIndex > state->currentFontCount) {
+    for (node = state->currentFontList->head; inIndex && node;
+         node = node->next, inIndex--) {}
+
+    if (node)
+      return ((__glcFont*)node->data)->id;
+    else {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
-    return state->currentFontList[inIndex];
   case GLC_FONT_LIST:
-    if (inIndex > state->fontCount) {
+    for (node = state->fontList->head; inIndex && node;
+         node = node->next, inIndex--) {}
+
+    if (node)
+      return ((__glcFont*)node->data)->id;
+    else {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
     /* Verify that the requested font still exists. If it does then return its
      * ID, otherwise return zero.
      */
-    return (state->fontList[inIndex] ? inIndex : 0);
   case GLC_LIST_OBJECT_LIST:
     if (inIndex > state->listObjectCount) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -521,6 +529,7 @@ GLint glcGeti(GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
+  GLint count = 0;
 
   /* Check the parameters */
   switch(inAttrib) {
@@ -554,9 +563,11 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_CATALOG_COUNT:
     return __glcStrLstLen(state->catalogList);
   case GLC_CURRENT_FONT_COUNT:
-    return state->currentFontCount;
+    for (node = state->currentFontList->head; node; node = node->next, count++) {}
+    return count;
   case GLC_FONT_COUNT:
-    return state->fontCount;
+    for (count = 0, node = state->fontList->head; node; node = node->next, count++) {}
+    return count;
   case GLC_LIST_OBJECT_COUNT:
     return state->listObjectCount;
   case GLC_MASTER_COUNT:

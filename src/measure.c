@@ -41,12 +41,23 @@ static void __glcTransformVector(GLfloat* outVec, __glcContextState *inState)
 
 static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec, GLint inFont, __glcContextState *inState)
 {
-    __glcFont *font = inState->fontList[inFont - 1];
-    FT_Face face = font->face;
-    FT_Glyph_Metrics metrics = face->glyph->metrics;
+    FT_Face face = NULL;
+    FT_Glyph_Metrics metrics;
     FT_Glyph glyph = NULL;
     FT_BBox boundBox;
     GLint i = 0;
+    __glcFont *font = NULL;
+    FT_ListNode node = NULL;
+
+   for (node = inState->fontList->head; node; node = node->next) {
+     font = (__glcFont*)node->data;
+     if (font->id == inFont) break;
+   }
+
+  if (!node) return NULL;
+
+  face = font->face;
+  metrics = face->glyph->metrics;
     
     /* TODO : use a dichotomic algo. instead*/
     for (i = 0; i < font->charMapCount; i++) {
@@ -97,7 +108,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outV
 GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 {
     GLint repCode = 0;
-    GLint font = 0;
+    GLint font = NULL;
     __glcContextState *state = NULL;
 
     switch(inMetric) {
@@ -134,7 +145,7 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     __glcContextState *state = NULL;
     FT_Face face = NULL;
     GLfloat advance = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
-    GLint i = 0;
+    FT_ListNode node = NULL;
 
     switch(inMetric) {
 	case GLC_BASELINE:
@@ -151,9 +162,9 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 	return NULL;
     }
 
-    for (i = 0; i < state->currentFontCount; i++) {
+    for (node = state->currentFontList->head; node; node = node->next) {
 	GLfloat temp = 0.;
-	face = state->fontList[state->currentFontList[i]]->face;
+	face = ((__glcFont*)node->data)->face;
 	
 	temp = (GLfloat)face->max_advance_width;
 	if (temp > advance)

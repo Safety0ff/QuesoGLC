@@ -45,35 +45,33 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+  memset(This, 0, sizeof(__glcContextState));
 
-  if (FT_New_Library(__glcCommonArea->memoryManager, &This->library)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    This->library = NULL;
-    __glcFree(This);
-    return NULL;
-  }
+  if (FT_New_Library(__glcCommonArea->memoryManager, &This->library))
+    goto out_of_memory;
   FT_Add_Default_Modules(This->library);
 
   This->catalogList = __glcStrLstCreate(NULL);
-  if (!This->catalogList) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FT_Done_Library(This->library);
-    This->library = NULL;
-    __glcFree(This);
-    return NULL;
-  }
+  if (!This->catalogList)
+    goto out_of_memory;
 
   This->masterList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-  if (!This->masterList) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcStrLstDestroy(This->catalogList);
-    FT_Done_Library(This->library);
-    This->library = NULL;
-    __glcFree(This);
-    return NULL;    
-  }
+  if (!This->masterList)
+    goto out_of_memory;
   This->masterList->head = NULL;
   This->masterList->tail = NULL;
+
+  This->currentFontList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  if (!This->currentFontList)
+    goto out_of_memory;
+  This->currentFontList->head = NULL;
+  This->currentFontList->tail = NULL;
+
+  This->fontList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  if (!This->fontList)
+    goto out_of_memory;
+  This->fontList->head = NULL;
+  This->fontList->tail = NULL;
 
   This->isCurrent = GL_FALSE;
   This->id = inContext;
@@ -88,8 +86,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
   This->bitmapMatrix[3] = 1.;
-  This->currentFontCount = 0;
-  This->fontCount = 0;
   This->listObjectCount = 0;
   This->measuredCharCount = 0;
   This->renderStyle = GLC_BITMAP;
@@ -100,12 +96,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->versionMinor = 2;
   This->isInCallbackFunc = GL_FALSE;
 
-  for (j=0; j < GLC_MAX_CURRENT_FONT; j++)
-    This->currentFontList[j] = 0;
-
-  for (j=0; j < GLC_MAX_FONT; j++)
-    This->fontList[j] = NULL;
-
   for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
     This->textureObjectList[j] = 0;
 
@@ -113,6 +103,21 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bufferSize = 0;
 
   return This;
+
+out_of_memory:
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    if (This->fontList)
+      __glcFree(This->fontList);
+    if (This->currentFontList)
+      __glcFree(This->currentFontList);
+    if (This->catalogList)
+      __glcStrLstDestroy(This->catalogList);
+    if (This->masterList)
+      __glcFree(This->masterList);
+    if (This->library)
+      FT_Done_Library(This->library);
+    __glcFree(This);
+    return NULL;    
 }
 
 
@@ -130,6 +135,16 @@ static void __glcMasterDestructor(FT_Memory memory, void *data, void *user)
 
 
 
+static void __glcFontDestructor(FT_Memory inMemory, void *inData, void* inUser)
+{
+  __glcFont *font = (__glcFont*)inData;
+  
+  if (font)
+    glcDeleteFont(font->id);
+}
+
+
+
 /* Destroys a context : it first destroys all the objects (whether they are
  * internal GLC objects or GL textures or GL display lists) that have been
  * created during the life of the context. Then it releases the memory occupied
@@ -137,22 +152,14 @@ static void __glcMasterDestructor(FT_Memory memory, void *data, void *user)
  */
 void __glcCtxDestroy(__glcContextState *This)
 {
-  int i = 0;
-
   if (!This)
     return; /* Ooops!! Something is wrong in the lib */
 
   __glcStrLstDestroy(This->catalogList);
 
-  for (i = 0; i < GLC_MAX_FONT; i++) {
-    __glcFont *font = NULL;
-
-    font = This->fontList[i];
-    if (font) {
-      glcDeleteFont(i + 1);
-      This->fontList[i] = NULL;
-    }
-  }
+  FT_List_Finalize(This->fontList, __glcFontDestructor,
+                   __glcCommonArea->memoryManager, NULL);
+  __glcFree(This->fontList);
 
   /* Must be called before the masters are destroyed since
    * the display lists are stored in the masters.
@@ -551,7 +558,6 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
   numFontFiles = strtol(buffer, NULL, 10);
 
   for (i = 0; i < numFontFiles; i++) {
-    int j = 0;
     char *desc = NULL;
     GLint index = 0;
     FT_ListNode node = NULL;
@@ -567,6 +573,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
     /* Search the file name of the font in the masters */
     for (node = This->masterList->head; node; node = node->next) {
       __glcMaster *master;
+      FT_ListNode fontNode = NULL;
 
       master = (__glcMaster*)node->data;
       if (!master)
@@ -578,20 +585,21 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 	continue; /* The file is not in the current master, try the next one */
 
       /* Removes the corresponding faces in the font list */
-      for (i = 0; i < GLC_MAX_FONT; i++) {
-	__glcFont *font = This->fontList[i];
+      for (fontNode = This->fontList->head; fontNode; fontNode = fontNode->next) {
+	__glcFont *font = (__glcFont*)fontNode->data;
 	if (font) {
 	  if ((font->parent == master) && (font->faceID == index)) {
 	    /* Eventually remove the font from the current font list */
-	    for (j = 0; j < GLC_MAX_CURRENT_FONT; j++) {
-	      if (This->currentFontList[j] == i) {
-		memmove(&This->currentFontList[j], &This->currentFontList[j+1],
-			This->currentFontCount-j-1);
-		This->currentFontCount--;
+            FT_ListNode currentFontNode = NULL;
+            for (currentFontNode = This->currentFontList->head; currentFontNode;
+                 currentFontNode = currentFontNode->next) {
+              if (((__glcFont*)currentFontNode->data)->id == i) {
+                FT_List_Remove(This->currentFontList, currentFontNode);
+                __glcFree(currentFontNode);
 		break;
 	      }
 	    }
-	    glcDeleteFont(i + 1);
+	    glcDeleteFont(font->id);
 	  }
 	}
       }
@@ -622,10 +630,10 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
  */
 static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
 {
-  GLint i = 0;
+  FT_ListNode node = NULL;
 
-  for (i = 0; i < inState->currentFontCount; i++) {
-    const GLint font = inState->currentFontList[i];
+  for (node = inState->currentFontList->head; node; node = node->next) {
+    const GLint font = ((__glcFont*)node->data)->id;
     if (glcGetFontMap(font, inCode))
       return font;
   }
@@ -690,7 +698,7 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
     GLint i = 0;
     FT_ListNode node = NULL;
 
-    for (i = 0; i < This->fontCount; i++) {
+    for (i = 0; i < glcGeti(GLC_FONT_COUNT); i++) {
       font = glcGetListi(GLC_FONT_LIST, i);
       if (glcGetFontMap(font, inCode)) {
 	glcAppendFont(font);

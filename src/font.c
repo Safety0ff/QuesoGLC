@@ -29,6 +29,40 @@
 #include "internal.h"
 #include FT_LIST_H
 
+/* Most font commands need to check that :
+ *   1. The current thread owns a context state
+ *   2. The font identifier 'inFont' is legal
+ * This internal function does both checks and returns the pointer to the
+ * __glcFont object that is identified by 'inFont'.
+ */
+static __glcFont* __glcVerifyFontParameters(GLint inFont)
+{
+  __glcContextState *state = NULL;
+  FT_ListNode node = NULL;
+  __glcFont *font = NULL;
+
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return NULL;
+  }
+
+  /* Verify if the font identifier is in legal bounds */
+  for (node = state->fontList->head; node; node = node->next) {
+    font = (__glcFont*)node->data;
+    if (font->id == inFont) break;
+  }
+
+  if (!node) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  /* Returns the __glcFont object identified by inFont */
+  return font;
+}
+
 /* glcAppendFont:
  *   This command appends inFont to the list GLC_CURRENT_FONT_LIST. The command
  *   raises GLC_PARAMETER_ERROR if inFont is an element in the list
@@ -37,34 +71,26 @@
 void glcAppendFont(GLint inFont)
 {
   __glcContextState *state = NULL;
-  GLint i = 0;
+  FT_ListNode node = NULL;
+  __glcFont *font = NULL;
 
   /* Verify that the font exists */
-  if (!glcIsFont(inFont))
+  font = __glcVerifyFontParameters(inFont);
+  if (!font)
     return;
-
-  /* Check if the thread as a current context state */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return;
-  }
 
   /* Check if inFont is already an element of GLC_CURRENT_FONT_LIST */
-  for (i = 0; i < state->currentFontCount; i++) {
-    if (state->currentFontList[i] == inFont) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return;
-    }
+  if (FT_List_Find(state->currentFontList, font))
+    return;
+
+  node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+  if (!node) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
   }
 
-  if (state->currentFontCount < GLC_MAX_CURRENT_FONT) {
-    /* Add the font to the GLC_CURRENT_FONT_LIST */
-    state->currentFontList[state->currentFontCount] = inFont;
-    state->currentFontCount++;
-  }
-  else
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  node->data = font;
+  FT_List_Add(state->currentFontList, node);
 
   return;
 }
@@ -73,21 +99,17 @@ void glcAppendFont(GLint inFont)
  * a font. __glcDeleteFont removes, if necessary,  the font identified by
  * inFont from the list GLC_CURRENT_FONT_LIST.
  */
-static void __glcDeleteFont(GLint inFont, __glcContextState* state)
+static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
 {
-  int i = 0;
+  FT_ListNode node = NULL;
     
   /* Look for the font into GLC_CURRENT_FONT_LIST */
-  for(i = 0; i < state->currentFontCount; i++) {
-    if (state->currentFontList[i] == inFont)
-      break;
-  }
- 
+  node = FT_List_Find(state->currentFontList, font);
+
   /* If the font has been found, remove it from the list */
-  if (i < state->currentFontCount) {
-    memmove(&state->currentFontList[i], &state->currentFontList[i+1],
-	    (GLC_MAX_CURRENT_FONT - i -1) * sizeof(GLint));
-    state->currentFontCount--;
+  if (node) {
+    FT_List_Remove(state->currentFontList, node);
+    __glcFree(node);
   }
 }
 
@@ -99,26 +121,20 @@ static void __glcDeleteFont(GLint inFont, __glcContextState* state)
 void glcDeleteFont(GLint inFont)
 {
   __glcContextState *state = NULL;
-  __glcFont *font = NULL;
+  __glcFont *font = __glcVerifyFontParameters(inFont);
+  FT_ListNode node = NULL;
 
   /* Check if the font identified by inFont exists */
-  if (!glcIsFont(inFont))
+  if (!font)
     return;
 
-  /* Verify that the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return;
-  }
-
-  __glcDeleteFont(inFont, state);
+  __glcDeleteFont(font, state);
 
   /* Destroy the font and remove it from the GLC_FONT_LIST */
-  font = state->fontList[inFont - 1];
+  node = FT_List_Find(state->fontList, font);
+  FT_List_Remove(state->fontList, node);
+  __glcFree(node);
   __glcFontDestroy(font);
-  state->fontList[inFont - 1] = NULL;
-  state->fontCount--;
 }
 
 /* glcFont:
@@ -131,25 +147,48 @@ void glcFont(GLint inFont)
 {
   __glcContextState *state = NULL;
 
-  /* If inFont is nonzero, check if it exists */
-  if (inFont)
-    if (!glcIsFont(inFont))
+  if (inFont) {
+    __glcFont* font = __glcVerifyFontParameters(inFont);
+    FT_ListNode node = NULL;
+
+    /* Check if the font exists */
+    if (!font)
       return;
 
-  /* Verify if the current thead owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return;
+    state = __glcGetCurrent();
+
+    /* Append the font identified by inFont to GLC_CURRENT_FONT_LIST */
+
+    /* Remove the first node of the list in order to prevent it to be
+     * deleted by FT_List_Finalize().
+     */
+    node = state->currentFontList->head;
+    FT_List_Remove(state->currentFontList, node);
+
+    FT_List_Finalize(state->currentFontList, __glcListDestructor,
+                     __glcCommonArea->memoryManager, NULL);
+
+    /* Reset the list and insert the updated node as the first and only node
+     * of the list.
+     */
+    state->currentFontList->head = NULL;
+    state->currentFontList->tail = NULL;
+    node->data = font;
+    FT_List_Add(state->currentFontList, node);
   }
+  else {
+    /* Verify if the current thread owns a context state */
+    state = __glcGetCurrent();
+    if (!state) {
+      __glcRaiseError(GLC_STATE_ERROR);
+      return;
+    }
 
-  /* Empties the list GLC_CURRENT_FONT_LIST */
-  state->currentFontCount = 0;
-
-  /* If inFont is nonzero then append it to GLC_CURRENT_FONT_LIST */
-  if (inFont) {
-    state->currentFontList[0] = inFont;
-    state->currentFontCount = 1;
+    /* Empties the list GLC_CURRENT_FONT_LIST */
+    FT_List_Finalize(state->currentFontList, NULL,
+                     __glcCommonArea->memoryManager, NULL);
+    state->currentFontList->head = NULL;
+    state->currentFontList->tail = NULL;
   }
 }
 
@@ -159,24 +198,16 @@ void glcFont(GLint inFont)
  * it leaves the font 'inFont' unchanged. GL_TRUE or GL_FALSE are returned
  * to indicate if the function succeed or not.
  */
-static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContextState *inState)
+static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace, __glcContextState *inState)
 {
-  __glcFont *font = NULL;
   GLint faceID = 0;
   __glcUniChar UinFace;
   __glcUniChar *s = NULL;
   GLCchar* buffer = NULL;
   FT_Face newFace = NULL;
 
-   UinFace.ptr = (GLCchar*)inFace;
-   UinFace.type =  inState->stringType;
-
-  /* Check if the font identified by inFont exists */
-  font = inState->fontList[inFont];
-  if (!font) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GL_FALSE;
-  }
+  UinFace.ptr = (GLCchar*)inFace;
+  UinFace.type =  inState->stringType;
 
   /* Get the face ID of the face identified by the string inFace */
   faceID = __glcStrLstGetIndex(font->parent->faceList, &UinFace);
@@ -237,63 +268,28 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
 GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 {
   __glcContextState *state = NULL;
-  __glcFont *font = NULL;
 
-  /* Check if the font identified by inFont exists */
-  if (!glcIsFont(inFont))
-    return GL_FALSE;
+  if (inFont) {
+    __glcFont *font = __glcVerifyFontParameters(inFont);
 
-  /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return GL_FALSE;
-  }
+    /* Check if the font identified by inFont exists */
+    if (!font)
+      return GL_FALSE;
 
-  /* Get the __glcFont object identified by inFont */
-  font = state->fontList[inFont - 1];
-  
-  if (font)
     /* Open the new face */
-    return __glcFontFace(inFont - 1, inFace, state);
+    return __glcFontFace(font, inFace, state);
+  }
   else {
-    int i = 0;
+    FT_ListNode node = NULL;
 
     /* Search for a face which name is 'inFace' in the GLC_CURRENT_FONT_LIST */
-    for(i = 0; i < state->currentFontCount; i++) {
-      if (__glcFontFace(state->currentFontList[i] - 1, inFace, state))
+    for (node = state->currentFontList->head; node; node = node->next) {
+      if (__glcFontFace((__glcFont*)node->data, inFace, state))
 	return GL_TRUE; /* A face has been found and opened */
     }
     /* No face identified by inFace has been found in GLC_CURRENT_FONT_LIST */
     return GL_FALSE;
   }
-}
-
-/* Most font commands need to check that :
- *   1. The current thread owns a context state
- *   2. The font identifier 'inFont' is legal
- * This internal function does both checks and returns the pointer to the
- * __glcFont object that is identified by 'inFont'.
- */
-static __glcFont* __glcVerifyFontParameters(GLint inFont)
-{
-  __glcContextState *state = NULL;
-
-  /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return NULL;
-  }
-
-  /* Verify if the font identifier is in legal bounds */
-  if ((inFont < 1) || (inFont >= GLC_MAX_FONT)) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return NULL;
-  }
-
-  /* Returns the __glcFont object identified by inFont */
-  return state->fontList[inFont - 1];
 }
 
 /* glcFontMap:
@@ -406,7 +402,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 GLint glcGenFontID(void)
 {
   __glcContextState *state = NULL;
-  int i = 0;
+  FT_ListNode node = NULL;
 
   /* Verify if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -415,19 +411,12 @@ GLint glcGenFontID(void)
     return 0;
   }
 
-  /* Look for the first free entry in the list GLC_FONT_LIST */
-  for (i = 0; i < GLC_MAX_FONT; i++) {
-    if (!state->fontList[i])
-      break;
-  }
-
-  /* Returns its ID if it is in legal bounds, otherwise generate an error */
-  if (i < GLC_MAX_FONT)
-    return i + 1;
-  else {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return 0;
-  }
+  /* Look for the last entry in the list GLC_FONT_LIST */
+  node = state->fontList->tail;
+  if (!node)
+    return 1;
+  else
+    return ((__glcFont*)node->data)->id + 1;
 }
 
 /* glcGetFontFace:
@@ -594,22 +583,35 @@ GLboolean glcIsFont(GLint inFont)
  */
 static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster, __glcContextState *inState)
 {
-    __glcFont *font = NULL;
+  FT_ListNode node = NULL;
+  __glcFont *font = NULL;
 
-    /* Get the font identified by inFont */
-    font = inState->fontList[inFont - 1];
-    if (font) {
-      /* Delete the font */
-      __glcDeleteFont(inFont, inState);
-      __glcFontDestroy(font);
-    }
+  for (node = inState->fontList->head; node; node = node->next) {
+    font = (__glcFont*)node->data;
+    if (font->id == inFont)
+      break;
+    else
+      font = NULL;
+  }
 
-    /* Create a new font and add it to the list GLC_FONT_LIST */
-    font = __glcFontCreate(inFont, inMaster);
-    inState->fontList[inFont - 1] = font;
-    inState->fontCount++;
+  node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+  if (!node) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0;
+  }
 
-    return inFont;
+  if (font) {
+    /* Delete the font */
+    __glcDeleteFont(font, inState);
+    __glcFontDestroy(font);
+  }
+
+  /* Create a new font and add it to the list GLC_FONT_LIST */
+  font = __glcFontCreate(inFont, inMaster);
+  node->data = font;
+  FT_List_Add(inState->fontList, node);
+
+  return inFont;
 }
 
 /* glcNewFontFromMaster:
@@ -626,7 +628,7 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
     __glcMaster* master = NULL;
 
     /* Check if inFont is in legal bounds */
-    if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
+    if (inFont < 1) {
 	__glcRaiseError(GLC_PARAMETER_ERROR);
 	return 0;
     }
@@ -676,7 +678,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   __glcMaster* master = NULL;
 
   /* Check if inFont is in legal bounds */
-  if ((inFont < 1) || (inFont > GLC_MAX_FONT)) {
+  if (inFont < 1) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   }

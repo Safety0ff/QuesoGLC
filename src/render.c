@@ -331,9 +331,17 @@ static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode, GLint ren
 static void __glcRenderChar(GLint inCode, GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
-  __glcFont* font = state->fontList[inFont - 1];
+  __glcFont* font = NULL;
   GLint glyphIndex = 0;
   GLint i = 0;
+  FT_ListNode node = NULL;
+
+  for (node = state->fontList->head; node; node = node->next) {
+    font = (__glcFont*)node->data;
+    if (font->id == inFont) break;
+  }
+
+  if (!node) return;
 
   /* Convert the code 'inCode' using the charmap */
   /* TODO : use a dichotomic algo. instead*/

@@ -53,10 +53,8 @@ typedef struct {
   FT_List catalogList; /* GLC_CATALOG_LIST */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
-  GLint currentFontList[GLC_MAX_CURRENT_FONT];
-  GLint currentFontCount;	/* GLC_CURRENT_FONT_COUNT */
-  __glcFont* fontList[GLC_MAX_FONT];
-  GLint fontCount;		/* GLC_FONT_COUNT */
+  FT_List currentFontList;
+  FT_List fontList;
   GLint listObjectCount;	/* GLC_LIST_OBJECT_COUNT */
   FT_List masterList;
   GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
