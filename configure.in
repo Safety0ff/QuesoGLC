@@ -1,0 +1,74 @@
+AC_INIT(include/internal.h)
+AC_PREREQ(2.12)
+AC_CONFIG_HEADER(include/qglc_config.h:include/qglc_config.hin)
+
+AC_PROG_CC
+AC_PROG_CXX
+
+dnl Check GCC version
+	gccver=`gcc -v 2>&1 | tail -1 | awk '{print $3}'`
+	echo 'checking for gcc version...' $gccver
+	chk_gccver=`echo $gccver | awk -F"." '{if ($1 > '2') print "yes";}'`
+	if test -n "$chk_gccver"; then
+		AC_DEFINE(QUESOGLC_GCC3)
+	fi
+
+dnl Test for location of X headers and libraries
+	AC_PATH_X
+	if test -n "$x_includes"; then
+		CPPFLAGS="-I$x_includes $CPPFLAGS"
+	fi
+	if test -n "$x_libraries"; then
+		LDFLAGS="-L$x_libraries $LDFLAGS"
+	fi
+	LIBS="-lX11 -lXext -lXmu"
+
+dnl Locate GDBM headers and libraries
+	AC_CHECK_HEADER(gdbm.h, , fail=y)
+	AC_CHECK_LIB(gdbm, gdbm_open, LIBS="-lgdbm $LIBS", fail=y)
+	if test -n "$fail"; then
+		AC_MSG_ERROR([Unable to locate required GDBM headers/libraries])
+	fi
+
+dnl Locate pthread library
+	AC_CHECK_HEADER(pthread.h, , fail=y)
+	AC_CHECK_LIB(pthread, pthread_create, LIBS="-lpthread $LIBS", fail=y)
+	if test -n "$fail"; then
+		AC_MSG_ERROR([Unable to locate required pthread headers/library])
+	fi
+
+CPPFLAGS="`freetype-config --cflags`"
+	AC_CHECK_HEADER(ft2build.h, , fail=y)
+	AC_CHECK_LIB(freetype, FT_Init_FreeType, LIBS="`freetype-config --libs` $LIBS", fail=y)
+	if test -n "$fail"; then
+		AC_MSG_ERROR([Unable to locate required FreeType 2.0 headers/libraries])
+	fi
+ 
+dnl Locate GL headers and libraries
+	AC_CHECK_HEADER(GL/gl.h, , fail=y)
+	AC_CHECK_LIB(GL, glBlendFunc, LIBS="-lGL $LIBS", fail=y)
+	if test -n "$fail"; then
+		AC_MSG_ERROR([Unable to locate required OpenGL headers/libraries])
+	fi
+
+dnl Locate GLU headers and libraries
+	AC_CHECK_HEADER(GL/glu.h, , fail_glu=y)
+	AC_CHECK_LIB(GLU, gluSphere, LIBS="-lGLU $LIBS", fail=y)
+	if test -n "$fail"; then
+		AC_MSG_ERROR([Unable to locate required GLU headers/libraries])
+	fi
+
+dnl Locate GLUT headers and libraries
+	AC_CHECK_HEADER(GL/glut.h, , fail_glut=y)
+	AC_CHECK_LIB(glut, glutInit, LIBS="-lglut $LIBS", fail_glut=y)
+	if test -n "$fail_glut"; then
+		AC_MSG_ERROR([Unable to locate required GLUT headers/libraries])
+	fi
+
+AC_SUBST(LIBS)
+AC_SUBST(CPPFLAGS)
+AC_SUBST(CC)
+AC_SUBST(CXX)
+
+AC_OUTPUT(makefile:makefile.unx,
+  [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h])

@@ -1,0 +1,64 @@
+C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
+	  transform.c
+CC_FILES = strlst.cpp btree.cpp ocontext.cpp omaster.cpp ofont.cpp unichar.cpp
+
+CC_SOURCE = $(addprefix src/,$(CC_FILES))
+C_SOURCE = $(addprefix src/,$(C_FILES))
+LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o)) $(addprefix obj/, $(CC_FILES:.cpp=.oo))
+TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
+	tests/testrender tests/testcontex
+
+LIBRARY = lib/libGLC.a
+DATABASE = database/unicode1.db
+BUILDER = buildDB
+
+# Programs
+CC = @CC@
+CXX = @CXX@
+
+LIBS=@LIBS@ -lstdc++
+CPPFLAGS=@CPPFLAGS@
+LDFLAGS=@LDFLAGS@
+
+ifdef DEBUGMODE
+CFLAGS = -g
+LIBS += -lefence
+else
+CFLAGS = -O2 -fomit-frame-pointer -ffast-math
+endif
+CFLAGS += -Wall -ansi -pedantic-errors
+CPPFLAGS += -Iinclude -Isrc
+
+all: $(DATABASE) $(TEST_OBJECTS) $(LIBRARY)
+
+$(DATABASE) : database/$(BUILDER)
+	cd database; ./$(BUILDER) *.txt ; cd ..
+
+tests/% :  tests/%.c $(LIBRARY)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) obj/common.o $^ -o $@ $(LIBS)
+
+obj/%.o : tests/%.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+obj/%.o : src/%.c
+	$(CXX) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+obj/%.oo : src/%.cpp
+	$(CXX) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+
+$(LIBRARY) : $(LIB_OBJECTS)
+	ar -r $@ $^
+
+database/$(BUILDER) : database/buildDB.c
+	$(CC) $(CFLAGS) $^ -o $@ -lgdbm
+
+clean:
+	rm -f config.*
+	rm -f $(OBJECTS) obj/*.o obj/*.oo
+	rm -f $(LIBRARY) database/$(BUILDER)
+	rm -f database/*.db
+	rm -fR docs/html docs/rtf
+
+distclean: clean
+	rm -f makefile configure stamp-h
+	rm -f include/qglc_config.h

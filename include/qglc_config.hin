@@ -1,0 +1,2 @@
+/* Define if gcc version is greater or equal to 3 */
+#undef QUESOGLC_GCC3

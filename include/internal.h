@@ -1,5 +1,6 @@
 /* $Id$ */
 #include "GL/glc.h"
+#include "qglc_config.h"
 #include "ofont.h"
 #include "ocontext.h"
 
@@ -10,7 +11,9 @@
 extern "C" {
 #endif
 
-  //extern char* strdup(const char *s);
+#ifndef QUESOGLC_GCC3
+extern char* strdup(const char *s);
+#endif
 
 typedef struct {
   GLint face;
