@@ -2,3 +2,10 @@ Changes made fom the "Birth" release to the "Baby" release:
 ----------------------------------------------------------
 
 - Added many comments to the sources.
+- Removed the stupid parameter GLC_INTERNAL_ERROR
+- QuesoGLC now computes automatically the resolution of the screen in DPI using
+  X window commands.
+- The GLC_RESOLUTION parameter provides now a way for the user to choose the
+  precision of the algorithm of de Casteljau.
+- Fixed a bug that occured when a context was deleted : its entry were not
+  deleted from the 'stateList' array.
