@@ -4,6 +4,7 @@
 /* $Id$ */
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -16,11 +17,34 @@ static pthread_once_t __glcInitThreadOnce = PTHREAD_ONCE_INIT;
 static pthread_mutex_t __glcCommonAreaMutex;
 static pthread_key_t __glcContextKey;
 static pthread_key_t __glcErrorKey;
-char __glcBuffer[GLC_STRING_CHUNK];
 GDBM_FILE unicod1, unicod2;
 
-static void __glcInitThread(void)
+static void __glcInit(void)
 {
+    int i = 0;
+   
+    /* create Common Area */
+    __glcContextIsCurrent = (GLboolean *)malloc(sizeof(GLboolean) * GLC_MAX_CONTEXTS);
+    if (!__glcContextIsCurrent)
+	return;
+
+    __glcContextStateList = (__glcContextState **)malloc(sizeof(__glcContextState*) * GLC_MAX_CONTEXTS);
+    if (!__glcContextStateList) {
+	free(__glcContextIsCurrent);
+	return;
+    }
+   
+    for (i=0; i< GLC_MAX_CONTEXTS; i++) {
+	__glcContextIsCurrent[i] = GL_FALSE;
+	__glcContextStateList[i] = NULL;
+    }
+    
+    unicod1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
+    if (!unicod1)
+      printf("%s\n", "Can not open database/unicode1.db");
+    unicod2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
+    if (!unicod2)
+      printf("%s\n", "Can not open database/unicode2.db");
     pthread_mutex_init(&__glcCommonAreaMutex, NULL);
     if (pthread_key_create(&__glcContextKey, NULL)) {
 	/* Initialisation has failed. What do we do ? */
@@ -103,7 +127,7 @@ static GLboolean __glcIsContext(GLint inContext)
   */
 GLboolean glcIsContext(GLint inContext)
 {
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
 	return GL_FALSE;
@@ -118,7 +142,7 @@ GLint glcGetCurrentContext(void)
 {
     __glcContextState *state = NULL;
     
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     state = (__glcContextState *)pthread_getspecific(__glcContextKey);
     if (!state)
@@ -168,7 +192,7 @@ static void __glcDeleteContext(GLint inContext)
   */
 void glcDeleteContext(GLint inContext)
 {
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     /* verify parameters are in legal bounds */
     if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS)) {
@@ -201,7 +225,7 @@ void glcContext(GLint inContext)
     char *version = NULL;
     char *extension = NULL;
     
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     if (inContext) {
 	GLint currentContext = 0;
@@ -286,7 +310,7 @@ GLint glcGenContext(void)
     int j = 0;
     __glcContextState *state = NULL;
 
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     for (i=0 ; i<GLC_MAX_CONTEXTS; i++) {
 	if (!__glcIsContext(i))
@@ -369,7 +393,7 @@ GLint* glcGetAllContexts(void)
     int i = 0;
     GLint* contextArray = NULL;
 
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     for (i=0; i < GLC_MAX_CONTEXTS; i++) {
 	if (__glcIsContext(i))
@@ -397,35 +421,11 @@ GLint* glcGetAllContexts(void)
 GLCenum glcGetError(void)
 {
     GLCenum error = GLC_NONE;
-    pthread_once(&__glcInitThreadOnce, __glcInitThread);
+    pthread_once(&__glcInitThreadOnce, __glcInit);
 
     error = (GLCenum)pthread_getspecific(__glcErrorKey);
     __glcRaiseError(GLC_NONE);
     return error;
-}
-
-void my_init(void)
-{
-    int i = 0;
-   
-    /* create Common Area */
-    __glcContextIsCurrent = (GLboolean *)malloc(sizeof(GLboolean) * GLC_MAX_CONTEXTS);
-    if (!__glcContextIsCurrent)
-	return;
-
-    __glcContextStateList = (__glcContextState **)malloc(sizeof(__glcContextState*) * GLC_MAX_CONTEXTS);
-    if (!__glcContextStateList) {
-	free(__glcContextIsCurrent);
-	return;
-    }
-   
-    for (i=0; i< GLC_MAX_CONTEXTS; i++) {
-	__glcContextIsCurrent[i] = GL_FALSE;
-	__glcContextStateList[i] = NULL;
-    }
-    
-    unicod1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
-    unicod2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
 }
 
 void my_fini(void)

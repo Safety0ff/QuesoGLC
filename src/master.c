@@ -45,7 +45,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 		return GLC_NONE;
 	    }
 	    else {
-		s = master->faceList->extract(inIndex, (GLCchar *) __glcBuffer, GLC_STRING_CHUNK);
+		s = master->faceList->extract(inIndex, (GLCchar *) state->__glcBuffer, GLC_STRING_CHUNK);
 		break;
 	    }
 	default:
@@ -103,10 +103,10 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return GLC_NONE;
     }
-    strncpy(__glcBuffer, content.dptr, 256);
+    strncpy(state->__glcBuffer, content.dptr, 256);
     free(content.dptr);
     
-    return (const GLCchar*)__glcBuffer;
+    return (const GLCchar*)state->__glcBuffer;
 }
 
 const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
@@ -227,6 +227,7 @@ static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState, 
 	inState->masterList[inState->masterCount] = master;
 	master->id = inState->masterCount;
 	inState->masterCount++;
+	master->displayList = NULL;
 	
 	return master;
     }

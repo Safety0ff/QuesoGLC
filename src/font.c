@@ -240,7 +240,8 @@ const GLCchar* glcGetFontFace(GLint inFont)
     __glcFont *font = __glcVerifyFontParameters(inFont);
     
     if (font)
-	return font->parent->faceList->extract(font->faceID, (GLCchar *)__glcBuffer, GLC_STRING_CHUNK);
+	return font->parent->faceList->extract(font->faceID, 
+		(GLCchar *)__glcGetCurrentState()->__glcBuffer, GLC_STRING_CHUNK);
     else
 	return GLC_NONE;
 }
@@ -249,7 +250,8 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 {
     __glcFont *font = __glcVerifyFontParameters(inFont);
     
-    if (font)
+    if (font) {
+	char* __glcBuffer = __glcGetCurrentState()->__glcBuffer;
 	if (inAttrib == GLC_CHAR_LIST) {
 	    if (FT_Get_Glyph_Name(font->face, inIndex, __glcBuffer, GLC_STRING_CHUNK)) {
 		__glcRaiseError(GLC_INTERNAL_ERROR);
@@ -259,6 +261,7 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 	}
 	else
 	    return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
+    }
     else
 	return GLC_NONE;
 }
@@ -270,6 +273,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     datum key, content;
     
     if (font) {
+	char* __glcBuffer = __glcGetCurrentState()->__glcBuffer;
 	if (font->charMapCount) {
 	    GLint i = 0;
 	    

@@ -20,7 +20,6 @@
 #include <string.h>           /* strcmp(), strcpy(), strlen() */
 #include <stdlib.h>	      /* exit()			      */
 
-extern void my_init(void);
 extern void my_fini(void);
 
 static float scale;
@@ -402,8 +401,6 @@ main(int argc, char **argv)
    else {
       scale = 1.0;
    }
-
-   my_init();
 
    glutDisplayFunc(my_display);
    glutReshapeFunc(my_reshape);

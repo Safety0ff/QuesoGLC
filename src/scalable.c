@@ -203,10 +203,12 @@ static void __glcCallbackError(GLenum inErrorCode)
     __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
-void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLboolean inFill)
+void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyDisplayListDatum, compareFunc compareDisplayListKeys, GLboolean inFill)
 {
     FT_Outline *outline = NULL;
     FT_Outline_Funcs interface;
+    GLuint *list = NULL;
+    __glcDisplayListKey *dlKey = NULL;
     
     __glcRendererData rendererData;
     GLUtesselator *tess = gluNewTess();
@@ -250,6 +252,40 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLbo
     gluTessCallback(tess, GLU_TESS_END, glEnd);
 	
     gluTessNormal(tess, 0., 0., 1.);
+
+    if (inState->glObjects) {
+      list = (GLuint *)malloc(sizeof(GLuint));
+      if (!list) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
+      dlKey = (__glcDisplayListKey *)malloc(sizeof(__glcDisplayListKey));
+      if (!dlKey) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	free(list);
+	return;
+      }
+
+      *list = glGenLists(1);
+      dlKey->face = inFont->faceID;
+      dlKey->code = inCode;
+      dlKey->renderMode = inFill ? 4 : 3;
+
+      if (inFont->parent->displayList)
+	inFont->parent->displayList = inFont->parent->displayList->insert(dlKey, list);
+      else {
+	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListDatum, 
+					  destroyDisplayListDatum, compareDisplayListKeys);
+	if (!inFont->parent->displayList) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  free(dlKey);
+	  free(list);
+	  return;
+	}
+      }
+      glNewList(*list, GL_COMPILE);
+    }
+
     gluTessBeginPolygon(tess, &rendererData);
     gluTessBeginContour(tess);
     FT_Outline_Decompose(outline, &interface, &rendererData);
@@ -258,6 +294,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLbo
     
     glTranslatef(inFont->face->glyph->advance.x * rendererData.scale, 0., 0.);
     
+    if (inState->glObjects) {
+      glEndList();
+      inState->listObjectCount++;
+      glCallList(*list);
+    }
+
     gluDeleteTess(tess);
     
     free(rendererData.vertex);

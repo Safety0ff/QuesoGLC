@@ -2,15 +2,12 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
-extern void my_init(void);
 extern void my_fini(void);
 
 void testQueso(void)
 {
     int ctx = 0;
     int font = 0;
-    
-    my_init();
     
     glEnable(GL_TEXTURE_2D);
     
@@ -23,7 +20,7 @@ void testQueso(void)
     glcFont(font);
     glcFontFace(font, "Italic");
     
-    glcFontMap(font, 0x57, "LATIN SMALL LETTER W");
+    /*    glcFontMap(font, 0x57, "LATIN SMALL LETTER W"); */
     
     glcRenderStyle(GLC_LINE);
     glColor3f(0., 1., 0.);
@@ -49,15 +46,19 @@ void testQueso(void)
     glcRotate(10.);
     glcRenderChar('O');
     glcRenderString("penGL");
-    
+     
     glcRenderStyle(GLC_TRIANGLE);
     glColor3f(1., 1., 0.);
     glTranslatef(30., 50., 0.);
     glScalef(120., 120., 0.);
     glcRenderChar('Q');
-    glcRenderString("uesoGLC");
+    glcRenderStyle(GLC_LINE);
+    glcRenderChar('u');
+    glcRenderStyle(GLC_TRIANGLE);
+    glcRenderString("esoGLC");
     
     printf("Textures : %d\n", glcGeti(GLC_TEXTURE_OBJECT_COUNT));
+    printf("Display Lists : %d\n", glcGeti(GLC_LIST_OBJECT_COUNT));
     
     my_fini();
 }

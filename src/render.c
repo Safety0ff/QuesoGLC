@@ -144,7 +144,35 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     free(pixmap.buffer);
 }
 
-static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState)
+static void destroyDisplayListDatum(void *inDatum)
+{
+  free(inDatum);
+}
+
+static int compareDisplayListKeys(void *inKey1, void *inKey2)
+{
+  __glcDisplayListKey *key1 = (__glcDisplayListKey *)inKey1;
+  __glcDisplayListKey *key2 = (__glcDisplayListKey *)inKey2;
+
+  if (key1->face < key2->face)
+    return -1;
+  if (key1->face > key2->face)
+    return 1;
+
+  if (key1->code < key2->code)
+    return -1;
+  if (key1->code > key2->code)
+    return 1;
+
+  if (key1->renderMode < key2->renderMode)
+    return -1;
+  if (key1->renderMode > key2->renderMode)
+    return 1;
+
+  return 0;
+}
+
+static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState, GLint inCode)
 {
     FT_Matrix matrix;
     FT_Face face = inFont->face;
@@ -155,6 +183,8 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     GLuint texture = 0;
     GLfloat width = 0, height = 0;
     GLint format = 0;
+    GLuint *list = NULL;
+    __glcDisplayListKey *dlKey = NULL;
 
     glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, GLC_TEXTURE_SIZE,
 	GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
@@ -238,6 +268,43 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
+    if (inState->glObjects) {
+      list = (GLuint *)malloc(sizeof(GLuint));
+      if (!list) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	free(pixmap.buffer);
+	return;
+      }
+      dlKey = (__glcDisplayListKey *)malloc(sizeof(__glcDisplayListKey));
+      if (!dlKey) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	free(pixmap.buffer);
+	free(list);
+	return;
+      }
+
+      *list = glGenLists(1);
+      dlKey->face = inFont->faceID;
+      dlKey->code = inCode;
+      dlKey->renderMode = 2;
+
+      if (inFont->parent->displayList)
+	inFont->parent->displayList = inFont->parent->displayList->insert(dlKey, list);
+      else {
+	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListDatum, 
+					  destroyDisplayListDatum, compareDisplayListKeys);
+	if (!inFont->parent->displayList) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  free(pixmap.buffer);
+	  free(dlKey);
+	  free(list);
+	  return;
+	}
+      }
+      glNewList(*list, GL_COMPILE);
+      glBindTexture(GL_TEXTURE_2D, texture);
+    }
+
     glBegin(GL_QUADS);
 	glTexCoord2f(0., 0.);
 	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
@@ -253,12 +320,37 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 		boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
     glEnd();
     
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
     glTranslatef(face->glyph->advance.x * inState->bitmapMatrix[0] / EM_size / 64., 
 	face->glyph->advance.x * inState->bitmapMatrix[1] / EM_size / 64., 0.);
     
+    if (inState->glObjects) {
+      glEndList();
+      inState->listObjectCount++;
+      glCallList(*list);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     free(pixmap.buffer);
+}
+
+static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode, GLint renderMode)
+{
+    __glcDisplayListKey dlKey;
+    GLuint *list = NULL;
+
+    if (inFont->parent->displayList) {
+      dlKey.face = inFont->faceID;
+      dlKey.code = inCode;
+      dlKey.renderMode = renderMode;
+      list = (GLuint *)inFont->parent->displayList->lookup(&dlKey);
+      if (list) {
+	glCallList(*list);
+	return GL_TRUE;
+      }
+    }
+
+    return GL_FALSE;
 }
 
 static void __glcRenderChar(GLint inCode, GLint inFont)
@@ -294,12 +386,14 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 	    __glcRenderCharBitmap(font, state);
 	    return;
 	case GLC_TEXTURE:
-	    __glcRenderCharTexture(font, state);
-	    return;
+	  if (!__glcFindDisplayList(font, inCode, 2))
+	      __glcRenderCharTexture(font, state, inCode);
+	  return;
 	case GLC_LINE:
 	case GLC_TRIANGLE:
-	    __glcRenderCharScalable(font, state, (state->renderStyle == GLC_TRIANGLE));
-	    return;
+	  if (!__glcFindDisplayList(font, inCode, (state->renderStyle == GLC_TRIANGLE) ? 4 : 3))
+	    __glcRenderCharScalable(font, state, inCode, destroyDisplayListDatum, compareDisplayListKeys, (state->renderStyle == GLC_TRIANGLE));
+	  return;
 	default:
 	    __glcRaiseError(GLC_PARAMETER_ERROR);
 	    return;

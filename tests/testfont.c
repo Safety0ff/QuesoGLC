@@ -2,15 +2,12 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
-extern void my_init(void);
 extern void my_fini(void);
 
 void testQueso(void)
 {
     int ctx = 0;
     int font = 0;
-    
-    my_init();
     
     ctx = glcGenContext();
     glcContext(ctx);

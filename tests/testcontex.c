@@ -2,14 +2,11 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
-extern void my_init(void);
 extern void my_fini(void);
 
 void testQueso(void)
 {
     int ctx = 0;
-    
-    my_init();
     
     printf("Error : %d\n", glcGetError());
     glcDisable(GLC_AUTO_FONT);

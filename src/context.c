@@ -51,6 +51,9 @@ void glcDeleteGLObjects(void)
     for (i = 0; i < state->listObjectCount; i++)
 	glDeleteLists(state->listObjectList[i], 1);
 
+    for (i = 0; i < state->masterCount; i++)
+      delete state->masterList[i]->displayList;
+
     /* Deletes texture objects */
     glDeleteTextures(state->textureObjectCount, state->textureObjectList);
 
@@ -143,7 +146,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 	return GLC_NONE;
     }
     
-    return state->catalogList->extract(inIndex, (GLCchar *)__glcBuffer, GLC_STRING_CHUNK);
+    return state->catalogList->extract(inIndex, (GLCchar *)state->__glcBuffer, GLC_STRING_CHUNK);
 }
 
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)

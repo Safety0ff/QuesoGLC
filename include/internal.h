@@ -5,6 +5,7 @@
 
 #include "GL/glc.h"
 #include "strlst.h"
+#include "btree.h"
 
 #define GLC_INTERNAL_ERROR 	0x0043
 
@@ -23,6 +24,12 @@ extern "C" {
 #endif
 
 typedef struct {
+  GLint face;
+  GLint code;
+  GLint renderMode;
+} __glcDisplayListKey;
+
+typedef struct {
     GLint id;
     __glcStringList* faceList;	/* GLC_FACE_LIST */
     GLint charListCount;	/* GLC_CHAR_LIST_COUNT */
@@ -34,6 +41,7 @@ typedef struct {
     GLint maxMappedCode;	/* GLC_MAX_MAPPED_CODE */
     GLint minMappedCode;	/* GLC_MIN_MAPPED_CODE */
     __glcStringList* faceFileName;
+  BSTree* displayList;
 } __glcMaster;
 
 typedef struct {
@@ -75,11 +83,11 @@ typedef struct {
     GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
     GLfloat measurementStringBuffer[12];
     GLboolean isInCallbackFunc;
+    char __glcBuffer[GLC_STRING_CHUNK];
 } __glcContextState;
 
 /* Global internal variables */
 extern FT_Library library;
-extern char __glcBuffer[GLC_STRING_CHUNK];
 extern GDBM_FILE unicod1;
 extern GDBM_FILE unicod2;
 
@@ -91,13 +99,12 @@ extern __glcContextState* __glcGetCurrentState(void);
 extern GLint __glcGetFont(GLint inCode);
 
 /* Character renderers */
-extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLboolean inFill);
+extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroy, compareFunc compare, GLboolean inFill);
 
 /* Master helpers */
 extern void __glcDeleteMaster(GLint inMaster, __glcContextState *inState);
 
 /* Temporary functions */
-extern void my_init(void);
 extern void my_fini(void);
 
 #ifdef __cplusplus
