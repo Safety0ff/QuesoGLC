@@ -1,4 +1,27 @@
+/* QuesoGLC
+ * A free implementation of the OpenGL Character Renderer (GLC)
+ * Copyright (c) 2002-2005, Bertrand Coconnier
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 /* $Id$ */
+
+/* Example of how to render text using the rendering styles defined in the
+ * GLC specs.
+ */
+
 #include "GL/glc.h"
 #include <stdio.h>
 #if defined __APPLE__ && defined __MACH__
@@ -10,107 +33,94 @@
 
 void display(void)
 {
-    int i = 0;
-    int ntex = 0;
-    int ndl = 0;
-    
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glLoadIdentity();
-    glcRenderStyle(GLC_LINE);
-    glColor3f(0., 1., 0.);
-    glTranslatef(100., 50., 0.);
-    glRotatef(45., 0., 0., 1.);
-    glScalef(100., 100., 0.);
-    glcRenderChar('L');
-    glcRenderString("inux");
-    
-    glLoadIdentity();
-    glcRenderStyle(GLC_TEXTURE);
-    glColor3f(0., 0., 1.);
-    glTranslatef(30., 350., 0.);
-    glScalef(100., 100., 0.);
-    glcRenderChar('X');
-    glcRenderString("-windows");
-    
-    glLoadIdentity();
-    glcRenderStyle(GLC_BITMAP);
-    glColor3f(1., 0., 0.);
-    glRasterPos2f(30., 200.);
-    glcScale(100., 100.);
-    glcRotate(-10.);
-    glcRenderChar('O');
-    glcRenderString("penGL");
+  glLoadIdentity();
+  glcRenderStyle(GLC_LINE);
+  glColor3f(0., 1., 0.);
+  glTranslatef(100., 50., 0.);
+  glRotatef(45., 0., 0., 1.);
+  glScalef(90., 90., 0.);
+  glcRenderChar('L');
+  glcRenderString("ine");
 
-    glLoadIdentity();
-    glcRenderStyle(GLC_TRIANGLE);
-    glColor3f(1., 1., 0.);
-    glTranslatef(30., 50., 0.);
-    glScalef(100., 100., 0.);
-    glcRenderChar('Q');
-    glcRenderStyle(GLC_LINE);
-    glcRenderChar('u');
-    glcRenderStyle(GLC_TRIANGLE);
-    glcRenderString("esoGLC");
-    
-    glFlush();
+  glLoadIdentity();
+  glcRenderStyle(GLC_TEXTURE);
+  glColor3f(0., 0., 1.);
+  glTranslatef(30., 350., 0.);
+  glScalef(90., 90., 0.);
+  glcRenderChar('T');
+  glcRenderString("exture");
 
-    ntex = glcGeti(GLC_TEXTURE_OBJECT_COUNT);
-    printf("Textures : %d\n", ntex);
-    for (i = 0; i < ntex; i++)
-      printf("%d ", (int)glcGetListi(GLC_TEXTURE_OBJECT_LIST, i));
+  glLoadIdentity();
+  glcRenderStyle(GLC_BITMAP);
+  glColor3f(1., 0., 0.);
+  glRasterPos2f(30., 200.);
+  glcLoadIdentity();
+  glcScale(90., 90.);
+  glcRotate(-10.);
+  glcRenderChar('B');
+  glcRenderString("itmap");
 
-    ndl = glcGeti(GLC_LIST_OBJECT_COUNT);
-    printf("\nDisplay Lists : %d\n", ndl);
-    for (i = 0; i < ndl; i++)
-      printf("%d ", (int)glcGetListi(GLC_LIST_OBJECT_LIST, i));
+  glLoadIdentity();
+  glcRenderStyle(GLC_TRIANGLE);
+  glColor3f(1., 1., 0.);
+  glTranslatef(30., 50., 0.);
+  glScalef(90., 90., 0.);
+  glcRenderString("Tr");
+  glcRenderStyle(GLC_LINE);
+  glcRenderChar('i');
+  glcRenderStyle(GLC_TRIANGLE);
+  glcRenderString("angle");
 
-    printf("\n");
+  glFlush();
 }
 
 void reshape(int width, int height)
 {
-    glClearColor(0., 0., 0., 0.);
-    glViewport(0, 0, width, height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(-0.325, width - 0.325, -0.325, height - 0.325);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glFlush();
+  glClearColor(0., 0., 0., 0.);
+  glViewport(0, 0, width, height);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  gluOrtho2D(-0.325, width - 0.325, -0.325, height - 0.325);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glFlush();
 }
 
 void keyboard(unsigned char key, int x, int y)
 {
-    switch(key) {
-	case 27: /* Escape Key */
-	    exit(0);
-	default:
-	    break;
-    }
+  switch(key) {
+  case 27: /* Escape Key */
+    printf("Textures : %d\n", glcGeti(GLC_TEXTURE_OBJECT_COUNT));
+    printf("Display Lists : %d\n", glcGeti(GLC_LIST_OBJECT_COUNT));
+    exit(0);
+  default:
+    break;
+  }
 }
 
 int main(int argc, char **argv)
 {
-    int ctx = 0;
-    int font = 0;
+  int ctx = 0;
+  int font = 0;
 
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(640, 480);
-    glutCreateWindow("QuesoGLC");
-    glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
-    glutKeyboardFunc(keyboard);
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutInitWindowSize(640, 480);
+  glutCreateWindow("QuesoGLC");
+  glutDisplayFunc(display);
+  glutReshapeFunc(reshape);
+  glutKeyboardFunc(keyboard);
 
-    glEnable(GL_TEXTURE_2D);
-    
-    ctx = glcGenContext();
-    glcContext(ctx);
-    font = glcNewFontFromFamily(glcGenFontID(), "Courier");
-    glcFont(font);
-    glcFontFace(font, "Italic");
-    
-    glutMainLoop();
-    return 0;
+  glEnable(GL_TEXTURE_2D);
+
+  ctx = glcGenContext();
+  glcContext(ctx);
+  font = glcNewFontFromFamily(glcGenFontID(), "Courier");
+  glcFont(font);
+  glcFontFace(font, "Italic");
+
+  glutMainLoop();
+  return 0;
 }
