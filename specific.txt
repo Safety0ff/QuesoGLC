@@ -55,7 +55,7 @@ Extensions:
 Arbitrary choices:
 -----------------
 
-- Fonts are rendered at the default size of 1 point. If the user wants to
+- Fonts are rendered at the default size of 100 points. If the user wants to
   display his text at a different size, he should use glScale() or glcScale()
   to precise the actual size he wants.
   

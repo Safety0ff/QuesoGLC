@@ -7,8 +7,15 @@ These are things to do by order of preference :
 2. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
 3. Separate platform specific code from the main code set.
 4. Improve performance (see 5. for example) !!! (Really needed)
-5. Use a cache, in order not to load/unload face files too much
+5. Use FreeType cache system, in order not to load/unload face files too much
 6. Associate a glX context with a glc context.
 7. Use doxygen more
 8. Do not store the path for each file name ?
-9. QuesoGLC do not support face collections in one file.
+9. QuesoGLC does not support face collections in one file.
+10. Allow QuesoGLC to be built without pthread support (no _REENTRANT flag)
+11. Support for loading of compressed files
+12. Use of the GLC_RESOLUTION parameter to control the precision of de Casteljau's algorithm
+13. Use platform specific functions to determine screen resolution in dpi (WidthMMOfScreen, WidthOfScreen for X-Windows)
+14. (?) Get rid of gdbm
+15. (?) Use FreeType's double linked lists
+16. (?) Use FreeType memory manager in order to use debug memory routines (g_malloc, g_free,...) of the glib
