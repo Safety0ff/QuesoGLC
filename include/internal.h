@@ -38,9 +38,7 @@
 extern "C" {
 #endif
 
-#ifdef QUESOGLC_GCC3
-  extern char* strdup(const char *s);
-#endif
+#define GLC_OUT_OF_RANGE_LEN 11
 
   typedef struct {
     GLint face;
@@ -86,7 +84,15 @@ extern "C" {
   /* Create an initialize a FreeType  double linked list */
   extern GLboolean __glcCreateList(FT_List* list);
   /* Duplicate a Unicode string */
-  extern __glcUniChar* __glcUniCopy(__glcUniChar* inUniChar, GLint inStringType);
+  extern __glcUniChar* __glcUniCopy(__glcUniChar* inUniChar,
+				    GLint inStringType);
+
+  /* Duplicate a string in UTF-8 format */
+  extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
+				     const GLint inStringType);
+  /* Duplicate a UTF-8 string to another format */
+  extern GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
+				       const GLint inStringType);
 
 #ifdef __cplusplus
 }
