@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -104,6 +104,14 @@ void glcAppendFont(GLint inFont)
   font = __glcVerifyFontParameters(inFont);
   if (!font)
     return;
+
+  /* verify that the context exists */
+  state = __glcGetCurrent();
+
+  if (!state) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
 
   /* Check if inFont is already an element of GLC_CURRENT_FONT_LIST */
   if (FT_List_Find(state->currentFontList, font)) {
