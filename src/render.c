@@ -179,10 +179,16 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
   glBindTexture(GL_TEXTURE_2D, texture);
 
   /* Add the new texture to the texture list */
-  if ((inState->glObjects)
-      && (inState->textureObjectCount <= GLC_MAX_TEXTURE_OBJECT)) {
-    inState->textureObjectList[inState->textureObjectCount] = texture;
-    inState->textureObjectCount++;
+  if (inState->glObjects) {
+    FT_ListNode node = NULL;
+
+    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+    if (node) {
+      node->data = (void*)texture;
+      FT_List_Add(inFont->parent->textureObjectList, node);
+    }
+    else
+      __glcRaiseError(GLC_RESOURCE_ERROR);
   }
 
   /* Create the texture */
@@ -278,7 +284,6 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     /* Finish display list creation */
     glBindTexture(GL_TEXTURE_2D, 0);
     glEndList();
-    inState->listObjectCount++;
     glCallList(dlKey->list);
   }
   else

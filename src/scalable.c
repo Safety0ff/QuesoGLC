@@ -328,7 +328,6 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     
     if (inState->glObjects) {
       glEndList();
-      inState->listObjectCount++;
       glCallList(dlKey->list);
     }
 

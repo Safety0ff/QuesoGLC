@@ -127,9 +127,17 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   This->displayList->head = NULL;
   This->displayList->tail = NULL;
 
+  This->textureObjectList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  if (!This->textureObjectList)
+    goto error;
+  This->textureObjectList->head = NULL;
+  This->textureObjectList->tail = NULL;
+
   return This;
 
  error:
+  if (This->textureObjectList)
+    __glcFree(This->textureObjectList);
   if (This->displayList)
     __glcFree(This->displayList);
   if (This->charList)

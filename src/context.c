@@ -70,29 +70,26 @@ void glcDataPointer(GLvoid *inPointer)
   state->dataPointer = inPointer;
 }
 
+static void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData, void *inUser)
+{
+  GLuint tex = (GLuint)inData;
+
+  glDeleteTextures(1, &tex);
+}
+
 void __glcDeleteGLObjects(__glcContextState *inState)
 {
   FT_ListNode node = NULL;
+  __glcMaster* master = NULL;
 
-  /* Deletes display lists */
+  /* Delete display lists and texture objects */
   for(node = inState->masterList->head; node; node = node->next) {
-    FT_List_Finalize(((__glcMaster*)node->data)->displayList, __glcListDestructor,
+    master = (__glcMaster*)node->data;
+    FT_List_Finalize(master->displayList, __glcListDestructor,
                      __glcCommonArea->memoryManager, NULL);
+    FT_List_Finalize(master->textureObjectList, __glcTextureObjectDestructor,
+                   __glcCommonArea->memoryManager, NULL);
   }
-
-  /* SPECIAL NOTE on Texture objects deletion :
-   * Although glDeleteTextures() can safely be called with 0 texture to
-   * delete, some OpenGL ICD crash whenever a GL function is called when
-   * no GL context is bound to the thread. Hence, we assume that, when no
-   * GL context is bound, no texture has been created and, obviously,
-   * no texture needs to be deleted.
-   */
-  if (inState->textureObjectCount)
-    glDeleteTextures(inState->textureObjectCount, inState->textureObjectList);
-
-  /* Empties both GLC_LIST_OBJECT_LIST and GLC_TEXTURE_OBJECT_LIST */
-  inState->listObjectCount = 0;
-  inState->textureObjectCount = 0;
 }
 
 /* glcDeleteGLObjects:
@@ -336,10 +333,6 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       return 0;
     }
   case GLC_LIST_OBJECT_LIST:
-    if (inIndex > state->listObjectCount) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return 0;
-    }
     /* In order to get the display list name, we have to perform a search
      * through the list of display lists of every master. Actually we do not
      * even know which glyph of which font of which master the requested index
@@ -348,32 +341,31 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     for(node = state->masterList->head; node; node = node->next) {
       FT_ListNode dlTree = NULL;
       FT_List list = NULL;
-      int j = 0;
 
       list = ((__glcMaster*)node->data)->displayList;
 
       if (list) {
-	dlTree = list->head;
-	if (dlTree) {
-	  j++;
-	  if (j == inIndex)
+        for (dlTree = list->head; dlTree && inIndex; dlTree = dlTree->next, inIndex--) {}
+        if (!inIndex && dlTree)
 	    return ((__glcDisplayListKey*)dlTree->data)->list;
-	  while(dlTree != list->tail) {
-	    dlTree = dlTree->next;
-	    j++;
-	    if (j == inIndex)
-	      return ((__glcDisplayListKey*)dlTree->data)->list;
-	  }
-	}
       }
     }
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
-    if (inIndex > state->textureObjectCount) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return 0;
+    /* See also comments of GLC_LIST_OBJECT_LIST above */
+    for(node = state->masterList->head; node; node = node->next) {
+      FT_ListNode texNode = NULL;
+      FT_List list = NULL;
+
+      list = ((__glcMaster*)node->data)->textureObjectList;
+
+      if (list) {
+        for (texNode = list->head; texNode && inIndex; texNode = texNode->next, inIndex--) {}
+        if (!inIndex && texNode)
+	    return ((__glcDisplayListKey*)texNode->data)->list;
+      }
     }
-    return state->textureObjectList[inIndex];
+    return 0;
   }
 
   return 0;
@@ -566,7 +558,16 @@ GLint glcGeti(GLCenum inAttrib)
     for (count = 0, node = state->fontList->head; node; node = node->next, count++) {}
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    return state->listObjectCount;
+    for(count = 0, node = state->masterList->head; node; node = node->next) {
+      FT_ListNode dlTree = NULL;
+      FT_List list = NULL;
+
+      list = ((__glcMaster*)node->data)->displayList;
+
+      if (list)
+        for (dlTree = list->head; dlTree; dlTree = dlTree->next, count++) {}
+    }
+    return count;
   case GLC_MASTER_COUNT:
     node = state->masterList->tail;
     if (node)
@@ -582,7 +583,16 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_STRING_TYPE:
     return state->stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    return state->textureObjectCount;
+    for(count = 0, node = state->masterList->head; node; node = node->next) {
+      FT_ListNode texNode = NULL;
+      FT_List list = NULL;
+
+      list = ((__glcMaster*)node->data)->textureObjectList;
+
+      if (list)
+        for (texNode = list->head; texNode; texNode = texNode->next, count++) {}
+    }
+    return count;
   case GLC_VERSION_MAJOR:
     return state->versionMajor;
   case GLC_VERSION_MINOR:

@@ -1,8 +1,9 @@
 Changes made from the "Birth" release to the "Baby" release:
 -----------------------------------------------------------
 
-- Masters are now stored in linked lists instead of hard-limited arrays
-- FreeType lists are now used for the string list object.
+
+- FreeType lists are now used for the string list object, master lists,
+  font lists, current font lists and texture object lists.
 - A mutex is now used for every access to the database since NDBM is not
   thread-safe.
 - Fixed a bug where the content returned by dbm_fetch() was freed. This

@@ -40,7 +40,8 @@ typedef struct {
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
   FT_List faceFileName;
-  FT_List displayList;
+  FT_List displayList;		/* GLC_LIST_OBJECT_LIST */
+  FT_List textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
 } __glcMaster;
 
 __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,

@@ -37,7 +37,6 @@ commonArea *__glcCommonArea = NULL;
  */
 __glcContextState* __glcCtxCreate(GLint inContext)
 {
-  GLint j = 0;
   __glcContextState *This = NULL;
 
   This = (__glcContextState*)__glcMalloc(sizeof(__glcContextState));
@@ -86,19 +85,13 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
   This->bitmapMatrix[3] = 1.;
-  This->listObjectCount = 0;
   This->measuredCharCount = 0;
   This->renderStyle = GLC_BITMAP;
   This->replacementCode = 0;
   This->stringType = GLC_UCS1;
-  This->textureObjectCount = 0;
   This->versionMajor = 0;
   This->versionMinor = 2;
   This->isInCallbackFunc = GL_FALSE;
-
-  for (j=0; j < GLC_MAX_TEXTURE_OBJECT; j++)
-    This->textureObjectList[j] = 0;
-
   This->buffer = NULL;
   This->bufferSize = 0;
 

@@ -46,23 +46,20 @@ typedef struct {
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */
   GLCfunc callback;		/* Callback function */
-  GLvoid* dataPointer;	/* GLC_DATA_POINTER */
+  GLvoid* dataPointer;		/* GLC_DATA_POINTER */
   GLboolean autoFont;		/* GLC_AUTO_FONT */
-  GLboolean glObjects;	/* GLC_GLOBJECTS */
+  GLboolean glObjects;		/* GLC_GLOBJECTS */
   GLboolean mipmap;		/* GLC_MIPMAP */
-  FT_List catalogList; /* GLC_CATALOG_LIST */
+  FT_List catalogList;		/* GLC_CATALOG_LIST */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
-  FT_List currentFontList;
-  FT_List fontList;
-  GLint listObjectCount;	/* GLC_LIST_OBJECT_COUNT */
+  FT_List currentFontList;	/* GLC_CURRENT_FONT_LIST */
+  FT_List fontList;		/* GLC_FONT_LIST */
   FT_List masterList;
   GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
   GLint stringType;		/* GLC_STRING_TYPE */
-  GLuint textureObjectList[GLC_MAX_TEXTURE_OBJECT];
-  GLint textureObjectCount;	/* GLC_TEXTURE_OBJECT_COUNT */
   GLint versionMajor;		/* GLC_VERSION_MAJOR */
   GLint versionMinor;		/* GLC_VERSION_MINOR */
   GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
