@@ -5,8 +5,11 @@ CFLAGS = -g
 else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
-CFLAGS += -Wall -Iinclude -ansi -pedantic-errors `freetype-config --cflags`
-LDFLAGS = `freetype-config --libs` -lpthread -lGL -lGLU
+CFLAGS += -Wall -Iinclude -pedantic-errors `freetype-config --cflags`
+LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU
+ifdef DEBUGMODE
+LDFLAGS += -lefence
+endif
 OBJECTS = tests/testcommon tests/teststrlst tests/testmaster tests/testfont tests/testrender
 
 all: $(OBJECTS)
@@ -26,7 +29,7 @@ tests/testfont :  obj/common.o obj/context.o obj/strlst.o obj/global.o obj/maste
 tests/testrender :  obj/common.o obj/context.o obj/strlst.o obj/global.o obj/master.o  obj/font.o obj/render.o obj/scalable.o tests/testrender.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-obj/common.o : tests/common.c
+obj/%.o : tests/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 obj/%.o : src/%.c
