@@ -110,7 +110,7 @@ static GLboolean __glcFontFace(GLint inFont, const GLCchar* inFace, __glcContext
     }
     s->dup(buffer, s->lenBytes());
 
-    if (FT_New_Face(__glcContextState::library, 
+    if (FT_New_Face(inState->library, 
 		    (const char*)buffer, 0, &font->face)) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;

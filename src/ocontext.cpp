@@ -6,11 +6,8 @@
 GLboolean* __glcContextState::isCurrent = NULL;
 __glcContextState** __glcContextState::stateList = NULL;
 pthread_mutex_t __glcContextState::mutex;
-pthread_key_t __glcContextState::contextKey;
-pthread_key_t __glcContextState::errorKey;
-pthread_key_t __glcContextState::lockKey;
+pthread_key_t __glcContextState::threadKey;
 pthread_once_t __glcContextState::initLibraryOnce = PTHREAD_ONCE_INIT;
-FT_Library __glcContextState::library;
 GDBM_FILE __glcContextState::unidb1 = NULL;
 GDBM_FILE __glcContextState::unidb2 = NULL;
 
@@ -21,10 +18,17 @@ __glcContextState::__glcContextState(GLint inContext)
   setState(inContext, this);
   setCurrency(inContext, GL_FALSE);
 
+  if (FT_Init_FreeType(&library)) {
+    setState(inContext, NULL);
+    raiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
   catalogList = new __glcStringList(NULL);
   if (!catalogList) {
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
+    FT_Done_FreeType(library);
     return;
   }
 
@@ -95,12 +99,24 @@ __glcContextState::~__glcContextState()
     free(buffer);
 
   glcDeleteGLObjects();
+  FT_Done_FreeType(library);
 }
 
 /* Get the current context of the issuing thread */
 __glcContextState* __glcContextState::getCurrent(void)
 {
-  return (__glcContextState *)pthread_getspecific(contextKey);
+  threadArea *area = NULL;
+
+  area = getThreadArea();
+  if (!area) {
+    /* This is a severe problem : we can not even issue an error
+     * since the threadArea does not exist. May be we should issue
+     * a fatal error to stderr and kill the program ?
+     */
+    return NULL;
+  }
+
+  return area->currentContext;
 }
 
 /* Get the context state of a given context */
@@ -129,14 +145,24 @@ void __glcContextState::setState(GLint inContext, __glcContextState *inState)
 void __glcContextState::raiseError(GLCenum inError)
 {
   GLCenum error = GLC_NONE;
+  threadArea *area = NULL;
+
+  area = getThreadArea();
+  if (!area) {
+    /* This is a severe problem : we can not even issue an error
+     * since the threadArea does not exist. May be we should issue
+     * a fatal error to stderr and kill the program ?
+     */
+    return;
+  }
 
   /* An error can only be raised if the current error value is GLC_NONE. 
    * However, when inError == GLC_NONE then we must force the current error
    * value to GLC_NONE whatever its previous value was.
    */
-  error = (GLCenum)pthread_getspecific(errorKey);
+  error = area->errorState;
   if ((inError && !error) || !inError)
-    pthread_setspecific(errorKey, (void *)inError);
+    area->errorState = inError;
 }
 
 /* Determine whether a context is current to a thread or not */
@@ -240,7 +266,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
       ext++;
 
     /* open the font file and read it */
-    if (!FT_New_Face(__glcContextState::library, path, 0, &face)) {
+    if (!FT_New_Face(library, path, 0, &face)) {
       numFaces = face->num_faces;
 
       /* If the face has no Unicode charmap, skip it */
@@ -292,7 +318,7 @@ void __glcContextState::addMasters(const GLCchar* inCatalog, GLboolean inAppend)
     /* For each face in the font file */
     for (j = 0; j < numFaces; j++) {
       __glcUniChar sp = __glcUniChar(path, GLC_UCS1);
-      if (!FT_New_Face(__glcContextState::library, path, j, &face)) {
+      if (!FT_New_Face(library, path, j, &face)) {
 	s = __glcUniChar(face->style_name, GLC_UCS1);
 	if (master->faceList->find(&s))
 	  /* The current face in the font file has already been loaded in a
@@ -539,24 +565,39 @@ GLint __glcContextState::getFont(GLint inCode)
 
 void __glcContextState::lock(void)
 {
-  int lockCount = (int)pthread_getspecific(lockKey);
+  threadArea *area = NULL;
 
-  if (!lockCount)
+  area = getThreadArea();
+  if (!area) {
+    /* This is a severe problem : we can not even issue an error
+     * since the threadArea does not exist. May be we should issue
+     * a fatal error to stderr and kill the program ?
+     */
+    return;
+  }
+
+  if (!area->lockState)
     pthread_mutex_lock(&mutex);
 
-  lockCount++;
-  pthread_setspecific(lockKey, (void*)lockCount);
+  area->lockState++;
 }
 
 void __glcContextState::unlock(void)
 {
-  int lockCount = (int)pthread_getspecific(lockKey);
+  threadArea *area = NULL;
 
-  lockCount--;
-  if (!lockCount)
+  area = getThreadArea();
+  if (!area) {
+    /* This is a severe problem : we can not even issue an error
+     * since the threadArea does not exist. May be we should issue
+     * a fatal error to stderr and kill the program ?
+     */
+    return;
+  }
+
+  area->lockState--;
+  if (!area->lockState)
     pthread_mutex_unlock(&mutex);
-
-  pthread_setspecific(lockKey, (void*)lockCount);
 }
 
 GLCchar* __glcContextState::queryBuffer(int inSize)
@@ -570,4 +611,24 @@ GLCchar* __glcContextState::queryBuffer(int inSize)
   }
 
   return buffer;
+}
+
+threadArea* __glcContextState::getThreadArea(void)
+{
+  threadArea *area = NULL;
+
+  area = (threadArea*)pthread_getspecific(__glcContextState::threadKey);
+
+  if (!area) {
+    area = (threadArea*)malloc(sizeof(threadArea));
+    if (!area)
+      return NULL;
+
+    area->currentContext = NULL;
+    area->errorState = GLC_NONE;
+    area->lockState = 0;
+    pthread_setspecific(threadKey, (void*)area);
+  }
+
+  return area;
 }

@@ -30,11 +30,15 @@ void __glcExitLibrary(void)
   gdbm_close(__glcContextState::unidb2);
 
   pthread_mutex_destroy(&__glcContextState::mutex);
-  pthread_key_delete(__glcContextState::contextKey);
-  pthread_key_delete(__glcContextState::errorKey);
-  pthread_key_delete(__glcContextState::lockKey);
+  pthread_key_delete(__glcContextState::threadKey);
+}
 
-  FT_Done_FreeType(__glcContextState::library);
+static void __glcFreeThreadArea(void *keyValue)
+{
+  threadArea *area = (threadArea*)keyValue;
+
+  if (area)
+    free(area);
 }
 
 /* This function is supposed to be called before any of QuesoGLC
@@ -45,9 +49,7 @@ void __glcInitLibrary(void)
   int i = 0;
 
   // Creates the thread-local storage for the GLC error
-  // We create it first, so that the error value can be set
-  // if something goes wrong afterwards...
-  if (pthread_key_create(&__glcContextState::errorKey, NULL)) {
+  if (pthread_key_create(&__glcContextState::threadKey, __glcFreeThreadArea)) {
     // Unfortunately we have not even been able to allocate a key
     // for thread-local storage. Memory seems to be a really scarse
     // resource here...
@@ -93,38 +95,6 @@ void __glcInitLibrary(void)
   // Initialize the mutex
   // At least this op can not fail !!!
   pthread_mutex_init(&__glcContextState::mutex, NULL);
-
-  // Creates the thread-local storage for the context ID
-  if (pthread_key_create(&__glcContextState::contextKey, NULL)) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    gdbm_close(__glcContextState::unidb2);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // Creates the thread-local storage for the lock count
-  if (pthread_key_create(&__glcContextState::lockKey, NULL)) {
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    gdbm_close(__glcContextState::unidb2);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
-
-  // Initialize FreeType
-  if (FT_Init_FreeType(&__glcContextState::library)) {
-    // Well, if it fails there is nothing that can be done
-    // with QuesoGLC : abort...
-    __glcContextState::raiseError(GLC_RESOURCE_ERROR);
-    gdbm_close(__glcContextState::unidb1);
-    gdbm_close(__glcContextState::unidb2);
-    delete[] __glcContextState::isCurrent;
-    delete[] __glcContextState::stateList;
-    return;
-  }
 
   // So far, there are no contexts
   for (i=0; i< GLC_MAX_CONTEXTS; i++) {
@@ -219,8 +189,17 @@ void glcContext(GLint inContext)
   char *extension = NULL;
   __glcContextState *state = NULL;
   GLint currentContext = 0;
+  threadArea * area = NULL;
 
   pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  area = __glcContextState::getThreadArea();
+  if (!area) {
+    /* This is a severe problem : we can not even issue an error
+     * since the threadArea does not exist. May be we should issue
+     * a fatal error to stderr and kill the program ?
+     */
+    return;
+  }
 
   __glcContextState::lock();
 
@@ -274,7 +253,7 @@ void glcContext(GLint inContext)
     }
 
     /* Make the context current to the thread */
-    pthread_setspecific(__glcContextState::contextKey, (__glcContextState::stateList)[inContext - 1]);
+    area->currentContext = __glcContextState::stateList[inContext - 1];
     __glcContextState::setCurrency(inContext - 1, GL_TRUE);
   }
   else {
@@ -287,7 +266,7 @@ void glcContext(GLint inContext)
     if (currentContext) {
       state = __glcContextState::getState(currentContext - 1);
       /* Deassociate the context from the issuing thread */
-      pthread_setspecific(__glcContextState::contextKey, NULL);
+      area->currentContext = NULL;
       /* Release the context */
       __glcContextState::setCurrency(currentContext - 1, GL_FALSE);
     }
@@ -420,10 +399,19 @@ GLint* glcGetAllContexts(void)
 GLCenum glcGetError(void)
 {
   GLCenum error = GLC_NONE;
+  threadArea * area = NULL;
 
   pthread_once(&__glcContextState::initLibraryOnce, __glcInitLibrary);
+  area = __glcContextState::getThreadArea();
+  if (!area) {
+    /* This is a severe problem : we can not even issue an error
+     * since the threadArea does not exist. May be we should issue
+     * a fatal error to stderr and kill the program ?
+     */
+    return GLC_NONE;
+  }
 
-  error = (GLCenum)pthread_getspecific(__glcContextState::errorKey);
+  error = area->errorState;
   __glcContextState::raiseError(GLC_NONE);
   return error;
 }

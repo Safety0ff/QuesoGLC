@@ -95,7 +95,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     }
     s->dup(buffer, s->lenBytes());
 
-    if (FT_New_Face(__glcContextState::library, 
+    if (FT_New_Face(state->library, 
 		    (const char*) buffer, 0, &face)) {
       /* Unable to load the face file, however this should not happen since
 	 it has been succesfully loaded when the master was created */

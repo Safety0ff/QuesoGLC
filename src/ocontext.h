@@ -15,13 +15,19 @@ extern "C" {
   void __glcExitLibrary(void);
 }
 
+class __glcContextState;
+
+typedef struct {
+  __glcContextState* currentContext;
+  GLCenum errorState;
+  GLint lockState;
+} threadArea;
+
 class __glcContextState {
   static GLboolean *isCurrent;
   static __glcContextState **stateList;
   static pthread_mutex_t mutex;
-  static pthread_key_t contextKey;
-  static pthread_key_t errorKey;
-  static pthread_key_t lockKey;
+  static pthread_key_t threadKey;
   static pthread_once_t initLibraryOnce;
 
   static __glcContextState* getState(GLint inContext);
@@ -31,14 +37,15 @@ class __glcContextState {
   static GLboolean isContext(GLint inContext);
   static void lock(void);
   static void unlock(void);
+  static threadArea* getThreadArea(void);
 
   GLCchar *buffer;
   GLint bufferSize;
 
  public:
-  static FT_Library library;
   static GDBM_FILE unidb1, unidb2;
 
+  FT_Library library;
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */
   GLCfunc callback;		/* Callback function */

@@ -56,7 +56,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64), -((boundBox.yMin + 32) & -64));
     
     /* render the glyph */
-    if (FT_Outline_Get_Bitmap(__glcContextState::library, &outline, &pixmap)) {
+    if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
 	free(pixmap.buffer);
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -165,7 +165,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64), -((boundBox.yMin + 32) & -64));
     
     /* render the glyph */
-    if (FT_Outline_Get_Bitmap(__glcContextState::library, &outline, &pixmap)) {
+    if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
 	free(pixmap.buffer);
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
