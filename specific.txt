@@ -1,4 +1,4 @@
-QuesoGLC 0.0.1
+QuesoGLC draft-1
 
 This file contains notes about non-conformance and "extensions" to 
 the GLC specs 0.2
@@ -30,8 +30,14 @@ implementation to another although they are conformant.
 Non-conformance:
 ---------------
 
-- Many things, but QuesoGLC is still under development :) This section will be
-  updated at releases.
+- In the current implementation, glcGetMasteri(x, GLC_MIN_MAPPED_CODE) always
+  returns 0 (zero) and glcGetMasteri(x, GLC_MAX_MAPPED_CODE) always returns
+  0x7FFFFFFF.
+- In the current implementation, glcGetMasteri(x, GLC_CHAR_COUNT) always returns
+  0 (zero) and glcGetMasterListc(x, GLC_CHAR_LIST, y) always generates a
+  GLC_PARAMETER_ERROR whatever x and y are. As a consequence, glcFontMap does
+  not check if its parameter inCharName is an element of the font's string list
+  attribute GLC_CHAR_LIST.
 
 Extensions:
 ----------
@@ -45,13 +51,13 @@ Arbitrary choices:
 -----------------
 
 - Fonts are rendered at the default size of 1 point. If the user wants to
-  display his text with a different size, he should use glScale() or glcScale()
+  display his text at a different size, he should use glScale() or glcScale()
   to precise the actual size he wants.
   
 - When using the textured rendering mode, the default texture size is 64x64.
-  Since GLC does not provide an API entry to modify this value, the only way to
-  change it is to modify the value of GLC_TEXTURE_SIZE in src/render.c and
-  to re-compile QuesoGLC.
+  Since GLC does not provide an API entry to modify it, the only way to change
+  this value is to modify GLC_TEXTURE_SIZE in src/render.c and to re-compile
+  QuesoGLC.
 
 - The GLC API is designed to support a variety of master formats, but the
   current implementation supports only masters in scalable formats that can be
