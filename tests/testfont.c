@@ -19,7 +19,15 @@ int main(void)
 
   printf("Face : %s\n", (char *)glcGetFontFace(font));
   printf("GenFontID : %d\n", glcGenFontID());
-  printf("Face 1 : %s\n", (char *)glcGetFontListc(font, GLC_FACE_LIST, 1));
+  printf("Font #%d family : %s\n", font,
+	 (char *)glcGetFontc(font, GLC_FAMILY));
+  for (i = 0; i < glcGetFonti(font, GLC_FACE_COUNT); i++)
+    printf("Font #%d face #%d: %s\n", font, i,
+	   (char *)glcGetFontListc(font, GLC_FACE_LIST, i));
+
+  for (i = 0; i < 5; i++)
+    printf("Font #%d char #%d: %s\n", font, i,
+	   (char*)glcGetFontListc(font, GLC_CHAR_LIST, i));
 
   printf("Font count : %d\n", glcGeti(GLC_FONT_COUNT));
   printf("Current font count : %d\n", glcGeti(GLC_CURRENT_FONT_COUNT));
@@ -31,7 +39,7 @@ int main(void)
 
   glcFontMap(font, 90, "LATIN CAPITAL LETTER A");
 
-  printf("Font Map #%d : %s\n", 65, (char *)glcGetFontMap(font, 65));
+  printf("Font Map #%d : %s\n", 90, (char *)glcGetFontMap(font, 90));
 
   i = 1;
   last = glcGetMasteri(i, GLC_CHAR_COUNT);
@@ -45,6 +53,8 @@ int main(void)
   printf("- Char Count : %d\n", last);
   printf("- Last Character : %s\n", 
 	 (char *)glcGetMasterListc(i, GLC_CHAR_LIST, last-1));
+
+  glcRemoveCatalog(1);
 
   return 0;
 }
