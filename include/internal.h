@@ -95,6 +95,8 @@ extern "C" {
   extern GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 					       const FcChar8* inString,
 					       const GLint inStringType);
+  /* Count the number of bits that are set in c1  */
+  extern FcChar32 FcCharSetPopCount(FcChar32 c1);
 #ifdef __cplusplus
 }
 #endif
