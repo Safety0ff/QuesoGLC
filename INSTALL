@@ -1,7 +1,38 @@
-For now, QuesoGLC can only be built on POSIX platforms (including Linux) as long
-as the GNU make tool is installed.
+For now, QuesoGLC can only be built on POSIX platforms (including Linux).
 
-If you have GNU Make installed, simply type
+What do you need in order to build QuesoGLC :
+--------------------------------------------
+
+* GNU Make tool
+	QuesoGLC's build process heavily rely on this tool. You must install
+	first.
+* FreeType2 (www.freetype.org)
+	It is the core lib that manage fonts files and datas. QuesoGLC heavily
+	uses its functionnalities.
+* OpenGL, GLU
+	QuesoGLC is supposed to provide a character rendering service for
+	OpenGL. Hence we definitely need this one.
+* POSIX threads
+	GLC is designed with core support for multi-threading. However,
+	QuesoGLC only supports POSIX threads. 'pthread' lib and headers are
+	mandatory in order to build QuesoGLC
+* GDBM
+	QuesoGLC uses GDBM to manage a database of the official Unicode names
+	of characters. However, in the (near?) future, we may get rid of it.
+	For now, it is mandatory.
+
+What do you need in order to build tests programs :
+--------------------------------------------------
+
+* Mark Kilgard's GLUT
+	It provides platform independant support for OpenGL. However, QuesoGLC
+	can safely be used without GLUT.
+
+OK, all those libs and headers are installed on my machine.
+What shall I do now ?
+----------------------------------------------------------
+
+Simply type
 
   ./configure
   make
