@@ -1,5 +1,5 @@
-Changes made fom the "Birth" release to the "Baby" release:
-----------------------------------------------------------
+Changes made from the "Birth" release to the "Baby" release:
+-----------------------------------------------------------
 
 - Added many comments to the sources.
 - Removed the stupid parameter GLC_INTERNAL_ERROR
@@ -27,4 +27,7 @@ Changes made fom the "Birth" release to the "Baby" release:
   of the list GLC_CHAR_LIST.
 - Fixed glcFontMap so that if no character name is given then the code 'inCode'
   is removed from the charmap.
-
+- Fixed glcRenderCountedString, so that it raises GLC_PARAMETER_ERROR if the
+  parameter inCount is less than zero.
+- Fixed glcReplacementCode so that it can use a code other than
+  GLC_REPLACEMENT_CODE.
