@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,7 @@
 #include <stdlib.h>
 
 #include "GL/glc.h"
-#ifndef __MACOSX__
+#if !defined __APPLE__ && !defined __MACH__
 #include "qglc_config.h"
 #endif
 #include "ofont.h"
@@ -83,6 +83,8 @@ extern "C" {
   extern GLCchar* __glcNameFromCode(GLint code);
   /* Find a Unicode code from its name */
   extern GLint __glcCodeFromName(GLCchar* name);
+  /* Create an initialize a FreeType  double linked list */
+  extern GLboolean __glcCreateList(FT_List* list);
 
 #ifdef __cplusplus
 }
