@@ -30,7 +30,7 @@ void testQueso(void)
     glColor3f(0., 1., 0.);
     glTranslatef(100., 50., 0.);
     glRotatef(45., 0., 0., 1.);
-    glScalef(120., 120., 0.);
+    glScalef(1., 1., 0.);
     glcRenderChar('L');
     glcRenderString("inux");
     glLoadIdentity();
@@ -38,7 +38,7 @@ void testQueso(void)
     glcRenderStyle(GLC_TEXTURE);
     glColor3f(0., 0., 1.);
     glTranslatef(30., 350., 0.);
-    glScalef(100., 100., 0.);
+    glScalef(1., 1., 0.);
     glcRenderChar('X');
     glcRenderString("-windows");
     glLoadIdentity();
@@ -46,15 +46,15 @@ void testQueso(void)
     glcRenderStyle(GLC_BITMAP);
     glColor3f(1., 0., 0.);
     glRasterPos2f(30., 200.);
-    glcScale(120., 120.);
+    glcScale(1., 1.);
     glcRotate(10.);
     glcRenderChar('O');
     glcRenderString("penGL");
-     
+
     glcRenderStyle(GLC_TRIANGLE);
     glColor3f(1., 1., 0.);
     glTranslatef(30., 50., 0.);
-    glScalef(120., 120., 0.);
+    glScalef(1., 1., 0.);
     glcRenderChar('Q');
     glcRenderStyle(GLC_LINE);
     glcRenderChar('u');

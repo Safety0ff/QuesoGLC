@@ -223,17 +223,13 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     
     rendererData.tess = tess;
     rendererData.numVertex = 0;
-    /* pixel_size = point_size * resolution / 72. (here point_size = 1.)
-       pixel_coordinate = grid_coordinate * pixel_size / EM_size 
-       hence, scale = 1 * resolution / 72. / EM_size */
-    rendererData.scale = (inState->resolution ? inState->resolution : 72.) / 72. / inFont->face->units_per_EM;
 
-    /* Moreover grid_coordinate are given in 26.6 fixed point integer hence we
+    /* grid_coordinate is given in 26.6 fixed point integer hence we
        divide the scale by 2^6 */
-    rendererData.scale /= 64.;
+    rendererData.scale = 1./64.;
 
     /* FIXME : err.. that looks very much like a magic number, no ? */
-    rendererData.tolerance = 0.81 * 64. * 64. * 5. * 5.;
+    rendererData.tolerance = 0.81 * 5. * 5. * 200.;
     
     /* FIXME : may be we should use a bigger array ? */
     rendererData.vertex = (GLdouble (*)[3]) malloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);

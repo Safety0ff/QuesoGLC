@@ -19,21 +19,20 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     FT_Outline outline = face->glyph->outline;
     FT_BBox boundBox;
     FT_Bitmap pixmap;
-    GLint EM_size = face->units_per_EM;
 
     /* compute glyph dimensions */
-    matrix.xx = (FT_Fixed) (inState->bitmapMatrix[0] * 65536. / EM_size);
-    matrix.xy = (FT_Fixed) (inState->bitmapMatrix[2] * 65536. / EM_size);
-    matrix.yx = (FT_Fixed) (inState->bitmapMatrix[1] * 65536. / EM_size);
-    matrix.yy = (FT_Fixed) (inState->bitmapMatrix[3] * 65536. / EM_size);
+    matrix.xx = (FT_Fixed) (inState->bitmapMatrix[0] * 65536.);
+    matrix.xy = (FT_Fixed) (inState->bitmapMatrix[2] * 65536.);
+    matrix.yx = (FT_Fixed) (inState->bitmapMatrix[1] * 65536.);
+    matrix.yy = (FT_Fixed) (inState->bitmapMatrix[3] * 65536.);
     
     FT_Outline_Transform(&outline, &matrix);
     FT_Outline_Get_CBox(&outline, &boundBox);
     
     boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
     boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
-    boundBox.xMax = (boundBox.xMax + 32) & -64;	/* ceiling(xMax) */
-    boundBox.yMax = (boundBox.yMax + 32) & -64;	/* ceiling(yMax) */
+    boundBox.xMax = (boundBox.xMax + 63) & -64;	/* ceiling(xMax) */
+    boundBox.yMax = (boundBox.yMax + 63) & -64;	/* ceiling(yMax) */
     
     pixmap.width = (boundBox.xMax - boundBox.xMin) / 64;
     pixmap.rows = (boundBox.yMax - boundBox.yMin) / 64;
@@ -54,7 +53,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     pixmap.pitch = - pixmap.pitch;
     
     /* translate the outline to match (0, 0) with the glyph's lower left corner */
-    FT_Outline_Translate(&outline, -boundBox.xMin, -boundBox.yMin);
+    FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64), -((boundBox.yMin + 32) & -64));
     
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(__glcContextState::library, &outline, &pixmap)) {
@@ -64,9 +63,9 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     }
     
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin / 64., -boundBox.yMin / 64.,
-	face->glyph->advance.x * inState->bitmapMatrix[0] / EM_size / 64., 
-	face->glyph->advance.x * inState->bitmapMatrix[1] / EM_size / 64.,
+    glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin / 64, -boundBox.yMin / 64,
+	face->glyph->advance.x * inState->bitmapMatrix[0] / 64., 
+	-face->glyph->advance.x * inState->bitmapMatrix[1] / 64.,
 	pixmap.buffer);
     
     free(pixmap.buffer);
@@ -113,7 +112,6 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     FT_Outline outline = face->glyph->outline;
     FT_BBox boundBox;
     FT_Bitmap pixmap;
-    GLint EM_size = face->units_per_EM;
     GLuint texture = 0;
     GLfloat width = 0, height = 0;
     GLint format = 0;
@@ -129,18 +127,18 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     }
     
     /* compute glyph dimensions */
-    matrix.xx = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / EM_size);
+    matrix.xx = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / GLC_POINT_SIZE);
     matrix.xy = 0;
     matrix.yx = 0;
-    matrix.yy = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / EM_size);
+    matrix.yy = (FT_Fixed) (GLC_TEXTURE_SIZE * 65536. / GLC_POINT_SIZE);
     
     FT_Outline_Transform(&outline, &matrix);
     FT_Outline_Get_CBox(&outline, &boundBox);
     
     boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
     boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
-    boundBox.xMax = (boundBox.xMax + 32) & -64;	/* ceiling(xMax) */
-    boundBox.yMax = (boundBox.yMax + 32) & -64;	/* ceiling(yMax) */
+    boundBox.xMax = (boundBox.xMax + 63) & -64;	/* ceiling(xMax) */
+    boundBox.yMax = (boundBox.yMax + 63) & -64;	/* ceiling(yMax) */
     
     width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64);
     height = (GLfloat)((boundBox.yMax - boundBox.yMin) / 64);
@@ -164,7 +162,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     pixmap.pitch = - pixmap.pitch;
     
     /* translate the outline to match (0, 0) with the glyph's lower left corner */
-    FT_Outline_Translate(&outline, -boundBox.xMin, -boundBox.yMin);
+    FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64), -((boundBox.yMin + 32) & -64));
     
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(__glcContextState::library, &outline, &pixmap)) {
@@ -173,10 +171,11 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 	return;
     }
 
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
     if ((inState->glObjects)
     && (inState->textureObjectCount <= GLC_MAX_TEXTURE_OBJECT)) {
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
 	inState->textureObjectList[inState->textureObjectCount] = texture;
 	inState->textureObjectCount++;
     }
@@ -241,29 +240,30 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 
     glBegin(GL_QUADS);
 	glTexCoord2f(0., 0.);
-	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
-		boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
+	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
+		boundBox.yMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
 	glTexCoord2f(width / GLC_TEXTURE_SIZE, 0.);
-	glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
-		boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
+	glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
+		boundBox.yMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
 	glTexCoord2f(width / GLC_TEXTURE_SIZE, height / GLC_TEXTURE_SIZE);
-	glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
-		boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
+	glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
+		boundBox.yMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
 	glTexCoord2f(0., height / GLC_TEXTURE_SIZE);
-	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
-		boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
+	glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
+		boundBox.yMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
     glEnd();
     
-    glTranslatef(face->glyph->advance.x * inState->bitmapMatrix[0] / EM_size / 64., 
-	face->glyph->advance.x * inState->bitmapMatrix[1] / EM_size / 64., 0.);
+    glTranslatef(face->glyph->advance.x / 64., 
+	face->glyph->advance.y / 64., 0.);
     
     if (inState->glObjects) {
+      glBindTexture(GL_TEXTURE_2D, 0);
       glEndList();
       inState->listObjectCount++;
       glCallList(*list);
     }
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    else
+      glBindTexture(GL_TEXTURE_2D, 0);
     
     free(pixmap.buffer);
 }
@@ -302,8 +302,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 	}
     }
     
-    if (FT_Set_Char_Size(font->face, 0, 1 << 16, (unsigned int)state->resolution,
-	(unsigned int)state->resolution)) {
+    if (FT_Set_Char_Size(font->face, 0, GLC_POINT_SIZE << 6, (unsigned int)state->resolution, (unsigned int)state->resolution)) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }

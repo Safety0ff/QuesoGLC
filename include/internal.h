@@ -7,6 +7,8 @@
 #ifndef __glc_internal_h
 #define __glc_internal_h
 
+#define GLC_POINT_SIZE 100
+
 #ifdef __cplusplus
 extern "C" {
 #endif

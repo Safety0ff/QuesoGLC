@@ -63,8 +63,8 @@ void glcRotate(GLfloat inAngle)
     GLfloat cosine = cos(radian);
 
     tempMatrix[0] = cosine;
-    tempMatrix[1] = sine;
-    tempMatrix[2] = -sine;
+    tempMatrix[1] = -sine;
+    tempMatrix[2] = sine;
     tempMatrix[3] = cosine;
     
     glcMultMatrix(tempMatrix);
