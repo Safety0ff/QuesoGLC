@@ -389,7 +389,6 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 
     /* open the font file and read it */
     if (!FT_New_Face(This->library, path, 0, &face)) {
-      __glcMaster *master = NULL;
       FT_ListNode node = NULL;
 
       numFaces = face->num_faces;
@@ -422,7 +421,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
            */
           id = master->id + 1;
         else
-          id = 1;
+          id = 0;
 
         master = __glcMasterCreate(face, desc, ext, id,
                                    This->stringType);

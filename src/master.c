@@ -69,6 +69,11 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
   }
 
   /* Verify if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   for(node = state->masterList->head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
@@ -152,6 +157,11 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   }
 
   /* Check if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   for(node = state->masterList->head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
@@ -281,6 +291,11 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   }
 
   /* Check if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   for(node = state->masterList->head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
@@ -353,6 +368,11 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   }
 
   /* Check if inMaster is in legal bounds */
+  if (inMaster < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
+
   for(node = state->masterList->head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
