@@ -29,6 +29,8 @@
 
 commonArea *__glcCommonArea = NULL;
 
+
+
 /* Creates a new context : returns a struct that contains the GLC state
  * of the new context
  */
@@ -43,27 +45,25 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
-  __glcSetState(inContext, This);
-  __glcSetCurrency(inContext, GL_FALSE);
-
   if (FT_New_Library(__glcCommonArea->memoryManager, &This->library)) {
-    __glcSetState(inContext, NULL);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     This->library = NULL;
+    __glcFree(This);
     return NULL;
   }
   FT_Add_Default_Modules(This->library);
 
   This->catalogList = __glcStrLstCreate(NULL);
   if (!This->catalogList) {
-    __glcSetState(inContext, NULL);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FT_Done_Library(This->library);
     This->library = NULL;
+    __glcFree(This);
     return NULL;
   }
 
-  This->id = inContext + 1;
+  This->isCurrent = GL_FALSE;
+  This->id = inContext;
   This->pendingDelete = GL_FALSE;
   This->callback = GLC_NONE;
   This->dataPointer = NULL;
@@ -106,6 +106,8 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   return This;
 }
 
+
+
 /* Destroys a context : it first destroys all the objects (whether they are
  * internal GLC objects or GL textures or GL display lists) that have been
  * created during the life of the context. Then it releases the memory occupied
@@ -140,10 +142,12 @@ void __glcCtxDestroy(__glcContextState *This)
   if (This->bufferSize)
     __glcFree(This->buffer);
 
-  glcDeleteGLObjects();
+  __glcDeleteGLObjects(This);
   FT_Done_Library(This->library);
   __glcFree(This);
 }
+
+
 
 /* Get the current context of the issuing thread */
 __glcContextState* __glcGetCurrent(void)
@@ -162,25 +166,30 @@ __glcContextState* __glcGetCurrent(void)
   return area->currentContext;
 }
 
+
+
 /* Get the context state of a given context */
 __glcContextState* __glcGetState(GLint inContext)
 {
+  FT_ListNode node = NULL;
   __glcContextState *state = NULL;
 
   __glcLock();
-  state = __glcCommonArea->stateList[inContext];
+  node = __glcCommonArea->stateList->head;
+  while (node) {
+    state = node->data;
+    if (state) {
+      if (state->id == inContext) break;
+    }
+    node = node->next;
+    state = NULL;
+  }
   __glcUnlock();
 
   return state;
 }
 
-/* Set the context state of a given context */
-void __glcSetState(GLint inContext, __glcContextState *inState)
-{
-  __glcLock();
-  __glcCommonArea->stateList[inContext] = inState;
-  __glcUnlock();
-}
+
 
 /* Raise an error. This function must be called each time the current error
  * of the issuing thread must be set
@@ -208,40 +217,7 @@ void __glcRaiseError(GLCenum inError)
     area->errorState = inError;
 }
 
-/* Determine whether a context is current to a thread or not */
-GLboolean __glcGetCurrency(GLint inContext)
-{
-  GLboolean current = GL_FALSE;
 
-  __glcLock();
-  current = __glcCommonArea->isCurrent[inContext];
-  __glcUnlock();
-
-  return current;
-}
-
-/* Make a context current or release it. This value is intended to determine
- * if a context is current to a thread or not. Array isCurrent[] exists
- * because there is no simple way to get the contextKey value of
- * other threads (we do not even know how many threads have been created)
- */
-void __glcSetCurrency(GLint inContext, GLboolean current)
-{
-  __glcLock();
-  __glcCommonArea->isCurrent[inContext] = current;
-  __glcUnlock();
-}
-
-/* Determine if a context ID is associated to a context state or not. This is
- * a different notion than the currency of a context : a context state may
- * exist without being associated to a thread.
- */
-GLboolean __glcIsContext(GLint inContext)
-{
-  __glcContextState *state = __glcGetState(inContext);
-
-  return (state ? GL_TRUE : GL_FALSE);
-}
 
 /* This function updates the GLC_CHAR_LIST list when a new face identified by
  * 'face' is added to the master pointed by inMaster
@@ -261,14 +237,17 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
   list->tail = NULL;
 
 
+  /* Create a list which contains the character codes of the face */
   charCode = FT_Get_First_Char(face, &gIndex);
   while (gIndex) {
+    /* Update the minimum mapped code */
     if (inMaster->minMappedCode > charCode)
       inMaster->minMappedCode = charCode;
+    /* Update the maximum mapped code */
     if (inMaster->maxMappedCode < charCode)
       inMaster->maxMappedCode = charCode;
 
-    data = (FT_ULong*)__glcMalloc(sizeof(charCode));
+    data = (FT_ULong*)__glcMalloc(sizeof(FT_ULong));
     if (!data) {
       FT_List_Finalize(list, __glcListDestructor,
 		       __glcCommonArea->memoryManager, NULL);
@@ -326,6 +305,8 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
 
   return 0;
 }
+
+
 
 /* This function is called by glcAppendCatalog and glcPrependCatalog. It has
  * been associated to the contextState class rather than the master class
@@ -513,6 +494,8 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
   fclose(file);
 }
 
+
+
 /* This function is called by glcRemoveCatalog. It has been included in the
  * context state class for the same reasons than addMasters was.
  */
@@ -606,6 +589,8 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
   return;
 }
 
+
+
 /* Return the ID of the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'
  * If there is no such font, the function returns zero
  */
@@ -620,6 +605,8 @@ static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
   }
   return 0;
 }
+
+
 
 /* Calls the callback function (does various tests to determine if it is
  * possible) and returns GL_TRUE if it has succeeded or GL_FALSE otherwise.
@@ -643,6 +630,8 @@ static GLboolean __glcCallCallbackFunc(GLint inCode, __glcContextState *inState)
 
   return result;
 }
+
+
 
 /* Returns the ID of the first font in GLC_CURRENT_FONT_LIST that maps
  * 'inCode'. If there is no such font, the function attempts to append a new
@@ -699,6 +688,8 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
   return 0;
 }
 
+
+
 /* Since the common area can be accessed by any thread, this function should
  * be called before any access (read or write) to the common area. Otherwise
  * race conditons can occur.
@@ -725,6 +716,8 @@ void __glcLock(void)
   area->lockState++;
 }
 
+
+
 /* Unlock the mutex in order to allow other threads to amke accesses to the
  * common area.
  * See also the note on nested calls in __glcLock's description.
@@ -746,6 +739,8 @@ void __glcUnlock(void)
   if (!area->lockState)
     pthread_mutex_unlock(&__glcCommonArea->mutex);
 }
+
+
 
 /* Sometimes informations may need to be stored temporarily by a thread.
  * The so-called 'buffer' is created for that purpose. Notice that it is a
@@ -770,6 +765,8 @@ GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
 
   return This->buffer;
 }
+
+
 
 /* Each thread has to store specific informations so they can retrieved later.
  * __glcGetThreadArea() returns a struct which contains thread specific info

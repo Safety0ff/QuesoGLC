@@ -29,14 +29,31 @@
 #include <stdio.h>
 #include <GL/glx.h>
 #include <X11/Xlib.h>
+#include <fcntl.h>
 
 #include "GL/glc.h"
 #include "internal.h"
 #include "ocontext.h"
+#include FT_LIST_H
 
 #ifdef QUESOGLC_STATIC_LIBRARY
 pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
 #endif
+
+
+
+/* This function is called from FT_List_Finalize() to destroy all
+ * remaining contexts
+ */
+static void __glcStateDestructor(FT_Memory memory, void *data, void *user)
+{
+  __glcContextState *state = (__glcContextState*) data;
+
+  if (state)
+    __glcCtxDestroy(state);
+}
+
+
 
 /* This function is called when QuesoGLC is no longer needed.
  * It frees the memory and closes the Unicode DB files
@@ -47,29 +64,28 @@ static void __glcExitLibrary(void)
 void _fini(void)
 #endif
 {
-  int i;
-
-  /* destroy remaining contexts */
-  for (i=0; i < GLC_MAX_CONTEXTS; i++) {
-    if (__glcIsContext(i))
-      __glcCtxDestroy(__glcGetState(i));
-  }
-
   if (!__glcCommonArea)
     return;
 
+  __glcLock();
+
+  /* destroy remaining contexts */
+  FT_List_Finalize(__glcCommonArea->stateList, __glcStateDestructor,
+		   __glcCommonArea->memoryManager, NULL);
+
   /* destroy Common Area */
-  __glcFree(__glcCommonArea->isCurrent);
   __glcFree(__glcCommonArea->stateList);
+  __glcFree(__glcCommonArea->memoryManager);
+  dbm_close(__glcCommonArea->unidb1);
+  dbm_close(__glcCommonArea->unidb2);
 
-  gdbm_close(__glcCommonArea->unidb1);
-  gdbm_close(__glcCommonArea->unidb2);
-
+  __glcUnlock();
   pthread_mutex_destroy(&__glcCommonArea->mutex);
 
-  __glcFree(__glcCommonArea->memoryManager);
   __glcFree(__glcCommonArea);
 }
+
+
 
 /* This function is called each time a pthread is cancelled or exits in order
  * to free its specific area
@@ -77,10 +93,19 @@ void _fini(void)
 static void __glcFreeThreadArea(void *keyValue)
 {
   threadArea *area = (threadArea*)keyValue;
+  __glcContextState *state = NULL;
 
-  if (area)
+  if (area) {
+    /* Release the context which is current to the thread, if any */
+    state = area->currentContext;
+    if (state)
+      state->isCurrent = GL_FALSE;
+
     __glcFree(area);
+  }
 }
+
+
 
 /* Routines for memory management of FreeType */
 static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
@@ -99,8 +124,11 @@ static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
   return __glcRealloc(inBlock, inNewSize);
 }
 
+
+
 /* This function is called before any function of QuesoGLC
  * is used. It reserves memory and opens the Unicode DB files.
+ * In a few words, it initialiazes the library, hence the name
  */
 #ifdef QUESOGLC_STATIC_LIBRARY
 static void __glcInitLibrary(void)
@@ -108,15 +136,12 @@ static void __glcInitLibrary(void)
 void _init(void)
 #endif
 {
-  int i = 0;
-
   /* Creates and initializes the "Common Area" */
 
   __glcCommonArea = (commonArea*)__glcMalloc(sizeof(commonArea));
   if (!__glcCommonArea)
     goto FatalError;
 
-  __glcCommonArea->isCurrent = NULL;
   __glcCommonArea->stateList = NULL;
   __glcCommonArea->unidb1 = NULL;
   __glcCommonArea->unidb2 = NULL;
@@ -126,7 +151,8 @@ void _init(void)
   if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
     goto FatalError;
 
-  __glcCommonArea->memoryManager = (FT_Memory)__glcMalloc(sizeof(struct FT_MemoryRec_));
+  __glcCommonArea->memoryManager =
+    (FT_Memory)__glcMalloc(sizeof(struct FT_MemoryRec_));
   if (!__glcCommonArea->memoryManager)
     goto FatalError;
 
@@ -135,36 +161,26 @@ void _init(void)
   __glcCommonArea->memoryManager->free = __glcFreeFunc;
   __glcCommonArea->memoryManager->realloc = __glcReallocFunc;
 
-  /* Creates the array of state currency */
-  __glcCommonArea->isCurrent = (GLboolean*)__glcMalloc(GLC_MAX_CONTEXTS * sizeof(GLboolean));
-  if (!__glcCommonArea->isCurrent)
-    goto FatalError;
-
   /* Creates the array of context states */
-  __glcCommonArea->stateList = (__glcContextState**)__glcMalloc(GLC_MAX_CONTEXTS*sizeof(__glcContextState*));
+  __glcCommonArea->stateList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
   if (!__glcCommonArea->stateList)
     goto FatalError;
+  __glcCommonArea->stateList->head = NULL;
+  __glcCommonArea->stateList->tail = NULL;
 
   /* Open the first Unicode database */
-  __glcCommonArea->unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
+  __glcCommonArea->unidb1 = dbm_open("database/unicode1", O_RDONLY, 0444);
   if (!__glcCommonArea->unidb1)
     goto FatalError;
 
   /* Open the second Unicode database */
-  __glcCommonArea->unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
+  __glcCommonArea->unidb2 = dbm_open("database/unicode2", O_RDONLY, 0444);
   if (!__glcCommonArea->unidb2)
     goto FatalError;
 
-  /* Initialize the mutex
-   * At least this op can not fail !!!
-   */
-  pthread_mutex_init(&__glcCommonArea->mutex, NULL);
-
-  /* So far, there are no contexts */
-  for (i=0; i< GLC_MAX_CONTEXTS; i++) {
-    __glcCommonArea->isCurrent[i] = GL_FALSE;
-    __glcCommonArea->stateList[i] = NULL;
-  }
+  /* Initialize the mutex */
+  if (pthread_mutex_init(&__glcCommonArea->mutex, NULL))
+    goto FatalError;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   atexit(__glcExitLibrary);
@@ -177,24 +193,27 @@ void _init(void)
     __glcFree(__glcCommonArea->memoryManager);
     __glcCommonArea->memoryManager = NULL;
   }
-  if (__glcCommonArea->isCurrent) {
-    __glcFree(__glcCommonArea->isCurrent);
-    __glcCommonArea->isCurrent = NULL;
-  }
   if (__glcCommonArea->stateList) {
     __glcFree(__glcCommonArea->stateList);
     __glcCommonArea->stateList = NULL;
   }
   if (__glcCommonArea->unidb1) {
-    gdbm_close(__glcCommonArea->unidb1);
+    dbm_close(__glcCommonArea->unidb1);
     __glcCommonArea->unidb1 = NULL;
+  }
+  if (__glcCommonArea->unidb2) {
+    dbm_close(__glcCommonArea->unidb2);
+    __glcCommonArea->unidb2 = NULL;
   }
   if (__glcCommonArea) {
     __glcFree(__glcCommonArea);
   }
+  /* Is there a better thing to do than that ? */
   perror("GLC Fatal Error");
   exit(-1);
 }
+
+
 
 /* glcIsContext:
  *   This command returns GL_TRUE if inContext is the ID of one of the client's
@@ -206,11 +225,10 @@ GLboolean glcIsContext(GLint inContext)
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
-  if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
-    return GL_FALSE;
-  else
-    return __glcIsContext(inContext - 1);
+  return (__glcGetState(inContext) ? GL_TRUE : GL_FALSE);
 }
+
+
 
 /* glcGetCurrentContext:
  *   Returns the value of the issuing thread's current GLC context ID variable
@@ -230,6 +248,8 @@ GLint glcGetCurrentContext(void)
     return state->id;
 }
 
+
+
 /* glcDeleteContext:
  *   Marks for deletion the GLC context identified by <i>inContext</i>. If the
  *   marked context is not current to any client thread, the command deletes
@@ -242,37 +262,39 @@ GLint glcGetCurrentContext(void)
 void glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
+  FT_ListNode node;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
-  /* verify if parameters are in legal bounds */
-  if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS)) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
-  }
+  __glcLock();
 
-  state = __glcGetState(inContext - 1);
+  state = __glcGetState(inContext);
 
   /* verify if the context has been created */
   if (!state) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
+    __glcUnlock();
     return;
   }
 
-  __glcLock();
-
-  if (__glcGetCurrency(inContext - 1))
+  if (state->isCurrent)
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else {
-    __glcCtxDestroy(state);
-    __glcCommonArea->stateList[inContext - 1] = NULL;
+    node = FT_List_Find(__glcCommonArea->stateList, state);
+    if (node) {
+      FT_List_Remove(__glcCommonArea->stateList, node);
+      __glcCtxDestroy(state);
+      __glcFree(node);
+    }
   }
 
   __glcUnlock();
 }
+
+
 
 /* glcContext:
  *   Assigns the value inContext to the issuing thread's current GLC context ID
@@ -287,8 +309,8 @@ void glcContext(GLint inContext)
 {
   char *version = NULL;
   char *extension = NULL;
+  __glcContextState *currentState = NULL;
   __glcContextState *state = NULL;
-  GLint currentContext = 0;
   threadArea * area = NULL;
   Display *dpy = NULL;
   Screen *screen = NULL;
@@ -321,38 +343,33 @@ void glcContext(GLint inContext)
   __glcLock();
 
   if (inContext) {
-    /* verify that parameters are in legal bounds */
-    if ((inContext < 0) || (inContext > GLC_MAX_CONTEXTS)) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      __glcUnlock();
-      return;
-    }
     /* verify that the context exists */
-    if (!__glcIsContext(inContext - 1)) {
+    if (!glcIsContext(inContext)) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       __glcUnlock();
       return;
     }
 
-    /* Gets the current context ID */
-    currentContext = glcGetCurrentContext();
+    /* Gets the current context state */
+    currentState = area->currentContext;
 
     /* Check if the issuing thread is executing a callback
      * function that has been called from GLC
      */
-    if (currentContext) {
-      state = __glcGetCurrent();
-      if (state->isInCallbackFunc) {
+    if (currentState) {
+      if (currentState->isInCallbackFunc) {
 	__glcRaiseError(GLC_STATE_ERROR);
 	__glcUnlock();
 	return;
       }
     }
 
+    state = __glcGetState(inContext);
+
     /* Is the context already current to a thread ? */
-    if (__glcGetCurrency(inContext - 1)) {
+    if (state->isCurrent) {
       /* If the context is current to another thread => ERROR ! */
-      if (currentContext != inContext)
+      if (currentState->id != inContext)
 	__glcRaiseError(GLC_STATE_ERROR);
 
       /* If we get there, this means that the context 'inContext'
@@ -364,36 +381,37 @@ void glcContext(GLint inContext)
     }
 
     /* Release old current context if any */
-    if (currentContext) {
-      __glcSetCurrency(currentContext - 1, GL_FALSE);
-      state = __glcGetState(currentContext - 1);
-    }
+    if (currentState)
+      currentState->isCurrent = GL_FALSE;
 
     /* Make the context current to the thread */
-    area->currentContext = __glcCommonArea->stateList[inContext - 1];
-    __glcSetCurrency(inContext - 1, GL_TRUE);
+    area->currentContext = state;
+    state->isCurrent = GL_TRUE;
   }
   else {
     /* inContext is null, the current thread must release its context if any */
-    GLint currentContext = 0;
 
-    /* Gets the current context ID */
-    currentContext = glcGetCurrentContext();
+    /* Gets the current context state */
+    currentState = area->currentContext;
 
-    if (currentContext) {
-      state = __glcGetState(currentContext - 1);
+    if (currentState) {
       /* Deassociate the context from the issuing thread */
       area->currentContext = NULL;
       /* Release the context */
-      __glcSetCurrency(currentContext - 1, GL_FALSE);
+      currentState->isCurrent = GL_FALSE;
     }
   }
 
   /* execute pending deletion if any */
-  if (currentContext && state) {
-    if (state->pendingDelete) {
-      __glcCtxDestroy(state);
-      __glcCommonArea->stateList[currentContext - 1] = NULL;
+  if (currentState) {
+    if (currentState->pendingDelete) {
+      FT_ListNode node = FT_List_Find(__glcCommonArea->stateList,
+				      currentState);
+      if (node) {
+	FT_List_Remove(__glcCommonArea->stateList, node);
+	__glcCtxDestroy(state);
+	__glcFree(node);
+      }
     }
   }
 
@@ -421,13 +439,16 @@ void glcContext(GLint inContext)
 #endif
 }
 
+
+
 /* glcGenContext:
  *   Generates a new GLC context and returns its ID.
  */
 GLint glcGenContext(void)
 {
-  int i = 0;
+  int newContext = 0;
   __glcContextState *state = NULL;
+  FT_ListNode node = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -437,27 +458,33 @@ GLint glcGenContext(void)
   __glcLock();
 
   /* Search for the first context ID that is unused */
-  for (i=0 ; i<GLC_MAX_CONTEXTS; i++) {
-    if (!__glcIsContext(i))
-      break;
+  node = __glcCommonArea->stateList->tail;
+  if (!node) {
+    newContext = 1;
   }
-
-  if (i == GLC_MAX_CONTEXTS) {
-    /* All the contexts are used. We can not generate a new one => ERROR !!! */
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcUnlock();
-    return 0;
+  else {
+    state = (__glcContextState *)node->data;
+    newContext = state->id + 1;
   }
 
   /* Create a new context */
-  state = __glcCtxCreate(i);
+  state = __glcCtxCreate(newContext);
   if (!state) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcUnlock();
     return 0;
   }
 
-  __glcCommonArea->stateList[i] = state;
+  node = (FT_ListNode) __glcMalloc(sizeof(FT_ListNodeRec));
+  if (!node) {
+    __glcCtxDestroy(state);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcUnlock();
+    return 0;
+  }
+
+  node->data = state;
+  FT_List_Add(__glcCommonArea->stateList, node);
 
   __glcUnlock();
 
@@ -485,12 +512,13 @@ GLint glcGenContext(void)
     else {
       /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      return 0;
     }
   }
 
-  return i + 1;
+  return newContext;
 }
+
+
 
 /* glcGetAllContexts:
  *   Returns a zero terminated array of GLC context IDs that contains one entry
@@ -501,8 +529,9 @@ GLint glcGenContext(void)
 GLint* glcGetAllContexts(void)
 {
   int count = 0;
-  int i = 0;
   GLint* contextArray = NULL;
+  FT_ListNode node = NULL;
+  __glcContextState *state = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -511,28 +540,39 @@ GLint* glcGetAllContexts(void)
   /* Count the number of existing contexts (whether they are current to a
    * thread or not).
    */
-  for (i=0; i < GLC_MAX_CONTEXTS; i++) {
-    if (__glcIsContext(i))
-      count++;
+  __glcLock();
+  node = __glcCommonArea->stateList->head;
+  while (node) {
+    count++;
+    node = node->next;
   }
 
   /* Allocate memory to store the array */
   contextArray = (GLint *)malloc(sizeof(GLint) * (count+1));
   if (!contextArray) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcUnlock();
     return NULL;
   }
 
+  /* Array must be null-terminated */
   contextArray[count] = 0;
 
   /* Copy the context IDs to the array */
-  for (i = GLC_MAX_CONTEXTS - 1; i >= 0; i--) {
-    if (__glcIsContext(i))
-      contextArray[--count] = i+1;
+  node = __glcCommonArea->stateList->tail;
+  while (node) {
+    state = (__glcContextState *)node->data;
+    if (state)
+      contextArray[--count] = state->id;
+    node = node->prev;
   }
+
+  __glcUnlock();
 
   return contextArray;
 }
+
+
 
 /* glcGetError:
  *   retrieves the value of the issuing thread's GLC error code variable,

@@ -105,17 +105,26 @@ int main(void)
 			return -1;
 		}
 	}
-	free(list);
 	if (glcIsContext(5)) {
 		printf("Context 5 still exists\n");
 		return -1;
 	}
 
 	ctx = glcGenContext();
-	if (ctx != 5) {
+	if (!ctx) {
 		printf("GLC Error : 0x%X\n", glcGetError());
 		return -1;
 	}
+
+	while (list[i]) {
+		if (list[i++] == ctx) {
+			printf("This context is already defined\n");
+			return -1;
+		}
+	}
+
+	glcContext(ctx);
+
 	printf("Tests successful\n");
 
 	return 0;

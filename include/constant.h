@@ -1,6 +1,5 @@
 #define GLC_POINT_SIZE          100
 
-#define GLC_MAX_CONTEXTS	16
 #define GLC_MAX_CURRENT_FONT	16
 #define GLC_MAX_FONT		16
 #define GLC_MAX_TEXTURE_OBJECT	16

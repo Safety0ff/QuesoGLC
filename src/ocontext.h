@@ -22,7 +22,7 @@
 #define __glc_ocontext_h
 
 #include <pthread.h>
-#include <gdbm.h>
+#include <gdbm/ndbm.h>
 
 #include "GL/glc.h"
 #include "constant.h"
@@ -31,6 +31,7 @@
 #include "ostrlst.h"
 
 typedef struct {
+  GLboolean isCurrent;
   GLCchar *buffer;
   GLint bufferSize;
 
@@ -75,13 +76,12 @@ typedef struct {
 } threadArea;
 
 typedef struct {
-  GLboolean *isCurrent;
-  __glcContextState **stateList;
+  FT_List stateList;
   pthread_mutex_t mutex;
   pthread_key_t threadKey;
 
   FT_Memory memoryManager;
-  GDBM_FILE unidb1, unidb2;
+  DBM *unidb1, *unidb2;
 } commonArea;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
@@ -98,10 +98,6 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint code);
 GLCchar* __glcCtxQueryBuffer(__glcContextState *This, int inSize);
 
 __glcContextState* __glcGetState(GLint inContext);
-void __glcSetState(GLint inContext, __glcContextState *inState);
-GLboolean __glcGetCurrency(GLint inContext);
-void __glcSetCurrency(GLint inContext, GLboolean isCurrent);
-GLboolean __glcIsContext(GLint inContext);
 void __glcLock(void);
 void __glcUnlock(void);
 
