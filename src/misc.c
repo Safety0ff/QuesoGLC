@@ -395,6 +395,9 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
   int len_buffer = 0;
   int len = 0;
 
+  if (!inString)
+    return GLC_NONE;
+
   switch(inStringType) {
   case GLC_UCS1:
     {

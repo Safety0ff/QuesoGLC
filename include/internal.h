@@ -96,6 +96,12 @@ extern "C" {
   /* This function is called when the texture object list is destroyed */
   extern void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
 					   void *inUser);
+
+  /* This function parses the font set and add the font files to the masters
+   * of the context 'This'. Masters are created if necessary.
+   */
+  void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
+			      GLboolean inAppend);
 #ifdef __cplusplus
 }
 #endif

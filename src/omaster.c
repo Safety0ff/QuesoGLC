@@ -25,14 +25,15 @@
 #include "ocontext.h"
 #include FT_LIST_H
 
+static const char unknown[] = "Unknown";
+
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const FcChar8* inVendorName,
 			       const char* inFileExt, GLint inID,
 			       GLboolean fixed, GLint inStringType)
 {
-  static char format0[] = "Unknown";
-  static char format1[] = "Type1";
-  static char format2[] = "True Type";
+  static const char format1[] = "Type1";
+  static const char format2[] = "True Type";
   __glcMaster *This = NULL;
 
   This = (__glcMaster*)__glcMalloc(sizeof(__glcMaster));
@@ -54,16 +55,20 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
     goto error;
 
   /* use file extension to determine the face format */
-  This->masterFormat = (FcChar8*)format0;
+  This->masterFormat = (FcChar8*)unknown;
   if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
     This->masterFormat = (FcChar8*)format1;
   if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
     This->masterFormat = (FcChar8*)format2;
 
   /* We assume that the format of data strings in font files is GLC_UCS1 */
-  This->vendor = (FcChar8*)strdup((const char*)inVendorName);
-  if (!This->vendor)
-    goto error;
+  if (inVendorName) {
+    This->vendor = (FcChar8*)strdup((const char*)inVendorName);
+    if (!This->vendor)
+      goto error;
+  }
+  else
+    This->vendor = (FcChar8*)unknown;
 
   This->charList = FcCharSetCreate();
   if (!This->charList)
@@ -119,8 +124,10 @@ void __glcMasterDestroy(__glcMaster *This)
   FT_List_Finalize(&This->faceList, __glcFaceDestructor,
 		   &__glcCommonArea.memoryManager, NULL);
   FcCharSetDestroy(This->charList);
-  __glcFree(This->family);
-  __glcFree(This->vendor);
+  if (This->family)
+    __glcFree(This->family);
+  if (This->vendor != (FcChar8*)unknown)
+    __glcFree(This->vendor);
 
   __glcFree(This);
 }

@@ -54,7 +54,7 @@ typedef struct {
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_ListRec fontList;		/* GLC_FONT_LIST */
   FT_ListRec masterList;
-  FT_ListRec localCatalogList;
+  FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
   GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
@@ -76,7 +76,6 @@ typedef struct {
   GLint versionMinor;		/* GLC_VERSION_MINOR */
 
   FT_ListRec stateList;
-  FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
   pthread_mutex_t mutex;	/* For concurrent accesses to the common area */
 
   pthread_key_t threadKey;

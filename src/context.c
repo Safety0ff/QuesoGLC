@@ -358,17 +358,14 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   }
 
   /* Get the string at offset inIndex */
-  __glcLock();
-  iterator = FcStrListCreate(__glcCommonArea.catalogList);
+  iterator = FcStrListCreate(state->catalogList);
   if (!iterator) {
-    __glcUnlock();
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
   for (catalog = FcStrListNext(iterator); catalog && inIndex;
 	catalog = FcStrListNext(iterator), inIndex--);
   FcStrListDone(iterator);
-  __glcUnlock();
 
   /* Now we can check if inIndex identifies a member of the string set or 
    * not */
@@ -845,17 +842,14 @@ GLint glcGeti(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
-    __glcLock();
-    iterator = FcStrListCreate(__glcCommonArea.catalogList);
+    iterator = FcStrListCreate(state->catalogList);
     if (!iterator) {
-      __glcUnlock();
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
     }
     for (catalog = FcStrListNext(iterator), count = 0; catalog;
 	catalog = FcStrListNext(iterator), count++);
     FcStrListDone(iterator);
-    __glcUnlock();
     return count;
   case GLC_CURRENT_FONT_COUNT:
     for (node = state->currentFontList.head, count = 0; node;
