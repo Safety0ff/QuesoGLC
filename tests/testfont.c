@@ -34,5 +34,8 @@ void testQueso(void)
     printf("Font Map #%d : %s\n", 65, (char *)glcGetFontMap(font, 65));
     printf("Font Map #%d : %s\n", 92, (char *)glcGetFontMap(font, 92));
     
+    glcFontMap(font, 90, "LATIN CAPITAL LETTER A");
+    
+    printf("Font Map #%d : %s\n", 65, (char *)glcGetFontMap(font, 65));
     my_fini();
 }
