@@ -39,7 +39,14 @@ __glcContextState* __glcGetCurrentState(void)
 
 void __glcRaiseError(GLCenum inError)
 {
-    pthread_setspecific(__glcErrorKey, (void *)inError);
+    GLCenum error = GLC_NONE;
+
+    /* An error can only be raised if the current error value is GLC_NONE. 
+       However, when inError == GLC_NONE then we must force the current error
+       value to GLC_NONE whatever was its previous value */
+    error = (GLCenum)pthread_getspecific(__glcErrorKey);
+    if ((inError && !error) || !inError)
+	pthread_setspecific(__glcErrorKey, (void *)inError);
 }
 
 static GLboolean __glcGetContextCurrency(GLint inContext)
@@ -136,8 +143,7 @@ static void __glcDeleteContext(GLint inContext)
 	
 	font = state->fontList[i];
 	if (font) {
-	    FT_Done_Face(font->face);
-	    free(font);
+	    glcDeleteFont(i);
 	}
     }
     
@@ -152,6 +158,8 @@ static void __glcDeleteContext(GLint inContext)
 	    free(master);
 	}
     }
+    
+    glcDeleteGLObjects();
 
     free(state);
 }
