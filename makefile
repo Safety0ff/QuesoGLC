@@ -13,10 +13,13 @@ LDFLAGS += -lefence
 endif
 LIBRARY = lib/libglc.a
 BUILDER = buildDB
+DATABASE = database/unicode1.db
 OBJECTS = obj/common.o tests/testcommon tests/teststrlst tests/testmaster tests/testfont \
 	tests/testrender tests/testcontex
 
-all: database/$(BUILDER) $(OBJECTS) $(LIBRARY)
+all: $(DATABASE) $(OBJECTS) $(LIBRARY)
+
+$(DATABASE) : database/$(BUILDER)
 	cd database; ./$(BUILDER) *.txt ; cd ..
 
 tests/% :  tests/%.c $(LIBRARY)
