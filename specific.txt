@@ -30,18 +30,6 @@ implementation to another although they are conformant.
 Non-conformance:
 ---------------
 
-- In the current implementation, glcGetMasteri(x, GLC_MIN_MAPPED_CODE) always
-  returns 0 (zero) and glcGetMasteri(x, GLC_MAX_MAPPED_CODE) always returns
-  0x7FFFFFFF. This non-conformance will not be fixed until FreeType provides
-  some API entries to read directly into the charmaps.
-
-- In the current implementation, glcGetMasteri(x, GLC_CHAR_COUNT) always returns
-  0 (zero) and glcGetMasterListc(x, GLC_CHAR_LIST, y) always generates a
-  GLC_PARAMETER_ERROR whatever x and y are. As a consequence, glcFontMap does
-  not check if its parameter inCharName is an element of the font's string list
-  attribute GLC_CHAR_LIST. This non-conformance will not be fixed until FreeType
-  provides some API entries to read directly into the charmaps.
-
 - In the current implementation, glcGetMasterc(GLC_VERSION) always return NULL.
 
 Extensions:
