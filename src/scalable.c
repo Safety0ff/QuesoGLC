@@ -203,7 +203,7 @@ static void __glcCallbackError(GLenum inErrorCode)
     __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 }
 
-void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyDisplayListDatum, compareFunc compareDisplayListKeys, GLboolean inFill)
+void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyDisplayListKey, destroyFunc destroyDisplayListData, compareFunc compareDisplayListKeys, GLboolean inFill)
 {
     FT_Outline *outline = NULL;
     FT_Outline_Funcs interface;
@@ -274,8 +274,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
       if (inFont->parent->displayList)
 	inFont->parent->displayList = inFont->parent->displayList->insert(dlKey, list);
       else {
-	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListDatum, 
-					  destroyDisplayListDatum, compareDisplayListKeys);
+	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListKey, 
+					  destroyDisplayListData, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
 	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	  free(dlKey);
@@ -296,7 +296,6 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     
     if (inState->glObjects) {
       glEndList();
-      inState->listObjectList[inState->listObjectCount] = *list;
       inState->listObjectCount++;
       glCallList(*list);
     }

@@ -9,9 +9,6 @@ typedef void(*destroyFunc)(void *);
 typedef int(*compareFunc)(void *, void *);
 
 class BTree {
-  BTree(BTree &tree) {}
-  BTree& operator=(const BTree &tree) {}
-
  protected:
   void* data;
   BTree* left;
@@ -41,6 +38,7 @@ class BSTree : public BTree {
   friend int insertNode(BSTree **, void *, void *, int&);
   friend void rotateLeft(BSTree **);
   friend void rotateRight(BSTree **);
+  friend BSTree* walkThrough(BSTree *, int, int&);
 
  public:
   BSTree(void *key, void *data, destroyFunc destroyKey, destroyFunc destroyData, compareFunc compare);
@@ -48,6 +46,7 @@ class BSTree : public BTree {
   BSTree* insert(void *key, void *data);
   void remove(void *key);
   void* lookup(void *key);
+  void* element(int& elm);
 };
 
 #endif /* __glc_btree_h */

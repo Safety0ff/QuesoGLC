@@ -56,9 +56,6 @@ __glcContextState::__glcContextState(GLint inContext)
     for (j=0; j < GLC_MAX_FONT; j++)
 	fontList[j] = NULL;
 
-    for (j=0; j < GLC_MAX_LIST_OBJECT; j++)
-	listObjectList[j] = 0;
-
     for (j=0; j < GLC_MAX_MASTER; j++)
 	masterList[j] = NULL;
 

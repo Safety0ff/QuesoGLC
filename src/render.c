@@ -144,9 +144,15 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
     free(pixmap.buffer);
 }
 
-static void destroyDisplayListDatum(void *inDatum)
+static void destroyDisplayListKey(void *inKey)
 {
-  free(inDatum);
+  free(inKey);
+}
+
+static void destroyDisplayListData(void *inData)
+{
+  glDeleteLists(*((GLuint *)inData), 1);
+  free(inData);
 }
 
 static int compareDisplayListKeys(void *inKey1, void *inKey2)
@@ -291,8 +297,8 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
       if (inFont->parent->displayList)
 	inFont->parent->displayList = inFont->parent->displayList->insert(dlKey, list);
       else {
-	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListDatum, 
-					  destroyDisplayListDatum, compareDisplayListKeys);
+	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListKey, 
+					  destroyDisplayListData, compareDisplayListKeys);
 	if (!inFont->parent->displayList) {
 	  __glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	  free(pixmap.buffer);
@@ -325,7 +331,6 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     
     if (inState->glObjects) {
       glEndList();
-      inState->listObjectList[inState->listObjectCount] = *list;
       inState->listObjectCount++;
       glCallList(*list);
     }
@@ -393,7 +398,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 	case GLC_LINE:
 	case GLC_TRIANGLE:
 	  if (!__glcFindDisplayList(font, inCode, (state->renderStyle == GLC_TRIANGLE) ? 4 : 3))
-	    __glcRenderCharScalable(font, state, inCode, destroyDisplayListDatum, compareDisplayListKeys, (state->renderStyle == GLC_TRIANGLE));
+	    __glcRenderCharScalable(font, state, inCode, destroyDisplayListKey, destroyDisplayListData, compareDisplayListKeys, (state->renderStyle == GLC_TRIANGLE));
 	  return;
 	default:
 	    __glcContextState::raiseError(GLC_PARAMETER_ERROR);

@@ -8,6 +8,9 @@ void testQueso(void)
 {
     int ctx = 0;
     int font = 0;
+    int i = 0;
+    int ntex = 0;
+    int ndl = 0;
     
     glEnable(GL_TEXTURE_2D);
     
@@ -57,8 +60,16 @@ void testQueso(void)
     glcRenderStyle(GLC_TRIANGLE);
     glcRenderString("esoGLC");
     
-    printf("Textures : %d\n", glcGeti(GLC_TEXTURE_OBJECT_COUNT));
-    printf("Display Lists : %d\n", glcGeti(GLC_LIST_OBJECT_COUNT));
-    
+    ntex = glcGeti(GLC_TEXTURE_OBJECT_COUNT);
+    printf("Textures : %d\n", ntex);
+    for (i = 0; i < ntex; i++)
+      printf("%d ", glcGetListi(GLC_TEXTURE_OBJECT_LIST, i));
+
+    ndl = glcGeti(GLC_LIST_OBJECT_COUNT);
+    printf("\nDisplay Lists : %d\n", ndl);
+    for (i = 0; i < ndl; i++)
+      printf("%d ", glcGetListi(GLC_LIST_OBJECT_LIST, i));
+
+    printf("\n");
     my_fini();
 }

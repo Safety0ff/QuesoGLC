@@ -91,3 +91,13 @@ Arbitrary choices:
 	display lists by encapsulating glcRenderChar by a glNewList / glEndList
 	pair. This will fail because QuesoGLC deletes the picture used to
 	render the character as soon as the picture is drawn.
+
+- When the user asks for the list of the display lists using the command
+  "glcGetListi(GLC_LIST_OBJECT_LIST, i)", QuesoGLC may not return the display
+  lists names in growing order nor in the order in which they were created. In
+  other words, when QuesoGLC adds a display list name to the list, the new entry
+  may not be the last one. Moreover, the global ordering of the list may change
+  each time QuesoGLC creates a new display list. This is due to internal
+  management of the display lists (QuesoGLC uses binay trees which are not
+  convenient to keep track of the order in which display lists have been
+  created).

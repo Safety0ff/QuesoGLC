@@ -8,11 +8,11 @@ else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
 CFLAGS += -Wall -Iinclude -Isrc -ansi -pedantic-errors
-LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU -lglut -lX11 -lXext -lXmu -lgdbm
+LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU -lglut -lX11 -lXext -lXmu -lgdbm -lstdc++
 ifdef DEBUGMODE
 LDFLAGS += -lefence
 endif
-LIBRARY = lib/libglc.a
+LIBRARY = lib/libGLC.a
 BUILDER = buildDB
 C_SOURCES = context.c font.c global.c master.c measure.c render.c scalable.c \
 	  transform.c
@@ -35,10 +35,10 @@ obj/%.o : tests/%.c
 
 obj/%.o : src/%.c
 	$(CPP) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
-	
+
 obj/%.oo : src/%.cpp
 	$(CPP) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
-	
+
 $(LIBRARY) : $(LIB_OBJECTS)
 	$(AR) -r $@ $^
 

@@ -20,7 +20,7 @@ typedef struct {
 extern GLint __glcGetFont(GLint inCode);
 
 /* Character renderers */
-extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroy, compareFunc compare, GLboolean inFill);
+extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyKey, destroyFunc destroyData, compareFunc compare, GLboolean inFill);
 
 /* Master helpers */
 extern void __glcDeleteMaster(GLint inMaster, __glcContextState *inState);

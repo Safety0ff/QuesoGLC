@@ -47,7 +47,6 @@ class __glcContextState {
   GLint currentFontCount;	/* GLC_CURRENT_FONT_COUNT */
   __glcFont* fontList[GLC_MAX_FONT];
   GLint fontCount;		/* GLC_FONT_COUNT */
-  GLuint listObjectList[GLC_MAX_LIST_OBJECT];
   GLint listObjectCount;	/* GLC_LIST_OBJECT_COUNT */
   __glcMaster* masterList[GLC_MAX_MASTER];
   GLint masterCount;		/* GLC_MASTER_COUNT */

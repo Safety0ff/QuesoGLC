@@ -48,9 +48,6 @@ void glcDeleteGLObjects(void)
     }
 
     /* Deletes display lists */
-    for (i = 0; i < state->listObjectCount; i++)
-	glDeleteLists(state->listObjectList[i], 1);
-
     for (i = 0; i < state->masterCount; i++)
       delete state->masterList[i]->displayList;
 
@@ -152,6 +149,9 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 {
     __glcContextState *state = NULL;
+    int i = 0;
+    BSTree *dlTree = NULL;
+    GLuint *dlName = NULL;
 
     switch(inAttrib) {
 	case GLC_CURRENT_FONT_LIST:
@@ -188,7 +188,15 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 		__glcContextState::raiseError(GLC_PARAMETER_ERROR);
 		return 0;
 	    }
-	    return state->listObjectList[inIndex];
+	    for (i = 0; i < state->masterCount; i++) {
+	      dlTree = state->masterList[i]->displayList;
+	      if (dlTree) {
+		dlName = (GLuint *)dlTree->element(inIndex);
+		if (dlName)
+		  break;
+	      }
+	    }
+	    return *dlName;
 	case GLC_TEXTURE_OBJECT_LIST:
 	    if (inIndex > state->textureObjectCount) {
 		__glcContextState::raiseError(GLC_PARAMETER_ERROR);

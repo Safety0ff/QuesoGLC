@@ -326,3 +326,33 @@ void BSTree::remove(void *inKey)
 
   return;
 }
+
+BSTree* walkThrough(BSTree *node, int inElement, int& inCount)
+{
+  BSTree* found = NULL;
+
+  if (node->right)
+    found = walkThrough((BSTree *)node->right, inElement, inCount);
+
+  if (!found) {
+    if (inCount++ == inElement)
+      found = node;
+    else if (node->left)
+      found = walkThrough((BSTree *)node->left, inElement, inCount);
+  }
+
+  return found;
+}
+
+void* BSTree::element(int& inElement)
+{
+  int count = 0;
+  BSTree *node = NULL;
+
+  node =  walkThrough(this, inElement, count);
+  inElement -= count + 1;
+  if (node)
+    return node->data;
+  else
+    return NULL;
+}
