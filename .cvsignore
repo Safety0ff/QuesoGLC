@@ -1,0 +1,7 @@
+config.cache
+config.log
+config.status
+configure
+makefile
+makefile.dep
+stamp-h
