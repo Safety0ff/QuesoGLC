@@ -97,8 +97,15 @@ void glcDeleteGLObjects(void)
 		       __glcCommonArea->memoryManager, NULL);
   }
 
-  /* Deletes texture objects */
-  glDeleteTextures(state->textureObjectCount, state->textureObjectList);
+  /* SPECIAL NOTE on Texture objects deletion :
+   * Although glDeleteTextures() can safely be called with 0 texture to
+   * delete, some OpenGL ICD crash whenever a GL function is called when
+   * no GL context is bound to the thread. Hence, we assume that, when no
+   * GL context is bound, no texture has been created and, obviously,
+   * no texture needs to be deleted.
+   */
+  if (state->textureObjectCount)
+    glDeleteTextures(state->textureObjectCount, state->textureObjectList);
 
   /* Empties both GLC_LIST_OBJECT_LIST and GLC_TEXTURE_OBJECT_LIST */
   state->listObjectCount = 0;
