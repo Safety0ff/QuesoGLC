@@ -96,9 +96,6 @@ void _fini(void)
     node = next;
   }
 
-  /* destroy Common Area */
-  FcStrSetDestroy(__glcCommonArea.catalogList);
-
   __glcUnlock();
   pthread_mutex_destroy(&__glcCommonArea.mutex);
 }
@@ -175,10 +172,6 @@ void _init(void)
   __glcCommonArea.stateList.head = NULL;
   __glcCommonArea.stateList.tail = NULL;
 
-  __glcCommonArea.catalogList = FcStrSetCreate();
-  if (!__glcCommonArea.catalogList)
-    goto FatalError;
-
   /* Initialize the mutex for access to the stateList array */
   if (pthread_mutex_init(&__glcCommonArea.mutex, NULL))
     goto FatalError;
@@ -190,9 +183,6 @@ void _init(void)
 
  FatalError:
   __glcRaiseError(GLC_RESOURCE_ERROR);
-
-  if (__glcCommonArea.catalogList)
-    FcStrSetDestroy(__glcCommonArea.catalogList);
 
   /* Is there a better thing to do than that ? */
   perror("GLC Fatal Error");
@@ -473,6 +463,10 @@ GLint glcGenContext(void)
   int newContext = 0;
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
+  FcPattern* pattern = NULL;
+  FcObjectSet* objectSet = NULL;
+  FcFontSet *fontSet = NULL;
+  int i = 0;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -502,7 +496,55 @@ GLint glcGenContext(void)
 
   __glcUnlock();
 
-  /* Check if the GLC_PATH environment variable is exported */
+  /* Use Fontconfig to get the default font files */
+  pattern = FcPatternCreate();
+  if (!pattern) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return newContext;
+  }
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_FOUNDRY,
+			       FC_SPACING, FC_CHARSET, FC_INDEX, 0);
+  if (!objectSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return newContext;
+  }
+  fontSet = FcFontList(0, pattern, objectSet);
+  FcPatternDestroy(pattern);
+  FcObjectSetDestroy(objectSet);
+
+  __glcAddFontsToContext(state, fontSet, GL_TRUE);
+
+  /* Update the catalog list */
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcChar8 *fileName = NULL;
+    FcChar8 *dirName = NULL;
+
+    /* get the file name */
+    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
+	== FcResultTypeMismatch)
+      continue;
+
+    dirName = FcStrDirname(fileName);
+
+    if (!FcStrSetMember(state->catalogList, dirName)) {
+      if (!FcStrSetAdd(state->catalogList, dirName)) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	FcFontSetDestroy(fontSet);
+	free(dirName);
+	return newContext;
+      }
+    }
+
+    free(dirName);
+  }
+
+  FcFontSetDestroy(fontSet);
+
+  /* The environment variable GLC_PATH is an alternate way to allow QuesoGLC
+   * to access to fonts catalogs/directories.
+   */
+  /*Check if the GLC_PATH environment variable is exported */
   if (getenv("GLC_PATH")) {
     char *path = NULL;
     char *begin = NULL;
