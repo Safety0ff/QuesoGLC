@@ -1,7 +1,8 @@
-Changes made from the "Birth" release to the "Baby" release:
+Changes made from the "Birth" release to the "0.1" release:
 -----------------------------------------------------------
 
-
+- Get rid of NDBM : Unicode names are now stored in a const array which is
+  automagically built from buildDB.py
 - FreeType lists are now used for the string list object, master lists,
   font lists, current font lists and texture object lists.
 - A mutex is now used for every access to the database since NDBM is not

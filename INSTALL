@@ -1,4 +1,4 @@
-For now, QuesoGLC can only be built on POSIX platforms (including Linux).
+For now, QuesoGLC can only be built on POSIX platforms.
 
 1. What do you need in order to build QuesoGLC :
 ==============================================
@@ -6,38 +6,37 @@ For now, QuesoGLC can only be built on POSIX platforms (including Linux).
 1.1 Tools/headers/libraries that are mandatory :
 ----------------------------------------------
 
-* GNU Make tool
+QuesoGLC depends on tools and libraries that are now widely used in the
+Open Source world, and which might already be installed on your favorite
+platform. If not, you can get them on Internet and build them on your system.
+
+* GNU Make tool (www.gnu.org/software/make/make.html)
 	QuesoGLC's build process heavily rely on this tool. You must install it
 	first.
 * FreeType2 (www.freetype.org)
-	It is the core lib that manage fonts files and datas. QuesoGLC heavily
+	This is the core lib that manage fonts files and datas. QuesoGLC heavily
 	uses its functionnalities.
-* OpenGL, GLU
+* OpenGL, GLU (www.opengl.org/documentation/implementations.html)
 	QuesoGLC is supposed to provide a character rendering service for
-	OpenGL. Hence you definitely need those ones.
-* GDBM
-	QuesoGLC uses GDBM to manage a database of the official Unicode names
-	of characters. However, in the (near?) future, we may get rid of it.
-	For now, it is mandatory.
+	OpenGL. Hence you definitely need OpenGL ;-)
+* POSIX threads
+	GLC is designed with core support for multi-threading. However,
+	QuesoGLC only supports POSIX threads. 'pthread' lib and headers are
+	mandatory in order to build QuesoGLC.
 
-1.2 Tools/headers/libraries that are optional :
+1.1 Tools/headers/libraries that are optional :
 ---------------------------------------------
 
-* POSIX threads
-	QuesoGLC can be built without POSIX threads libs. However if you want to
-	use the multi-threaded features of QuesoGLC, you must provide the
-	'pthread' headers and libraries.
+Not all test programs need GLUT, but some of them need it in order to display
+OpenGL graphics.
 
-2. What do you need in order to build tests programs :
---------------------------------------------------
-
-* Mark Kilgard's GLUT
+* Mark Kilgard's GLUT (www.opengl.org/resources/libraries/glut.html)
 	It provides platform independant support for OpenGL. However, QuesoGLC
 	can safely be used without GLUT.
 
-3. OK, all those libs and headers are installed on my machine.
+2. OK, all those libs and headers are installed on my machine.
 What shall I do now ?
--------------------------------------------------------------
+=============================================================
 
 Simply type
 
@@ -47,3 +46,26 @@ Simply type
 
 on the command line to configure, build and install QuesoGLC on your
 system. Note that the default installation path is "/usr/local".
+
+4. Is that all ?
+================
+
+When the library has been successfully built, you might define the variable
+GLC_PATH in order to indicate QuesoGLC where to find fonts. Depending on your
+shell the command is either
+
+export GLC_PATH=/usr/lib/X11/fonts/Type1:/path/to/another/font/directory
+
+or
+
+setenv GLC_PATH /usr/lib/X11/fonts/Type1:/path/to/another/font/directory
+
+Note : the path /usr/lib/X11/fonts/Type1 usually leads to Type1 fonts on almost
+all X-window flavor.
+
+5. Is that really all ?
+=======================
+
+You should have a look to the README file and get the specifications of GLC
+from www.opengl.org/documentation/specs/glc/glcspec.ps.
+You should also try the tests programs too.
