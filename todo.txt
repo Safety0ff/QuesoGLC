@@ -3,24 +3,32 @@ QuesoGLC 0.0.1
 These are things to do by order of preference :
 
 1. Write an extensive set of test programs
-2. Allow QuesoGLC to be built without pthread support (no _REENTRANT flag)
-3. Remove the hard-limited arrays of QuesoGLC (in other words, remove the file
+2. Remove the hard-limited arrays of QuesoGLC (in other words, remove the file
    include/constant.h)
-4. Improve performance
-   4.1. Use FreeType cache system, in order not to load/unload face files too
+3. Improve performance
+   3.1. Use FreeType cache system, in order not to load/unload face files too
 	much
-   4.2. Use a cache to store the pictures used when drawing glyphs with
+   3.2. Use a cache to store the pictures used when drawing glyphs with
 	GLC_BITMAP
-5. (?) Use FreeType's double linked lists in order to minimize redundant code
-6. (?) Get rid of gdbm
-7. (?) Use FreeType memory manager in order to use debug memory routines
-    (g_malloc, g_free,...) of the glib
-8. When a fatal error occurs inside QuesoGLC, it should do something more
+4. (?) Use FreeType's double linked lists in order to minimize redundant code
+5. (?) Get rid of gdbm
+6. Make memory management more versatile, in order to use custom routines like
+   g_malloc, g_free and g_realloc for debugging pruposes.
+   6.1. Define functions __glcMalloc, __glcFree and __glcRealloc which are
+	counterparts of malloc, free and realloc
+   6.2. (?) Force FreeType to use __glcMalloc, __glcFree and __glcRealloc by
+	using its custom memory manager.
+7. Make quesoGLC a dynamic library (or a static lib depending on the options
+   choosen at the configure time).
+8. Try to optimize texture space : draw several glyphs on each texture in order
+   to minimize the unused texture space.
+9. When a fatal error occurs inside QuesoGLC, it should do something more
    friendly than brute-force exiting.
-9. Check that OpenGL is 1.1 or better and glX is 1.2 or better.
-10. QuesoGLC does not support face collections in one file.
-11. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
-12. Support for loading of compressed files
-13. Separate platform specific code from the main code set.
-14. (?) Associate a glX context with a glc context.
-15. (?) Do not store the path for each file name
+10. Check that OpenGL is 1.1 or better and glX is 1.2 or better.
+11. QuesoGLC does not support face collections in one file.
+12. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
+13. Support for loading of compressed files
+14. Separate platform specific code from the main code set.
+15. (?) Associate a glX context with a glc context.
+16. (?) Do not store the path for each file name
+17. (?) Use pure ANSI C (or get rid of C++)
