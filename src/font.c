@@ -111,7 +111,7 @@ void glcDeleteFont(GLint inFont)
 
   /* Destroy the font and remove it from the GLC_FONT_LIST */
   font = state->fontList[inFont - 1];
-  delete font;
+  __glcFontDestroy(font);
   state->fontList[inFont - 1] = NULL;
   state->fontCount--;
 }

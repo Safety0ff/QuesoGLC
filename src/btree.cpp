@@ -377,3 +377,44 @@ void* BSTree::element(int& inElement)
   else
     return NULL;
 }
+
+/* Callback function that is called when a display list is destroyed in the
+ * B-Tree
+ */
+static void destroyDisplayListKey(void *inKey)
+{
+  __glcFree(inKey);
+}
+
+/* Callback function that is called when a display list is destroyed in the
+ * B-Tree
+ */
+static void destroyDisplayListData(void *inData)
+{
+  glDeleteLists(*((GLuint *)inData), 1);
+  __glcFree(inData);
+}
+
+/* Callback function that is called to sort display lists into the B-Tree */
+static int compareDisplayListKeys(void *inKey1, void *inKey2)
+{
+  __glcDisplayListKey *key1 = (__glcDisplayListKey *)inKey1;
+  __glcDisplayListKey *key2 = (__glcDisplayListKey *)inKey2;
+
+  if (key1->face < key2->face)
+    return -1;
+  if (key1->face > key2->face)
+    return 1;
+
+  if (key1->code < key2->code)
+    return -1;
+  if (key1->code > key2->code)
+    return 1;
+
+  if (key1->renderMode < key2->renderMode)
+    return -1;
+  if (key1->renderMode > key2->renderMode)
+    return 1;
+
+  return 0;
+}

@@ -234,7 +234,7 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
   FT_ListNode node = NULL, current = NULL;
   FT_ULong *data = NULL;
 
-  list = (FT_List)__glcMalloc(sizeof(*list));
+  list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
   if (!list)
     return -1;
   list->head = NULL;
@@ -546,7 +546,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       s.type = GLC_UCS1;
       index = __glcStrLstGetIndex(master->faceFileName, &s);
       if (!index)
-	continue; // The file is not in the current master, try the next one
+	continue; /* The file is not in the current master, try the next one */
 
       /* Removes the corresponding faces in the font list */
       for (i = 0; i < GLC_MAX_FONT; i++) {
@@ -567,8 +567,8 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 	}
       }
 
-      __glcStrLstRemoveIndex(master->faceFileName, index); // Remove the file name
-      __glcStrLstRemoveIndex(master->faceList, index); // Remove the face
+      __glcStrLstRemoveIndex(master->faceFileName, index); /* Remove the file name */
+      __glcStrLstRemoveIndex(master->faceList, index); /* Remove the face */
 
       /* FIXME :Characters from the font should be removed from the char list */
 
@@ -576,7 +576,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
        * remove it.
        */
       if (!master->faceFileName->count) {
-	delete master;
+	__glcMasterDestroy(master);
 	master = NULL;
 	This->masterCount--;
       }

@@ -1,10 +1,8 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
 	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c ocontext.c
-CC_FILES = btree.cpp
 
-CC_SOURCE = $(addprefix src/,$(CC_FILES))
 C_SOURCE = $(addprefix src/,$(C_FILES))
-LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o)) $(addprefix obj/, $(CC_FILES:.cpp=.o))
+LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
 	tests/testrender tests/testcontex
 
@@ -14,7 +12,6 @@ BUILDER = buildDB
 
 # Programs
 CC = @CC@
-CXX = @CXX@
 
 LIBS=@LIBS@ -lstdc++
 CPPFLAGS=@CPPFLAGS@
@@ -67,14 +64,10 @@ obj/%.o : tests/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 obj/%.o : src/%.c
-	$(CXX) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
-
-obj/%.o : src/%.cpp
-	$(CXX) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 $(LIBRARY) : $(LIB_OBJECTS)
 	ar -r $@ $^
 
 database/$(BUILDER) : database/buildDB.c
 	$(CC) $(CFLAGS) $^ -o $@ -lgdbm
-

@@ -5,8 +5,8 @@ Changes made from the "Birth" release to the "Baby" release:
 - Removed the stupid parameter GLC_INTERNAL_ERROR
 - QuesoGLC now computes automatically the resolution of the screen in DPI using
   X window commands.
-- The GLC_RESOLUTION parameter provides now a way for the user to choose the
-  precision of the algorithm of de Casteljau.
+- The GLC_RESOLUTION parameter now provides a way for the user to choose the
+  precision of de Casteljau's algorithm.
 - Fixed a bug that occured when a context was deleted : its entry were not
   deleted from the 'stateList' array.
 - QuesoGLC now has the ability to use custom memory manager routines
@@ -31,3 +31,4 @@ Changes made from the "Birth" release to the "Baby" release:
   parameter inCount is less than zero.
 - Fixed glcReplacementCode so that it can use a code other than
   GLC_REPLACEMENT_CODE.
+- Translated C++ code to pure ANSI C (i.e. get rid of C++)

@@ -22,6 +22,7 @@
 
 #include "GL/glc.h"
 #include "internal.h"
+#include FT_LIST_H
 
 /* glcCallbackFunc:
  *   This command assigns the value inFunc to the callback function variable
@@ -87,7 +88,8 @@ void glcDeleteGLObjects(void)
   /* Deletes display lists */
   for (i = 0; i < state->masterCount; i++) {
     if (state->masterList[i])
-      delete state->masterList[i]->displayList;
+      FT_List_Finalize(state->masterList[i]->displayList, __glcListDestructor,
+		       __glcCommonArea->memoryManager, NULL);
   }
 
   /* Deletes texture objects */
@@ -260,8 +262,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 {
   __glcContextState *state = NULL;
   GLint i = 0;
-  BSTree *dlTree = NULL;
-  GLuint *dlName = NULL;
+  FT_ListNode dlTree = NULL;
 
   /* Check parameters */
   switch(inAttrib) {
@@ -323,14 +324,25 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
      * of a display list represents...
      */
     for (i = 0; i < state->masterCount; i++) {
-      dlTree = state->masterList[i]->displayList;
-      if (dlTree) {
-	dlName = (GLuint *)dlTree->element(inIndex);
-	if (dlName)
-	  break;
+      FT_List list = state->masterList[i]->displayList;
+      int j = 0;
+
+      if (list) {
+	dlTree = list->head;
+	if (dlTree) {
+	  j++;
+	  if (j == inIndex)
+	    return ((__glcDisplayListKey*)dlTree->data)->list;
+	  while(dlTree != list->tail) {
+	    dlTree = dlTree->next;
+	    j++;
+	    if (j == inIndex)
+	      return ((__glcDisplayListKey*)dlTree->data)->list;
+	  }
+	}
       }
     }
-    return *dlName;
+    return 0;
   case GLC_TEXTURE_OBJECT_LIST:
     if (inIndex > state->textureObjectCount) {
       __glcRaiseError(GLC_PARAMETER_ERROR);

@@ -24,7 +24,6 @@
 #include FT_FREETYPE_H
 #include "GL/glc.h"
 #include "constant.h"
-#include "btree.h"
 #include "ostrlst.h"
 
 typedef struct {
@@ -40,7 +39,7 @@ typedef struct {
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
   __glcStringList* faceFileName;
-  BSTree* displayList;
+  FT_List displayList;
 } __glcMaster;
 
 __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,

@@ -26,6 +26,7 @@
 #include "internal.h"
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
+#include FT_LIST_H
 
 #define GLC_TEXTURE_SIZE 64
 
@@ -93,47 +94,6 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
   __glcFree(pixmap.buffer);
 }
 
-/* Callback function that is called when a display list is destroyed in the
- * B-Tree
- */
-static void destroyDisplayListKey(void *inKey)
-{
-  __glcFree(inKey);
-}
-
-/* Callback function that is called when a display list is destroyed in the
- * B-Tree
- */
-static void destroyDisplayListData(void *inData)
-{
-  glDeleteLists(*((GLuint *)inData), 1);
-  __glcFree(inData);
-}
-
-/* Callback function that is called to sort display lists into the B-Tree */
-static int compareDisplayListKeys(void *inKey1, void *inKey2)
-{
-  __glcDisplayListKey *key1 = (__glcDisplayListKey *)inKey1;
-  __glcDisplayListKey *key2 = (__glcDisplayListKey *)inKey2;
-
-  if (key1->face < key2->face)
-    return -1;
-  if (key1->face > key2->face)
-    return 1;
-
-  if (key1->code < key2->code)
-    return -1;
-  if (key1->code > key2->code)
-    return 1;
-
-  if (key1->renderMode < key2->renderMode)
-    return -1;
-  if (key1->renderMode > key2->renderMode)
-    return 1;
-
-  return 0;
-}
-
 /* Internal function that renders glyph in textures */
 static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState, GLint inCode)
 {
@@ -145,8 +105,9 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
   GLuint texture = 0;
   GLfloat width = 0, height = 0;
   GLint format = 0;
-  GLuint *list = NULL;
   __glcDisplayListKey *dlKey = NULL;
+  FT_List list = NULL;
+  FT_ListNode node = NULL;
 
   /* Check if a new texture can be created */
   glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, GLC_TEXTURE_SIZE,
@@ -238,46 +199,48 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
   if (inState->glObjects) {
-    /* Create a new key for the B-Tree */
-    list = (GLuint *)__glcMalloc(sizeof(GLuint));
-    if (!list) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      __glcFree(pixmap.buffer);
-      return;
-    }
-
     dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
     if (!dlKey) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFree(pixmap.buffer);
-      __glcFree(list);
       return;
     }
 
     /* Initialize the key */
-    *list = glGenLists(1);
+    dlKey->list = glGenLists(1);
     dlKey->face = inFont->faceID;
     dlKey->code = inCode;
     dlKey->renderMode = 2;
 
-    /* Get (or create) the B-Tree that contains the display list and store
+    /* Get (or create) a new entry that contains the display list and store
      * the key in it
      */
-    if (inFont->parent->displayList)
-      inFont->parent->displayList = inFont->parent->displayList->insert(dlKey, list);
-    else {
-      inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListKey, 
-					       destroyDisplayListData, compareDisplayListKeys);
-      if (!inFont->parent->displayList) {
+    list = inFont->parent->displayList;
+    if (!list) {
+      list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+      if (!list) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(pixmap.buffer);
 	__glcFree(dlKey);
-	__glcFree(list);
 	return;
       }
+      inFont->parent->displayList = list;
+      list->head = NULL;
+      list->tail = NULL;
     }
+
+    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+    if (!node) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcFree(pixmap.buffer);
+      __glcFree(dlKey);
+      return;
+    }
+    node->data = dlKey;
+    FT_List_Add(list, node);
+
     /* Create the display list */
-    glNewList(*list, GL_COMPILE);
+    glNewList(dlKey->list, GL_COMPILE);
     glBindTexture(GL_TEXTURE_2D, texture);
   }
 
@@ -306,12 +269,24 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     glBindTexture(GL_TEXTURE_2D, 0);
     glEndList();
     inState->listObjectCount++;
-    glCallList(*list);
+    glCallList(dlKey->list);
   }
   else
     glBindTexture(GL_TEXTURE_2D, 0);
 
   __glcFree(pixmap.buffer);
+}
+
+static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
+{
+  __glcDisplayListKey *dlKey = (__glcDisplayListKey*)user;
+  __glcDisplayListKey *nodeKey = (__glcDisplayListKey*)node->data;
+
+  if ((dlKey->face == nodeKey->face) && (dlKey->code == nodeKey->code)
+      && (dlKey->renderMode == nodeKey->renderMode))
+    dlKey->list = nodeKey->list;
+
+  return 0;
 }
 
 /* This internal function look in the B-Tree of display lists for a display
@@ -322,18 +297,19 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode, GLint renderMode)
 {
   __glcDisplayListKey dlKey;
-  GLuint *list = NULL;
 
   if (inFont->parent->displayList) {
     /* Initialize the key */
     dlKey.face = inFont->faceID;
     dlKey.code = inCode;
     dlKey.renderMode = renderMode;
+    dlKey.list = 0;
     /* Look for the key in the display list B-Tree */
-    list = (GLuint *)inFont->parent->displayList->lookup(&dlKey);
+    FT_List_Iterate(inFont->parent->displayList,
+		    __glcDisplayListIterator, &dlKey);
     /* If a display list has been found then display it */
-    if (list) {
-      glCallList(*list);
+    if (dlKey.list) {
+      glCallList(dlKey.list);
       return GL_TRUE;
     }
   }
@@ -388,8 +364,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   case GLC_TRIANGLE:
     if (!__glcFindDisplayList(font, inCode,
 			      (state->renderStyle == GLC_TRIANGLE) ? 4 : 3))
-      __glcRenderCharScalable(font, state, inCode, destroyDisplayListKey,
-			      destroyDisplayListData, compareDisplayListKeys,
+      __glcRenderCharScalable(font, state, inCode, 
 			      (state->renderStyle == GLC_TRIANGLE));
     return;
   default:

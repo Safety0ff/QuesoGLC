@@ -21,10 +21,13 @@ extern "C" {
     GLint face;
     GLint code;
     GLint renderMode;
+    GLuint list;
   } __glcDisplayListKey;
 
   /* Character renderers */
-  extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyKey, destroyFunc destroyData, compareFunc compare, GLboolean inFill);
+  extern void __glcRenderCharScalable(__glcFont* inFont,
+				      __glcContextState* inState, GLint inCode,
+				      GLboolean inFill);
 
   /* QuesoGLC own memory management routines */
   extern void* __glcMalloc(size_t size);

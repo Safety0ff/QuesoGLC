@@ -104,7 +104,7 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   This->vendor->ptr = buffer;
   This->vendor->type = inStringType;
 
-  This->charList = (FT_List)__glcMalloc(sizeof(This->charList));
+  This->charList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
   if (!This->charList)
     goto error;
 

@@ -100,7 +100,7 @@ void __glcInitLibrary(void);
 void __glcExitLibrary(void);
 
 __glcContextState* __glcCtxCreate(GLint inContext);
-void __glcCtxDestroy(__glcContextState *This, __glcContextState *This);
+void __glcCtxDestroy(__glcContextState *This);
 void __glcCtxAddMasters(__glcContextState *This, const GLCchar* catalog,
 			GLboolean append);
 void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex);

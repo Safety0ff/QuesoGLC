@@ -42,7 +42,7 @@ void __glcExitLibrary(void)
   /* destroy remaining contexts */
   for (i=0; i < GLC_MAX_CONTEXTS; i++) {
     if (__glcIsContext(i))
-      delete __glcGetState(i);
+      __glcCtxDestroy(__glcGetState(i));
   }
 
   /* destroy Common Area */
@@ -80,7 +80,7 @@ static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
 
 static void __glcFreeFunc(FT_Memory inMemory, void *inBlock)
 {
-  return __glcFree(inBlock);
+  __glcFree(inBlock);
 }
 
 static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
@@ -109,7 +109,7 @@ void __glcInitLibrary(void)
   __glcCommonArea->unidb2 = NULL;
   __glcCommonArea->memoryManager = NULL;
 
-  // Creates the thread-local storage for the GLC error
+  /* Creates the thread-local storage for the GLC error */
 #ifdef _REENTRANT
   if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
     goto FatalError;
@@ -117,7 +117,7 @@ void __glcInitLibrary(void)
   __glcInitOnce = GL_TRUE;
 #endif
 
-  // Initializes the "Common Area"
+  /* Initializes the "Common Area" */
 
   __glcCommonArea->memoryManager = (FT_Memory)__glcMalloc(sizeof(*__glcCommonArea->memoryManager));
   if (!__glcCommonArea->memoryManager)
@@ -128,33 +128,34 @@ void __glcInitLibrary(void)
   __glcCommonArea->memoryManager->free = __glcFreeFunc;
   __glcCommonArea->memoryManager->realloc = __glcReallocFunc;
 
-  // Creates the array of state currency
-  __glcCommonArea->isCurrent = new GLboolean[GLC_MAX_CONTEXTS];
+  /* Creates the array of state currency */
+  __glcCommonArea->isCurrent = (GLboolean*)__glcMalloc(GLC_MAX_CONTEXTS * sizeof(GLboolean));
   if (!__glcCommonArea->isCurrent)
     goto FatalError;
 
-  // Creates the array of context states
-  __glcCommonArea->stateList = new __glcContextState*[GLC_MAX_CONTEXTS];
+  /* Creates the array of context states */
+  __glcCommonArea->stateList = (__glcContextState**)__glcMalloc(GLC_MAX_CONTEXTS*sizeof(__glcContextState*));
   if (!__glcCommonArea->stateList)
     goto FatalError;
 
-  // Open the first Unicode database
+  /* Open the first Unicode database */
   __glcCommonArea->unidb1 = gdbm_open("database/unicode1.db", 0, GDBM_READER, 0, NULL);
   if (!__glcCommonArea->unidb1)
     goto FatalError;
 
-  // Open the second Unicode database
+  /* Open the second Unicode database */
   __glcCommonArea->unidb2 = gdbm_open("database/unicode2.db", 0, GDBM_READER, 0, NULL);
   if (!__glcCommonArea->unidb2)
     goto FatalError;
 
-  // Initialize the mutex
-  // At least this op can not fail !!!
+  /* Initialize the mutex
+   * At least this op can not fail !!!
+   */
 #ifdef _REENTRANT
   pthread_mutex_init(&__glcCommonArea->mutex, NULL);
 #endif
 
-  // So far, there are no contexts
+  /* So far, there are no contexts */
   for (i=0; i< GLC_MAX_CONTEXTS; i++) {
     __glcCommonArea->isCurrent[i] = GL_FALSE;
     __glcCommonArea->stateList[i] = NULL;
@@ -173,11 +174,11 @@ void __glcInitLibrary(void)
     __glcCommonArea->memoryManager = NULL;
   }
   if (__glcCommonArea->isCurrent) {
-    delete[] __glcCommonArea->isCurrent;
+    __glcFree(__glcCommonArea->isCurrent);
     __glcCommonArea->isCurrent = NULL;
   }
   if (__glcCommonArea->stateList) {
-    delete[] __glcCommonArea->stateList;
+    __glcFree(__glcCommonArea->stateList);
     __glcCommonArea->stateList = NULL;
   }
   if (__glcCommonArea->unidb1) {
@@ -268,7 +269,7 @@ void glcDeleteContext(GLint inContext)
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else {
-    delete state;
+    __glcCtxDestroy(state);
     __glcCommonArea->stateList[inContext - 1] = NULL;
   }
 
@@ -394,7 +395,7 @@ void glcContext(GLint inContext)
   /* execute pending deletion if any */
   if (currentContext && state) {
     if (state->pendingDelete) {
-      delete state;
+      __glcCtxDestroy(state);
       __glcCommonArea->stateList[currentContext - 1] = NULL;
     }
   }

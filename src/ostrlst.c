@@ -175,7 +175,7 @@ GLint __glcStrLstRemoveIndex(__glcStringList *This, GLuint inIndex)
 {
   __glcStringList *list = NULL;
 
-  // String not found
+  /* String not found */
   if ((inIndex >= This->count) || (inIndex < 0))
     return -1;
 

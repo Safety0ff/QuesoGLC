@@ -24,6 +24,7 @@
 #include "GL/glc.h"
 #include "internal.h"
 #include FT_OUTLINE_H
+#include FT_LIST_H
 
 #define GLC_MAX_VERTEX	1024
 
@@ -221,11 +222,13 @@ static void __glcCallbackError(GLenum inErrorCode)
     __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
-void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLint inCode, destroyFunc destroyDisplayListKey, destroyFunc destroyDisplayListData, compareFunc compareDisplayListKeys, GLboolean inFill)
+void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
+			     GLint inCode, GLboolean inFill)
 {
     FT_Outline *outline = NULL;
     FT_Outline_Funcs interface;
-    GLuint *list = NULL;
+    FT_List list = NULL;
+    FT_ListNode node = NULL;
     __glcDisplayListKey *dlKey = NULL;
     
     __glcRendererData rendererData;
@@ -268,36 +271,43 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     gluTessNormal(tess, 0., 0., 1.);
 
     if (inState->glObjects) {
-      list = (GLuint *)__glcMalloc(sizeof(GLuint));
-      if (!list) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-      }
       dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
       if (!dlKey) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(list);
 	return;
       }
 
-      *list = glGenLists(1);
+      dlKey->list = glGenLists(1);
       dlKey->face = inFont->faceID;
       dlKey->code = inCode;
       dlKey->renderMode = inFill ? 4 : 3;
 
-      if (inFont->parent->displayList)
-	inFont->parent->displayList = inFont->parent->displayList->insert(dlKey, list);
-      else {
-	inFont->parent->displayList = new BSTree(dlKey, list, destroyDisplayListKey, 
-					  destroyDisplayListData, compareDisplayListKeys);
-	if (!inFont->parent->displayList) {
+      /* Get (or create) a new entry that contains the display list and store
+       * the key in it
+       */
+      list = inFont->parent->displayList;
+      if (!list) {
+	list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+	if (!list) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  __glcFree(dlKey);
-	  __glcFree(list);
 	  return;
 	}
+	list->head = NULL;
+	list->tail = NULL;
+	inFont->parent->displayList = list;
       }
-      glNewList(*list, GL_COMPILE);
+
+      node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+      if (!node) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcFree(dlKey);
+	return;
+      }
+      node->data = dlKey;
+      FT_List_Add(list, node);
+
+      glNewList(dlKey->list, GL_COMPILE);
     }
 
     gluTessBeginPolygon(tess, &rendererData);
@@ -311,7 +321,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
     if (inState->glObjects) {
       glEndList();
       inState->listObjectCount++;
-      glCallList(*list);
+      glCallList(dlKey->list);
     }
 
     gluDeleteTess(tess);
