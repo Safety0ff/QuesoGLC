@@ -18,11 +18,39 @@
  */
 /* $Id$ */
 
-/* This file defines the so-called "Global commands" described in chapter 3.4
- * of the GLC specs. These are commands which do not use GLC context state
- * variables and which can therefore be executed succesfully if the issuing
- * thread has no current GLC context. All other GLC commands raise
- * GLC_STATE_ERROR if the issuing thread has no current GLC context.
+/** \file
+ *  defines the so-called "Global commands" described in chapter 3.4 of the GLC specs.
+ */
+
+/** \defgroup global Global Commands
+ *  Those commands do not use GLC context state variables and can therefore be executed successfully
+ *  if the issuing thread has no current GLC context. 
+ *
+ *  Each GLC context has a nonzero ID of type \b GLint. When a client is linked with a
+ *  GLC library, the library maintains a list of IDs that contains one entry for each of
+ *  the client's GLC contexts. The list is initially empty.
+ *
+ *  Each client thread has a private GLC context ID variable that always contains either
+ *  the value zero, indicating that the thread has no current GLC context, or the ID of
+ *  the thread's current GLC context. The initial value is zero.
+ *
+ *  When the ID of a GLC context is stored in the GLC context ID variable of a client
+ *  thread, the context is said to be current to the thread. It is not possible for a
+ *  GLC context to be current simultaneously to multiple threads. With the exception
+ *  of the per-thread GLC error code and context ID variables, all of the GLC
+ *  state variables that are used during the execution of a GLC command are stored
+ *  in the issuing thread's current GLC context. To make a context current, call
+ *  glcContext().
+ *
+ *  When a client thread issues a GLC command, the thread's current GLC context
+ *  executes the command.
+ *
+ *  Note that the results of issuing a GL command when there is no current GL
+ *  context are undefined. Because GLC issues GL commands, you must create a GL
+ *  context and make it current before calling GLC.
+ *
+ *  All other GLC commands raise \b GLC_STATE_ERROR if the issuing thread has no current
+ *  GLC context.
  */
 
 #include <stdlib.h>
@@ -204,9 +232,15 @@ void _init(void)
 
 
 
-/* glcIsContext:
- *   This command returns GL_TRUE if inContext is the ID of one of the client's
- *   GLC contexts.
+/** \ingroup global
+ *  This command checks whether \e inContext is the ID of one of the client's GLC context
+ *  and returns \b GLC_TRUE if and only if it is.
+ *  \param inContext The context ID to be tested
+ *  \return \b GL_TRUE if \e inContext is the ID of a GLC context, \b GL_FALSE otherwise
+ *  \sa glcDeleteContext()
+ *  \sa glcGenContext()
+ *  \sa glcGetAllContexts()
+ *  \sa glcContext()
  */
 GLboolean glcIsContext(GLint inContext)
 {
@@ -219,8 +253,14 @@ GLboolean glcIsContext(GLint inContext)
 
 
 
-/* glcGetCurrentContext:
- *   Returns the value of the issuing thread's current GLC context ID variable
+/** \ingroup global
+ *  Returns the value of the issuing thread's current GLC context ID variable
+ *  \return The context ID of the current thread
+ *  \sa glcContext()
+ *  \sa glcDeleteContext()
+ *  \sa glcGenContext()
+ *  \sa glcGetAllContexts()
+ *  \sa glcIsContext()
  */
 GLint glcGetCurrentContext(void)
 {
@@ -239,14 +279,20 @@ GLint glcGetCurrentContext(void)
 
 
 
-/* glcDeleteContext:
- *   Marks for deletion the GLC context identified by inContext. If the
- *   marked context is not current to any client thread, the command deletes
- *   the marked context immediatly. Otherwise, the marked context will be
- *   deleted during the execution of the next glcContext() command that causes
- *   it not to be current to any client thread. The command raises
- *   GLC_PARAMETER_ERROR if inContext is not the ID of one of the client's GLC
- *   contexts.
+/** \ingroup global
+ *  Marks for deletion the GLC context identified by \e inContext. If the
+ *  marked context is not current to any client thread, the command deletes
+ *  the marked context immediatly. Otherwise, the marked context will be
+ *  deleted during the execution of the next glcContext() command that causes
+ *  it not to be current to any client thread.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inContext is not the ID of
+ *  one of the client's GLC contexts.
+ *  \param inContext The ID of the context to be deleted
+ *  \sa glcGetAllContexts()
+ *  \sa glcIsContext()
+ *  \sa glcContext()
+ *  \sa glcGetCurrentContext()
  */
 void glcDeleteContext(GLint inContext)
 {
@@ -285,14 +331,27 @@ void glcDeleteContext(GLint inContext)
 
 
 
-/* glcContext:
- *   Assigns the value inContext to the issuing thread's current GLC context ID
- *   variable. The command raises GLC_PARAMETER_ERROR if inContext is not zero
- *   and is not the ID of one of the client's GLC contexts. The command raises
- *   GLC_STATE_ERROR if inContext is the ID of a GLC context that is current to
- *   a thread other than the issuing thread. The command raises GLC_STATE_ERROR
- *   if the issuing thread is executing a callback function that has been
- *   called from GLC.
+/** \ingroup global
+ *  Assigns the value \e inContext to the issuing thread's current GLC context ID
+ *  variable. If another context is already current to the thread, no error is
+ *  generated but the context is released and the context identified by \e inContext
+ *  is made current to the thread.
+ *
+ *  Call \e glcContext with \e inContext set to zero to release a thread's current
+ *  context.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inContext is not zero
+ *  and is not the ID of one of the client's GLC contexts. \n
+ *  The command raises \b GLC_STATE_ERROR if \e inContext is the ID of a GLC
+ *  context that is current to a thread other than the issuing thread. \n
+ *  The command raises \b GLC_STATE_ERROR if the issuing thread is executing
+ *  a callback function that has been called from GLC.
+ *  \param inContext The ID of the context to be made current
+ *  \sa glcGetCurrentContext()
+ *  \sa glcDeleteContext()
+ *  \sa glcGenContext()
+ *  \sa glcGetAllContexts()
+ *  \sa glcIsContext()
  */
 void glcContext(GLint inContext)
 {
@@ -439,8 +498,13 @@ void glcContext(GLint inContext)
 
 
 
-/* glcGenContext:
- *   Generates a new GLC context and returns its ID.
+/** \ingroup global
+ *  Generates a new GLC context and returns its ID.
+ *  \return The ID of the new context
+ *  \sa glcGetAllContexts()
+ *  \sa glcIsContext()
+ *  \sa glcContext()
+ *  \sa glcGetCurrentContext()
  */
 GLint glcGenContext(void)
 {
@@ -518,11 +582,17 @@ GLint glcGenContext(void)
 
 
 
-/* glcGetAllContexts:
- *   Returns a zero terminated array of GLC context IDs that contains one entry
- *   for each of the client's GLC contexts. GLC uses the ISO C library command
- *   malloc to allocate the array. The client should use the ISO C library
- *   command free to deallocate the array when it is no longer needed.
+/** \ingroup global
+ *  Returns a zero terminated array of GLC context IDs that contains one entry
+ *  for each of the client's GLC contexts. GLC uses the ISO C library command
+ *  \c malloc to allocate the array. The client should use the ISO C library
+ *  command \c free to deallocate the array when it is no longer needed.
+ *  \return The pointer to the array of context IDs.
+ *  \sa glcContext()
+ *  \sa glcDeleteContext()
+ *  \sa glcGenContext()
+ *  \sa glcGetCurrentContext()
+ *  \sa glcIsContext()
  */
 GLint* glcGetAllContexts(void)
 {
@@ -567,10 +637,33 @@ GLint* glcGetAllContexts(void)
 
 
 
-/* glcGetError:
- *   retrieves the value of the issuing thread's GLC error code variable,
- *   assigns the value GLC_NONE to that variable, and returns the retrieved
- *   value.
+/** \ingroup global
+ *  Retrieves the value of the issuing thread's GLC error code variable,
+ *  assigns the value \b GLC_NONE to that variable, and returns the retrieved
+ *  value.
+ *  \note In contrast to the GL function \c glGetError, \e glcGetError only
+ *  returns one error, not a list of errors.
+ *  \return An error code from the table below : \n\n
+ *   <center>
+ *   <table>
+ *     <caption>Error codes</caption>
+ *     <tr>
+ *       <td>Name</td> <td>Enumerant</td>
+ *     </tr>
+ *     <tr>
+ *       <td><b>GLC_NONE</b></td> <td>0x0000</td>
+ *     </tr>
+ *     <tr>
+ *       <td><b>GLC_PARAMETER_ERROR</b></td> <td>0x0040</td>
+ *     </tr>
+ *     <tr>
+ *       <td><b>GLC_RESOURCE_ERROR</b></td> <td>0x0041</td>
+ *     </tr>
+ *     <tr>
+ *       <td><b>GLC_STATE_ERROR</b></td> <td>0x0042</td>
+ *     </tr>
+ *   </table>
+ *   </center>
  */
 GLCenum glcGetError(void)
 {
