@@ -47,10 +47,12 @@ Non-conformance:
 Extensions:
 ----------
 
-- QuesoGLC uses the GLC_RESOLUTION parameter to indicate the resolution in dot
-  per inch (dpi) at which the characters are rendered. If the GLC_RESOLUTION
-  parameter is 0 (which is its default value) then QuesoGLC uses a 72 dpi
-  resolution otherwise QuesoGLC uses the last value given with glcResolution().
+- QuesoGLC uses the GLC_RESOLUTION parameter to choose the precision of the
+  algorithm of de Casteljau. This algorithm approximates Bezier curves by
+  segments. QuesoGLC uses it when displaying glyphs in GLC_LINE or GLC_TRIANGLE
+  modes. The smaller GLC_RESOLUTION is, the better the Bezier curves will be
+  approximated by segments but the slower the glyphs will be drawn. The initial
+  value of GLC_RESOLUTION is 0.05
 
 Arbitrary choices:
 -----------------
