@@ -31,7 +31,7 @@ typedef struct {
   GLint id;
   FT_List faceList;	        /* GLC_FACE_LIST */
   FT_List charList;             /* GLC_CHAR_LIST */
-  GLint charListCount;		/* GLC_CHAR_COUNT */
+  GLint charListCount;		/* GLC_CHAR_LIST_COUNT */
   __glcUniChar* family;		/* GLC_FAMILY */
   __glcUniChar* masterFormat;	/* GLC_MASTER_FORMAT */
   __glcUniChar* vendor;		/* GLC_VENDOR */

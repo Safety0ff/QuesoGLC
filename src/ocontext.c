@@ -152,8 +152,7 @@ static void __glcFontDestructor(FT_Memory inMemory, void *inData, void* inUser)
  */
 void __glcCtxDestroy(__glcContextState *This)
 {
-  if (!This)
-    return; /* Ooops!! Something is wrong in the lib */
+  assert(This);
 
   __glcStrLstDestroy(This->catalogList);
 

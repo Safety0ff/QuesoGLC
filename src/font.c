@@ -159,20 +159,29 @@ void glcFont(GLint inFont)
 
     /* Append the font identified by inFont to GLC_CURRENT_FONT_LIST */
 
-    /* Remove the first node of the list in order to prevent it to be
-     * deleted by FT_List_Finalize().
-     */
     node = state->currentFontList->head;
-    FT_List_Remove(state->currentFontList, node);
-
-    FT_List_Finalize(state->currentFontList, __glcListDestructor,
+    if (node) {
+      /* Remove the first node of the list in order to prevent it to be
+       * deleted by FT_List_Finalize().
+       */
+      FT_List_Remove(state->currentFontList, node);
+      FT_List_Finalize(state->currentFontList, NULL,
                      __glcCommonArea->memoryManager, NULL);
 
-    /* Reset the list and insert the updated node as the first and only node
-     * of the list.
-     */
-    state->currentFontList->head = NULL;
-    state->currentFontList->tail = NULL;
+      /* Reset the list */
+      state->currentFontList->head = NULL;
+      state->currentFontList->tail = NULL;
+    }
+    else {
+      /* The list is empty, create a new node */
+      node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+      if (!node) {
+        __glcRaiseError(GLC_RESOURCE_ERROR);
+        return;
+      }
+    }
+
+    /* Insert the updated node as the first and only node */
     node->data = font;
     FT_List_Add(state->currentFontList, node);
   }

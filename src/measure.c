@@ -108,7 +108,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outV
 GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 {
     GLint repCode = 0;
-    GLint font = NULL;
+    GLint font = 0;
     __glcContextState *state = NULL;
 
     switch(inMetric) {

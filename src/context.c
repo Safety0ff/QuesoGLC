@@ -335,9 +335,6 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
-    /* Verify that the requested font still exists. If it does then return its
-     * ID, otherwise return zero.
-     */
   case GLC_LIST_OBJECT_LIST:
     if (inIndex > state->listObjectCount) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
