@@ -37,3 +37,4 @@ obj/%.o : src/%.c
 	
 clean:
 	rm -f $(OBJECTS) obj/*.o
+	rm -fR docs/html docs/rtf

@@ -1,3 +1,6 @@
+/** \file global.c
+  * \brief Global Commands
+  */
 /* $Id$ */
 #include <pthread.h>
 #include <stdlib.h>
@@ -95,6 +98,10 @@ static GLboolean __glcIsContext(GLint inContext)
     return (state ? GL_TRUE : GL_FALSE);
 }
 
+/** \ingroup global
+  * Returns <b>GL_TRUE</b> if <i>inContext</i> is the ID of one of the client's
+  * GLC contexts.
+  */
 GLboolean glcIsContext(GLint inContext)
 {
     pthread_once(&__glcInitThreadOnce, __glcInitThread);
@@ -105,6 +112,9 @@ GLboolean glcIsContext(GLint inContext)
 	return __glcIsContext(inContext - 1);
 }
 
+/** \ingroup global
+  * Returns the value of the issueing thread's current GLC context ID variable
+  */
 GLint glcGetCurrentContext(void)
 {
     __glcContextState *state = NULL;
@@ -155,6 +165,14 @@ static void __glcDeleteContext(GLint inContext)
     free(state);
 }
 
+/** \ingroup global
+  * Marks for deletion the GLC context identified by <i>inContext</i>. If the
+  * marked context is not current to any client thread, the command deletes
+  * the marked context immediatly. Otherwise, the marked context will be deleted
+  * during the execution of the next glcContext() command that causes it not to
+  * be current to any client thread. The command raises <b>GLC_PARAMETER_ERROR</b>
+  * if <i>inContext</i> is not the ID of one of the client's GLC contexts.
+  */
 void glcDeleteContext(GLint inContext)
 {
     pthread_once(&__glcInitThreadOnce, __glcInitThread);
@@ -176,6 +194,15 @@ void glcDeleteContext(GLint inContext)
 	__glcDeleteContext(inContext - 1);
 }
 
+/** \ingroup global
+  * Assigns the value <i>inContext</i> to the issuing thread's current GLC context
+  * ID variable. The command raises <b>GLC_PARAMETER_ERROR</b> if <i>inContext</i>
+  * is not zero and is not the ID of one of the client's GLC contexts.
+  * The command raises <b>GLC_STATE_ERROR</b> if <i>inContext</i> is the ID of a
+  * GLC context that is current to a thread other than the issuing thread.
+  * The command raises <b>GLC_STATE_ERROR</b> if the issuing thread is executing
+  * a callback function that has been called from GLC.
+  */
 void glcContext(GLint inContext)
 {
     char *version = NULL;
@@ -245,6 +272,9 @@ void glcContext(GLint inContext)
     extension = (char *)glGetString(GL_EXTENSIONS);
 }
 
+/** \ingroup global
+  * Generates a new GLC context and returns its ID.
+  */
 GLint glcGenContext(void)
 {
     int i = 0;
@@ -320,6 +350,12 @@ GLint glcGenContext(void)
     return i + 1;
 }
 
+/** \ingroup global
+  * Returns a zero terminated array of GLC context IDs that contains one entry
+  * for each of the client's GLC contexts. GLC uses the ISO C library command
+  * <b>malloc</b> to allocate the array. The client should use the ISO C library
+  * command <b>free</b> to deallocate the array when it is no longer needed.
+  */
 GLint* glcGetAllContexts(void)
 {
     int count = 0;
@@ -347,6 +383,10 @@ GLint* glcGetAllContexts(void)
     return contextArray;
 }
 
+/** \ingroup global
+  * retrieves the value of the issuing thread's GLC error code variable, assigns the
+  * value <b>GLC_NONE</b> to that variable, and returns the retrieved value.
+  */
 GLCenum glcGetError(void)
 {
     GLCenum error = GLC_NONE;

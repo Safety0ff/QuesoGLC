@@ -1,0 +1,24 @@
+/** \file mainpage.foo
+ *
+ *
+ */
+ 
+/** \mainpage QuesoGLC
+
+\section description Description
+
+QuesoGLC is a free implementation of SGI's OpenGL Character Renderer (GLC) based
+upon the FreeType library. QuesoGLC provides Unicode support. Its development
+and maintenance platform is Linux but QuesoGLC is designed to be easily ported
+on any platform that supports both FreeType and OpenGL.
+
+QuesoGLC is intended to be fully compliant with GLC specifications version 0.2
+It is coded in pure ANSI C language.
+
+\section links Links
+
+<li> OpenGL www.opengl.org </li>
+<li> GLC specs www.opengl.org/doc </li>
+<li> FreeType www.freetype.org </li>
+
+ */
