@@ -108,7 +108,7 @@ void _fini(void)
 
   /* destroy Common Area */
   __glcFree(__glcCommonArea->stateList);
-  __glcStrLstDestroy(__glcCommonArea->catalogList);
+  FcStrSetDestroy(__glcCommonArea->catalogList);
   __glcFree(__glcCommonArea->memoryManager);
 
   __glcUnlock();
@@ -209,7 +209,7 @@ void _init(void)
   if (!__glcCreateList(&__glcCommonArea->stateList))
     goto FatalError;
 
-  __glcCommonArea->catalogList = __glcStrLstCreate(NULL);
+  __glcCommonArea->catalogList = FcStrSetCreate();
   if (!__glcCommonArea->catalogList)
     goto FatalError;
 
@@ -233,7 +233,7 @@ void _init(void)
     __glcCommonArea->stateList = NULL;
   }
   if (__glcCommonArea->catalogList)
-    __glcStrLstDestroy(__glcCommonArea->catalogList);
+    FcStrSetDestroy(__glcCommonArea->catalogList);
   if (__glcCommonArea) {
     __glcFree(__glcCommonArea);
   }

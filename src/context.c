@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -340,8 +340,8 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
 const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 {
   __glcContextState *state = NULL;
-  __glcUniChar *s = NULL;
-  GLCchar* buffer = NULL;
+  FcStrList* iterator = NULL;
+  FcChar8* catalog = NULL;
 
   /* Check the parameters */
   if (inAttrib != GLC_CATALOG_LIST) {
@@ -369,12 +369,20 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 
   /* Get the string at offset inIndex */
   __glcLock();
-  s = __glcStrLstFindIndex(__glcCommonArea->catalogList, inIndex);
+  iterator = FcStrListCreate(__glcCommonArea->catalogList);
+  if (!iterator) {
+    __glcUnlock();
+    __glcRaiseError(GLC_STATE_ERROR);
+    return GLC_NONE;
+  }
+  for (catalog = FcStrListNext(iterator); catalog && inIndex;
+	catalog = FcStrListNext(iterator), inIndex--);
+  FcStrListDone(iterator);
   __glcUnlock();
 
-  /* Now we can check if inIndex identifies a member of the string list or 
+  /* Now we can check if inIndex identifies a member of the string set or 
    * not */
-  if (!s) {
+  if (!catalog) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
@@ -390,16 +398,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    glcStringType() is called.
    */
 
-  /* Allocate a buffer to store the string */
-  buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));
-
-  if (buffer)
-    /* Copy the string into the buffer */
-    __glcUniDup(s, buffer, __glcUniLenBytes(s));
-  else
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-
-  return buffer;
+  return strdup((const char*)catalog);
 }
 
 
@@ -847,6 +846,8 @@ GLint glcGeti(GLCenum inAttrib)
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
   GLint count = 0;
+  FcStrList* iterator = NULL;
+  FcChar8* catalog = NULL;
 
   /* Check the parameters */
   switch(inAttrib) {
@@ -879,7 +880,15 @@ GLint glcGeti(GLCenum inAttrib)
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
     __glcLock();
-    count = __glcStrLstLen(__glcCommonArea->catalogList);
+    iterator = FcStrListCreate(__glcCommonArea->catalogList);
+    if (!iterator) {
+      __glcUnlock();
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return GLC_NONE;
+    }
+    for (catalog = FcStrListNext(iterator), count = 0; catalog;
+	catalog = FcStrListNext(iterator), count++);
+    FcStrListDone(iterator);
     __glcUnlock();
     return count;
   case GLC_CURRENT_FONT_COUNT:
