@@ -18,8 +18,23 @@
  */
 /* $Id$ */
 
-/* This file defines the so-called "Transformation commands" described in
- * chapter 3.9 of the GLC specs.
+/** \file
+ * defines the so-called "Transformation commands" described in chapter 3.9
+ * of the GLC specs.
+ */
+
+/** \defgroup transform Transformation commands
+ *  The GLC transformation commands modify the value of \b GLC_BITMAP_MATRIX.
+ *  Glyph coordinates are defined in the em coordinate system. When the value
+ *  of \b GLC_RENDER_STYLE is \b GLC_BITMAP, GLC uses the 2x2 \b GLC_BITMAP_MATRIX
+ *  to transform layouts from the em coordinate system to the GL raster coordinate
+ *  system in which bitmaps are drawn.
+ *
+ *  When the value of the variable \b GLC_RENDER_STYLE is not \b GLC_BITMAP, GLC
+ *  performs no transformations on glyph coordinates. In this case, GLC uses em
+ *  coordinates directly as GL world coordinates when drawing a layout, and it is
+ *  the responsibility of the GLC client to issue GL commands that set up the
+ *  appropriate GL transformations.
  */
 
 #include <string.h>
@@ -30,9 +45,14 @@
 
 #define GLC_PI 3.1415926535
 
-/* glcLoadIdentity:
- *   This command assigns the value [1 0 0 1] to the floating point vector
- *   variable GLC_BITMAP_MATRIX
+/** \ingroup transform
+ *  This command assigns the value [1 0 0 1] to the floating point vector
+ *  variable \b GLC_BITMAP_MATRIX.
+ *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcLoadMatrix()
+ *  \sa glcMultMatrix()
+ *  \sa glcRotate()
+ *  \sa glcScale()
  */
 void glcLoadIdentity(void)
 {
@@ -51,9 +71,15 @@ void glcLoadIdentity(void)
     state->bitmapMatrix[3] = 1.;
 }
 
-/* glcLoadMatrix:
- *   This command assigns the value [inMatrix[0] inMatrix[1] inMatrix[2]
- *   inMatrix[3]] to the floating point vector variable GLC_BITMAP_MATRIX
+/** \ingroup transform
+ *  This command assigns the value [inMatrix[0] inMatrix[1] inMatrix[2]
+ *  inMatrix[3]] to the floating point vector variable \b GLC_BITMAP_MATRIX.
+ *  \param inMatrix The value to assign to \b GLC_BITMAP_MATRIX
+ *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcLoadIdentity()
+ *  \sa glcMultMatrix()
+ *  \sa glcRotate()
+ *  \sa glcScale()
  */
 void glcLoadMatrix(const GLfloat *inMatrix)
 {
@@ -69,9 +95,16 @@ void glcLoadMatrix(const GLfloat *inMatrix)
     memcpy(state->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
 }
 
-/* glcMultMatrix:
- *   This command multiply the floating point vector variable GLC_BITMAP_MATRIX
- *   by in the incoming matrix inMatrix.
+/** \ingroup transform
+ *  This command multiply the floating point vector variable \b GLC_BITMAP_MATRIX
+ *  by the incoming matrix \e inMatrix.
+ *  \param inMatrix A pointer to a 2x2 matrix stored in column-major order
+ *                  as 4 consecutives values.
+ *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcLoadIdentity()
+ *  \sa glcLoadMatrix()
+ *  \sa glcRotate()
+ *  \sa glcScale()
  */
 void glcMultMatrix(const GLfloat *inMatrix)
 {
@@ -93,12 +126,18 @@ void glcMultMatrix(const GLfloat *inMatrix)
     state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2] + tempMatrix[3] * inMatrix[3];
 }
 
-/* glcRotate:
- *   This command assigns the value [a b c d] to the floating point vector
- *   variable GLC_BITMAP_MATRIX, where inAngle is measured in degrees,
- *   theta = inAngle * pi / 180 and
- *   [a c] = [matrix[0] matrix[2]] * [  cos(theta) sin(theta) ]
- *   [b d]   [matrix[1] matrix[3]]   [ -sin(theta) cos(theta) ]
+/** \ingroup transform
+ *  This command assigns the value [a b c d] to the floating point vector
+ *  variable \b GLC_BITMAP_MATRIX, where \e inAngle is measured in degrees,
+ *  <em>theta = inAngle * pi / 180</em> and \n
+ *  <pre>[a c] = [matrix[0] matrix[2]] * [  cos(theta) sin(theta) ]</pre> <br>
+ *  <pre>[b d]   [matrix[1] matrix[3]]   [ -sin(theta) cos(theta) ]</pre>
+ *  \param inAngle The angle of rotation around the Z axis, in degrees.
+ *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcLoadIdentity()
+ *  \sa glcLoadMatrix()
+ *  \sa glcMultMatrix()
+ *  \sa glcScale()
  */
 void glcRotate(GLfloat inAngle)
 {
@@ -115,11 +154,19 @@ void glcRotate(GLfloat inAngle)
     glcMultMatrix(tempMatrix);
 }
 
-/* glcScale:
- *   This command assigns the value [a b c d] to the floating point vector
- *   variable GLC_BITMAP_MATRIX, where
- *   [a c] = [matrix[0] matrix[2]] * [ inX  0  ]
- *   [b d]   [matrix[1] matrix[3]]   [  0  inY ]
+/** \ingroup transform
+ *  This command produces a general scaling along the \b x and \b y
+ *  axes, that is, it assigns the value [a b c d] to the floating point
+ *  vector variable GLC_BITMAP_MATRIX, where
+ *  <pre>[a c] = [matrix[0] matrix[2]] * [ inX  0  ]</pre><br>
+ *  <pre>[b d]   [matrix[1] matrix[3]]   [  0  inY ]</pre>
+ *  \param inX The scale factor along the \b x axis
+ *  \param inY The scale factor along the \b y axis
+ *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcLoadIdentity()
+ *  \sa glcLoadMatrix()
+ *  \sa glcMultMatrix()
+ *  \sa glcRotate()
  */
 void glcScale(GLfloat inX, GLfloat inY)
 {
