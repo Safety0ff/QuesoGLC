@@ -23,6 +23,8 @@ void testQueso(void)
     glcFont(font);
     glcFontFace(font, "Italic");
     
+    glcFontMap(font, 0x57, "LATIN SMALL LETTER W");
+    
     glcRenderStyle(GLC_LINE);
     glColor3f(0., 1., 0.);
     glTranslatef(100., 50., 0.);
