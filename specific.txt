@@ -5,9 +5,9 @@ the GLC specs 0.2
 
 Preface
 -------
-SGI provides the GLC specs 0.2 at www.xxxx.org but they have stayed in a draft
-version since 1996 (hence the 0.2 version number) and they are then far from
-being complete. Some things are ambiguous or even not documented at all. 
+SGI provides the GLC specs 0.2 at www.opengl.org but they have stayed in a draft
+version since 1996 (hence the 0.2 version number) and then they are far from
+completion. Some things are ambiguous or even not documented at all. 
 
 In order to provide a complete, self-consistent libary, I have been led to take
 some arbitrary decisions on how to implement some aspects of QuesoGLC. These
@@ -15,9 +15,54 @@ choices might or might not be conformant to the specs. Hence the purpose of this
 file which is to contain the (hoppefully) complete list of non-conformance and
 "extensions" to the specs. By "extensions" I mean things that are not fully
 documented in the docs such as the GLC_RESOLUTION state variable for which the
-specs does not clearly describe what it is intended for and how it should
+specs do not clearly describe what it is intended for and how it should
 interfer on the library behaviour.
 
 Notice that the non-conformance notes are intended to be fixed so that QuesoGLC
 becomes fully conformant. However "extensions" issues can not be fixed without
 SGI help.
+
+Finally specifications generally let some freedom to the implementation
+developers to determine the way they implement some things. This is what I call
+"Arbitrary choices". Arbitrary choices are those details that may vary from one
+implementation to another although they are conformant.
+
+Non-conformance:
+---------------
+
+- Many things, but QuesoGLC is still under development :) This section will be
+  updated at releases.
+
+Extensions:
+----------
+
+- QuesoGLC uses the GLC_RESOLUTION parameter to indicate the resolution in dot
+  per inch (dpi) at which the characters are rendered. If the GLC_RESOLUTION
+  parameter is 0 (which is its default value) then QuesoGLC uses a 72 dpi
+  resolution otherwise QuesoGLC uses the last value given with glcResolution().
+
+Arbitrary choices:
+-----------------
+
+- Fonts are rendered at the default size of 1 point. If the user wants to
+  display his text with a different size, he should use glScale() or glcScale()
+  to precise the actual size he wants.
+  
+- When using the textured rendering mode, the default texture size is 64x64.
+  Since GLC does not provide an API entry to modify this value, the only way to
+  change it is to modify the value of GLC_TEXTURE_SIZE in src/render.c and
+  to re-compile QuesoGLC.
+
+- The GLC API is designed to support a variety of master formats, but the
+  current implementation supports only masters in scalable formats that can be
+  read by FreeType.
+
+- In the current implementation, a catalog file must be in the format generated
+  by the X Window System utility program mkfontdir(1). Future releases may use
+  a different format.
+
+- In the current implementation, the font files that belong to the same family
+  will be mapped into a single GLC master object that has multiple faces. For
+  example, the files cour.pfa, courb.pfa, courbi.pfa and couri.pfa are visible
+  through the GLC API as a single master with GLC_FAMILY="Courier",
+  GLC_FACE_COUNT=4 and GLC_FACE_LIST=("Regular","Bold","Bold Italic","Italic").
