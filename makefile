@@ -37,5 +37,6 @@ database/$(BUILDER) : database/buildDB.c
 
 clean:
 	rm -f $(OBJECTS) obj/*.o
-	rm -f $(LIBRARY)
+	rm -f $(LIBRARY) database/$(BUILDER)
+	rm -f database/*.db
 	rm -fR docs/html docs/rtf
