@@ -12,7 +12,7 @@ Changes made from the "Birth" release to the "Baby" release:
 - QuesoGLC now has the ability to use custom memory manager routines
   (see __glcFree, __glcMalloc and __glcRealloc)
 - QuesoGLC can now be built without the "pthread" library. However the "pthread"
-  library is still being mandatory for multi-threading support.
+  library is still being mandatory for multi-thread support.
 - FreeType2 now uses a custom memory manager based on __glcFree, __glcMalloc and
   __glcRealloc. This helps debugging and detection of memory leaks.
 - Variables GLC_MIN_MAPPED_CODE, GLC_MAX_MAPPED_CODE, GLC_CHAR_COUNT and the
@@ -32,3 +32,4 @@ Changes made from the "Birth" release to the "Baby" release:
 - Fixed glcReplacementCode so that it can use a code other than
   GLC_REPLACEMENT_CODE.
 - Translated C++ code to pure ANSI C (i.e. get rid of C++)
+- QuesoGLC can now be built as a shared library.

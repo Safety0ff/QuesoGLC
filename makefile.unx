@@ -6,14 +6,15 @@ LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
 	tests/testrender tests/testcontex
 
-LIBRARY = lib/libGLC.a
+LIB_NAME = lib/libGLC
+LIBRARY = @LIBRARY@
 DATABASE = database/unicode1.db
 BUILDER = buildDB
 
 # Programs
 CC = @CC@
 
-LIBS=@LIBS@ -lstdc++
+LIBS=@LIBS@
 CPPFLAGS=@CPPFLAGS@
 LDFLAGS=@LDFLAGS@
 INCLUDE_DIR=@prefix@/include
@@ -64,10 +65,13 @@ obj/%.o : tests/%.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
 obj/%.o : src/%.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) @CFLAGS4SHARED@ $(CPPFLAGS) $< -o $@
 
-$(LIBRARY) : $(LIB_OBJECTS)
+$(LIB_NAME).a : $(LIB_OBJECTS)
 	ar -r $@ $^
+
+$(LIB_NAME).so : $(LIB_OBJECTS)
+	ld -shared -o $@  -soname libGLC.so.0.2 $(LDFLAGS) @LIBS4SHARED@ $^
 
 database/$(BUILDER) : database/buildDB.c
 	$(CC) $(CFLAGS) $^ -o $@ -lgdbm
