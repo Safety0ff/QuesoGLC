@@ -19,7 +19,8 @@
 /* $Id$ */
 
 /** \file 
- *  defines the so-called "Font commands" described in chapter 3.7 of the GLC specs
+ *  defines the so-called "Font commands" described in chapter 3.7 of the GLC
+ *  specs.
  */
 
 /** \defgroup font Font commands
@@ -85,9 +86,9 @@ static __glcFont* __glcVerifyFontParameters(GLint inFont)
 
 
 /** \ingroup font
- *  This command appends \e inFont to the list \b GLC_CURRENT_FONT_LIST. The command
- *  raises \b GLC_PARAMETER_ERROR if \e inFont is an element in the list
- *  \b GLC_CURRENT_FONT_LIST at the beginning of command execution.
+ *  This command appends \e inFont to the list \b GLC_CURRENT_FONT_LIST. The
+ *  command raises \b GLC_PARAMETER_ERROR if \e inFont is an element in the
+ *  list \b GLC_CURRENT_FONT_LIST at the beginning of command execution.
  *  \param inFont The ID of the font to append to the list \b GLC_CURRENT_FONT_LIST
  *  \sa glcGetListc() with argument \b GLC_CURRENT_FONT_LIST
  *  \sa glcGeti() with argument \b GLC_CURRENT_FONT_COUNT
@@ -268,7 +269,6 @@ void glcFont(GLint inFont)
 static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace,
 			       __glcContextState *inState)
 {
-  GLint faceID = 0;
   __glcUniChar UinFace;
   FT_Face newFace = NULL;
   FT_ListNode node = NULL;
@@ -304,7 +304,7 @@ static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace,
     font->face = NULL;
   }
 
-  font->faceID = faceID;
+  font->faceDesc = faceDesc;
   font->face = newFace;
 
   return GL_TRUE;
@@ -534,14 +534,8 @@ const GLCchar* glcGetFontFace(GLint inFont)
   if (font) {
     __glcUniChar *s = NULL;
     GLCchar *buffer = NULL;
-    FT_ListNode node = NULL;
-    GLint count = font->faceID;
 
-    for (node = font->parent->faceList->head; node && count; node = node->next,
-    	 count--);
-    assert(node);
-    assert(node->data);
-    s = ((__glcFaceDescriptor*)node->data)->styleName;
+    s = font->faceDesc->styleName;
 
     /* Convert the string name of the face into the current string type */
     buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));
@@ -562,16 +556,17 @@ const GLCchar* glcGetFontFace(GLint inFont)
 
 /** \ingroup font
  *  This command returns an attribute of the font identified by \e inFont that
- *  is a string from a string list identified by \e inAttrib. The command returns
- *  the string at offset \e inIndex from the first element in \e inAttrib. For
- *  example, if \e inFont has a face list (\c Regular, \c Bold, \c Italic ) and
- *  \e inIndex is \c 2, then the command returns \c Italic if you query \b GLC_FACE_LIST.
+ *  is a string from a string list identified by \e inAttrib. The command
+ *  returns the string at offset \e inIndex from the first element in \e
+ *  inAttrib. For example, if \e inFont has a face list (\c Regular, \c Bold,
+ *  \c Italic ) and \e inIndex is \c 2, then the command returns \c Italic if
+ *  you query \b GLC_FACE_LIST.
  *
  *  Every GLC state variable that is a list has an associated integer element
  *  count whose value is the number of elements in the list.
  *
- *  Below are the string list attributes associated with each GLC master and font
- *  and their element count attributes :
+ *  Below are the string list attributes associated with each GLC master and
+ *  font and their element count attributes :
  * <center>
  * <table>
  * <caption>Master/font string list attributes</caption>

@@ -19,17 +19,20 @@
 /* $Id$ */
 
 /** \file
- * defines the so-called "Rendering commands" described in chapter 3.9 of the GLC specs.
+ * defines the so-called "Rendering commands" described in chapter 3.9 of the
+ * GLC specs.
  */
 
 /** \defgroup render Rendering commands
- * These are the commands that render characters to a GL render target. Those commands gather
- * glyph datas according to the parameters that has been set in the state machine of GLC, and
- * issue GL commands to render the characters layout to the GL render target.
+ * These are the commands that render characters to a GL render target. Those
+ * commands gather glyph datas according to the parameters that has been set in
+ * the state machine of GLC, and issue GL commands to render the characters
+ * layout to the GL render target.
  *
- * As a reminder, the render commands may issue GL commands, hence a GL context must
- * be bound to the current thread such that the GLC commands produce the desired result.
- * It is the responsibility of the GLC client to set up the underlying GL implementation.
+ * As a reminder, the render commands may issue GL commands, hence a GL context
+ * must be bound to the current thread such that the GLC commands produce the
+ * desired result. It is the responsibility of the GLC client to set up the
+ * underlying GL implementation.
  */
 
 #include <string.h>
@@ -209,7 +212,8 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 		      GLC_TEXTURE_SIZE, GL_LUMINANCE, GL_UNSIGNED_BYTE,
 		      pixmap.buffer);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+		    GL_LINEAR_MIPMAP_LINEAR);
   }
   else {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, GLC_TEXTURE_SIZE,
@@ -233,7 +237,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 
     /* Initialize the key */
     dlKey->list = glGenLists(1);
-    dlKey->face = inFont->faceID;
+    dlKey->faceDesc = inFont->faceDesc;
     dlKey->code = inCode;
     dlKey->renderMode = 2;
 
@@ -241,7 +245,9 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
      * the key in it
      */
     list = inFont->parent->displayList;
-    /* FIXME : Is it really needed since the list is created when the master is created ? */
+    /* FIXME : Is it really needed since the list is created when the master
+     * is created ?
+     */
     if (!list) {
       list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
       if (!list) {
@@ -307,7 +313,7 @@ static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
   __glcDisplayListKey *dlKey = (__glcDisplayListKey*)user;
   __glcDisplayListKey *nodeKey = (__glcDisplayListKey*)node->data;
 
-  if ((dlKey->face == nodeKey->face) && (dlKey->code == nodeKey->code)
+  if ((dlKey->faceDesc == nodeKey->faceDesc) && (dlKey->code == nodeKey->code)
       && (dlKey->renderMode == nodeKey->renderMode))
     dlKey->list = nodeKey->list;
 
@@ -319,13 +325,14 @@ static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
  * desired font. Returns GL_TRUE if a display list exists, returns GL_FALSE
  * otherwise.
  */
-static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode, GLint renderMode)
+static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
+				      GLint renderMode)
 {
   __glcDisplayListKey dlKey;
 
   if (inFont->parent->displayList) {
     /* Initialize the key */
-    dlKey.face = inFont->faceID;
+    dlKey.faceDesc = inFont->faceDesc;
     dlKey.code = inCode;
     dlKey.renderMode = renderMode;
     dlKey.list = 0;

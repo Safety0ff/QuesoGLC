@@ -607,12 +607,12 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 
   for (i = 0; i < fontSet->nfont; i++) {
     __glcUniChar s;
-    GLint index = 0;
     FT_ListNode node = NULL;
     FcChar8 *fileName = NULL;
 
     /* get the file name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName) == FcResultTypeMismatch)
+    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
+	== FcResultTypeMismatch)
       continue;
 
     /* Search the file name of the font in the masters */
@@ -628,7 +628,8 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       s.ptr = fileName;
       s.type = GLC_UCS1;
 
-      for (faceNode = master->faceList->head; faceNode; faceNode = faceNode->next) {
+      for (faceNode = master->faceList->head; faceNode;
+	   faceNode = faceNode->next) {
 	__glcFaceDescriptor* faceDesc = NULL;
 
 	assert(faceNode->data);
@@ -644,12 +645,12 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       for (fontNode = This->fontList->head; fontNode; fontNode = fontNode->next) {
 	__glcFont *font = (__glcFont*)fontNode->data;
 	if (font) {
-	  if ((font->parent == master) && (font->faceID == index)) {
+	  if (font->parent == master) {
 	    /* Eventually remove the font from the current font list */
             FT_ListNode currentFontNode = NULL;
             for (currentFontNode = This->currentFontList->head; currentFontNode;
                  currentFontNode = currentFontNode->next) {
-              if (((__glcFont*)currentFontNode->data)->id == i) {
+              if ((__glcFont*)currentFontNode->data == font) {
                 FT_List_Remove(This->currentFontList, currentFontNode);
                 __glcFree(currentFontNode);
 		break;

@@ -59,17 +59,18 @@ typedef struct {
  * to the real Bezier curve. The piecewise linear curve is built so that
  * the chordal distance is lower than a tolerance value.
  * The chordal distance is taken to be the perpendicular distance from the
- * parametric midpoint, (t = 0.5), to the chord. This may not always be correct,
- * but, in the small lengths which are being considered, this is good enough.
- * In order to mitigate any error, the chordal tolerance is taken to be slightly
- * smaller than the tolerance specified by the user. 
+ * parametric midpoint, (t = 0.5), to the chord. This may not always be
+ * correct, but, in the small lengths which are being considered, this is good
+ * enough. In order to mitigate any error, the chordal tolerance is taken to be
+ * slightly smaller than the tolerance specified by the user. 
  * A second simplifying assumption is that when too large a tolerance is
  * encountered, the chord is split at the parametric midpoint, rather than
  * guessing the exact location of the best chord. This could lead to slightly
- * sub-optimal lines, but it provides a fast method for choosing the subdivision
- * point. This guess can be refined by lengthening the lines.
+ * sub-optimal lines, but it provides a fast method for choosing the
+ * subdivision point. This guess can be refined by lengthening the lines.
  */ 
-static void __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl, void *inUserData, GLint inOrder)
+static void __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
+			     void *inUserData, GLint inOrder)
 {
     GLboolean loop = GL_TRUE;
     __glcRendererData *data = (__glcRendererData *) inUserData;
@@ -285,7 +286,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       }
 
       dlKey->list = glGenLists(1);
-      dlKey->face = inFont->faceID;
+      dlKey->faceDesc = inFont->faceDesc;
       dlKey->code = inCode;
       dlKey->renderMode = inFill ? 4 : 3;
 
@@ -293,7 +294,9 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
        * the key in it
        */
       list = inFont->parent->displayList;
-      /* FIXME : Is it really needed since the list is created when the master is created ? */
+      /* FIXME : Is it really needed since the list is created when the master
+       * is created ?
+       */
       if (!list) {
 	list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
 	if (!list) {

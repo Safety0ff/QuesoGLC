@@ -47,7 +47,7 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
 
   This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
 
-  This->faceID = 0;
+  This->faceDesc = NULL;
   This->parent = inParent;
   This->charMapCount = 0;
   This->id = inID;

@@ -41,7 +41,7 @@ extern "C" {
 #define GLC_OUT_OF_RANGE_LEN 11
 
   typedef struct {
-    GLint face;
+    __glcFaceDescriptor* faceDesc;
     GLint code;
     GLint renderMode;
     GLuint list;
