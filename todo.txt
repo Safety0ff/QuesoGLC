@@ -2,11 +2,11 @@ QuesoGLC 0.0.1
 
 These are things to do by order of preference :
 
-1. Error must be stored in thread local storage
-2. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
-3. Use Unicode !!! (see www.unicode.org)
+1. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
+2. Use Unicode !!! (see www.unicode.org)
+3. Use a common area to store the global variables
 4. Separate platform specific code from the main code set.
 5. Use a cache, in order not to load/unload face files too much
 6. Improve performance !!! (Really needed)
 7. Associate a glX context with a glc context.
-9. Use doxygen more
+8. Use doxygen more

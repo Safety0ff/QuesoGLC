@@ -11,11 +11,11 @@
 FT_Library library;
 
 static GLboolean *__glcContextIsCurrent = NULL;
-static GLCenum *__glcCurrentError = NULL;
 static __glcContextState **__glcContextStateList = NULL;
 static pthread_once_t __glcInitThreadOnce = PTHREAD_ONCE_INIT;
 static pthread_mutex_t __glcCommonAreaMutex;
 static pthread_key_t __glcContextKey;
+static pthread_key_t __glcErrorKey;
 char __glcBuffer[GLC_STRING_CHUNK];
 
 static void __glcInitThread(void)
@@ -24,16 +24,12 @@ static void __glcInitThread(void)
     if (pthread_key_create(&__glcContextKey, NULL)) {
 	/* Initialisation has failed. What do we do ? */
     }
+    if (pthread_key_create(&__glcErrorKey, NULL)) {
+	/* Initialisation has failed. What do we do ? */
+    }
     if (FT_Init_FreeType(&library)) {
 	/* Initialisation has failed. What do we do ? */
     }
-}
-
-static void __glcSetCurrentError(GLint inContext, GLCenum inError)
-{
-    pthread_mutex_lock(&__glcCommonAreaMutex);
-    __glcCurrentError[inContext] = inError;
-    pthread_mutex_unlock(&__glcCommonAreaMutex);
 }
 
 __glcContextState* __glcGetCurrentState(void)
@@ -43,12 +39,7 @@ __glcContextState* __glcGetCurrentState(void)
 
 void __glcRaiseError(GLCenum inError)
 {
-    __glcContextState *state = pthread_getspecific(__glcContextKey);
-
-    if (!state)
-	return;
-    else
-	__glcSetCurrentError(state->id - 1, inError);
+    pthread_setspecific(__glcErrorKey, (void *)inError);
 }
 
 static GLboolean __glcGetContextCurrency(GLint inContext)
@@ -133,7 +124,7 @@ static void __glcDeleteContext(GLint inContext)
     __glcContextState *state = NULL;
     int i = 0;
     
-    __glcSetCurrentError(inContext, GLC_NONE);
+    __glcRaiseError(GLC_NONE);
     pthread_mutex_lock(&__glcCommonAreaMutex);
     state = __glcContextStateList[inContext];
     __glcContextStateList[inContext] = NULL;
@@ -312,7 +303,6 @@ GLint glcGenContext(void)
     }
     __glcSetContextState(i, state);
     __glcSetContextCurrency(i, GL_FALSE);
-    __glcSetCurrentError(i, GLC_NONE);
     
     state->id = i + 1;
     state->delete = GL_FALSE;
@@ -403,16 +393,10 @@ GLint* glcGetAllContexts(void)
 GLCenum glcGetError(void)
 {
     GLCenum error = GLC_NONE;
-    __glcContextState *state = NULL;
-    
     pthread_once(&__glcInitThreadOnce, __glcInitThread);
 
-    state = (__glcContextState *)pthread_getspecific(__glcContextKey);
-    if (state) {
-	error = __glcCurrentError[state->id - 1];
-	__glcSetCurrentError(state->id - 1, GLC_NONE);
-    }
-    
+    error = (GLCenum)pthread_getspecific(__glcErrorKey);
+    __glcRaiseError(GLC_NONE);
     return error;
 }
 
@@ -425,22 +409,14 @@ void my_init(void)
     if (!__glcContextIsCurrent)
 	return;
 
-    __glcCurrentError = (GLCenum *)malloc(sizeof(GLCenum) * GLC_MAX_CONTEXTS);
-    if (!__glcCurrentError) {
-	free(__glcContextIsCurrent);
-	return;
-    }
-    
     __glcContextStateList = (__glcContextState **)malloc(sizeof(__glcContextState*) * GLC_MAX_CONTEXTS);
     if (!__glcContextStateList) {
 	free(__glcContextIsCurrent);
-	free(__glcCurrentError);
 	return;
     }
    
     for (i=0; i< GLC_MAX_CONTEXTS; i++) {
 	__glcContextIsCurrent[i] = GL_FALSE;
-	__glcCurrentError[i] = GLC_NONE;
 	__glcContextStateList[i] = NULL;
     }
 }
@@ -457,6 +433,5 @@ void my_fini(void)
 	
 	/* destroy Common Area */
 	free(__glcContextIsCurrent);
-	free(__glcCurrentError);
 	free(__glcContextStateList);
 }

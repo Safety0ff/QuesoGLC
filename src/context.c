@@ -197,8 +197,8 @@ const GLCchar* glcGetc(GLCenum inAttrib)
 {
     __glcContextState *state = NULL;
     static const GLCchar* __glcExtensions = "";
-    static const GLCchar* __glcRelease = "alpha1 Linux";
-    static const GLCchar* __glcVendor = "GNU";
+    static const GLCchar* __glcRelease = "0.0.1 Linux 2.x";
+    static const GLCchar* __glcVendor = "Queso";
 
     switch(inAttrib) {
 	case GLC_EXTENSIONS:

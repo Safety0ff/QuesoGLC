@@ -10,7 +10,7 @@ LDFLAGS = -L/usr/X11R6/lib `freetype-config --libs` -lpthread -lGL -lGLU -lglut 
 ifdef DEBUGMODE
 LDFLAGS += -lefence
 endif
-OBJECTS = tests/testcommon tests/teststrlst tests/testmaster tests/testfont tests/testrender
+OBJECTS = tests/testcommon tests/teststrlst tests/testmaster tests/testfont tests/testrender tests/testcontex
 
 all: $(OBJECTS)
 
@@ -27,6 +27,9 @@ tests/testfont :  obj/common.o obj/context.o obj/strlst.o obj/global.o obj/maste
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 tests/testrender :  obj/common.o obj/context.o obj/strlst.o obj/global.o obj/master.o  obj/font.o obj/render.o obj/scalable.o tests/testrender.c
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+tests/testcontex :  obj/common.o obj/context.o obj/strlst.o obj/global.o obj/master.o  obj/font.o tests/testcontex.c
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 obj/%.o : tests/%.c
