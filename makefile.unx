@@ -4,8 +4,9 @@ C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
-TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
-	tests/testrender tests/testcontex tests/teststrlst
+TEST_OBJECTS = tests/testmaster tests/testfont \
+	tests/testrender tests/testcontex tests/teststrlst tests/test1 \
+	tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo
 
 LIB_NAME = lib/libGLC
 LIBRARY = @LIBRARY@
@@ -40,7 +41,7 @@ clean:
 	rm -fR docs/html docs/rtf
 
 distclean: clean
-	rm -f makefile makefile.dep configure stamp-h
+	rm -f makefile makefile.dep stamp-h
 	rm -f include/qglc_config.h
 
 install : $(LIBRARY)
@@ -56,10 +57,7 @@ depend:
 include makefile.dep
 
 tests/% :  tests/%.c $(LIBRARY)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) obj/common.o $^ -o $@ $(LIBS)
-
-obj/%.o : tests/%.c
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) $^ -o $@ $(LIBS)
 
 obj/%.o : src/%.c
 	$(CC) -c $(CFLAGS) @CFLAGS4SHARED@ $(CPPFLAGS) $< -o $@

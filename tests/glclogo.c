@@ -408,8 +408,6 @@ main(int argc, char **argv)
 
    glutMainLoop();
    
-   my_fini();
-   
    return 0;
 }
 
