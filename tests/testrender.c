@@ -12,19 +12,37 @@ void testQueso(void)
     
     my_init();
     
+    glEnable(GL_TEXTURE_2D);
+    
     ctx = glcGenContext();
     glcContext(ctx);
     
     glcAppendCatalog("/usr/lib/X11/fonts/Type1");
     
-    glcFontFace(glcNewFontFromFamily(1, "Utopia"), "Bold");
-    font = glcNewFontFromFamily(2, "Courier");
+    font = glcNewFontFromFamily(glcGenFontID(), "Courier");
     glcFont(font);
     glcFontFace(font, "Italic");
     
+    glcRenderStyle(GLC_LINE);
+    glColor3f(0., 1., 0.);
+    glTranslatef(100., 50., 0.);
+    glRotatef(45., 0., 0., 1.);
+    glScalef(120., 120., 0.);
+    glcRenderChar('L');
+    glcRenderString("inux");
+    glLoadIdentity();
+    
+    glcRenderStyle(GLC_TEXTURE);
+    glColor3f(0., 0., 1.);
+    glTranslatef(30., 350., 0.);
+    glScalef(100., 100., 0.);
+    glcRenderChar('X');
+    glcRenderString("-windows");
+    glLoadIdentity();
+    
     glcRenderStyle(GLC_BITMAP);
     glColor3f(1., 0., 0.);
-    glRasterPos2f(30., 300.);
+    glRasterPos2f(30., 200.);
     glcScale(120., 120.);
     glcRotate(10.);
     glcRenderChar('O');
@@ -32,7 +50,7 @@ void testQueso(void)
     
     glcRenderStyle(GLC_TRIANGLE);
     glColor3f(1., 1., 0.);
-    glTranslatef(30., 100., 0.);
+    glTranslatef(30., 50., 0.);
     glScalef(120., 120., 0.);
     glcRenderChar('Q');
     glcRenderString("uesoGLC");
