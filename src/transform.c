@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -26,15 +26,15 @@
 /** \defgroup transform Transformation commands
  *  The GLC transformation commands modify the value of \b GLC_BITMAP_MATRIX.
  *  Glyph coordinates are defined in the em coordinate system. When the value
- *  of \b GLC_RENDER_STYLE is \b GLC_BITMAP, GLC uses the 2x2 \b GLC_BITMAP_MATRIX
- *  to transform layouts from the em coordinate system to the GL raster coordinate
- *  system in which bitmaps are drawn.
+ *  of \b GLC_RENDER_STYLE is \b GLC_BITMAP, GLC uses the 2x2
+ *  \b GLC_BITMAP_MATRIX to transform layouts from the em coordinate system to
+ *  the GL raster coordinate system in which bitmaps are drawn.
  *
- *  When the value of the variable \b GLC_RENDER_STYLE is not \b GLC_BITMAP, GLC
- *  performs no transformations on glyph coordinates. In this case, GLC uses em
- *  coordinates directly as GL world coordinates when drawing a layout, and it is
- *  the responsibility of the GLC client to issue GL commands that set up the
- *  appropriate GL transformations.
+ *  When the value of the variable \b GLC_RENDER_STYLE is not \b GLC_BITMAP,
+ *  GLC performs no transformations on glyph coordinates. In this case, GLC
+ *  uses em coordinates directly as GL world coordinates when drawing a layout,
+ *  and it is the responsibility of the GLC client to issue GL commands that
+ *  set up the appropriate GL transformations.
  */
 
 #include <string.h>
