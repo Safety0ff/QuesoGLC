@@ -1,0 +1,23 @@
+QuesoGLC 0.0.1
+
+This file contains notes about non-conformance and "extensions" to 
+the GLC specs 0.2
+
+Preface
+-------
+SGI provides the GLC specs 0.2 at www.xxxx.org but they have stayed in a draft
+version since 1996 (hence the 0.2 version number) and they are then far from
+being complete. Some things are ambiguous or even not documented at all. 
+
+In order to provide a complete, self-consistent libary, I have been led to take
+some arbitrary decisions on how to implement some aspects of QuesoGLC. These
+choices might or might not be conformant to the specs. Hence the purpose of this
+file which is to contain the (hoppefully) complete list of non-conformance and
+"extensions" to the specs. By "extensions" I mean things that are not fully
+documented in the docs such as the GLC_RESOLUTION state variable for which the
+specs does not clearly describe what it is intended for and how it should
+interfer on the library behaviour.
+
+Notice that the non-conformance notes are intended to be fixed so that QuesoGLC
+becomes fully conformant. However "extensions" issues can not be fixed without
+SGI help.

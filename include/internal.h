@@ -1,0 +1,106 @@
+/* $Id$ */
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include "GL/glc.h"
+
+#define GLC_INTERNAL_ERROR 	0x0043
+#define GLC_STRING_CHUNK	256
+
+#define GLC_MAX_CONTEXTS	16
+#define GLC_MAX_CURRENT_FONT	16
+#define GLC_MAX_FONT		16
+#define GLC_MAX_LIST_OBJECT	16
+#define GLC_MAX_TEXTURE_OBJECT	16
+#define GLC_MAX_MASTER		16
+#define GLC_MAX_FACE_PER_MASTER	16
+#define GLC_MAX_MEASURE		GLC_STRING_CHUNK
+#define GLC_MAX_CHARMAP		256
+
+typedef struct {
+    GLCchar* list;		/* Pointer to the string */
+    GLint count;		/* # list elements */
+    GLint maxLength;		/* maximal length of the string */
+    GLint stringType;		/* string type : UCS1, UCS2 or UCS4 */
+} __glcStringList;
+
+typedef struct {
+    GLint id;
+    __glcStringList faceList;	/* GLC_FACE_LIST */
+    GLint charListCount;	/* GLC_CHAR_LIST_COUNT */
+    GLCchar* family;		/* GLC_FAMILY */
+    GLCchar* masterFormat;	/* GLC_MASTER_FORMAT */
+    GLCchar* vendor;		/* GLC_VENDOR */
+    GLCchar* version;		/* GLC_VERSION */
+    GLint isFixedPitch;		/* GLC_IS_FIXED_PITCH */
+    GLint maxMappedCode;	/* GLC_MAX_MAPPED_CODE */
+    GLint minMappedCode;	/* GLC_MIN_MAPPED_CODE */
+    __glcStringList faceFileName;
+} __glcMaster;
+
+typedef struct {
+    GLint id;
+    GLint faceID;
+    __glcMaster *parent;
+    FT_Face face;
+    GLint charMap[2][GLC_MAX_CHARMAP];
+    GLint charMapCount;
+} __glcFont;
+
+typedef struct {
+    GLint id;			/* Context ID */
+    GLboolean delete;		/* Is there a pending deletion ? */
+    GLCfunc callback;		/* Callback function */
+    GLvoid* dataPointer;	/* GLC_DATA_POINTER */
+    GLboolean autoFont;		/* GLC_AUTO_FONT */
+    GLboolean glObjects;	/* GLC_GLOBJECTS */
+    GLboolean mipmap;		/* GLC_MIPMAP */
+    __glcStringList catalogList;/* GLC_CATALOG_LIST */
+    GLfloat resolution;		/* GLC_RESOLUTION */
+    GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
+    GLint currentFontList[GLC_MAX_CURRENT_FONT];
+    GLint currentFontCount;	/* GLC_CURRENT_FONT_COUNT */
+    __glcFont* fontList[GLC_MAX_FONT];
+    GLint fontCount;		/* GLC_FONT_COUNT */
+    GLint listObjectList[GLC_MAX_LIST_OBJECT];
+    GLint listObjectCount;	/* GLC_LIST_OBJECT_COUNT */
+    __glcMaster* masterList[GLC_MAX_MASTER];
+    GLint masterCount;		/* GLC_MASTER_COUNT */
+    GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
+    GLint renderStyle;		/* GLC_RENDER_STYLE */
+    GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
+    GLint stringType;		/* GLC_STRING_TYPE */
+    GLint textureObjectList[GLC_MAX_TEXTURE_OBJECT];
+    GLint textureObjectCount;	/* GLC_TEXTURE_OBJECT_COUNT */
+    GLint versionMajor;		/* GLC_VERSION_MAJOR */
+    GLint versionMinor;		/* GLC_VERSION_MINOR */
+    GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
+    GLfloat measurementStringBuffer[12];
+} __glcContextState;
+
+/* Global internal variables */
+extern FT_Library library;
+extern char __glcBuffer[GLC_STRING_CHUNK];
+
+/* Global internal commands */
+extern void __glcRaiseError(GLCenum inError);
+extern __glcContextState* __glcGetCurrentState(void);
+
+/* Font and rendering internal commands */
+extern GLint __glcGetFont(GLint inCode);
+
+/* Prototypes of helper functions for __glcStringList objects */
+extern GLint __glcStringListInit(__glcStringList *inStringList, __glcContextState *inState);
+extern void __glcStringListDelete(__glcStringList *inStringList);
+extern GLint __glcStringListAppend(__glcStringList *inStringList, const GLCchar* inString);
+extern GLint __glcStringListPrepend(__glcStringList *inStringList, const GLCchar* inString);
+extern GLint __glcStringListRemove(__glcStringList *inStringList, const GLCchar* inString);
+extern GLint __glcStringListRemoveIndex(__glcStringList *inStringList, GLint inIndex);
+extern GLCchar* __glcStringListFind(__glcStringList *inStringList, const GLCchar* inString);
+extern GLCchar* __glcStringListFindIndex(__glcStringList *inStringList, GLint inIndex);
+extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLint inIndex, const GLCchar* inSeparator);
+extern GLint __glcStringListGetIndex(__glcStringList *inStringList, const GLCchar* inString);
+extern GLCchar* __glcStringListExtractElement(__glcStringList *inStringList, GLint inIndex, GLCchar* inBuffer, GLint inBufferSize);
+
+/* Character renderers */
+extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLboolean inFill);
