@@ -318,6 +318,8 @@ void glcContext(GLint inContext)
 #if 0
   char *version = NULL;
   char *extension = NULL;
+#endif
+#ifndef __MACOSX__
   Display *dpy = NULL;
   Screen *screen = NULL;
 #endif
@@ -342,7 +344,7 @@ void glcContext(GLint inContext)
     exit(-1);
   }
 
-#if 0
+#ifndef __MACOSX__
   /* Get the screen on which drawing ops will be performed */
   dpy = glXGetCurrentDisplay();
   if (!dpy) {
@@ -435,26 +437,36 @@ void glcContext(GLint inContext)
 
   __glcUnlock();
 
+#if 0
   /* We read the version and extensions of the OpenGL client. We do it
    * for compliance with the specifications because we do not use it.
    * However it may be useful if QuesoGLC tries to use some GL commands 
    * that are not part of OpenGL 1.0
    */
-#if 0
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
-  /* Compute the resolution of the screen in DPI (dots per inch) */
-  if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
-    area->currentContext->displayDPIx =
-      (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
-    area->currentContext->displayDPIy =
-      (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
-  }
-  else {
+#endif
+
+  if (area->currentContext) {
+#ifdef __MACOSX__
+    /* Standard values */
     area->currentContext->displayDPIx = 72;
     area->currentContext->displayDPIy = 72;
-  }
+#else
+    /* Compute the resolution of the screen in DPI (dots per inch) */
+    if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
+      area->currentContext->displayDPIx =
+        (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
+      area->currentContext->displayDPIy =
+        (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
+    }
+    else {
+      /* Standard values */
+      area->currentContext->displayDPIx = 72;
+      area->currentContext->displayDPIy = 72;
+    }
 #endif
+  }
 }
 
 
