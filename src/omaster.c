@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -25,8 +25,8 @@
 #include "ocontext.h"
 #include FT_LIST_H
 
-__glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
-			       const char* inFileExt, GLint inID,
+__glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorName,
+			       const char* inFileExt, GLint inID, GLboolean fixed,
 			       GLint inStringType)
 {
   static char format1[] = "Type1";
@@ -40,7 +40,7 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   if (!This)
     return NULL;
 
-  s.ptr = face->family_name;
+  s.ptr = (GLCchar*)familyName;
   s.type = GLC_UCS1;
 
   This->vendor = NULL;
@@ -109,16 +109,12 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   This->vendor->ptr = buffer;
   This->vendor->type = inStringType;
 
-  This->charList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
+  This->charList = FcCharSetCreate();
   if (!This->charList)
     goto error;
 
-  This->charList->head = NULL;
-  This->charList->tail = NULL;
-
   This->version = NULL;
-  This->isFixedPitch =
-    (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) ? GL_TRUE : GL_FALSE;
+  This->isFixedPitch = fixed;
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
   This->id = inID;
@@ -143,7 +139,7 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
   if (This->displayList)
     __glcFree(This->displayList);
   if (This->charList)
-    __glcFree(This->charList);
+    FcCharSetDestroy(This->charList);
   if (This->vendor) {
     __glcUniDestroy(This->vendor);
     __glcFree(This->vendor);
@@ -170,11 +166,10 @@ __glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
 
 void __glcMasterDestroy(__glcMaster *This)
 {
-  FT_List_Finalize(This->charList, NULL,
-		   __glcCommonArea->memoryManager, NULL);
   FT_List_Finalize(This->displayList, __glcListDestructor,
 		   __glcCommonArea->memoryManager, NULL);
-  __glcFree(This->charList);
+  __glcFree(This->displayList);
+  FcCharSetDestroy(This->charList);
   __glcFree(This->faceList);
   __glcFree(This->faceFileName);
   __glcUniDestroy(This->family);
@@ -184,6 +179,5 @@ void __glcMasterDestroy(__glcMaster *This)
   __glcFree(This->masterFormat);
   __glcFree(This->vendor);
 
-  __glcFree(This->displayList);
   __glcFree(This);
 }

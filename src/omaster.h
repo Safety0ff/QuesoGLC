@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@
 #ifndef __glc_omaster_h
 #define __glc_omaster_h
 
+#include <fontconfig/fontconfig.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include "GL/glc.h"
@@ -30,12 +31,12 @@
 typedef struct {
   GLint id;
   FT_List faceList;	        /* GLC_FACE_LIST */
-  FT_List charList;             /* GLC_CHAR_LIST */
+  FcCharSet* charList;          /* GLC_CHAR_LIST */
   __glcUniChar* family;		/* GLC_FAMILY */
   __glcUniChar* masterFormat;	/* GLC_MASTER_FORMAT */
   __glcUniChar* vendor;		/* GLC_VENDOR */
   __glcUniChar* version;	/* GLC_VERSION */
-  GLint isFixedPitch;		/* GLC_IS_FIXED_PITCH */
+  GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
   FT_List faceFileName;
@@ -43,8 +44,8 @@ typedef struct {
   FT_List textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
 } __glcMaster;
 
-__glcMaster* __glcMasterCreate(FT_Face face, const char* inVendorName,
-			       const char* inFileExt, GLint inID,
+__glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorName,
+			       const char* inFileExt, GLint inID, GLboolean fixed,
 			       GLint inStringType);
 void __glcMasterDestroy(__glcMaster *This);
 
