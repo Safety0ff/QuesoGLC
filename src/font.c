@@ -34,8 +34,8 @@
  *
  *  Most of the commands in this category have a parameter \e inFont. Unless
  *  otherwise specified, these commands raise \b GLC_PARAMETER_ERROR if
- *  \e inIndex is less than zero or is greater than or equal to the value of
- *  the variable \b GLC_CATALOG_COUNT.
+ *  \e inFont is less than zero or is greater than or equal to the value of
+ *  the variable \b GLC_FONT_COUNT.
  */
 
 #include <string.h>
