@@ -627,7 +627,7 @@ GLint* glcGetAllContexts(void)
        node = node->next, count++) {}
 
   /* Allocate memory to store the array */
-  contextArray = (GLint *)malloc(sizeof(GLint) * (count+1));
+  contextArray = (GLint *)__glcMalloc(sizeof(GLint) * (count+1));
   if (!contextArray) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcUnlock();
