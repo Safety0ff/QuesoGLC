@@ -30,6 +30,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const char* inFileExt, GLint inID,
 			       GLboolean fixed, GLint inStringType)
 {
+  static char format0[] = "Unknown";
   static char format1[] = "Type1";
   static char format2[] = "True Type";
   __glcMaster *This = NULL;
@@ -53,6 +54,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
     goto error;
 
   /* use file extension to determine the face format */
+  This->masterFormat = (FcChar8*)format0;
   if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
     This->masterFormat = (FcChar8*)format1;
   if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
