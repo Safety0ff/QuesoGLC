@@ -7,18 +7,226 @@
 
 \section description Description
 
-QuesoGLC is a free implementation of SGI's OpenGL Character Renderer (GLC) based
-upon the FreeType library. QuesoGLC provides Unicode support. Its development
-and maintenance platform is Linux but QuesoGLC is designed to be easily ported
-on any platform that supports both FreeType and OpenGL.
+QuesoGLC is a free implementation of the OpenGL Character Renderer (GLC).
+QuesoGLC is based on the FreeType library, provides Unicode support and is
+designed to be easily ported on any platform that supports both FreeType and
+OpenGL.
 
 QuesoGLC is intended to be fully compliant with GLC specifications version 0.2
-It is coded in pure ANSI C language.
+Its development platform is Linux. However it is coded in pure ANSI C language,
+and should compile "out of the box" on every POSIX platform.
+
+\section news News
+\htmlonly
+<a href="http://sourceforge.net/export/projnews.php?group_id=53918&limit=5&show_summaries=1">news</a>
+\endhtmlonly
 
 \section links Links
 
-<li> OpenGL www.opengl.org </li>
-<li> GLC specs www.opengl.org/doc </li>
-<li> FreeType www.freetype.org </li>
+<a href="http://www.opengl.org">OpenGL</a> \n
+<a href="http://www.opengl.org/documentation/spec.html">GLC specs</a> \n
+<a href="http://www.freetype.org">FreeType</a>
+\n
+*/
+/** \page tutorial GLC Tutorial
+\section general General description
+GLC is a library that provides font services for OpenGL applications.
+When using GLC, there is no need to look for font directories, manage the font
+files, load and interpret glyph datas to render text, since GLC takes
+care of that for you.
 
+Although GLC is very easy to use, there are a few steps to follow in order
+to be ready to render text in your OpenGL application. This tutorial will
+guide you through the basic commands of GLC and will expose you a few
+concepts that GLC relies on.
+
+\attention Since GLC uses OpenGL, a GL context must be bound
+to the current thread before any GLC command can be issued. This task must be
+done by the program and GLC does not verify if this has been done. If you try
+to issue GLC commands while no GL context is current, the result of the
+commands is undefined.
+\section context The GLC contexts
+Just like OpenGL, GLC relies on the concept of context. A context is an
+entity that stores the state machine of GLC, that is, an entity that stores
+the font that is currently used, the type of rendering, the string encoding
+and so on.
+\subsection ctxcreation Context creation
+Unlike OpenGL, the GLC context commands are machine independant. The commands
+to create, manage and bind a context to the current thread are the same for
+every platform that supports GLC.
+
+The first step to use GLC is to create a context which is simply done by the
+code below :
+
+\code
+GLint ctx;
+
+ctx = glcGenContext();
+\endcode
+
+When glcGenContext() is executed, the variable \c ctx contains the ID of the
+context that has been created. This ID is unique and must be used each time
+a GLC command needs to identify a context.
+\subsection ctxbind Context binding
+You can create just as many contexts as you want, but one and only one context
+can be used at a given time. Therefore, you must tell GLC which context you
+plan to use, even if you have only created one context. This operation is said
+to "make a context current" or to "bind a context to the current thread". This
+is achieved by calling glcContext() as in
+
+\code
+glcContext(ctx);
+\endcode
+
+At this stage, whenever a GLC command is issued, the context \c ctx will
+execute the command.
+
+You can change the current GLC context at any time by re-issuing a glcContext()
+command with a new context ID and if you want to release the current context
+without making a new context current, you just need to call \c glcContext(0);
+\note If your application is multi-threaded, you can bind a different context
+to each thread. However a context can only be bound to one thread at a time.
+\section fontdir Fonts directories
+GLC grabs font files from directories that are called "catalogs" in the GLC
+specifications. Depending on the implementation, a GLC context may or may not
+have default directories where to look for font files and may or may not
+provide some default fonts. 
+
+QuesoGLC uses the environment variable \c GLC_PATH to set up some
+default fonts. Anyway, you may want GLC to search fonts in additional
+directories, especially if your application comes with its own fonts.
+This is achieved with the command glcAppendCatalog() :
+
+\code
+/* For many Unixes (included Linux), /usr/lib/X11/fonts/Type1/ is a standard
+directory where X windows stores fonts in Adobe's Type1 format. */
+
+glcAppendCatalog("/usr/lib/X11/fonts/Type1/");
+\endcode
+
+You can call glcAppendCatalog() as much as needed, to add several directories
+to the catalog list of GLC.
+
+\note
+GLC internally manages a list of catalogs (that is, of directories) where it
+will look for directories that contains the font files. You can inspect this
+list with the command glcGetListc() as in the following code :
+
+\code
+GLint count, i;
+
+/* Get the number of entries in the catalog list */
+count = glcGeti(GLC_CATALOG_COUNT);
+
+for (i = 0; i < count; i++)
+	printf("%s\n", glcGetListc(GLC_CATALOG_LIST, i));
+\endcode
+\section choosefont Choosing a font
+Now, you may want to choose the font that will be used to render your text.
+In GLC, fonts are managed in a very similar way than contexts are : fonts
+are identified by a unique integer ID, and they need to be made current to
+the context before they are used. Hence, we need first to get an identifier
+that is not used by another font :
+
+\code
+GLint myFont;
+
+myFont = glcGenFontID();
+\endcode
+
+The font ID \c myFont is unique and will be used thereafter to designate our
+font.
+
+Each font has a \e family name (e.g. Palatino, Courier, Helvetica, ...) and a
+state variable that select one of the \e faces (e.g. Regular, Italic, Bold,
+Bold Italic, ...) that the font contains.
+
+In our example, we want to use "Palatino Bold" to render the text. This is
+done with the following code :
+
+\code
+glcNewFontFromFamily(myFont, "Palatino"); /* Select the family of my font */
+glcFontFace(myFont, "Bold"); /* Select the face of my font */
+\endcode
+
+At this stage, a new font "Palatino Bold" which identified by \c myFont has
+been created in the current GLC context. We now want GLC to use \c myFont
+to render the text :
+
+\code
+glcFont(myFont);
+\endcode
+\section rendertext Rendering the text
+We have now reached the final step : we will now render some text. First, we
+need to tell OpenGL (yes, OpenGL not GLC !!!) where the characters will be
+rendered. Indeed, when the glcRenderString() command will be executed, GLC
+will issue some GL commands but nothing will be displayed if we do not tell
+OpenGL where to render the string.
+
+If we decide to render text with bitmap images (which the default render style
+of GLC), we need to give the raster position and (why not ?) the color of the
+text to OpenGL :
+
+\code
+glRasterPos2f(100.f, 100.f);
+glColor3f(1.f, 0.f, 0.f);
+\endcode
+
+Our text will be rendered at coordinates (100, 100) in red color. It is time
+now to render the famous <em>"Hello world!"</em> string :
+
+\code
+glcRenderString("Hello world!");
+\endcode
+
+That's it ! With a few lines of code, GLC allows to render some text in an
+OpenGL window.
+
+As a reminder, the complete code is given below :
+
+\code
+GLint ctx, myFont;
+
+/* Set up and initialize GLC */
+ctx = glcGenContext();
+glcContext(ctx);
+glcAppendCatalog("/usr/lib/X11/fonts/Type1/");
+
+/* Create a font "Palatino Bold" */
+myFont = glcGenFontID();
+glcNewFontFromFamily(myFont, "Palatino");
+glcFontFace(myFont, "Bold");
+glcFont(myFont);
+
+/* Render "Hello world!" */
+glRasterPos2f(100.f, 100.f);
+glColor3f(1.f, 0.f, 0.f);
+glcRenderString("Hello world!");
+\endcode
+
+Most of the code above is executed once in a program : the GLC setup and the
+font creation are done at the beginning of the program, only the rendering
+part of the code (that is 3 lines !) may be located in the main loop of the
+application.
+\note If the rendering style of the text is not \b GLC_BITMAP, then you may
+need to use \c glTranslate() to locate the position where the text is to be
+rendered.
+\section whatmore What more ?
+This is a basic tutorial which has shown you how to render some text with GLC.
+However, you may want to change the code above in order to fit it to your
+needs. If so, the first place to look at is the 
+<a href="globals.html">reference documentation</a> which is provided with
+QuesoGLC. GLC provides a nice set of functions (all of them beginning with
+\c glcGet* ) to introspect a context and see which fonts are available.
+
+The measurement commands have not been used in the example above but you may
+use them to get some basic metrics of a string in order to precisely locate
+it on the screen.
+
+The <a href="group__transform.html">transformations commands</a> can be used
+to obtain fancy effects with bitmap rendering (rotation and scaling) which
+are not available in GLX.
+
+Finally, you can have a look at the tests and examples of QuesoGLC to learn
+how to use some GLC commands and which are their effect.
  */
