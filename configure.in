@@ -42,13 +42,6 @@ dnl Test for location of X headers and libraries
 	fi
 	LIBS="-lX11 -lXext -lXmu"
 
-dnl Locate GDBM headers and libraries
-	AC_CHECK_HEADER(gdbm.h, , fail=y)
-	AC_CHECK_LIB(gdbm, gdbm_open, LIBS4SHARED="-lgdbm $LIBS4SHARED", fail=y)
-	if test -n "$fail"; then
-		AC_MSG_ERROR([Unable to locate required GDBM headers/libraries])
-	fi
-
 dnl Locate pthread library
 	if test -n "$glc_enable_pthreads"; then
 		AC_CHECK_HEADER(pthread.h, , fail=y)

@@ -1,6 +1,6 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
 	  transform.c misc.c ounichar.c ostrlst.c omaster.c ofont.c ocontext.c \
-	  except.c
+	  except.c database.c
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
@@ -9,8 +9,6 @@ TEST_OBJECTS = obj/common.o tests/testcommon tests/testmaster tests/testfont \
 
 LIB_NAME = lib/libGLC
 LIBRARY = @LIBRARY@
-DATABASE = database/unicode1.dir
-BUILDER = buildDB
 
 # Programs
 CC = @CC@
@@ -18,8 +16,10 @@ CC = @CC@
 LIBS=@LIBS@
 CPPFLAGS=@CPPFLAGS@
 LDFLAGS=@LDFLAGS@
-INCLUDE_DIR=@prefix@/include
-LIB_DIR=@prefix@/lib
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+INCLUDE_DIR=@includedir@
+LIB_DIR=@libdir@
 
 ifdef DEBUGMODE
 CFLAGS = -g
@@ -30,13 +30,12 @@ endif
 CFLAGS += -Wall -ansi -pedantic-errors
 CPPFLAGS += -Iinclude -Isrc
 
-all: $(DATABASE) $(TEST_OBJECTS) $(LIBRARY)
+all: $(TEST_OBJECTS) $(LIBRARY)
 
 clean:
 	rm -f config.*
 	rm -f $(OBJECTS) obj/*.o obj/*.oo
-	rm -f $(LIBRARY) database/$(BUILDER)
-	rm -f database/*.db
+	rm -f $(LIBRARY)
 	rm -f $(TEST_OBJECTS)
 	rm -fR docs/html docs/rtf
 
@@ -56,9 +55,6 @@ depend:
 
 include makefile.dep
 
-$(DATABASE) : database/$(BUILDER)
-	cd database; ./$(BUILDER) *.txt ; cd ..
-
 tests/% :  tests/%.c $(LIBRARY)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) obj/common.o $^ -o $@ $(LIBS)
 
@@ -73,6 +69,3 @@ $(LIB_NAME).a : $(LIB_OBJECTS)
 
 $(LIB_NAME).so : $(LIB_OBJECTS)
 	ld -shared -o $@  -soname libGLC.so.0.2 $(LDFLAGS) @LIBS4SHARED@ $^
-
-database/$(BUILDER) : database/buildDB.c
-	$(CC) $(CFLAGS) $^ -o $@ -lgdbm
