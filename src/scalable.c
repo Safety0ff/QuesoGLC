@@ -8,7 +8,6 @@
 #include FT_OUTLINE_H
 
 #define GLC_MAX_VERTEX	1024
-#define GLC_SCALE	6553.6
 
 typedef struct __Node__ {
     GLfloat x;
@@ -23,6 +22,8 @@ typedef struct {
     GLfloat tolerance;		/* Chordal tolerance */
     GLdouble (*vertex)[3];	/* Vertices array */
     GLint numVertex;		/* Number of vertices in the vertices array */
+    GLfloat scale;		/* Scale to convert grid point coordinates into
+				   pixel coordinates */
 }__glcRendererData;
 
 /* __glcdeCasteljau : 
@@ -128,8 +129,8 @@ static void __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl, void *in
 	else {
 	    GLdouble *vertex = &data->vertex[data->numVertex][0];
     
-	    vertex[0] = currentNode->x / GLC_SCALE;
-	    vertex[1] = currentNode->y / GLC_SCALE;
+	    vertex[0] = currentNode->x * data->scale;
+	    vertex[1] = currentNode->y * data->scale;
 	    vertex[2] = 0.;
 	    gluTessVertex(data->tess, vertex, vertex);
 	    data->numVertex++;
@@ -162,8 +163,8 @@ static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
     __glcRendererData *data = (__glcRendererData *) inUserData;
     GLdouble *vertex = &data->vertex[data->numVertex][0];
     
-    vertex[0] = (GLdouble) inVecTo->x / GLC_SCALE;
-    vertex[1] = (GLdouble) inVecTo->y / GLC_SCALE;
+    vertex[0] = (GLdouble) inVecTo->x * data->scale;
+    vertex[1] = (GLdouble) inVecTo->y * data->scale;
     vertex[2] = 0.;
     gluTessVertex(data->tess, vertex, vertex);
     data->numVertex++;
@@ -220,10 +221,16 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLbo
     
     rendererData.tess = tess;
     rendererData.numVertex = 0;
+    /* pixel_size = point_size * resolution / 72. (here point_size = 1.)
+       pixel_coordinate = grid_coordinate * pixel_size / EM_size 
+       hence, scale = 1 * resolution / 72. / EM_size */
+    rendererData.scale = (inState->resolution ? inState->resolution : 72.) / 72. / inFont->face->units_per_EM;
 
-    /* FIXME : err.. that looks very much like a magic number, no ?
-     *	       Should we use GL_RESOLUTION instead ?
-     */
+    /* Moreover grid_coordinate are given in 26.6 fixed point integer hence we
+       divide the scale by 2^6 */
+    rendererData.scale /= 64.;
+
+    /* FIXME : err.. that looks very much like a magic number, no ? */
     rendererData.tolerance = 0.81 * 64. * 64. * 5. * 5.;
     
     /* FIXME : may be we should use a bigger array ? */
@@ -249,7 +256,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLbo
     gluTessEndContour(tess);
     gluTessEndPolygon(tess);
     
-    glTranslatef(inFont->face->glyph->advance.x / GLC_SCALE, 0., 0.);
+    glTranslatef(inFont->face->glyph->advance.x * rendererData.scale, 0., 0.);
     
     gluDeleteTess(tess);
     
