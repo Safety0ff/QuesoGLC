@@ -23,8 +23,8 @@ void testQueso(void)
     glcFontFace(font, "Italic");
     
     glcRenderStyle(GLC_TRIANGLE);
-    glTranslatef(100., 100., 0.);
-    glScalef(10., 10., 0.);
+    glTranslatef(30., 100., 0.);
+    glScalef(12., 12., 0.);
     glColor3f(1., 1., 0.);
     glcRenderChar('Q');
     glcRenderString("uesoGLC");

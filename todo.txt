@@ -10,3 +10,4 @@ These are things to do by order of preference :
 6. Improve performance !!! (Really needed)
 7. Associate a glX context with a glc context.
 8. Use doxygen more
+9. Do not store the path for each file name.
