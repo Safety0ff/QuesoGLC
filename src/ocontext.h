@@ -45,7 +45,6 @@ typedef struct {
   GLboolean autoFont;		/* GLC_AUTO_FONT */
   GLboolean glObjects;		/* GLC_GLOBJECTS */
   GLboolean mipmap;		/* GLC_MIPMAP */
-  FT_List catalogList;		/* GLC_CATALOG_LIST */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
   FT_List currentFontList;	/* GLC_CURRENT_FONT_LIST */
@@ -55,8 +54,6 @@ typedef struct {
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
   GLint stringType;		/* GLC_STRING_TYPE */
-  GLint versionMajor;		/* GLC_VERSION_MAJOR */
-  GLint versionMinor;		/* GLC_VERSION_MINOR */
   GLfloat measurementCharBuffer[GLC_MAX_MEASURE][12];
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
@@ -70,8 +67,13 @@ typedef struct {
 } threadArea;
 
 typedef struct {
+  GLint versionMajor;		/* GLC_VERSION_MAJOR */
+  GLint versionMinor;		/* GLC_VERSION_MINOR */
+
   FT_List stateList;
-  pthread_mutex_t mutex; /* For concurrent accesses to the stateList array */
+  FT_List catalogList;		/* GLC_CATALOG_LIST */
+  pthread_mutex_t mutex;	/* For concurrent accesses to the common area arrays */
+
   pthread_key_t threadKey;
 
   FT_Memory memoryManager;

@@ -50,10 +50,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     goto out_of_memory;
   FT_Add_Default_Modules(This->library);
 
-  This->catalogList = __glcStrLstCreate(NULL);
-  if (!This->catalogList)
-    goto out_of_memory;
-
   This->masterList = (FT_List)__glcMalloc(sizeof(FT_ListRec));
   if (!This->masterList)
     goto out_of_memory;
@@ -89,8 +85,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->renderStyle = GLC_BITMAP;
   This->replacementCode = 0;
   This->stringType = GLC_UCS1;
-  This->versionMajor = 0;
-  This->versionMinor = 2;
   This->isInCallbackFunc = GL_FALSE;
   This->buffer = NULL;
   This->bufferSize = 0;
@@ -103,8 +97,6 @@ out_of_memory:
     __glcFree(This->fontList);
   if (This->currentFontList)
     __glcFree(This->currentFontList);
-  if (This->catalogList)
-    __glcStrLstDestroy(This->catalogList);
   if (This->masterList)
     __glcFree(This->masterList);
   if (This->library)
@@ -149,8 +141,6 @@ static void __glcFontDestructor(FT_Memory inMemory, void *inData, void* inUser)
 void __glcCtxDestroy(__glcContextState *This)
 {
   assert(This);
-
-  __glcStrLstDestroy(This->catalogList);
 
   /* Destroy GLC_CURRENT_FONT_LIST */
   FT_List_Finalize(This->currentFontList, NULL,
@@ -314,6 +304,15 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
   FILE *file;
   __glcUniChar s;
 
+  /* Verify that the catalog has not been already appended (or prepended) */
+  s.ptr = (GLCchar*)inCatalog;
+  s.type = GLC_UCS1;
+  __glcLock();
+  i = __glcStrLstGetIndex(__glcCommonArea->catalogList, &s);
+  __glcUnlock();
+  if (i)
+    return;
+
   /* TODO : use Unicode instead of ASCII ? */
   strncpy(path, (const char*)inCatalog, 256);
   strncat(path, fileName, strlen(fileName));
@@ -423,7 +422,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     else {
       /* FreeType is not able to open the font file, try the next one */
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      continue;
+      continue; /* or return ? */
     }
 
     /* For each face in the font file */
@@ -469,7 +468,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
        * try the next one.
        */
 	__glcRaiseError(GLC_RESOURCE_ERROR);
-	continue;
+	continue; /* or return ? */
       }
       FT_Done_Face(face);
     }
@@ -478,15 +477,28 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
   /* Append (or prepend) the directory name to the catalog list */
   s.ptr = (GLCchar*)inCatalog;
   s.type = GLC_UCS1;
+
   if (inAppend) {
-    if (__glcStrLstAppend(This->catalogList, &s)) {
+    GLint test = 0;
+    __glcLock();
+    test = __glcStrLstAppend(__glcCommonArea->catalogList, &s);
+    __glcUnlock();
+
+    if (test) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      fclose(file);
       return;
     }
   }
   else {
-    if (__glcStrLstPrepend(This->catalogList, &s)) {
+    GLint test = 0;
+    __glcLock();
+    test = __glcStrLstPrepend(__glcCommonArea->catalogList, &s);
+    __glcUnlock();
+
+    if (test) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      fclose(file);
       return;
     }
   }
@@ -511,8 +523,10 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
   __glcUniChar s;
 
   /* TODO : use Unicode instead of ASCII */
-  strncpy(buffer, (const char*)__glcStrLstFindIndex(This->catalogList,
+  __glcLock();
+  strncpy(buffer, (const char*)__glcStrLstFindIndex(__glcCommonArea->catalogList,
 						    inIndex), 256);
+  __glcUnlock();
   strncpy(path, buffer, 256);
   strncat(path, fileName, strlen(fileName));
 

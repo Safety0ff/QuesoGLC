@@ -368,7 +368,9 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   }
 
   /* Get the string at offset inIndex */
-  s = __glcStrLstFindIndex(state->catalogList, inIndex);
+  __glcLock();
+  s = __glcStrLstFindIndex(__glcCommonArea->catalogList, inIndex);
+  __glcUnlock();
 
   /* Now we can check if inIndex identifies a member of the string list or 
    * not */
@@ -876,7 +878,10 @@ GLint glcGeti(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
-    return __glcStrLstLen(state->catalogList);
+    __glcLock();
+    count = __glcStrLstLen(__glcCommonArea->catalogList);
+    __glcUnlock();
+    return count;
   case GLC_CURRENT_FONT_COUNT:
     for (node = state->currentFontList->head, count = 0; node;
 	 node = node->next, count++) {}
@@ -921,9 +926,9 @@ GLint glcGeti(GLCenum inAttrib)
     }
     return count;
   case GLC_VERSION_MAJOR:
-    return state->versionMajor;
+    return __glcCommonArea->versionMajor;
   case GLC_VERSION_MINOR:
-    return state->versionMinor;
+    return __glcCommonArea->versionMinor;
   }
 
   return 0;

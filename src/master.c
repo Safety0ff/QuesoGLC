@@ -593,6 +593,7 @@ void glcPrependCatalog(const GLCchar* inCatalog)
 void glcRemoveCatalog(GLint inIndex)
 {
   __glcContextState *state = NULL;
+  GLint count = 0;
 
   /* Verify that the thread owns a context */
   state = __glcGetCurrent();
@@ -602,8 +603,10 @@ void glcRemoveCatalog(GLint inIndex)
   }
 
   /* Verify that the parameter inIndex is in legal bounds */
-  if ((inIndex < 0)
-      || ((GLuint)inIndex >= __glcStrLstLen(state->catalogList))) {
+  __glcLock();
+  count = __glcStrLstLen(__glcCommonArea->catalogList);
+  __glcUnlock();
+  if ((inIndex < 0) || ((GLuint)inIndex >= count)) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }

@@ -107,6 +107,7 @@ void _fini(void)
 
   /* destroy Common Area */
   __glcFree(__glcCommonArea->stateList);
+  __glcStrLstDestroy(__glcCommonArea->catalogList);
   __glcFree(__glcCommonArea->memoryManager);
 
   __glcUnlock();
@@ -177,6 +178,8 @@ void _init(void)
 
   __glcCommonArea->stateList = NULL;
   __glcCommonArea->memoryManager = NULL;
+  __glcCommonArea->versionMajor = 0;
+  __glcCommonArea->versionMinor = 2;
 
   /* Create the thread-local storage for GLC errors */
   if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
@@ -205,6 +208,10 @@ void _init(void)
   __glcCommonArea->stateList->head = NULL;
   __glcCommonArea->stateList->tail = NULL;
 
+  __glcCommonArea->catalogList = __glcStrLstCreate(NULL);
+  if (!__glcCommonArea->catalogList)
+    goto FatalError;
+
   /* Initialize the mutex for access to the stateList array */
   if (pthread_mutex_init(&__glcCommonArea->mutex, NULL))
     goto FatalError;
@@ -224,6 +231,8 @@ void _init(void)
     __glcFree(__glcCommonArea->stateList);
     __glcCommonArea->stateList = NULL;
   }
+  if (__glcCommonArea->catalogList)
+    __glcStrLstDestroy(__glcCommonArea->catalogList);
   if (__glcCommonArea) {
     __glcFree(__glcCommonArea);
   }
