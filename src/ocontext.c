@@ -58,6 +58,10 @@ __glcContextState* __glcCtxCreate(GLint inContext)
 
   FT_Add_Default_Modules(This->library);
 
+  This->node.prev = NULL;
+  This->node.next = NULL;
+  This->node.data = NULL;
+
   This->masterList.head = NULL;
   This->masterList.tail = NULL;
   This->localCatalogList.head = NULL;
@@ -75,7 +79,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->autoFont = GL_TRUE;
   This->glObjects = GL_TRUE;
   This->mipmap = GL_TRUE;
-  This->resolution = 0.05;
+  This->resolution = 0.005;
   This->bitmapMatrix[0] = 1.;
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
@@ -178,19 +182,14 @@ __glcContextState* __glcGetCurrent(void)
 __glcContextState* __glcGetState(GLint inContext)
 {
   FT_ListNode node = NULL;
-  __glcContextState *state = NULL;
 
   __glcLock();
-  for (node = __glcCommonArea.stateList.head; node; node = node->next) {
-    state = (__glcContextState *)node->data;
-    if (state) {
-      if (state->id == inContext) break;
-    }
-    state = NULL;
-  }
+  for (node = __glcCommonArea.stateList.head; node; node = node->next)
+    if (((__glcContextState*)node)->id == inContext) break;
+
   __glcUnlock();
 
-  return state;
+  return (__glcContextState*)node;
 }
 
 

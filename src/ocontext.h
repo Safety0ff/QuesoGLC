@@ -32,6 +32,8 @@
 #include "omaster.h"
 
 typedef struct {
+  FT_ListNodeRec node;
+
   GLboolean isCurrent;
   GLCchar *buffer;
   GLint bufferSize;

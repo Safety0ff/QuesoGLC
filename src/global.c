@@ -76,19 +76,6 @@ pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
 
 
 
-/* This function is called from FT_List_Finalize() to destroy all
- * remaining contexts
- */
-static void __glcStateDestructor(FT_Memory memory, void *data, void *user)
-{
-  __glcContextState *state = (__glcContextState*) data;
-
-  if (state)
-    __glcCtxDestroy(state);
-}
-
-
-
 /* This function is called when QuesoGLC is no longer needed.
  */
 #ifdef QUESOGLC_STATIC_LIBRARY
@@ -97,11 +84,17 @@ static void __glcExitLibrary(void)
 void _fini(void)
 #endif
 {
+  FT_ListNode node = NULL;
+
   __glcLock();
 
   /* destroy remaining contexts */
-  FT_List_Finalize(&__glcCommonArea.stateList, __glcStateDestructor,
-		   &__glcCommonArea.memoryManager, NULL);
+  node = __glcCommonArea.stateList.head;
+  while (node) {
+    FT_ListNode next = node->next;
+    __glcCtxDestroy((__glcContextState*)node);
+    node = next;
+  }
 
   /* destroy Common Area */
   FcStrSetDestroy(__glcCommonArea.catalogList);
@@ -274,7 +267,6 @@ GLint glcGetCurrentContext(void)
 void glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
-  FT_ListNode node;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -296,11 +288,8 @@ void glcDeleteContext(GLint inContext)
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else {
-    node = FT_List_Find(&__glcCommonArea.stateList, state);
-    assert(node); /* If node is not found then something went wrong ... */
-    FT_List_Remove(&__glcCommonArea.stateList, node);
+    FT_List_Remove(&__glcCommonArea.stateList, (FT_ListNode)state);
     __glcCtxDestroy(state);
-    __glcFree(node);
   }
 
   __glcUnlock();
@@ -433,12 +422,8 @@ void glcContext(GLint inContext)
   /* execute pending deletion if any */
   if (currentState) {
     if (currentState->pendingDelete) {
-      FT_ListNode node = FT_List_Find(&__glcCommonArea.stateList,
-				      currentState);
-      assert(node); /* If node is not found then something went wrong ... */
-      FT_List_Remove(&__glcCommonArea.stateList, node);
+      FT_List_Remove(&__glcCommonArea.stateList, (FT_ListNode)currentState);
       __glcCtxDestroy(currentState);
-      __glcFree(node);
     }
   }
 
@@ -497,14 +482,11 @@ GLint glcGenContext(void)
   __glcLock();
 
   /* Search for the first context ID that is unused */
-  node = __glcCommonArea.stateList.tail;
-  if (!node) {
+  state = (__glcContextState*)__glcCommonArea.stateList.tail;
+  if (!state)
     newContext = 1;
-  }
-  else {
-    state = (__glcContextState *)node->data;
+  else
     newContext = state->id + 1;
-  }
 
   /* Create a new context */
   state = __glcCtxCreate(newContext);
@@ -514,14 +496,7 @@ GLint glcGenContext(void)
     return 0;
   }
 
-  node = (FT_ListNode) __glcMalloc(sizeof(FT_ListNodeRec));
-  if (!node) {
-    __glcCtxDestroy(state);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcUnlock();
-    return 0;
-  }
-
+  node = (FT_ListNode)state;
   node->data = state;
   FT_List_Add(&__glcCommonArea.stateList, node);
 
@@ -577,7 +552,6 @@ GLint* glcGetAllContexts(void)
   int count = 0;
   GLint* contextArray = NULL;
   FT_ListNode node = NULL;
-  __glcContextState *state = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -588,7 +562,7 @@ GLint* glcGetAllContexts(void)
    */
   __glcLock();
   for (node = __glcCommonArea.stateList.head, count = 0; node;
-       node = node->next, count++) {}
+       node = node->next, count++);
 
   /* Allocate memory to store the array */
   contextArray = (GLint *)__glcMalloc(sizeof(GLint) * (count+1));
@@ -602,11 +576,8 @@ GLint* glcGetAllContexts(void)
   contextArray[count] = 0;
 
   /* Copy the context IDs to the array */
-  for (node = __glcCommonArea.stateList.tail; node;node = node->prev) {
-    state = (__glcContextState *)node->data;
-    assert(state);
-    contextArray[--count] = state->id;
-  }
+  for (node = __glcCommonArea.stateList.tail; node;node = node->prev)
+    contextArray[--count] = ((__glcContextState*)node)->id;
 
   __glcUnlock();
 
