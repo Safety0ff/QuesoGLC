@@ -27,7 +27,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
     
     switch(inAttrib) {
 	case GLC_CHAR_LIST:
-	    if ((inIndex < 1) || (inIndex > master->charListCount)) {
+	    if ((inIndex < 0) || (inIndex >= master->charListCount)) {
 		__glcRaiseError(GLC_PARAMETER_ERROR);
 		return GLC_NONE;
 	    }
@@ -36,12 +36,12 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib, GLint inIndex
 		return GLC_NONE;
 	    }
 	case GLC_FACE_LIST:
-	    if ((inIndex < 1) || (inIndex > master->faceList.count)) {
+	    if ((inIndex < 0) || (inIndex >= master->faceList.count)) {
 		__glcRaiseError(GLC_PARAMETER_ERROR);
 		return GLC_NONE;
 	    }
 	    else {
-		s = __glcStringListExtractElement(&master->faceList, inIndex - 1, (GLCchar *) __glcBuffer, GLC_STRING_CHUNK);
+		s = __glcStringListExtractElement(&master->faceList, inIndex, (GLCchar *) __glcBuffer, GLC_STRING_CHUNK);
 		break;
 	    }
 	default:
