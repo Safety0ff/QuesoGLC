@@ -73,29 +73,3 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
     
     return (GLCchar *)&s[i];
 }
-
-/* Fetch a key in the DB :
- * Since NDBM is not thread-safe, we need to make sure that if several threads
- * try to access the DB simultaneously, there won't be any issue. In order to
- * fix this issue, a mutex is used although this is not very elegant. However,
- * the occurence of many simultaneous accesses from different threads to the
- * DB is very unlikely to happen.
- * Pros :
- * - Makes the library simpler since only one file is open at a given time.
- * - The cache is common to all threads which can be improve its efficiency
- *   if the different threads make access to the same location in the file.
- * Cons :
- * - On most modern OSes, the FS allows simultaneous reads on a single file
- *   and this workaround does not take advantage of this feature.
- * - Numerous cache misses can occur if 2 threads make access to different
- *   locations of the DB.
- */
-datum __glcDBFetch(DBM *dbf, datum key)
-{
-  datum content;
-
-  pthread_mutex_lock(&__glcCommonArea->dbMutex);
-  content = dbm_fetch(dbf, key);
-  pthread_mutex_unlock(&__glcCommonArea->dbMutex);
-  return content;
-}

@@ -79,8 +79,6 @@ void _fini(void)
   /* destroy Common Area */
   __glcFree(__glcCommonArea->stateList);
   __glcFree(__glcCommonArea->memoryManager);
-  dbm_close(__glcCommonArea->unidb1);
-  dbm_close(__glcCommonArea->unidb2);
 
   __glcUnlock();
   pthread_mutex_destroy(&__glcCommonArea->mutex);
@@ -147,8 +145,6 @@ void _init(void)
     goto FatalError;
 
   __glcCommonArea->stateList = NULL;
-  __glcCommonArea->unidb1 = NULL;
-  __glcCommonArea->unidb2 = NULL;
   __glcCommonArea->memoryManager = NULL;
 
   /* Creates the thread-local storage for GLC errors */
@@ -172,25 +168,9 @@ void _init(void)
   __glcCommonArea->stateList->head = NULL;
   __glcCommonArea->stateList->tail = NULL;
 
-  /* Open the first Unicode database */
-  __glcCommonArea->unidb1 = dbm_open("database/unicode1", O_RDONLY, 0444);
-  if (!__glcCommonArea->unidb1)
-    goto FatalError;
-
-  /* Open the second Unicode database */
-  __glcCommonArea->unidb2 = dbm_open("database/unicode2", O_RDONLY, 0444);
-  if (!__glcCommonArea->unidb2)
-    goto FatalError;
-
   /* Initialize the mutex for access to the stateList array */
   if (pthread_mutex_init(&__glcCommonArea->mutex, NULL))
     goto FatalError;
-
-  /* Initialize the mutex for access to the DB */
-  if (pthread_mutex_init(&__glcCommonArea->dbMutex, NULL)) {
-    pthread_mutex_destroy(&__glcCommonArea->mutex);
-    goto FatalError;
-  }
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   atexit(__glcExitLibrary);
@@ -206,14 +186,6 @@ void _init(void)
   if (__glcCommonArea->stateList) {
     __glcFree(__glcCommonArea->stateList);
     __glcCommonArea->stateList = NULL;
-  }
-  if (__glcCommonArea->unidb1) {
-    dbm_close(__glcCommonArea->unidb1);
-    __glcCommonArea->unidb1 = NULL;
-  }
-  if (__glcCommonArea->unidb2) {
-    dbm_close(__glcCommonArea->unidb2);
-    __glcCommonArea->unidb2 = NULL;
   }
   if (__glcCommonArea) {
     __glcFree(__glcCommonArea);

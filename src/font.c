@@ -322,7 +322,6 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
   FT_UInt glyphIndex = 0;
   GLint i = 0;
   FT_ULong code  = 0;
-  datum key, content;
   __glcContextState *state = __glcGetCurrent();
   
   /* Check if the font parameters are valid */
@@ -370,15 +369,11 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     }
 
     /* Use the NDBM database to retrieve the Unicode code from its name */
-    key.dsize = strlen((const char*)buffer) + 1;
-    key.dptr = (char *)buffer;
-    content = __glcDBFetch(__glcCommonArea->unidb2, key);
-    if (!content.dptr) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
+    code = __glcCodeFromName(buffer);
+    if (code == -1) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return;
     }
-    code = (GLint)(*(content.dptr));
-    /* __glcFree(content.dptr); */
 
     /* Check if the character identified by 'inCharName' is an element of the
      * list GLC_CHAR_LIST
@@ -499,7 +494,6 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
   FT_UInt glyphIndex = 0;
-  datum key, content;
 
   if (font) {
     __glcUniChar s;
@@ -526,16 +520,12 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     if (!glyphIndex)
       return GLC_NONE;
 
-    /* Uses NDBM to retrieve the Unicode name of the character */
-    key.dsize = sizeof(GLint);
-    key.dptr = (char *)&inCode;
-    content = __glcDBFetch(__glcCommonArea->unidb1, key);
-    if (!content.dptr) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
+    s.ptr = __glcNameFromCode(inCode);
+    s.type = GLC_UCS1;
+    if (!s.ptr) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
-    s.ptr = content.dptr;
-    s.type = GLC_UCS1;
 
     /* Convert the Unicode to the current string type */
     length = __glcUniEstimate(&s, state->stringType);

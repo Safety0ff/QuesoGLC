@@ -145,7 +145,6 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   GLint length = 0;
   FT_Face face = NULL;
   FT_UInt glyphIndex = 0;
-  datum key, content;
   GLint i = 0;
   FT_ListNode node = NULL;
 
@@ -221,24 +220,21 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
       return GLC_NONE;
     }
     
-  /* We have found a font file that contains the glyph that the user is looking
-   * for. We now have to find its Unicode name.
-   */
-  key.dsize = sizeof(GLint);
-  key.dptr = (char *)&inCode;
-  /* Search for the Unicode into the database */
-  content = __glcDBFetch(__glcCommonArea->unidb1, key);
-  if (!content.dptr) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE; /* Not found !! */
-  }
-
   /* The database gives the Unicode name in UCS1 encoding. We should now
    * change its encoding if needed.
    */
   s = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-  s->ptr = content.dptr;
+  if (!s) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GLC_NONE;
+  }
+  s->ptr = __glcNameFromCode(inCode);
   s->type = GLC_UCS1;
+  if (!s->ptr) {
+    __glcFree(s);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
+  }
 
   /* Allocates memory to perform the conversion */
   length = __glcUniEstimate(s, state->stringType);

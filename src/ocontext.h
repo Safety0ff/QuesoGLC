@@ -22,11 +22,6 @@
 #define __glc_ocontext_h
 
 #include <pthread.h>
-#ifdef __MACOSX__
-#include <ndbm.h>
-#else
-#include <gdbm/ndbm.h>
-#endif
 
 #include "GL/glc.h"
 #include "constant.h"
@@ -77,11 +72,9 @@ typedef struct {
 typedef struct {
   FT_List stateList;
   pthread_mutex_t mutex; /* For concurrent accesses to the stateList array */
-  pthread_mutex_t dbMutex; /* For concurrent accesses to the DB */
   pthread_key_t threadKey;
 
   FT_Memory memoryManager;
-  DBM *unidb1, *unidb2;
 } commonArea;
 
 #ifdef QUESOGLC_STATIC_LIBRARY

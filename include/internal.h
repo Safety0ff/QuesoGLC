@@ -68,10 +68,12 @@ extern "C" {
 				     const GLCchar* inSeparator);
 
   /* Deletes GL objects defined in context state */
-  void __glcDeleteGLObjects(__glcContextState *inState);
+  extern void __glcDeleteGLObjects(__glcContextState *inState);
 
-  /* Fetch a key in the DB */
-  datum __glcDBFetch(DBM *dbf, datum key);
+  /* Find a Unicode name from its code */
+  extern GLCchar* __glcNameFromCode(GLint code);
+  /* Find a Unicode code from its name */
+  extern GLint __glcCodeFromName(GLCchar* name);
 
 #ifdef __cplusplus
 }
