@@ -25,15 +25,13 @@
 #include "ocontext.h"
 #include FT_LIST_H
 
-__glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorName,
+__glcMaster* __glcMasterCreate(const FcChar8* familyName, const FcChar8* inVendorName,
 			       const char* inFileExt, GLint inID, GLboolean fixed,
 			       GLint inStringType)
 {
   static char format1[] = "Type1";
   static char format2[] = "True Type";
   __glcUniChar s;
-  GLCchar *buffer = NULL;
-  int length = 0;
   __glcMaster *This = NULL;
 
   This = (__glcMaster*)__glcMalloc(sizeof(__glcMaster));
@@ -45,33 +43,18 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorNa
 
   This->vendor = NULL;
   This->faceList = NULL;
-  This->faceFileName = NULL;
   This->family = NULL;
   This->masterFormat = NULL;
-  buffer = NULL;
 
-  This->faceList = __glcStrLstCreate(NULL);
-  if (!This->faceList)
-    goto error;
-
-  This->faceFileName = __glcStrLstCreate(NULL);
-  if (!This->faceFileName)
+  if (!__glcCreateList(&This->faceList))
     goto error;
 
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
    * may be free and should be used instead of using the last location
    */
-  length = __glcUniEstimate(&s, inStringType);
-  buffer = (GLCchar *)__glcMalloc(length);
-  if (!buffer)
-    goto error;
-
-  __glcUniConvert(&s, buffer, inStringType, length);
-  This->family = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+  This->family = __glcUniCopy(&s, inStringType);
   if (!This->family)
     goto error;
-  This->family->ptr = buffer;
-  This->family->type = inStringType;
 
   /* use file extension to determine the face format */
   s.ptr = NULL;
@@ -81,33 +64,17 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorNa
     s.ptr = format2;
 
   if (__glcUniLen(&s)) {
-    length = __glcUniEstimate(&s, inStringType);
-    buffer = (GLCchar*)__glcMalloc(length);
-    if (!buffer)
-      goto error;
-
-    __glcUniConvert(&s, buffer, inStringType, length);
-    This->masterFormat = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
-    This->masterFormat->ptr = buffer;
-    This->masterFormat->type = inStringType;
+    This->masterFormat = __glcUniCopy(&s, inStringType);
     if (!This->masterFormat)
       goto error;
   }
   else
     This->masterFormat = NULL;
 
-  s.ptr = (GLCchar*) inVendorName;
-  length = __glcUniEstimate(&s, inStringType);
-  buffer = (GLCchar*)__glcMalloc(length);
-  if (!buffer)
-    goto error;
-
-  __glcUniConvert(&s, buffer, inStringType, length);
-  This->vendor = (__glcUniChar*)__glcMalloc(sizeof(__glcUniChar));
+  s.ptr= (GLCchar*)inVendorName;
+  This->vendor = __glcUniCopy(&s, inStringType);
   if (!This->vendor)
     goto error;
-  This->vendor->ptr = buffer;
-  This->vendor->type = inStringType;
 
   This->charList = FcCharSetCreate();
   if (!This->charList)
@@ -139,9 +106,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorNa
     __glcFree(This->vendor);
   }
   if (This->faceList)
-    __glcStrLstDestroy(This->faceList);
-  if (This->faceFileName)
-    __glcStrLstDestroy(This->faceFileName);
+    __glcFree(This->faceList);
   if (This->family) {
     __glcUniDestroy(This->family);
     __glcFree(This->family);
@@ -150,14 +115,15 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorNa
     __glcUniDestroy(This->masterFormat);
     __glcFree(This->masterFormat);
   }
-  if (buffer)
-    __glcFree(buffer);
   __glcRaiseError(GLC_RESOURCE_ERROR);
 
   __glcFree(This);
   return NULL;
 }
 
+/* FIXME :
+ * Check that linked lists are empty before the pointer is freed
+ */
 void __glcMasterDestroy(__glcMaster *This)
 {
   FT_List_Finalize(This->displayList, __glcListDestructor,
@@ -165,7 +131,6 @@ void __glcMasterDestroy(__glcMaster *This)
   __glcFree(This->displayList);
   FcCharSetDestroy(This->charList);
   __glcFree(This->faceList);
-  __glcFree(This->faceFileName);
   __glcUniDestroy(This->family);
   __glcUniDestroy(This->masterFormat);
   __glcUniDestroy(This->vendor);

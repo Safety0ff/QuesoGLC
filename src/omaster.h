@@ -29,6 +29,13 @@
 #include "ostrlst.h"
 
 typedef struct {
+	__glcUniChar* fileName;
+	__glcUniChar* styleName;
+	int indexInFile;
+	FcCharSet* charSet;
+} __glcFaceDescriptor;
+
+typedef struct {
   GLint id;
   FT_List faceList;	        /* GLC_FACE_LIST */
   FcCharSet* charList;          /* GLC_CHAR_LIST */
@@ -39,12 +46,11 @@ typedef struct {
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
-  FT_List faceFileName;
   FT_List displayList;		/* GLC_LIST_OBJECT_LIST */
   FT_List textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
 } __glcMaster;
 
-__glcMaster* __glcMasterCreate(const FcChar8* familyName, const char* inVendorName,
+__glcMaster* __glcMasterCreate(const FcChar8* familyName, const FcChar8* inVendorName,
 			       const char* inFileExt, GLint inID, GLboolean fixed,
 			       GLint inStringType);
 void __glcMasterDestroy(__glcMaster *This);

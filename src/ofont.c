@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -20,21 +20,30 @@
 
 /* Defines the methods of an object that is intended to managed fonts */
 
+#include <assert.h>
+
 #include "internal.h"
 #include "ocontext.h"
 #include "ofont.h"
 
 __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent)
 {
-  __glcUniChar *s = __glcStrLstFindIndex(inParent->faceFileName, 0);
+  __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
   __glcFont *This = NULL;
   __glcContextState *state = __glcGetCurrent();
+
+  assert(inParent);
 
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
+
+  /* At font creation, the default face is the first one.
+   * glcFontFace() can change the face.
+   */
+  s = ((__glcFaceDescriptor*)inParent->faceList->head->data)->fileName;
 
   This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
 

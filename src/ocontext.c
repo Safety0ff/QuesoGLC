@@ -226,7 +226,7 @@ void __glcRaiseError(GLCenum inError)
 /* This function updates the GLC_CHAR_LIST list when a new face identified by
  * 'face' is added to the master pointed by inMaster
  */
-static int __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
+static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
 {
   FcChar32 charCode;
   FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
@@ -248,9 +248,9 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
   do {
     base = FcCharSetNextPage(charSet, map, &next);
   } while ((base != FC_CHARSET_DONE) && (next != FC_CHARSET_DONE));
-  assert(base != FC_CHARSET_DONE); /* Must be checked in order to make the loop can end
-                                    * even in severe conditions. However in nominal conditions
-                                    * it should not occur.
+  assert(base != FC_CHARSET_DONE); /* Must be checked so that the loop can end
+                                    * even in severe conditions. However in
+                                    * nominal conditions it should not occur.
                                     */
   for (i = FC_CHARSET_MAP_SIZE - 1; i >= 0; i--)
     if (map[i]) break;
@@ -262,8 +262,6 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
 
   /* Add the character set to the GLC_CHAR_LIST of inMaster */
   inMaster->charList = FcCharSetUnion(inMaster->charList, charSet);
-
-  return 0;
 }
 
 
@@ -283,14 +281,14 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
   struct stat dirStat;
   FcFontSet *fontSet = NULL;
   FcStrSet *subDirs = NULL;
+  FcBool test;
 
   /* Verify that the catalog has not already been appended (or prepended) */
-  s.ptr = (GLCchar*)inCatalog;
-  s.type = GLC_UCS1;
   __glcLock();
-  i = __glcStrLstGetIndex(__glcCommonArea->catalogList, &s);
+  test = FcStrSetMember(__glcCommonArea->catalogList, (FcChar8*)inCatalog);
   __glcUnlock();
-  if (i >= 0)
+
+  if (test)
     return;
 
   /* Check that 'path' points to a directory that can be read */
@@ -322,7 +320,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
   }
 
   if (!FcDirScan(fontSet, subDirs, NULL, FcConfigGetBlanks(config),
-		 (const char*)inCatalog, FcFalse)) {
+		 (const unsigned char*)inCatalog, FcFalse)) {
     FcFontSetDestroy(fontSet);
     FcStrSetDestroy(subDirs);
     return;
@@ -348,7 +346,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       vendorName = NULL;
 
     /* get the extension of the file */
-    ext = (char*)fileName + (strlen(fileName) - 1);
+    ext = (char*)fileName + (strlen((const char*)fileName) - 1);
     while ((*ext != '.') && (end - (char*)fileName))
       ext--;
     if (ext != (char*)fileName)
@@ -415,9 +413,23 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       continue;
     s.ptr = (GLCchar*)styleName;
     s.type = GLC_UCS1;
-    if (__glcStrLstGetIndex(master->faceList, &s) < 0) {
+
+    for (node = master->faceList->head; node; node = node->next) {
+      __glcFaceDescriptor* faceDesc = NULL;
+      
+      assert(node->data);
+      faceDesc = (__glcFaceDescriptor*)node->data;
+      if (!__glcUniCompare(faceDesc->styleName, &s))
+	break;
+    }
+
+    if (!node) {
       __glcUniChar sp;
       FcCharSet *charSet = NULL;
+      __glcFaceDescriptor* faceDesc = NULL;
+      int index = 0;
+      FT_ListNode newNode = NULL;
+
       /* The current face in the font file is not already loaded in a
        * master : Append (or prepend) the new face and its file name to
        * the master.
@@ -430,55 +442,95 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
        */
       if (FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet) == FcResultTypeMismatch)
         continue;
-      if (!__glcUpdateCharList(master, charSet)) {
-	if (inAppend) {
-	  if (__glcStrLstAppend(master->faceList, &s))
-	    break;
-	  if (__glcStrLstAppend(master->faceFileName, &sp)) {
-	    __glcStrLstRemove(master->faceList, &s);
-	    break;		    
-	  }
-	}
-	else {
-	  if (__glcStrLstPrepend(master->faceList, &s))
-	    break;
-	  if (__glcStrLstPrepend(master->faceFileName, &sp)) {
-	    __glcStrLstRemove(master->faceList, &s);
-	    break;		    
-	  }
-	}
+      if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index) == FcResultTypeMismatch)
+	continue;
+
+      __glcUpdateCharList(master, charSet);
+
+      faceDesc = (__glcFaceDescriptor*)__glcMalloc(sizeof(__glcFaceDescriptor));
+      if (!faceDesc) {
+        __glcRaiseError(GLC_RESOURCE_ERROR);
+	FcFontSetDestroy(fontSet);
+	return;
       }
+
+      newNode = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+      if (!newNode) {
+        __glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcFree(faceDesc);
+	FcFontSetDestroy(fontSet);
+	return;
+      }
+
+      faceDesc->fileName = __glcUniCopy(&sp, GLC_UCS1);
+      if (!faceDesc->fileName) {
+        __glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcFree(newNode);
+	__glcFree(faceDesc);
+	FcFontSetDestroy(fontSet);
+	return;
+      }
+      faceDesc->styleName = __glcUniCopy(&s, This->stringType);
+      if (!faceDesc->styleName) {
+        __glcRaiseError(GLC_RESOURCE_ERROR);
+	__glcUniDestroy(faceDesc->fileName);
+	__glcFree(faceDesc->fileName);
+	__glcFree(newNode);
+	__glcFree(faceDesc);
+	FcFontSetDestroy(fontSet);
+	return;
+      }
+      faceDesc->indexInFile = index;
+      faceDesc->charSet = FcCharSetCreate();
+      faceDesc->charSet = FcCharSetUnion(faceDesc->charSet, charSet);
+
+      newNode->data = faceDesc;
+
+      if (inAppend)
+	FT_List_Add(master->faceList, newNode);
+      else
+	FT_List_Insert(master->faceList, newNode);
     }
   }
 
   FcFontSetDestroy(fontSet);
 
   /* Append (or prepend) the directory name to the catalog list */
-  s.ptr = (GLCchar*)inCatalog;
-  s.type = GLC_UCS1;
-
+  __glcLock();
   if (inAppend) {
-    GLint test = 0;
-    __glcLock();
-    test = __glcStrLstAppend(__glcCommonArea->catalogList, &s);
-    __glcUnlock();
-
-    if (test) {
+    if (!FcStrSetAdd(__glcCommonArea->catalogList, (FcChar8*)inCatalog)) {
+      __glcUnlock();
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
   }
   else {
-    GLint test = 0;
-    __glcLock();
-    test = __glcStrLstPrepend(__glcCommonArea->catalogList, &s);
-    __glcUnlock();
+    FcStrSet* newCatalogList = FcStrSetCreate();
+    FcStrList* iterator = NULL;
+    FcChar8* catalog = NULL;
 
-    if (test) {
+    if (!FcStrSetAdd(newCatalogList, (FcChar8*)inCatalog)) {
+      __glcUnlock();
+      FcStrSetDestroy(newCatalogList);
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
+    iterator = FcStrListCreate(__glcCommonArea->catalogList);
+    for (catalog = FcStrListNext(iterator); catalog;
+	catalog = FcStrListNext(iterator)) {
+      if (!FcStrSetAdd(newCatalogList, catalog)) {
+	__glcUnlock();
+	FcStrListDone(iterator);
+	FcStrSetDestroy(newCatalogList);
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
+    }
+    FcStrListDone(iterator);
+    FcStrSetDestroy(__glcCommonArea->catalogList);
+    __glcCommonArea->catalogList = newCatalogList;
   }
+  __glcUnlock();
 }
 
 
@@ -488,58 +540,84 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
  */
 void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 {
-  const char* fileName = "/fonts.dir";
-  char buffer[256];
-  char path[256];
-  int numFontFiles = 0;
   int i = 0;
-  FILE *file;
-  __glcUniChar s;
+  FcConfig *config = FcConfigGetCurrent();
+  FcFontSet *fontSet = NULL;
+  FcStrSet *subDirs = NULL;
+  FcStrList* iterator = NULL;
+  FcChar8* catalog = NULL;
 
-  /* TODO : use Unicode instead of ASCII */
   __glcLock();
-  strncpy(buffer, (const char*)__glcStrLstFindIndex(__glcCommonArea->catalogList,
-						    inIndex), 256);
+  iterator = FcStrListCreate(__glcCommonArea->catalogList);
+  if (!iterator) {
+    __glcUnlock();
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+  for (catalog = FcStrListNext(iterator); catalog && inIndex;
+	catalog = FcStrListNext(iterator), inIndex--);
   __glcUnlock();
-  strncpy(path, buffer, 256);
-  strncat(path, fileName, strlen(fileName));
+  FcStrListDone(iterator);
 
-  /* Open 'fonts.dir' */
-  file = fopen(path, "r");
-  if (!file) {
+  if (!catalog) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
+  fontSet = FcFontSetCreate();
+  if (!fontSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+  
+  subDirs = FcStrSetCreate();
+  if (!subDirs) {
+    FcFontSetDestroy(fontSet);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  /* Read the # of font files */
-  fgets(buffer, 256, file);
-  numFontFiles = strtol(buffer, NULL, 10);
+  if (!FcDirScan(fontSet, subDirs, NULL, FcConfigGetBlanks(config),
+		 (const unsigned char*)catalog, FcFalse)) {
+    FcFontSetDestroy(fontSet);
+    FcStrSetDestroy(subDirs);
+    return;
+  }
+  FcStrSetDestroy(subDirs); /* Sub directories are not scanned */
 
-  for (i = 0; i < numFontFiles; i++) {
-    char *desc = NULL;
+  for (i = 0; i < fontSet->nfont; i++) {
+    __glcUniChar s;
     GLint index = 0;
     FT_ListNode node = NULL;
+    FcChar8 *fileName = NULL;
 
     /* get the file name */
-    fgets(buffer, 256, file);
-    desc = (char *)__glcFindIndexList(buffer, 1, " ");
-    if (desc) {
-      desc[-1] = 0;
-      desc++;
-    }
+    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName) == FcResultTypeMismatch)
+      continue;
 
     /* Search the file name of the font in the masters */
     for (node = This->masterList->head; node; node = node->next) {
       __glcMaster *master;
+      FT_ListNode faceNode = NULL;
       FT_ListNode fontNode = NULL;
 
       master = (__glcMaster*)node->data;
       if (!master)
 	continue;
-      s.ptr = buffer;
+
+      s.ptr = fileName;
       s.type = GLC_UCS1;
-      index = __glcStrLstGetIndex(master->faceFileName, &s);
-      if (!index)
+
+      for (faceNode = master->faceList->head; faceNode; faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = NULL;
+
+	assert(faceNode->data);
+	faceDesc = (__glcFaceDescriptor*)faceNode->data;
+	if (!__glcUniCompare(faceDesc->fileName, &s))
+	  break;
+      }
+
+      if (!faceNode)
 	continue; /* The file is not in the current master, try the next one */
 
       /* Removes the corresponding faces in the font list */
@@ -562,22 +640,37 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 	}
       }
 
-      __glcStrLstRemoveIndex(master->faceFileName, index); /* Remove the file name */
-      __glcStrLstRemoveIndex(master->faceList, index); /* Remove the face */
+      FT_List_Remove(master->faceList, faceNode);
+      __glcFree(faceNode->data);
+      __glcFree(faceNode);
 
-      /* FIXME :Characters from the font should be removed from the char list */
+      /* Remove characters of the font from the char list.
+       * (Actually rebuild the master charset)
+       */
+      FcCharSetDestroy(master->charList);
+      master->charList = FcCharSetCreate();
+      for (faceNode = master->faceList->head; faceNode; faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = NULL;
+
+        assert(node->data);
+	faceDesc = (__glcFaceDescriptor*)node->data;
+	master->charList = FcCharSetUnion(master->charList, faceDesc->charSet);
+      }
+      master->minMappedCode = 0x7fffffff;
+      master->maxMappedCode = 0;
+      __glcUpdateCharList(master, master->charList);
 
       /* If the master is empty (i.e. does not contain any face) then
        * remove it.
        */
-      if (!__glcStrLstLen(master->faceFileName)) {
+      if (!master->faceList->head) {
 	__glcMasterDestroy(master);
 	master = NULL;
       }
     }
   }
 
-  fclose(file);
+  FcFontSetDestroy(fontSet);
   return;
 }
 
