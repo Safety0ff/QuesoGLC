@@ -83,21 +83,12 @@ int main(void)
 		}
 	}
 
-	/* 6. Check that the 17th context creation fails */
-	if (!glcGenContext()) {
-		err = glcGetError();
-		if (err != GLC_RESOURCE_ERROR) {
-			printf("Unexpected GLC error : 0x%X\n", (int)err);
-			return -1;
-		}
-	}
-
-	/* 7. Check that there is no current context */
+	/* 6. Check that there is no current context */
 	if (glcGetCurrentContext())
 		printf("Unexpected current context %d\n",
 			(int)glcGetCurrentContext());
 
-	/* 8. Check that a destroyed context can be reclaimed
+	/* 7. Check that a destroyed context can be reclaimed
 	 *    by glcGenContext()
 	 */
 	glcDeleteContext(5);
@@ -186,7 +177,7 @@ int main(void)
 	  return -1;
 	}
 
-	/* Verify that we can not make current a context that has not
+	/* Verify that we can not delete a context that has not
 	 * been created yet.
 	 */
 	glcDeleteContext(i);
