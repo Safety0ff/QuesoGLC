@@ -310,7 +310,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
     glyphIndex = FT_Get_Char_Index(font->face, inCode);
     
     if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_DEFAULT)) {
-	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
 

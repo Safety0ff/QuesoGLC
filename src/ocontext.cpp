@@ -21,6 +21,7 @@ __glcContextState::__glcContextState(GLint inContext)
   if (FT_Init_FreeType(&library)) {
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
+    library = NULL;
     return;
   }
 
@@ -29,6 +30,7 @@ __glcContextState::__glcContextState(GLint inContext)
     setState(inContext, NULL);
     raiseError(GLC_RESOURCE_ERROR);
     FT_Done_FreeType(library);
+    library = NULL;
     return;
   }
 

@@ -1,4 +1,4 @@
-#define GLC_INTERNAL_ERROR 	0x0043
+#define GLC_POINT_SIZE          100
 
 #define GLC_MAX_CONTEXTS	16
 #define GLC_MAX_CURRENT_FONT	16

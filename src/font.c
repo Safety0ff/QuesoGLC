@@ -299,7 +299,7 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 
     if (inAttrib == GLC_CHAR_LIST) {
       if (FT_Get_Glyph_Name(font->face, inIndex, glyphName, GLC_STRING_CHUNK)) {
-	__glcContextState::raiseError(GLC_INTERNAL_ERROR);
+	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return GLC_NONE;
       }
 

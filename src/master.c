@@ -99,7 +99,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 		    (const char*) buffer, 0, &face)) {
       /* Unable to load the face file, however this should not happen since
 	 it has been succesfully loaded when the master was created */
-      __glcContextState::raiseError(GLC_INTERNAL_ERROR);
+      __glcContextState::raiseError(GLC_RESOURCE_ERROR);
       face = NULL;
       return GLC_NONE;
     }

@@ -30,7 +30,6 @@ void __glcExitLibrary(void)
   gdbm_close(__glcContextState::unidb2);
 
   pthread_mutex_destroy(&__glcContextState::mutex);
-  pthread_key_delete(__glcContextState::threadKey);
 }
 
 static void __glcFreeThreadArea(void *keyValue)
