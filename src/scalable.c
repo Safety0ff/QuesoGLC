@@ -36,20 +36,20 @@
 #define GLC_MAX_VERTEX	1024
 
 typedef struct __Node__ {
-    GLfloat x;
-    GLfloat y;
-    GLfloat t;
-    struct __Node__ *next;
+  GLfloat x;
+  GLfloat y;
+  GLfloat t;
+  struct __Node__ *next;
 } __glcNode;
 
 typedef struct {
-    GLUtesselator *tess;	/* GLU tesselator */
-    FT_Vector pen;		/* Current coordinates */
-    GLfloat tolerance;		/* Chordal tolerance */
-    GLdouble (*vertex)[3];	/* Vertices array */
-    GLint numVertex;		/* Number of vertices in the vertices array */
-    GLfloat scale;		/* Scale to convert grid point coordinates into
-				   pixel coordinates */
+  GLUtesselator *tess;	        /* GLU tesselator */
+  FT_Vector pen;		/* Current coordinates */
+  GLfloat tolerance;		/* Chordal tolerance */
+  GLdouble (*vertex)[3];	/* Vertices array */
+  GLint numVertex;		/* Number of vertices in the vertices array */
+  GLfloat scale_x;		/* Scale to convert grid point coordinates.. */
+  GLfloat scale_y;		/* ..into pixel coordinates */
 }__glcRendererData;
 
 /* __glcdeCasteljau : 
@@ -72,250 +72,270 @@ typedef struct {
 static void __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 			     void *inUserData, GLint inOrder)
 {
-    GLboolean loop = GL_TRUE;
-    __glcRendererData *data = (__glcRendererData *) inUserData;
-    GLfloat px[10], py[10];
-    __glcNode nodeList[256];		/* FIXME : use a dynamic list */
-    __glcNode *firstNode = &nodeList[0];
-    __glcNode *currentNode = &nodeList[1];
-    __glcNode *endList = &nodeList[2];
-    GLint i = 0;
-    
-    px[0] = (GLfloat) data->pen.x;
-    py[0] = (GLfloat) data->pen.y;
-    for (i = 1; i < inOrder; i++) {
-	px[i] = (GLfloat) inControl[i - 1]->x;
-	py[i] = (GLfloat) inControl[i - 1]->y;
+  GLboolean loop = GL_TRUE;
+  __glcRendererData *data = (__glcRendererData *) inUserData;
+  GLfloat px[10], py[10];
+  __glcNode nodeList[256];		/* FIXME : use a dynamic list */
+  __glcNode *firstNode = &nodeList[0];
+  __glcNode *currentNode = &nodeList[1];
+  __glcNode *endList = &nodeList[2];
+  GLint i = 0;
+
+  px[0] = (GLfloat) data->pen.x;
+  py[0] = (GLfloat) data->pen.y;
+  for (i = 1; i < inOrder; i++) {
+    px[i] = (GLfloat) inControl[i - 1]->x;
+    py[i] = (GLfloat) inControl[i - 1]->y;
+  }
+  px[inOrder] = (GLfloat) inVecTo->x;
+  py[inOrder] = (GLfloat) inVecTo->y;
+
+  firstNode->x = px[0];
+  firstNode->y = py[0];
+  firstNode->t = 0.;
+  firstNode->next = currentNode;
+
+  currentNode->x = px[inOrder];
+  currentNode->y = py[inOrder];
+  currentNode->t = 1.;
+  currentNode->next = NULL;
+
+  while (loop) {
+    GLfloat projx = 0., projy = 0.;
+    __glcNode newNode;
+    GLfloat s = 0., t = 0., distance = 0.;
+    GLint j = 0;
+    GLint n = 0, ind = 0;
+
+    t = (firstNode->t + currentNode->t) / 2.;
+
+    n = inOrder;
+
+    for (i = 0; i < inOrder ; i++) {
+      for (j = 0; j < inOrder - i; j++) {
+	ind = n - inOrder + i + j;
+	px[n + j + 1] = (1 - t) * px[ind] + t * px[ind + 1];
+	py[n + j + 1] = (1 - t) * py[ind] + t * py[ind + 1];
+      }
+      n += inOrder - i;
     }
-    px[inOrder] = (GLfloat) inVecTo->x;
-    py[inOrder] = (GLfloat) inVecTo->y;
 
-    firstNode->x = px[0];
-    firstNode->y = py[0];
-    firstNode->t = 0.;
-    firstNode->next = currentNode;
-    
-    currentNode->x = px[inOrder];
-    currentNode->y = py[inOrder];
-    currentNode->t = 1.;
-    currentNode->next = NULL;
-    
-    while (loop) {
-	GLfloat projx = 0., projy = 0.;
-	__glcNode newNode;
-	GLfloat s = 0., t = 0., distance = 0.;
-	GLint j = 0;
-	GLint n = 0, ind = 0;
-	
-	t = (firstNode->t + currentNode->t) / 2.;
-	
-	n = inOrder;
-	
-	for (i = 0; i < inOrder ; i++) {
-	    for (j = 0; j < inOrder - i; j++) {
-		ind = n - inOrder + i + j;
-		px[n + j + 1] = (1 - t) * px[ind] + t * px[ind + 1];
-		py[n + j + 1] = (1 - t) * py[ind] + t * py[ind + 1];
-	    }
-	    n += inOrder - i;
-	}
-	
-	newNode.x = px[n];
-	newNode.y = py[n];
-	newNode.t = t;
+    newNode.x = px[n];
+    newNode.y = py[n];
+    newNode.t = t;
 
-	/* Compute the coordinate of the projection of 'new_node' onto the chord */
-	s = ((newNode.x - firstNode->x) * (currentNode->x - firstNode->x)
-	   + (newNode.y - firstNode->y) * (currentNode->y - firstNode->y))
-	   / ((currentNode->x - firstNode->x) * (currentNode->x - firstNode->x)
-	   +  (currentNode->y - firstNode->y) * (currentNode->y - firstNode->y));
+    /* Compute the coordinate of the projection of 'new_node' onto the
+     * chord */
+    s = ((newNode.x - firstNode->x) * (currentNode->x - firstNode->x)
+	 + (newNode.y - firstNode->y) * (currentNode->y - firstNode->y))
+      / ((currentNode->x - firstNode->x) * (currentNode->x - firstNode->x)
+	 +  (currentNode->y - firstNode->y) * (currentNode->y - firstNode->y));
 
-	projx = firstNode->x + s * (currentNode->x - firstNode->x);
-	projy = firstNode->y + s * (currentNode->y - firstNode->y);
+    projx = firstNode->x + s * (currentNode->x - firstNode->x);
+    projy = firstNode->y + s * (currentNode->y - firstNode->y);
 
-	/* Compute the chordal distance */
-	distance = (projx - newNode.x) * (projx - newNode.x)
-		 + (projy - newNode.y) * (projy - newNode.y);
-	
-	/* If the chordal distance is greater than the tolerance then we
-	   split the chord */
-	if (distance > data->tolerance) {
-	    /* Add the current node to the list (i.e. store the next
-		chord ends) */
-	    endList->x = newNode.x;
-	    endList->y = newNode.y;
-	    endList->t = newNode.t;
+    /* Compute the chordal distance */
+    distance = (projx - newNode.x) * (projx - newNode.x)
+      + (projy - newNode.y) * (projy - newNode.y);
 
-	    /* The current chord ends are now 'first_node' and 'new_node' */
-	    firstNode->next = endList;
-	    endList->next = currentNode;
-	    currentNode = endList;
+    /* If the chordal distance is greater than the tolerance then we
+       split the chord */
+    if (distance > data->tolerance) {
+      /* Add the current node to the list (i.e. store the next
+	 chord ends) */
+      endList->x = newNode.x;
+      endList->y = newNode.y;
+      endList->t = newNode.t;
 
-	    endList++;
-	}
-	else {
-	    GLdouble *vertex = &data->vertex[data->numVertex][0];
-    
-	    vertex[0] = currentNode->x * data->scale;
-	    vertex[1] = currentNode->y * data->scale;
-	    vertex[2] = 0.;
-	    gluTessVertex(data->tess, vertex, vertex);
-	    data->numVertex++;
-	
-	    if (currentNode->next) {
-		/* Prepare to examine the next chord */
-		firstNode = currentNode;
-		currentNode = currentNode->next;
-	    }
-	    else
-		/* No next chord : exit */
-		loop = GL_FALSE;
-	}
+      /* The current chord ends are now 'first_node' and 'new_node' */
+      firstNode->next = endList;
+      endList->next = currentNode;
+      currentNode = endList;
+
+      endList++;
     }
+    else {
+      GLdouble *vertex = &data->vertex[data->numVertex][0];
+
+      vertex[0] = currentNode->x * data->scale_x;
+      vertex[1] = currentNode->y * data->scale_y;
+      vertex[2] = 0.;
+      gluTessVertex(data->tess, vertex, vertex);
+      data->numVertex++;
+
+      if (currentNode->next) {
+	/* Prepare to examine the next chord */
+	firstNode = currentNode;
+	currentNode = currentNode->next;
+      }
+      else
+	/* No next chord : exit */
+	loop = GL_FALSE;
+    }
+  }
 }
 
 static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 {
-    __glcRendererData *data = (__glcRendererData *) inUserData;
-    
-    gluTessEndContour(data->tess);
-    gluTessBeginContour(data->tess);
-    
-    data->pen = *inVecTo;
-    return 0;
+  __glcRendererData *data = (__glcRendererData *) inUserData;
+
+  gluTessEndContour(data->tess);
+  gluTessBeginContour(data->tess);
+
+  data->pen = *inVecTo;
+  return 0;
 }
 
 static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 {
-    __glcRendererData *data = (__glcRendererData *) inUserData;
-    GLdouble *vertex = &data->vertex[data->numVertex][0];
-    
-    vertex[0] = (GLdouble) inVecTo->x * data->scale;
-    vertex[1] = (GLdouble) inVecTo->y * data->scale;
-    vertex[2] = 0.;
-    gluTessVertex(data->tess, vertex, vertex);
-    data->numVertex++;
-    
-    data->pen = *inVecTo;
-    return 0;
+  __glcRendererData *data = (__glcRendererData *) inUserData;
+  GLdouble *vertex = &data->vertex[data->numVertex][0];
+
+  vertex[0] = (GLdouble) inVecTo->x * data->scale_x;
+  vertex[1] = (GLdouble) inVecTo->y * data->scale_y;
+  vertex[2] = 0.;
+  gluTessVertex(data->tess, vertex, vertex);
+  data->numVertex++;
+
+  data->pen = *inVecTo;
+  return 0;
 }
 
-static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo, void* inUserData)
+static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
+			void* inUserData)
 {
-    __glcRendererData *data = (__glcRendererData *) inUserData;
-    FT_Vector *control[1];
-    
-    control[0] = inVecControl;
-    __glcdeCasteljau(inVecTo, control, inUserData, 2);
+  __glcRendererData *data = (__glcRendererData *) inUserData;
+  FT_Vector *control[1];
 
-    data->pen = *inVecTo;
-    return 0;
+  control[0] = inVecControl;
+  __glcdeCasteljau(inVecTo, control, inUserData, 2);
+
+  data->pen = *inVecTo;
+  return 0;
 }
 
 static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 			FT_Vector *inVecTo, void* inUserData)
 {
-    __glcRendererData *data = (__glcRendererData *) inUserData;
-    FT_Vector *control[2];
-    
-    control[0] = inVecControl1;
-    control[1] = inVecControl2;
-    __glcdeCasteljau(inVecTo, control, inUserData, 3);
+  __glcRendererData *data = (__glcRendererData *) inUserData;
+  FT_Vector *control[2];
 
-    data->pen = *inVecTo;
-    return 0;
+  control[0] = inVecControl1;
+  control[1] = inVecControl2;
+  __glcdeCasteljau(inVecTo, control, inUserData, 3);
+
+  data->pen = *inVecTo;
+  return 0;
+}
+
+static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
+				 GLfloat weight[4], void** outData,
+				 void* inUserData)
+{
+  __glcRendererData *data = (__glcRendererData*)inUserData;
+  GLdouble *vertex = &data->vertex[data->numVertex][0];
+
+  vertex[0] = coords[0];
+  vertex[1] = coords[1];
+  vertex[2] = coords[2];
+  data->numVertex++;
+
+  *outData = vertex;
 }
 
 static void __glcCallbackError(GLenum inErrorCode)
 {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 			     GLint inCode, GLboolean inFill)
 {
-    FT_Outline *outline = NULL;
-    FT_Outline_Funcs interface;
-    FT_ListNode node = NULL;
-    __glcDisplayListKey *dlKey = NULL;
-    
-    __glcRendererData rendererData;
-    GLUtesselator *tess = gluNewTess();
+  FT_Outline *outline = NULL;
+  FT_Outline_Funcs interface;
+  FT_ListNode node = NULL;
+  __glcDisplayListKey *dlKey = NULL;
 
-    outline = &inFont->face->glyph->outline;
-    interface.shift = 0;
-    interface.delta = 0;
-    interface.move_to = __glcMoveTo;
-    interface.line_to = __glcLineTo;
-    interface.conic_to = __glcConicTo;
-    interface.cubic_to = __glcCubicTo;
-    
-    rendererData.tess = tess;
-    rendererData.numVertex = 0;
+  __glcRendererData rendererData;
+  GLUtesselator *tess = gluNewTess();
 
-    /* grid_coordinate is given in 26.6 fixed point integer hence we
-       divide the scale by 2^6 */
-    rendererData.scale = 1./64.;
+  outline = &inFont->face->glyph->outline;
+  interface.shift = 0;
+  interface.delta = 0;
+  interface.move_to = __glcMoveTo;
+  interface.line_to = __glcLineTo;
+  interface.conic_to = __glcConicTo;
+  interface.cubic_to = __glcCubicTo;
 
-    /* We convert the user given tolerance into sensible units */
-    rendererData.tolerance = inState->resolution * 64.
-      * inFont->face->units_per_EM;
-    
-    /* FIXME : may be we should use a bigger array ? */
-    rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX
-						       * sizeof(GLfloat) * 3);
-    if (!rendererData.vertex) {
-	gluDeleteTess(tess);
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-    }
-    
-    gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
-    gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, !inFill);
+  rendererData.tess = tess;
+  rendererData.numVertex = 0;
 
-    gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
-    gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
-    gluTessCallback(tess, GLU_TESS_END, glEnd);
-	
-    gluTessNormal(tess, 0., 0., 1.);
+  /* grid_coordinate is given in 26.6 fixed point integer hence we
+     divide the scale by 2^6 */
+  rendererData.scale_x = 1./64./GLC_POINT_SIZE/* *72./inState->displayDPIx */;
+  rendererData.scale_y = 1./64./GLC_POINT_SIZE/* *72./inState->displayDPIy */;
 
-    if (inState->glObjects) {
-      dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
-      if (!dlKey) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-      }
+  /* We convert the user given tolerance into sensible units */
+  rendererData.tolerance = inState->resolution * GLC_POINT_SIZE
+    * inFont->face->units_per_EM;
 
-      dlKey->list = glGenLists(1);
-      dlKey->faceDesc = inFont->faceDesc;
-      dlKey->code = inCode;
-      dlKey->renderMode = inFill ? 4 : 3;
-
-      /* Get (or create) a new entry that contains the display list and store
-       * the key in it
-       */
-      node = (FT_ListNode)dlKey;
-      node->data = dlKey;
-      FT_List_Add(&inFont->parent->displayList, node);
-
-      glNewList(dlKey->list, GL_COMPILE);
-    }
-
-    gluTessBeginPolygon(tess, &rendererData);
-    gluTessBeginContour(tess);
-    FT_Outline_Decompose(outline, &interface, &rendererData);
-    gluTessEndContour(tess);
-    gluTessEndPolygon(tess);
-    
-    glTranslatef(inFont->face->glyph->advance.x * rendererData.scale, 0., 0.);
-    
-    if (inState->glObjects) {
-      glEndList();
-      glCallList(dlKey->list);
-    }
-
+  /* FIXME : may be we should use a bigger array ? */
+  rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX
+						     * sizeof(GLfloat) * 3);
+  if (!rendererData.vertex) {
     gluDeleteTess(tess);
-    
-    __glcFree(rendererData.vertex);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
+  gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, !inFill);
+
+  gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
+  gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
+  gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
+  gluTessCallback(tess, GLU_TESS_COMBINE_DATA, __glcCombineCallback);
+  gluTessCallback(tess, GLU_TESS_END, glEnd);
+
+  gluTessNormal(tess, 0., 0., 1.);
+
+  if (inState->glObjects) {
+    dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
+    if (!dlKey) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
+
+    dlKey->list = glGenLists(1);
+    dlKey->faceDesc = inFont->faceDesc;
+    dlKey->code = inCode;
+    dlKey->renderMode = inFill ? 4 : 3;
+
+    /* Get (or create) a new entry that contains the display list and store
+     * the key in it
+     */
+    node = (FT_ListNode)dlKey;
+    node->data = dlKey;
+    FT_List_Add(&inFont->parent->displayList, node);
+
+    glNewList(dlKey->list, GL_COMPILE);
+  }
+
+  gluTessBeginPolygon(tess, &rendererData);
+  gluTessBeginContour(tess);
+  FT_Outline_Decompose(outline, &interface, &rendererData);
+  gluTessEndContour(tess);
+  gluTessEndPolygon(tess);
+
+  glTranslatef(inFont->face->glyph->advance.x * rendererData.scale_x,
+	       inFont->face->glyph->advance.y * rendererData.scale_y, 0.);
+
+  if (inState->glObjects) {
+    glEndList();
+    glCallList(dlKey->list);
+  }
+
+  gluDeleteTess(tess);
+
+  __glcFree(rendererData.vertex);
 }

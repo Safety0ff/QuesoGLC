@@ -44,6 +44,8 @@
 #include <GL/glu.h>
 #endif
 #include <assert.h>
+#include <fontconfig/fontconfig.h>
+#include <fontconfig/fcfreetype.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -55,7 +57,8 @@
 
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
-static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
+static void __glcRenderCharBitmap(__glcFont* inFont,
+				  __glcContextState* inState)
 {
   FT_Matrix matrix;
   FT_Face face = inFont->face;
@@ -64,10 +67,10 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
   FT_Bitmap pixmap;
 
   /* compute glyph dimensions */
-  matrix.xx = (FT_Fixed) (inState->bitmapMatrix[0] * 65536.);
-  matrix.xy = (FT_Fixed) (inState->bitmapMatrix[2] * 65536.);
-  matrix.yx = (FT_Fixed) (inState->bitmapMatrix[1] * 65536.);
-  matrix.yy = (FT_Fixed) (inState->bitmapMatrix[3] * 65536.);
+  matrix.xx = (FT_Fixed)(inState->bitmapMatrix[0] * 65536. / GLC_POINT_SIZE);
+  matrix.xy = (FT_Fixed)(inState->bitmapMatrix[2] * 65536. / GLC_POINT_SIZE);
+  matrix.yx = (FT_Fixed)(inState->bitmapMatrix[1] * 65536. / GLC_POINT_SIZE);
+  matrix.yy = (FT_Fixed)(inState->bitmapMatrix[3] * 65536. / GLC_POINT_SIZE);
 
   /* Get the bounding box of the glyph */
   FT_Outline_Transform(&outline, &matrix);
@@ -79,9 +82,10 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
   boundBox.xMax = (boundBox.xMax + 63) & -64;	/* ceiling(xMax) */
   boundBox.yMax = (boundBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-  pixmap.width = (boundBox.xMax - boundBox.xMin) / 64;
-  pixmap.rows = (boundBox.yMax - boundBox.yMin) / 64;
-  pixmap.pitch = pixmap.width / 8 + 1;	/* 1 bit / pixel */
+  pixmap.width = (boundBox.xMax - boundBox.xMin) >> 6;
+  pixmap.rows = (boundBox.yMax - boundBox.yMin) >> 6;
+  pixmap.pitch = ((pixmap.width + 4) >> 3) + 1;	/* 1 bit / pixel */
+  pixmap.width = pixmap.pitch << 3;
 
   /* Fill the pixmap descriptor and the pixmap buffer */
   pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
@@ -98,7 +102,8 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
   pixmap.pitch = - pixmap.pitch;
 
   /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64), -((boundBox.yMin + 32) & -64));
+  FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64),
+		       -((boundBox.yMin + 32) & -64));
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
@@ -109,9 +114,11 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
 
   /* Do the actual GL rendering */
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin / 64, -boundBox.yMin / 64,
-	   face->glyph->advance.x * inState->bitmapMatrix[0] / 64., 
-	   -face->glyph->advance.x * inState->bitmapMatrix[1] / 64.,
+  glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin >> 6, -boundBox.yMin >> 6,
+	   face->glyph->advance.x / 64. * matrix.xx / 65536.
+	   + face->glyph->advance.y / 64. * matrix.xy / 65536.,
+	   face->glyph->advance.x / 64. * matrix.yx / 65536.
+	   + face->glyph->advance.y / 64. * matrix.yy / 65536.,
 	   pixmap.buffer);
 
   __glcFree(pixmap.buffer);
@@ -259,22 +266,22 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glTexCoord2f(0., 0.);
-  glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
-	     boundBox.yMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
+  glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
+	     boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
   glTexCoord2f(width / GLC_TEXTURE_SIZE, 0.);
-  glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
-	     boundBox.yMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
+  glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
+	     boundBox.yMin / 64. / GLC_TEXTURE_SIZE);
   glTexCoord2f(width / GLC_TEXTURE_SIZE, height / GLC_TEXTURE_SIZE);
-  glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
-	     boundBox.yMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
+  glVertex2f(boundBox.xMax / 64. / GLC_TEXTURE_SIZE,
+	     boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
   glTexCoord2f(0., height / GLC_TEXTURE_SIZE);
-  glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE,
-	     boundBox.yMax / 64. / GLC_TEXTURE_SIZE * GLC_POINT_SIZE);
+  glVertex2f(boundBox.xMin / 64. / GLC_TEXTURE_SIZE,
+	     boundBox.yMax / 64. / GLC_TEXTURE_SIZE);
   glEnd();
 
   /* Stores the glyph advance in the display list */
-  glTranslatef(face->glyph->advance.x / 64., 
-	       face->glyph->advance.y / 64., 0.);
+  glTranslatef(face->glyph->advance.x / 64. / GLC_POINT_SIZE, 
+	       face->glyph->advance.y / 64. / GLC_POINT_SIZE, 0.);
 
   if (inState->glObjects) {
     /* Finish display list creation */
@@ -332,7 +339,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
   __glcFont* font = NULL;
-  GLint glyphIndex = 0;
+  FT_UInt glyphIndex = 0;
   GLint i = 0;
   FT_ListNode node = NULL;
 
@@ -345,10 +352,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   if (!node)
     return;
 
-  if (!FcCharSetHasChar(font->faceDesc->charSet, inCode)) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
-  }
+  assert(FcCharSetHasChar(font->faceDesc->charSet, inCode));
 
   /* Convert the code 'inCode' using the charmap */
   /* TODO : use a dichotomic algo. instead*/
@@ -360,16 +364,17 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   }
 
   /* Define the size of the rendered glyphs (based on screen resolution) */
-  if (FT_Set_Char_Size(font->face, 0, GLC_POINT_SIZE << 6, state->displayDPIx,
+  if (FT_Set_Char_Size(font->face, GLC_POINT_SIZE << 6, 0, state->displayDPIx,
 		       state->displayDPIy)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
   /* Get and load the glyph which unicode code is identified by inCode */
-  glyphIndex = FT_Get_Char_Index(font->face, inCode);
+  glyphIndex = FcFreeTypeCharIndex(font->face, inCode);
 
-  if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_DEFAULT)) {
+  if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_NO_BITMAP |
+		    FT_LOAD_IGNORE_TRANSFORM)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
@@ -402,34 +407,40 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 /** \ingroup render
  *  This command renders the character that \e inCode is mapped to.
  *
- *  GLC finds a font that maps \e inCode to a character such as LATIN CAPITAL LETTER A,
- *  then uses one or more glyphs from the font to create a graphical layout that represents
- *  the character. Finally, GLC issues a sequence of GL commands to draw the layout. Glyph
- *  coordinates are defined in em units and are transformed during rendering to produce the
- *  desired mapping of the glyph shape into the GL window coordinate system.
+ *  GLC finds a font that maps \e inCode to a character such as LATIN CAPITAL
+ *  LETTER A, then uses one or more glyphs from the font to create a graphical
+ *  layout that represents the character. Finally, GLC issues a sequence of GL
+ *  commands to draw the layout. Glyph coordinates are defined in em units and
+ *  are transformed during rendering to produce the desired mapping of the
+ *  glyph shape into the GL window coordinate system.
  *
- *  If \e glcRenderChar cannot find a font in the list \b GLC_CURRENT_FONT_LIST that maps
- *  \e inCode, it attemps to produce an alternate rendering. If the value of the boolean
- *  variable \b GLC_AUTO_FONT is set to \b GL_TRUE, \b glcRenderChar finds a font that has
- *  the character that maps \e inCode. If the search succeeds, \e glcRenderChar appends the
- *  font's ID to \b GLC_CURRENT_FONT_LIST and renders the character.
+ *  If \e glcRenderChar cannot find a font in the list \b GLC_CURRENT_FONT_LIST
+ *  that maps \e inCode, it attemps to produce an alternate rendering. If the
+ *  value of the boolean variable \b GLC_AUTO_FONT is set to \b GL_TRUE,
+ *  \b glcRenderChar finds a font that has the character that maps \e inCode.
+ *  If the search succeeds, \e glcRenderChar appends the font's ID to
+ *  \b GLC_CURRENT_FONT_LIST and renders the character.
  *
- *  If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for \e inCode cannot
- *  be found in any of those fonts, \e glcRenderChar goes through these steps :
- *  -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero, \e glcRenderChar finds
- *  a font that maps the replacement code, and renders the character that the replacement code
- *  is mapped to.
- *  -# If the variable \b GLC_REPLACEMENT_CODE is zero, or if the replacement code does not
- *  result in a match, \e glcRenderChar checks whether a callback function is defined. If a
- *  callback function is defined for \b GLC_OP_glcUnmappedCode, \e glcRenderChar calls the
- *  function. The callback function provides \e inCode to the user and allows loading of the
- *  appropriate font. After the callback returns, \e glcRenderChar tries to render \e inCode
- *  again.
- *  -# Otherwise, the command attemps to render the character sequence <em>\\\<hexcode\></em>,
- *  where \\ is the character REVERSE SOLIDUS (U+5C), \< is the character LESS-THAN SIGN (U+3C),
- *  \> is the character GREATER-THAN SIGN (U+3E), and \e hexcode is \e inCode represented as a
- *  sequence of hexadecimal digits. The sequence has no leading zeros, and alphabetic digits are
- *  in upper case. The GLC measurement commands treat the sequence as a single character.
+ *  If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for
+ *  \e inCode cannot be found in any of those fonts, \e glcRenderChar goes
+ *  through these steps :
+ *  -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero,
+ *  \e glcRenderChar finds a font that maps the replacement code, and renders
+ *  the character that the replacement code is mapped to.
+ *  -# If the variable \b GLC_REPLACEMENT_CODE is zero, or if the replacement
+ *  code does not result in a match, \e glcRenderChar checks whether a callback
+ *  function is defined. If a callback function is defined for
+ *  \b GLC_OP_glcUnmappedCode, \e glcRenderChar calls the function. The
+ *  callback function provides \e inCode to the user and allows loading of the
+ *  appropriate font. After the callback returns, \e glcRenderChar tries to
+ *  render \e inCode again.
+ *  -# Otherwise, the command attemps to render the character sequence
+ *  <em>\\\<hexcode\></em>, where \\ is the character REVERSE SOLIDUS (U+5C),
+ *  \< is the character LESS-THAN SIGN (U+3C), \> is the character GREATER-THAN
+ *  SIGN (U+3E), and \e hexcode is \e inCode represented as a sequence of
+ *  hexadecimal digits. The sequence has no leading zeros, and alphabetic
+ *  digits are in upper case. The GLC measurement commands treat the sequence
+ *  as a single character.
  *
  *  \param inCode The character to render
  *  \sa glcRenderString()
@@ -459,13 +470,13 @@ void glcRenderChar(GLint inCode)
     return;
   }
 
-  /* __glcContextState::getFont can not find a font that maps inCode, we then
-   * attempt to produce an alternate rendering.
+  /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
+   * produce an alternate rendering.
    */
 
-  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and
-   * __glcContextState::getFont finds a font that maps the replacement code,
-   * we now render the character that the replacement code is mapped to
+  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and __glcCtxGetFont()
+   * finds a font that maps the replacement code, we now render the character
+   * that the replacement code is mapped to
    */
   repCode = glcGeti(GLC_REPLACEMENT_CODE);
   font = __glcCtxGetFont(state, repCode);
@@ -668,10 +679,9 @@ void glcRenderStyle(GLCenum inStyle)
  */
 void glcReplacementCode(GLint inCode)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
 
   /* Check if the current thread owns a current state */
-  state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -694,10 +704,9 @@ void glcReplacementCode(GLint inCode)
  */
 void glcResolution(GLfloat inVal)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
 
   /* Check if the current thread owns a current state */
-  state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
