@@ -21,9 +21,7 @@
 #ifndef __glc_ocontext_h
 #define __glc_ocontext_h
 
-#ifdef QUESOGLC_USE_THREAD
 #include <pthread.h>
-#endif
 #include <gdbm.h>
 
 #include "GL/glc.h"
@@ -79,23 +77,15 @@ typedef struct {
 typedef struct {
   GLboolean *isCurrent;
   __glcContextState **stateList;
-#ifdef QUESOGLC_USE_THREAD
   pthread_mutex_t mutex;
   pthread_key_t threadKey;
-#else
-  threadArea* area;
-#endif
 
   FT_Memory memoryManager;
   GDBM_FILE unidb1, unidb2;
 } commonArea;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
 extern pthread_once_t initLibraryOnce;
-#else
-extern GLboolean initOnce;
-#endif
 #endif
 extern commonArea *__glcCommonArea;
 

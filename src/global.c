@@ -35,11 +35,7 @@
 #include "ocontext.h"
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
 pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
-#else
-GLboolean __glcInitOnce = GL_FALSE;
-#endif
 #endif
 
 /* This function is called when QuesoGLC is no longer needed.
@@ -69,9 +65,7 @@ void _fini(void)
   gdbm_close(__glcCommonArea->unidb1);
   gdbm_close(__glcCommonArea->unidb2);
 
-#ifdef QUESOGLC_USE_THREAD
   pthread_mutex_destroy(&__glcCommonArea->mutex);
-#endif
 
   __glcFree(__glcCommonArea->memoryManager);
   __glcFree(__glcCommonArea);
@@ -80,7 +74,6 @@ void _fini(void)
 /* This function is called each time a pthread is cancelled or exits in order
  * to free its specific area
  */
-#ifdef QUESOGLC_USE_THREAD
 static void __glcFreeThreadArea(void *keyValue)
 {
   threadArea *area = (threadArea*)keyValue;
@@ -88,7 +81,6 @@ static void __glcFreeThreadArea(void *keyValue)
   if (area)
     __glcFree(area);
 }
-#endif
 
 /* Routines for memory management of FreeType */
 static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
@@ -126,21 +118,13 @@ void _init(void)
 
   __glcCommonArea->isCurrent = NULL;
   __glcCommonArea->stateList = NULL;
-#ifndef QUESOGLC_USE_THREAD
-  __glcCommonArea->area = NULL;
-#endif
   __glcCommonArea->unidb1 = NULL;
   __glcCommonArea->unidb2 = NULL;
   __glcCommonArea->memoryManager = NULL;
 
   /* Creates the thread-local storage for GLC errors */
-#ifdef QUESOGLC_USE_THREAD
   if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
     goto FatalError;
-#endif
-#if defined QUESOGLC_STATIC_LIBRARY && !defined QUESOGLC_USE_THREAD
-  __glcInitOnce = GL_TRUE;
-#endif
 
   __glcCommonArea->memoryManager = (FT_Memory)__glcMalloc(sizeof(struct FT_MemoryRec_));
   if (!__glcCommonArea->memoryManager)
@@ -174,9 +158,7 @@ void _init(void)
   /* Initialize the mutex
    * At least this op can not fail !!!
    */
-#ifdef QUESOGLC_USE_THREAD
   pthread_mutex_init(&__glcCommonArea->mutex, NULL);
-#endif
 
   /* So far, there are no contexts */
   for (i=0; i< GLC_MAX_CONTEXTS; i++) {
@@ -221,12 +203,7 @@ void _init(void)
 GLboolean glcIsContext(GLint inContext)
 {
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
 
   if ((inContext < 1) || (inContext > GLC_MAX_CONTEXTS))
@@ -243,12 +220,7 @@ GLint glcGetCurrentContext(void)
   __glcContextState *state = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
 
   state = __glcGetCurrent();
@@ -272,12 +244,7 @@ void glcDeleteContext(GLint inContext)
   __glcContextState *state = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
 
   /* verify if parameters are in legal bounds */
@@ -327,12 +294,7 @@ void glcContext(GLint inContext)
   Screen *screen = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
   area = __glcGetThreadArea();
   if (!area) {
@@ -468,12 +430,7 @@ GLint glcGenContext(void)
   __glcContextState *state = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
 
   /* Lock the "Common Area" in order to prevent race conditions */
@@ -548,12 +505,7 @@ GLint* glcGetAllContexts(void)
   GLint* contextArray = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
 
   /* Count the number of existing contexts (whether they are current to a
@@ -593,12 +545,7 @@ GLCenum glcGetError(void)
   threadArea * area = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
-#ifdef QUESOGLC_USE_THREAD
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#else
-  if (!__glcInitOnce)
-    __glcInitLibrary();
-#endif
 #endif
   area = __glcGetThreadArea();
   if (!area) {

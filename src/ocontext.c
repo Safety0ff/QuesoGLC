@@ -279,7 +279,6 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FT_Face face)
 
     node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
     if (!node) {
-      __glcFree(data);
       FT_List_Finalize(list, __glcListDestructor,
 		       __glcCommonArea->memoryManager, NULL);
       __glcFree(list);
@@ -709,7 +708,6 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
  */
 void __glcLock(void)
 {
-#ifdef QUESOGLC_USE_THREAD
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
@@ -725,7 +723,6 @@ void __glcLock(void)
     pthread_mutex_lock(&__glcCommonArea->mutex);
 
   area->lockState++;
-#endif
 }
 
 /* Unlock the mutex in order to allow other threads to amke accesses to the
@@ -734,7 +731,6 @@ void __glcLock(void)
  */
 void __glcUnlock(void)
 {
-#ifdef QUESOGLC_USE_THREAD
   threadArea *area = NULL;
 
   area = __glcGetThreadArea();
@@ -749,7 +745,6 @@ void __glcUnlock(void)
   area->lockState--;
   if (!area->lockState)
     pthread_mutex_unlock(&__glcCommonArea->mutex);
-#endif
 }
 
 /* Sometimes informations may need to be stored temporarily by a thread.
@@ -787,11 +782,7 @@ threadArea* __glcGetThreadArea(void)
 {
   threadArea *area = NULL;
 
-#ifdef QUESOGLC_USE_THREAD
   area = (threadArea*)pthread_getspecific(__glcCommonArea->threadKey);
-#else
-  area = __glcCommonArea->area;
-#endif
 
   if (!area) {
     area = (threadArea*)__glcMalloc(sizeof(threadArea));
@@ -801,9 +792,7 @@ threadArea* __glcGetThreadArea(void)
     area->currentContext = NULL;
     area->errorState = GLC_NONE;
     area->lockState = 0;
-#ifdef QUESOGLC_USE_THREAD
     pthread_setspecific(__glcCommonArea->threadKey, (void*)area);
-#endif
   }
 
   return area;
