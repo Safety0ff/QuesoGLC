@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -40,6 +40,19 @@
 #include "GL/glc.h"
 #include "internal.h"
 #include FT_LIST_H
+
+
+
+/* This function counts the number of bits that are set in c1 
+ * Copied from Keith Packard's fontconfig
+ */
+static FcChar32 FcCharSetPopCount(FcChar32 c1)
+{
+  /* hackmem 169 */
+  FcChar32    c2 = (c1 >> 1) & 033333333333;
+  c2 = c1 - c2 - ((c2 >> 1) & 033333333333);
+  return (((c2 + (c2 >> 3)) & 030707070707) % 077);
+}
 
 
 
@@ -90,6 +103,10 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   GLCchar *buffer = NULL;
   GLint length = 0;
   FT_ListNode node = NULL;
+  FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
+  FcChar32 count = 0;
+  int i = 0;
+  int j = 0;
 
   /* Check some parameter.
    * NOTE : the verification of some parameters needs to get the current
@@ -131,15 +148,25 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
   switch(inAttrib) {
   case GLC_CHAR_LIST:
-    for (node = master->charList->head; inIndex && node;
-	 node = node->next, inIndex--) {}
+    base = FcCharSetFirstPage(master->charList, map, &next);
+    do {
+      for (i = 0; i < FC_CHARSET_MAP_SIZE; i++) {
+        FcChar32 value = FcCharSetPopCount(map[i]);
+        if (count + value >= inIndex + 1) {
+          for (j = 0; j < 32; j++) {
+            if ((map[i] >> j) & 1) count++;
+            if (count == inIndex + 1)
+              return glcGetMasterMap(inMaster, base + (i << 5) + j);
+          }
+        }
+        count += value;  
+      }
+      base = FcCharSetNextPage(master->charList, map, &next);
+    } while ((base != FC_CHARSET_DONE) && (next != FC_CHARSET_DONE));
+    /* The character has not been found */
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return GLC_NONE;
 
-    if (node)
-      return glcGetMasterMap(inMaster, (FT_ULong)node->data);
-    else {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return GLC_NONE;
-    }
   case GLC_FACE_LIST:
     /* Get the face name */
     s = __glcStrLstFindIndex(master->faceList, inIndex);
@@ -453,7 +480,6 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
-  GLint count = 0;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -495,9 +521,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   /* returns the requested attribute */
   switch(inAttrib) {
   case GLC_CHAR_COUNT:
-    for (node = master->charList->head, count = 0; node;
-	 node = node->next, count++) {}
-    return count;
+    return FcCharSetCount(master->charList);
   case GLC_FACE_COUNT:
     return __glcStrLstLen(master->faceList);
   case GLC_IS_FIXED_PITCH:
