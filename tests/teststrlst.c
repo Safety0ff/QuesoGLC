@@ -16,11 +16,13 @@ void display_strlst(FT_List This)
   printf("\nLength : %d\n", __glcStrLstLen(This));
 }
 
-void testQueso(void) {
+int main(void)
+{
   FT_List sl;
   __glcUniChar s;
   __glcUniChar *ustring = NULL;
-  char *string[] = { "string 1", "string 2", "string 3", "string 4", "foobar" };
+  char *string[] = { "string 1", "string 2", "string 3", "string 4",
+		     "foobar" };
   int i = 0;
   GLCenum err;
 
@@ -31,7 +33,6 @@ void testQueso(void) {
 
   printf("Append:\n");
   for (i=0; i<3; i++) {
-
     s.ptr = string[i];
     s.type = GLC_UCS1;
     __glcStrLstAppend(sl, &s);
@@ -122,4 +123,6 @@ void testQueso(void) {
   }
 
   __glcStrLstDestroy(sl);
+
+  return 0;
 }
