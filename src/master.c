@@ -18,8 +18,15 @@
  */
 /* $Id$ */
 
-/* This file defines the so-called "Master commands" described in chapter 3.6
- * of the GLC specs
+/** \file
+ * defines the so-called "Master commands" described in chapter 3.6 of the GLC specs
+ */
+
+/** \defgroup master Master Commands
+ *  Some GLC commands have a parameter \e inMaster. This parameter is an offset from the
+ *  the first element in the GLC master list. The command raises \b GLC_PARAMETER_ERROR
+ *  if \e inMaster is less than zero or is greater than or equal to the value of the
+ *  variable \b GLC_MASTER_COUNT.
  */
 
 #include <string.h>
@@ -32,13 +39,36 @@
 
 
 
-/* glcGetMasterListc:
+/** \ingroup master
  *   This command returns a string from a string list that is an attribute of
- *   the master identified by inMaster. The string list is identified by
- *   inAttrib. The command returns the string at offset inIndex from the first
- *   element in this string list. The command raises GLC_PARAMETER_ERROR if
- *   inIndex is less than zero or is greater than or equal to the value of the
- *   list element count attribute.
+ *   the master identified by \e inMaster. The string list is identified by
+ *   \e inAttrib. The command returns the string at offset \e inIndex from the first
+ *   element in this string list. Below are the string list attributes associated
+ *   with each GLC master and font and their element count attributes :
+ * <center>
+ * <table>
+ * <caption>Master/font string list attributes</caption>
+ *   <tr>
+ *     <td>Name</td> <td>Enumerant</td> <td>Element count attribute</td>
+ *   </tr>
+ *   <tr>
+ *     <td><b>GLC_CHAR_LIST</b></td> <td>0x0050</td> <td><b>GLC_CHAR_COUNT</b></td>
+ *   </tr>
+ *   <tr>
+ *     <td><b>GLC_FACE_LIST</b></td> <td>0x0051</td> <td><b>GLC_FACE_COUNT</b></td>
+ *   </tr>
+ * </table>
+ * </center>
+ *   \n The command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than zero or
+ *   is greater than or equal to the value of the list element count attribute.
+ *   \param inMaster Master from which an attribute is needed.
+ *   \param inAttrib String list that contains the desired attribute.
+ *   \param inIndex Offset from the first element of the list associated with \e inAttrib.
+ *   \return The string at offset \e inIndex from the first element of the string list
+ *           identified by \e inAttrib.
+ *   \sa glcGetMasterMap()
+ *   \sa glcGetMasterc()
+ *   \sa glcGetMasteri()
  */
 const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 				 GLint inIndex)
@@ -124,10 +154,31 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
 
 
-/* glcGetMasterMap:
+/** \ingroup master
  *   This command returns the string name of the character that the master
- *   identified by inMaster maps inCode to. If the master does not map inCode,
- *   the command returns GLC_NONE.
+ *   identified by \e inMaster maps \e inCode to.
+ *
+ *   Every master has associated with it a master map, which is a table of
+ *   entries that map inetger values to the name string that identifies the
+ *   character.
+ *
+ *   Every character code used in QuesoGLC is an element of the Universal
+ *   Multiple-Octet Coded Character Set (UCS) defined by the standards ISO/IEC
+ *   10646-1:1993 and Unicode 2.0 (unless otherwise specified). A UCS code is
+ *   denoted as \e U+hexcode, where \e hexcode is a sequence of hexadecimal digits.
+ *   Each UCS code corresponds to a character that has a unique name string. For
+ *   example, the code \e U+41 corresponds to the character <em>LATIN CAPITAL
+ *   LETTER A</em>.
+ *
+ *   If the master does not map \e inCode, the command returns \b GLC_NONE.
+ *   \note While you cannot change the map for a master, you can change the map for
+ *   a font using glcFontMap().
+ *   \param inMaster The integer ID of the master from which to select the character.
+ *   \param inCode The integer ID of character in the master map.
+ *   \return The string name of the character that \e inCode is mapped to.
+ *   \sa glcGetMasterListc() 
+ *   \sa glcGetMasterc()
+ *   \sa glcGetMasteri()
  */
 const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 {
@@ -241,9 +292,36 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 
 
 
-/* glcGetMasterc:
+/** \ingroup master
  *   This command returns a string attribute of the master identified by
- *   inMaster.
+ *   \e inMaster. The table below lists the string attributes that are
+ *   associated with each GLC master and font.
+ *  <center>
+ *  <table>
+ *  <caption>Master/font string attributes</caption>
+ *  <tr>
+ *    <td>Name</td> <td>Enumerant</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_FAMILY</b></td> <td>0x0060</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_MASTER_FORMAT</b></td> <td>0x0061</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_VENDOR</b></td> <td>0x0062</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_VERSION</b></td> <td>0x0063</td>
+ *  </tr>
+ *  </table>
+ *  </center>
+ *  \param inMaster The master for which an attribute value is needed.
+ *  \param inAttrib The attribute for which the value is needed.
+ *  \return The value that is associated with the attribute \e inAttrib.
+ *  \sa glcGetMasteri()
+ *  \sa glcGetMasterMap()
+ *  \sa glcGetMasterListc()
  */
 const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
@@ -322,9 +400,41 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 
 
 
-/* glcGetMasteri:
+/** \ingroup master
  *   This command returns an integer attribute of the master identified by
- *   inMaster. The attribute is identified by inAttrib.
+ *   \e inMaster. The attribute is identified by \e inAttrib. The table below
+ *   lists the integer attributes that are associated with each GLC master
+ *   and font.
+ *  <center>
+ *  <table>
+ *  <caption>Master/font integer attributes</caption>
+ *    <tr>
+ *      <td>Name</td> <td>Enumerant</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_CHAR_COUNT</b></td> <td>0x0070</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_FACE_COUNT</b></td> <td>0x0071</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_IS_FIXED_PITCH</b></td> <td>0x0072</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_MAX_MAPPED_CODE</b></td> <td>0x0073</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_MIN_MAPPED_CODE</b></td> <td>0x0074</td>
+ *    </tr>
+ *  </table>
+ *  </center>
+ *   \param inMaster The master for which an attribute value is needed.
+ *   \param inAttrib The attribute for which the value is needed.
+ *   \return the value of the attribute \e inAttrib of the master identified
+ *   by \e inMaster.
+ *   \sa glcGetMasterc()
+ *   \sa glcGetMasterMap()
+ *   \sa glcGetMasterListc()
  */
 GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 {
@@ -391,8 +501,29 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 
 
 
-/* glcAppendCatalog:
- *   This command appends the string inCatalog to the list GLC_CATALOG_LIST
+/** \ingroup master
+ *   This command appends the string \e inCatalog to the list \b GLC_CATALOG_LIST.
+ *
+ *   The catalog is represented as a zero-terminated string. The interpretation of
+ *   this string is specified by the value that has been set using glcStringType().
+ *
+ *   A catalog is a path to a file named \c fonts.dir which is a list of masters.
+ *   A master is a representation of a font that is stored outside QuesoGLC in a
+ *   standard format such as TrueType or Type1.
+ *
+ *   A catalog defines the list of masters that can be instantiated (that is, be
+ *   used as fonts) in a GLC context.
+ *
+ *   A font is a styllistically consistent set of glyphs that can be used to
+ *   render some set of characters. Each font has a family name (for example Palatino)
+ *   and a state variable that selects one of the faces (for example regular, bold,
+ *   italic, bold italic) that the font contains. A typeface is the combination of a
+ *   family and a face (for example Palatino Bold).
+ *   \param inCatalog The catalog to append to the list \b GLC_CATALOG_LIST
+ *   \sa glcGetList() with argument \b GLC_CATALOG_LIST
+ *   \sa glcGeti() with argument \b GLC_CATALOG_COUNT
+ *   \sa glcPrependCatalog()
+ *   \sa glcRemoveCatalog()
  */
 void glcAppendCatalog(const GLCchar* inCatalog)
 {
@@ -411,8 +542,11 @@ void glcAppendCatalog(const GLCchar* inCatalog)
 
 
 
-/* glcPrependCatalog:
- *   This command prepends the string inCatalog to the list GLC_CATALOG_LIST
+/** \ingroup master
+ *   This command prepends the string \e inCatalog to the list \b GLC_CATALOG_LIST
+ *   \param inCatalog The catalog to prepend to the list \b GLC_CATALOG_LIST
+ *   \sa glcAppendCatalog()
+ *   \sa glcRemoveCatalog()
  */
 void glcPrependCatalog(const GLCchar* inCatalog)
 {
@@ -431,11 +565,14 @@ void glcPrependCatalog(const GLCchar* inCatalog)
 
 
 
-/* glcRemoveCatalog:
- *   This command removes a string from the list GLC_CATALOG_LIST. It removes
- *   the string at offset inIndex from the first element in the list. The
- *   command raises GLC_PARAMETER_ERROR if inIndex is less than zero or is
- *   greater than or equal to the value of the variable GLC_CATALOG_COUNT.
+/** \ingroup master
+ *   This command removes a string from the list \b GLC_CATALOG_LIST. It removes
+ *   the string at offset \e inIndex from the first element in the list. The
+ *   command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than zero or is
+ *   greater than or equal to the value of the variable \b GLC_CATALOG_COUNT.
+ *   \param inIndex The string to remove from the catalog list \b GLC_CATALOG_LIST
+ *   \sa glcAppendCatalog()
+ *   \sa glcPrependCatalog()
  */
 void glcRemoveCatalog(GLint inIndex)
 {
