@@ -9,10 +9,17 @@
 
    This program is freely distributable without licensing fees and is
    provided without guarantee or warrantee expressed or implied. This
-   program is -not- in the public domain. 
+   program is -not- in the public domain.
+
+   Fixes by Bertrand Coconnier for compilation with gcc :
+   - Added #include <stdlib.h> in order to declare exit()
+   - Changed the type of main() to int (otherwise gcc complains)
+   - Added 'return 0;' at the end of main() in order to be compliant with
+     its int type.
+   - Removed the unused function my_init()
 */
 
-#ifdef __MACOSX__
+#if defined __APPLE__ && defined __MACH__
 #include <OpenGL/gl.h>
 #include <GLUT/glut.h>
 #else
@@ -23,9 +30,7 @@
 
 #include <stdio.h>            /* fprintf(), stderr            */
 #include <string.h>           /* strcmp(), strcpy(), strlen() */
-#include <stdlib.h>	      /* exit()			      */
-
-extern void my_fini(void);
+#include <stdlib.h>           /* exit()                       */
 
 static float scale;
 static int width;
@@ -149,7 +154,7 @@ access_font()
    GLint glc_context;
 
    GLint master_count;
-   const char* master_name = "Courier";
+   const char* master_name = "Times";
    GLint master;
 
    GLint face_count;
@@ -176,8 +181,6 @@ access_font()
          glcContext(glc_context);
          check_glc_error("glcContext()");
          have_context = GL_TRUE;
-
-    glcAppendCatalog("/usr/lib/X11/fonts/Type1");
 
          /* Get a unique font ID. */
          glc_font_id = glcGenFontID();
@@ -412,7 +415,7 @@ main(int argc, char **argv)
    glutKeyboardFunc(my_handle_key);
 
    glutMainLoop();
-   
+
    return 0;
 }
 
