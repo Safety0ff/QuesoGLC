@@ -1,6 +1,7 @@
 /* $Id$ */
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include <gdbm.h>
 
 #include "GL/glc.h"
 
@@ -62,7 +63,7 @@ typedef struct {
     GLint currentFontCount;	/* GLC_CURRENT_FONT_COUNT */
     __glcFont* fontList[GLC_MAX_FONT];
     GLint fontCount;		/* GLC_FONT_COUNT */
-    GLint listObjectList[GLC_MAX_LIST_OBJECT];
+    GLuint listObjectList[GLC_MAX_LIST_OBJECT];
     GLint listObjectCount;	/* GLC_LIST_OBJECT_COUNT */
     __glcMaster* masterList[GLC_MAX_MASTER];
     GLint masterCount;		/* GLC_MASTER_COUNT */
@@ -70,7 +71,7 @@ typedef struct {
     GLint renderStyle;		/* GLC_RENDER_STYLE */
     GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
     GLint stringType;		/* GLC_STRING_TYPE */
-    GLint textureObjectList[GLC_MAX_TEXTURE_OBJECT];
+    GLuint textureObjectList[GLC_MAX_TEXTURE_OBJECT];
     GLint textureObjectCount;	/* GLC_TEXTURE_OBJECT_COUNT */
     GLint versionMajor;		/* GLC_VERSION_MAJOR */
     GLint versionMinor;		/* GLC_VERSION_MINOR */
@@ -82,6 +83,8 @@ typedef struct {
 /* Global internal variables */
 extern FT_Library library;
 extern char __glcBuffer[GLC_STRING_CHUNK];
+extern GDBM_FILE unicod1;
+extern GDBM_FILE unicod2;
 
 /* Global internal commands */
 extern void __glcRaiseError(GLCenum inError);
@@ -105,3 +108,6 @@ extern GLCchar* __glcStringListExtractElement(__glcStringList *inStringList, GLi
 
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLboolean inFill);
+
+/* Master helpers */
+extern void __glcDeleteMaster(GLint inMaster, __glcContextState *inState);

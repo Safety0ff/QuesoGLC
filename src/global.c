@@ -144,20 +144,13 @@ static void __glcDeleteContext(GLint inContext)
 	
 	font = state->fontList[i];
 	if (font) {
-	    glcDeleteFont(i);
+	    glcDeleteFont(i + 1);
 	}
     }
     
     for (i = 0; i < GLC_MAX_MASTER; i++) {
-	__glcMaster *master = NULL;
-	
-	master = state->masterList[i];
-	if (master) {
-	    __glcStringListDelete(&master->faceList);
-	    __glcStringListDelete(&master->faceFileName);
-	    free(master->family);
-	    free(master);
-	}
+	if (state->masterList[i])
+	    __glcDeleteMaster(i, state);
     }
     
     glcDeleteGLObjects();

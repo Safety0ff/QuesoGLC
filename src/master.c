@@ -227,7 +227,6 @@ static __glcMaster* __glcCreateMaster(FT_Face face, __glcContextState* inState)
 	return NULL;
 }
 
-/* NYI */
 static int __glcUpdateMasters(const GLCchar* inCatalog, __glcContextState *inState, GLboolean inAppend)
 {
     const char* fileName = "/fonts.dir";
@@ -378,7 +377,96 @@ void glcPrependCatalog(const GLCchar* inCatalog)
     }
 }
 
-/* NYI */
+void __glcDeleteMaster(GLint inMaster, __glcContextState *inState) {
+    __glcMaster *master = inState->masterList[inMaster];
+    GLint i = 0;
+    
+    __glcStringListDelete(&master->faceList);
+    __glcStringListDelete(&master->faceFileName);
+    free(master->family);
+    
+    for (i = 0; i < GLC_MAX_FONT; i++) {
+	if (inState->fontList[i]) {
+	    if (inState->fontList[i]->parent == master)
+		glcDeleteFont(i + 1);
+	}
+    }
+    
+    free(master);
+    inState->masterCount--;
+}
+
+static void __glcRemoveCatalog(GLint inIndex, __glcContextState * inState)
+{
+    const char* fileName = "/fonts.dir";
+    char buffer[256];
+    char path[256];
+    int numFontFiles = 0;
+    int i = 0;
+    FILE *file;
+
+    /* TODO : use Unicode instead of ASCII */
+    strncpy(buffer, __glcStringListExtractElement(&inState->catalogList, inIndex, buffer, 256), 256);
+    strncpy(path, buffer, 256);
+    strncat(path, fileName, strlen(fileName));
+    
+    /* Open 'fonts.dir' */
+    file = fopen(path, "r");
+    if (!file) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+    }
+    
+    /* Read the # of font files */
+    fgets(buffer, 256, file);
+    numFontFiles = strtol(buffer, NULL, 10);
+    
+    for (i = 0; i < numFontFiles; i++) {
+	int j = 0;
+	char *desc = NULL;
+	GLint index = 0;
+	
+	/* get the file name */
+	fgets(buffer, 256, file);
+	desc = (char *)__glcFindIndexList(buffer, 1, " ");
+	if (desc) {
+	    desc[-1] = 0;
+	    desc++;
+	}
+
+	for (j = 0; j < GLC_MAX_MASTER; j++) {
+	    if (!inState->masterList[j])
+		continue;
+	    index = __glcStringListGetIndex(&inState->masterList[j]->faceFileName, buffer);
+	    if (index) {
+		__glcStringListRemoveIndex(&inState->masterList[j]->faceFileName, index);
+		__glcStringListRemoveIndex(&inState->masterList[j]->faceList, index);
+		/* Characters from the font should be removed from the char list */
+	    }
+	    if (!inState->masterList[j]->faceFileName.count)
+		__glcDeleteMaster(j, inState);
+		inState->masterList[j] = NULL;
+	}
+    }
+    
+    fclose(file);
+    return;
+}
+
 void glcRemoveCatalog(GLint inIndex)
 {
+    __glcContextState *state = NULL;
+
+    state = __glcGetCurrentState();
+    if (!state) {
+	__glcRaiseError(GLC_STATE_ERROR);
+	return;
+    }
+
+    if ((inIndex < 0) || (inIndex >= state->catalogList.count)) {
+	__glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
+    }
+    
+    __glcRemoveCatalog(inIndex, state);
 }
