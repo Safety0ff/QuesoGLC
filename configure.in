@@ -86,3 +86,5 @@ AC_SUBST(prefix)
 
 AC_OUTPUT(makefile:makefile.unx,
   [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h])
+echo '#Execute "make depend"' > makefile.dep
+make depend
