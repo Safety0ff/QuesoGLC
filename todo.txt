@@ -12,21 +12,18 @@ These are things to do by order of preference :
 	GLC_BITMAP
 4. (?) Use FreeType's double linked lists in order to minimize redundant code
 5. (?) Get rid of gdbm
-6. Make memory management more versatile, in order to use custom routines like
-   g_malloc, g_free and g_realloc for debugging pruposes.
-   6.1. Define functions __glcMalloc, __glcFree and __glcRealloc which are
-	counterparts of malloc, free and realloc
-   6.2. (?) Force FreeType to use __glcMalloc, __glcFree and __glcRealloc by
-	using its custom memory manager.
-7. Make quesoGLC a dynamic library (or a static lib depending on the options
+6. Make quesoGLC a dynamic library (or a static lib depending on the options
    choosen at the configure time).
-8. Try to optimize texture space : draw several glyphs on each texture in order
-   to minimize the unused texture space.
-9. When a fatal error occurs inside QuesoGLC, it should do something more
+7. When a fatal error occurs inside QuesoGLC, it should do something more
    friendly than brute-force exiting.
-10. Check that OpenGL is 1.1 or better and glX is 1.2 or better.
-11. QuesoGLC does not support face collections in one file.
-12. Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
+8. Check that OpenGL is 1.1 or better and glX is 1.2 or better.
+9. Try to optimize texture space : draw several glyphs on each texture in order
+   to minimize the unused texture space.
+10. QuesoGLC does not support face collections in one file.
+11. QuesoGLC should use a (big?) database where it stores the masters and fonts
+    it has used so far, in order to prevent the (very) long process of parsing
+    font files each time it is launched.
+12. (?) Support for Bitmap Fonts (so far QuesoGLC only supports Scalable Fonts).
 13. Support for loading of compressed files
 14. Separate platform specific code from the main code set.
 15. (?) Associate a glX context with a glc context.
