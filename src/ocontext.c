@@ -244,8 +244,14 @@ static int __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
     inMaster->minMappedCode = charCode;
 
   /* Update the maximum mapped code */
-  while ((base != FC_CHARSET_DONE) && (next != FC_CHARSET_DONE))
-    base = FcCharSetFirstPage(charSet, map, &next);
+  base = FcCharSetFirstPage(charSet, map, &next);
+  do {
+    base = FcCharSetNextPage(charSet, map, &next);
+  } while ((base != FC_CHARSET_DONE) && (next != FC_CHARSET_DONE));
+  assert(base != FC_CHARSET_DONE); /* Must be checked in order to make the loop can end
+                                    * even in severe conditions. However in nominal conditions
+                                    * it should not occur.
+                                    */
   for (i = FC_CHARSET_MAP_SIZE - 1; i >= 0; i--)
     if (map[i]) break;
   for (j = 31; j >= 0; j--)
