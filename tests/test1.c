@@ -140,7 +140,7 @@ int main(void)
 	glcContext(-1);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", (int)err);
+	  printf("1.Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 	/* Verify that no error is pending */
@@ -160,7 +160,7 @@ int main(void)
 	glcContext(i);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", (int)err);
+	  printf("2.Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 
@@ -176,7 +176,7 @@ int main(void)
 	glcDeleteContext(-1);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", (int)err);
+	  printf("3.Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 	/* Verify that no error is pending */
@@ -192,14 +192,14 @@ int main(void)
 	glcDeleteContext(i);
 	err = glcGetError();
 	if (err != GLC_PARAMETER_ERROR) {
-	  printf("Unexpected error : %X\n", (int)err);
+	  printf("4.Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 
 	glcContext(ctx);
 	err = glcGetError();
 	if (err) {
-	  printf("Unexpected error : %X\n", (int)err);
+	  printf("5.Unexpected error : %X\n", (int)err);
 	  return -1;
 	}
 
