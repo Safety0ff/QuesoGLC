@@ -40,6 +40,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -269,25 +270,27 @@ static GLboolean __glcFontFace(__glcFont* font, const GLCchar* inFace,
 {
   GLint faceID = 0;
   __glcUniChar UinFace;
-  __glcUniChar *s = NULL;
-  GLCchar* buffer = NULL;
   FT_Face newFace = NULL;
+  FT_ListNode node = NULL;
+  __glcFaceDescriptor *faceDesc = NULL;
 
   UinFace.ptr = (GLCchar*)inFace;
   UinFace.type = inState->stringType;
 
   /* Get the face ID of the face identified by the string inFace */
-  faceID = __glcStrLstGetIndex(font->parent->faceList, &UinFace);
-  if (faceID == -1)
+  for (node = font->parent->faceList->head; node; node = node->next) {
+    assert(node->data);
+    faceDesc = (__glcFaceDescriptor*)node->data;
+    if (!__glcUniCompare(faceDesc->styleName, &UinFace))
+      break;
+  }
+  if (!node)
     return GL_FALSE;
-
-  /* Get the file name of the face */
-  s = __glcStrLstFindIndex(font->parent->faceFileName, faceID);
-  buffer = s->ptr;
 
   /* Open the new face */
   if (FT_New_Face(inState->library, 
-		  (const char*)buffer, 0, &newFace)) {
+		  (const char*)faceDesc->fileName->ptr, faceDesc->indexInFile,
+		  &newFace)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;
   }
@@ -529,9 +532,16 @@ const GLCchar* glcGetFontFace(GLint inFont)
   __glcContextState *state = __glcGetCurrent();
 
   if (font) {
-    __glcUniChar *s = __glcStrLstFindIndex(font->parent->faceList, 
-					   font->faceID);
+    __glcUniChar *s = NULL;
     GLCchar *buffer = NULL;
+    FT_ListNode node = NULL;
+    GLint count = font->faceID;
+
+    for (node = font->parent->faceList->head; node && count; node = node->next,
+    	 count--);
+    assert(node);
+    assert(node->data);
+    s = ((__glcFaceDescriptor*)node->data)->styleName;
 
     /* Convert the string name of the face into the current string type */
     buffer = __glcCtxQueryBuffer(state, __glcUniLenBytes(s));

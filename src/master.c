@@ -36,6 +36,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -169,11 +170,13 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
   case GLC_FACE_LIST:
     /* Get the face name */
-    s = __glcStrLstFindIndex(master->faceList, inIndex);
-    if (!s) {
+    for (node = master->faceList->head; inIndex && node; node = node->next,
+	 inIndex--);
+    if (!node) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
+    s = ((__glcFaceDescriptor*)node->data)->styleName;
     break;
   }
 
@@ -226,10 +229,8 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   __glcUniChar *s = NULL;
   GLCchar *buffer = NULL;
   GLint length = 0;
-  FT_Face face = NULL;
-  FT_UInt glyphIndex = 0;
-  GLint i = 0;
   FT_ListNode node = NULL;
+  __glcFaceDescriptor* faceDesc = NULL;
 
   /* Verify if the thread has a current context */
   state = __glcGetCurrent();
@@ -256,43 +257,23 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   }
 
   /* We search for a font file that supports the requested inCode glyph */
-  for (i = 0; (GLuint)i < __glcStrLstLen(master->faceFileName); i++) {
+  for (node = master->faceList->head; node; node = node->next) {
     /* Copy the Unicode string into a buffer
      * NOTE : we do not change the encoding format (or string type) of the file
      *        name since we suppose that the encoding format of the OS has not
      *        changed since the user provided the file name
      */
-    s = __glcStrLstFindIndex(master->faceFileName, i);
-    buffer = s->ptr;
+    assert(node->data);
+    faceDesc = (__glcFaceDescriptor*)node->data;
 
-    if (FT_New_Face(state->library, 
-		    (const char*) buffer, 0, &face)) {
-      /* Unable to load the face file, however this should not happen since
-       * it has been succesfully loaded when the master was created.
-       */
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      face = NULL;
-      continue;
-    }
-
-    /* Search, in the current font file, for a glyph that matches inCode */
-    glyphIndex = FT_Get_Char_Index(face, inCode);
-    if (glyphIndex)
+    if (FcCharSetHasChar(faceDesc->charSet, (FcChar32)inCode))
       break; /* Found !!!*/
-
-    /* No glyph in the font file matches inCode : close the font file and try
-     * the next one
-     */
-    if (face) {
-      FT_Done_Face(face);
-      face = NULL;
-    }
   }
 
   /* We have looked for the glyph in every font files of the master but did
    * not find a matching glyph => QUIT !!
    */
-  if (!face)
+  if (!node)
     return GLC_NONE;
     
   /* The database gives the Unicode name in UCS1 encoding. We should now
@@ -480,6 +461,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   __glcContextState *state = NULL;
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
+  GLint count = 0;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -523,7 +505,8 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   case GLC_CHAR_COUNT:
     return FcCharSetCount(master->charList);
   case GLC_FACE_COUNT:
-    return __glcStrLstLen(master->faceList);
+    for (node = master->faceList->head; node; node = node->next, count++);
+    return count;
   case GLC_IS_FIXED_PITCH:
     return master->isFixedPitch;
   case GLC_MAX_MAPPED_CODE:
@@ -617,7 +600,6 @@ void glcPrependCatalog(const GLCchar* inCatalog)
 void glcRemoveCatalog(GLint inIndex)
 {
   __glcContextState *state = NULL;
-  GLint count = 0;
 
   /* Verify that the thread owns a context */
   state = __glcGetCurrent();
@@ -627,10 +609,7 @@ void glcRemoveCatalog(GLint inIndex)
   }
 
   /* Verify that the parameter inIndex is in legal bounds */
-  __glcLock();
-  count = __glcStrLstLen(__glcCommonArea->catalogList);
-  __glcUnlock();
-  if ((inIndex < 0) || ((GLuint)inIndex >= count)) {
+  if (inIndex < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
