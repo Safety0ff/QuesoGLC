@@ -39,12 +39,11 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
     return NULL;
 
   This->vendor = NULL;
-  This->faceList = NULL;
   This->family = NULL;
   This->masterFormat = NULL;
 
-  if (!__glcCreateList(&This->faceList))
-    goto error;
+  This->faceList.head = NULL;
+  This->faceList.tail = NULL;
 
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
    * may be free and should be used instead of using the last location
@@ -74,26 +73,19 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   This->maxMappedCode = 0;
   This->id = inID;
 
-  if (!__glcCreateList(&This->displayList))
-    goto error;
-
-  if (!__glcCreateList(&This->textureObjectList))
-    goto error;
+  This->displayList.head = NULL;
+  This->displayList.tail = NULL;
+  This->textureObjectList.head = NULL;
+  This->textureObjectList.tail = NULL;
 
   return This;
 
  error:
-  if (This->textureObjectList)
-    __glcFree(This->textureObjectList);
-  if (This->displayList)
-    __glcFree(This->displayList);
   if (This->charList)
     FcCharSetDestroy(This->charList);
   if (This->vendor) {
     __glcFree(This->vendor);
   }
-  if (This->faceList)
-    __glcFree(This->faceList);
   if (This->family) {
     __glcFree(This->family);
   }
@@ -103,16 +95,28 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   return NULL;
 }
 
+static void __glcFaceDestructor(FT_Memory inMemory, void *inData,
+				void *inUser)
+{
+  __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)inData;
+
+  __glcFree(faceDesc->fileName);
+  __glcFree(faceDesc->styleName);
+  FcCharSetDestroy(faceDesc->charSet);
+}
+
 /* FIXME :
  * Check that linked lists are empty before the pointer is freed
  */
 void __glcMasterDestroy(__glcMaster *This)
 {
-  FT_List_Finalize(This->displayList, __glcListDestructor,
-		   __glcCommonArea->memoryManager, NULL);
-  __glcFree(This->displayList);
+  FT_List_Finalize(&This->displayList, NULL,
+		   &__glcCommonArea.memoryManager, NULL);
+  FT_List_Finalize(&This->textureObjectList, __glcTextureObjectDestructor,
+		   &__glcCommonArea.memoryManager, NULL);
+  FT_List_Finalize(&This->faceList, __glcFaceDestructor,
+		   &__glcCommonArea.memoryManager, NULL);
   FcCharSetDestroy(This->charList);
-  __glcFree(This->faceList);
   __glcFree(This->family);
   __glcFree(This->vendor);
 

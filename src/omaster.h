@@ -29,15 +29,16 @@
 
 
 typedef struct {
-	FcChar8* fileName;
-	FcChar8* styleName;
-	int indexInFile;
-	FcCharSet* charSet;
+  FT_ListNodeRec node;
+  FcChar8* fileName;
+  FcChar8* styleName;
+  int indexInFile;
+  FcCharSet* charSet;
 } __glcFaceDescriptor;
 
 typedef struct {
   GLint id;
-  FT_List faceList;	        /* GLC_FACE_LIST */
+  FT_ListRec faceList;	        /* GLC_FACE_LIST */
   FcCharSet* charList;          /* GLC_CHAR_LIST */
   FcChar8* family;		/* GLC_FAMILY */
   FcChar8* masterFormat;	/* GLC_MASTER_FORMAT */
@@ -46,8 +47,8 @@ typedef struct {
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
-  FT_List displayList;		/* GLC_LIST_OBJECT_LIST */
-  FT_List textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
+  FT_ListRec displayList;	/* GLC_LIST_OBJECT_LIST */
+  FT_ListRec textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
 } __glcMaster;
 
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,

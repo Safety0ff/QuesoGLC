@@ -97,24 +97,17 @@ static void __glcExitLibrary(void)
 void _fini(void)
 #endif
 {
-  if (!__glcCommonArea)
-    return;
-
   __glcLock();
 
   /* destroy remaining contexts */
-  FT_List_Finalize(__glcCommonArea->stateList, __glcStateDestructor,
-		   __glcCommonArea->memoryManager, NULL);
+  FT_List_Finalize(&__glcCommonArea.stateList, __glcStateDestructor,
+		   &__glcCommonArea.memoryManager, NULL);
 
   /* destroy Common Area */
-  __glcFree(__glcCommonArea->stateList);
-  FcStrSetDestroy(__glcCommonArea->catalogList);
-  __glcFree(__glcCommonArea->memoryManager);
+  FcStrSetDestroy(__glcCommonArea.catalogList);
 
   __glcUnlock();
-  pthread_mutex_destroy(&__glcCommonArea->mutex);
-
-  __glcFree(__glcCommonArea);
+  pthread_mutex_destroy(&__glcCommonArea.mutex);
 }
 
 
@@ -132,8 +125,6 @@ static void __glcFreeThreadArea(void *keyValue)
     state = area->currentContext;
     if (state)
       state->isCurrent = GL_FALSE;
-    if (area->exceptContextStack)
-      free(area->exceptContextStack); /* DO NOT use __glcFree() !!! */
     free(area); /* DO NOT use __glcFree() !!! */
   }
 }
@@ -175,46 +166,28 @@ void _init(void)
   if (!FcInit())
     goto FatalError;
 
-  /* Create and initialize the "Common Area" */
-  __glcCommonArea = (commonArea*)__glcMalloc(sizeof(commonArea));
-  if (!__glcCommonArea)
-    goto FatalError;
-
-  __glcCommonArea->stateList = NULL;
-  __glcCommonArea->memoryManager = NULL;
-  __glcCommonArea->versionMajor = 0;
-  __glcCommonArea->versionMinor = 2;
+  __glcCommonArea.versionMajor = 0;
+  __glcCommonArea.versionMinor = 2;
 
   /* Create the thread-local storage for GLC errors */
-  if (pthread_key_create(&__glcCommonArea->threadKey, __glcFreeThreadArea))
+  if (pthread_key_create(&__glcCommonArea.threadKey, __glcFreeThreadArea))
     goto FatalError;
 
-  /* Evil hack : we use the FT_MemoryRec_ structure definition which
-   * is supposed not to be exported by FreeType headers. So this memory
-   * allocation may fail if the guys of FreeType decide not to expose
-   * FT_MemoryRec_ anymore. However, this has not happened yet so we
-   * still rely on FT_MemoryRec_ ...
-   */
-  __glcCommonArea->memoryManager =
-    (FT_Memory)__glcMalloc(sizeof(struct FT_MemoryRec_));
-  if (!__glcCommonArea->memoryManager)
-    goto FatalError;
+  __glcCommonArea.memoryManager.user = NULL;
+  __glcCommonArea.memoryManager.alloc = __glcAllocFunc;
+  __glcCommonArea.memoryManager.free = __glcFreeFunc;
+  __glcCommonArea.memoryManager.realloc = __glcReallocFunc;
 
-  __glcCommonArea->memoryManager->user = NULL;
-  __glcCommonArea->memoryManager->alloc = __glcAllocFunc;
-  __glcCommonArea->memoryManager->free = __glcFreeFunc;
-  __glcCommonArea->memoryManager->realloc = __glcReallocFunc;
+  /* Initialize the list of context states */
+  __glcCommonArea.stateList.head = NULL;
+  __glcCommonArea.stateList.tail = NULL;
 
-  /* Create and initialize the array of context states */
-  if (!__glcCreateList(&__glcCommonArea->stateList))
-    goto FatalError;
-
-  __glcCommonArea->catalogList = FcStrSetCreate();
-  if (!__glcCommonArea->catalogList)
+  __glcCommonArea.catalogList = FcStrSetCreate();
+  if (!__glcCommonArea.catalogList)
     goto FatalError;
 
   /* Initialize the mutex for access to the stateList array */
-  if (pthread_mutex_init(&__glcCommonArea->mutex, NULL))
+  if (pthread_mutex_init(&__glcCommonArea.mutex, NULL))
     goto FatalError;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
@@ -224,19 +197,10 @@ void _init(void)
 
  FatalError:
   __glcRaiseError(GLC_RESOURCE_ERROR);
-  if (__glcCommonArea->memoryManager) {
-    __glcFree(__glcCommonArea->memoryManager);
-    __glcCommonArea->memoryManager = NULL;
-  }
-  if (__glcCommonArea->stateList) {
-    __glcFree(__glcCommonArea->stateList);
-    __glcCommonArea->stateList = NULL;
-  }
-  if (__glcCommonArea->catalogList)
-    FcStrSetDestroy(__glcCommonArea->catalogList);
-  if (__glcCommonArea) {
-    __glcFree(__glcCommonArea);
-  }
+
+  if (__glcCommonArea.catalogList)
+    FcStrSetDestroy(__glcCommonArea.catalogList);
+
   /* Is there a better thing to do than that ? */
   perror("GLC Fatal Error");
   exit(-1);
@@ -332,9 +296,9 @@ void glcDeleteContext(GLint inContext)
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else {
-    node = FT_List_Find(__glcCommonArea->stateList, state);
+    node = FT_List_Find(&__glcCommonArea.stateList, state);
     assert(node); /* If node is not found then something went wrong ... */
-    FT_List_Remove(__glcCommonArea->stateList, node);
+    FT_List_Remove(&__glcCommonArea.stateList, node);
     __glcCtxDestroy(state);
     __glcFree(node);
   }
@@ -469,10 +433,10 @@ void glcContext(GLint inContext)
   /* execute pending deletion if any */
   if (currentState) {
     if (currentState->pendingDelete) {
-      FT_ListNode node = FT_List_Find(__glcCommonArea->stateList,
+      FT_ListNode node = FT_List_Find(&__glcCommonArea.stateList,
 				      currentState);
       assert(node); /* If node is not found then something went wrong ... */
-      FT_List_Remove(__glcCommonArea->stateList, node);
+      FT_List_Remove(&__glcCommonArea.stateList, node);
       __glcCtxDestroy(currentState);
       __glcFree(node);
     }
@@ -533,7 +497,7 @@ GLint glcGenContext(void)
   __glcLock();
 
   /* Search for the first context ID that is unused */
-  node = __glcCommonArea->stateList->tail;
+  node = __glcCommonArea.stateList.tail;
   if (!node) {
     newContext = 1;
   }
@@ -559,7 +523,7 @@ GLint glcGenContext(void)
   }
 
   node->data = state;
-  FT_List_Add(__glcCommonArea->stateList, node);
+  FT_List_Add(&__glcCommonArea.stateList, node);
 
   __glcUnlock();
 
@@ -623,7 +587,7 @@ GLint* glcGetAllContexts(void)
    * thread or not).
    */
   __glcLock();
-  for (node = __glcCommonArea->stateList->head, count = 0; node;
+  for (node = __glcCommonArea.stateList.head, count = 0; node;
        node = node->next, count++) {}
 
   /* Allocate memory to store the array */
@@ -638,7 +602,7 @@ GLint* glcGetAllContexts(void)
   contextArray[count] = 0;
 
   /* Copy the context IDs to the array */
-  for (node = __glcCommonArea->stateList->tail; node;node = node->prev) {
+  for (node = __glcCommonArea.stateList.tail; node;node = node->prev) {
     state = (__glcContextState *)node->data;
     assert(state);
     contextArray[--count] = state->id;

@@ -212,7 +212,8 @@ static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo, void* inUse
     return 0;
 }
 
-static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2, FT_Vector *inVecTo, void* inUserData)
+static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
+			FT_Vector *inVecTo, void* inUserData)
 {
     __glcRendererData *data = (__glcRendererData *) inUserData;
     FT_Vector *control[2];
@@ -235,7 +236,6 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 {
     FT_Outline *outline = NULL;
     FT_Outline_Funcs interface;
-    FT_List list = NULL;
     FT_ListNode node = NULL;
     __glcDisplayListKey *dlKey = NULL;
     
@@ -258,10 +258,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.scale = 1./64.;
 
     /* We convert the user given tolerance into sensible units */
-    rendererData.tolerance = inState->resolution * 64. * inFont->face->units_per_EM;
+    rendererData.tolerance = inState->resolution * 64.
+      * inFont->face->units_per_EM;
     
     /* FIXME : may be we should use a bigger array ? */
-    rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);
+    rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX
+						       * sizeof(GLfloat) * 3);
     if (!rendererData.vertex) {
 	gluDeleteTess(tess);
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -293,30 +295,9 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       /* Get (or create) a new entry that contains the display list and store
        * the key in it
        */
-      list = inFont->parent->displayList;
-      /* FIXME : Is it really needed since the list is created when the master
-       * is created ?
-       */
-      if (!list) {
-	list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-	if (!list) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  __glcFree(dlKey);
-	  return;
-	}
-	list->head = NULL;
-	list->tail = NULL;
-	inFont->parent->displayList = list;
-      }
-
-      node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-      if (!node) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(dlKey);
-	return;
-      }
+      node = (FT_ListNode)dlKey;
       node->data = dlKey;
-      FT_List_Add(list, node);
+      FT_List_Add(&inFont->parent->displayList, node);
 
       glNewList(dlKey->list, GL_COMPILE);
     }

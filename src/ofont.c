@@ -44,7 +44,7 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
    * glcFontFace() can change the face.
    */
 
-  This->faceDesc = (__glcFaceDescriptor*)inParent->faceList->head->data;
+  This->faceDesc = (__glcFaceDescriptor*)inParent->faceList.head;
   This->parent = inParent;
   This->charMapCount = 0;
   This->id = inID;

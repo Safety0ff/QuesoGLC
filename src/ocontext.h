@@ -49,10 +49,10 @@ typedef struct {
   GLboolean mipmap;		/* GLC_MIPMAP */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
-  FT_List currentFontList;	/* GLC_CURRENT_FONT_LIST */
-  FT_List fontList;		/* GLC_FONT_LIST */
-  FT_List masterList;
-  FT_List localCatalogList;
+  FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
+  FT_ListRec fontList;		/* GLC_FONT_LIST */
+  FT_ListRec masterList;
+  FT_ListRec localCatalogList;
   GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
@@ -66,30 +66,32 @@ typedef struct {
   __glcContextState* currentContext;
   GLCenum errorState;
   GLint lockState;
-  FT_List exceptContextStack;
+  FT_ListRec exceptContextStack;
 } threadArea;
 
 typedef struct {
   GLint versionMajor;		/* GLC_VERSION_MAJOR */
   GLint versionMinor;		/* GLC_VERSION_MINOR */
 
-  FT_List stateList;
+  FT_ListRec stateList;
   FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
-#ifndef __WIN32__
-  pthread_mutex_t mutex;	/* For concurrent accesses to the common area arrays */
+  pthread_mutex_t mutex;	/* For concurrent accesses to the common area */
 
   pthread_key_t threadKey;
-#else
-  DWORD threadKey;
-  HANDLE mutex;
-#endif
-  FT_Memory memoryManager;
+
+  /* Evil hack : we use the FT_MemoryRec_ structure definition which is
+   * supposed not to be exported by FreeType headers. So this definition may
+   * fail if the guys of FreeType decide not to exposeFT_MemoryRec_ anymore.
+   * However, this has not happened yet so we still rely on FT_MemoryRec_ ...
+   */
+  struct FT_MemoryRec_ memoryManager;
 } commonArea;
+
+extern commonArea __glcCommonArea;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
 extern pthread_once_t initLibraryOnce;
 #endif
-extern commonArea *__glcCommonArea;
 
 __glcContextState* __glcCtxCreate(GLint inContext);
 void __glcCtxDestroy(__glcContextState *This);

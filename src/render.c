@@ -43,6 +43,7 @@
 #else
 #include <GL/glu.h>
 #endif
+#include <assert.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -117,7 +118,8 @@ static void __glcRenderCharBitmap(__glcFont* inFont, __glcContextState* inState)
 }
 
 /* Internal function that renders glyph in textures */
-static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState, GLint inCode)
+static void __glcRenderCharTexture(__glcFont* inFont,
+				   __glcContextState* inState, GLint inCode)
 {
   FT_Matrix matrix;
   FT_Face face = inFont->face;
@@ -128,13 +130,13 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
   GLfloat width = 0, height = 0;
   GLint format = 0;
   __glcDisplayListKey *dlKey = NULL;
-  FT_List list = NULL;
   FT_ListNode node = NULL;
 
   /* Check if a new texture can be created */
   glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, GLC_TEXTURE_SIZE,
 	       GLC_TEXTURE_SIZE, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
-  glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &format);
+  glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
+			   &format);
   if (!format) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -178,7 +180,8 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
   pixmap.pitch = - pixmap.pitch;
 
   /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64), -((boundBox.yMin + 32) & -64));
+  FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64),
+		       -((boundBox.yMin + 32) & -64));
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
@@ -198,7 +201,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
     if (node) {
       node->data = (void*)texture;
-      FT_List_Add(inFont->parent->textureObjectList, node);
+      FT_List_Add(&inFont->parent->textureObjectList, node);
     }
     else
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -244,32 +247,9 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
     /* Get (or create) a new entry that contains the display list and store
      * the key in it
      */
-    list = inFont->parent->displayList;
-    /* FIXME : Is it really needed since the list is created when the master
-     * is created ?
-     */
-    if (!list) {
-      list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-      if (!list) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(pixmap.buffer);
-	__glcFree(dlKey);
-	return;
-      }
-      inFont->parent->displayList = list;
-      list->head = NULL;
-      list->tail = NULL;
-    }
-
-    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-    if (!node) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      __glcFree(pixmap.buffer);
-      __glcFree(dlKey);
-      return;
-    }
+    node = (FT_ListNode)dlKey;
     node->data = dlKey;
-    FT_List_Add(list, node);
+    FT_List_Add(&inFont->parent->displayList, node);
 
     /* Create the display list */
     glNewList(dlKey->list, GL_COMPILE);
@@ -311,7 +291,7 @@ static void __glcRenderCharTexture(__glcFont* inFont, __glcContextState* inState
 static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
 {
   __glcDisplayListKey *dlKey = (__glcDisplayListKey*)user;
-  __glcDisplayListKey *nodeKey = (__glcDisplayListKey*)node->data;
+  __glcDisplayListKey *nodeKey = (__glcDisplayListKey*)node;
 
   if ((dlKey->faceDesc == nodeKey->faceDesc) && (dlKey->code == nodeKey->code)
       && (dlKey->renderMode == nodeKey->renderMode))
@@ -320,30 +300,28 @@ static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
   return 0;
 }
 
-/* This internal function look in the B-Tree of display lists for a display
- * list that draws the desired glyph in the desired rendering mode using the
- * desired font. Returns GL_TRUE if a display list exists, returns GL_FALSE
- * otherwise.
+/* This internal function look in the linked list of display lists for a
+ * display list that draws the desired glyph in the desired rendering mode
+ * using the desired font. Returns GL_TRUE if a display list exists, returns
+ * GL_FALSE otherwise.
  */
 static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
 				      GLint renderMode)
 {
   __glcDisplayListKey dlKey;
 
-  if (inFont->parent->displayList) {
-    /* Initialize the key */
-    dlKey.faceDesc = inFont->faceDesc;
-    dlKey.code = inCode;
-    dlKey.renderMode = renderMode;
-    dlKey.list = 0;
-    /* Look for the key in the display list B-Tree */
-    FT_List_Iterate(inFont->parent->displayList,
-		    __glcDisplayListIterator, &dlKey);
-    /* If a display list has been found then display it */
-    if (dlKey.list) {
-      glCallList(dlKey.list);
-      return GL_TRUE;
-    }
+  /* Initialize the key */
+  dlKey.faceDesc = inFont->faceDesc;
+  dlKey.code = inCode;
+  dlKey.renderMode = renderMode;
+  dlKey.list = 0;
+  /* Look for the key in the display list linked list */
+  FT_List_Iterate(&inFont->parent->displayList,
+		  __glcDisplayListIterator, &dlKey);
+  /* If a display list has been found then display it */
+  if (dlKey.list) {
+    glCallList(dlKey.list);
+    return GL_TRUE;
   }
 
   return GL_FALSE;
@@ -358,12 +336,19 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   GLint i = 0;
   FT_ListNode node = NULL;
 
-  for (node = state->fontList->head; node; node = node->next) {
+  for (node = state->fontList.head; node; node = node->next) {
     font = (__glcFont*)node->data;
+    assert(font);
     if (font->id == inFont) break;
   }
 
-  if (!node) return;
+  if (!node)
+    return;
+
+  if (!FcCharSetHasChar(font->faceDesc->charSet, inCode)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
 
   /* Convert the code 'inCode' using the charmap */
   /* TODO : use a dichotomic algo. instead*/
@@ -375,7 +360,8 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   }
 
   /* Define the size of the rendered glyphs (based on screen resolution) */
-  if (FT_Set_Char_Size(font->face, 0, GLC_POINT_SIZE << 6, state->displayDPIx, state->displayDPIy)) {
+  if (FT_Set_Char_Size(font->face, 0, GLC_POINT_SIZE << 6, state->displayDPIx,
+		       state->displayDPIy)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }

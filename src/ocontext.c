@@ -32,8 +32,8 @@
 #include FT_MODULE_H
 #include FT_LIST_H
 
-commonArea *__glcCommonArea = NULL;
 
+commonArea __glcCommonArea;
 
 
 /* Creates a new context : returns a struct that contains the GLC state
@@ -50,14 +50,22 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   }
   memset(This, 0, sizeof(__glcContextState));
 
-  if (FT_New_Library(__glcCommonArea->memoryManager, &This->library))
-    goto out_of_memory;
+  if (FT_New_Library(&__glcCommonArea.memoryManager, &This->library)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFree(This);
+    return NULL;    
+  }
+
   FT_Add_Default_Modules(This->library);
 
-  if (!__glcCreateList(&(This->masterList))) goto out_of_memory;
-  if (!__glcCreateList(&(This->localCatalogList))) goto out_of_memory;
-  if (!__glcCreateList(&(This->currentFontList))) goto out_of_memory;
-  if (!__glcCreateList(&(This->fontList))) goto out_of_memory;
+  This->masterList.head = NULL;
+  This->masterList.tail = NULL;
+  This->localCatalogList.head = NULL;
+  This->localCatalogList.tail = NULL;
+  This->currentFontList.head = NULL;
+  This->currentFontList.tail = NULL;
+  This->fontList.head = NULL;
+  This->fontList.tail = NULL;
 
   This->isCurrent = GL_FALSE;
   This->id = inContext;
@@ -81,19 +89,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bufferSize = 0;
 
   return This;
-
-out_of_memory:
-  __glcRaiseError(GLC_RESOURCE_ERROR);
-  if (This->fontList)
-    __glcFree(This->fontList);
-  if (This->currentFontList)
-    __glcFree(This->currentFontList);
-  if (This->masterList)
-    __glcFree(This->masterList);
-  if (This->library)
-    FT_Done_Library(This->library);
-  __glcFree(This);
-  return NULL;    
 }
 
 
@@ -137,19 +132,16 @@ void __glcCtxDestroy(__glcContextState *This)
   assert(This);
 
   /* Destroy GLC_CURRENT_FONT_LIST */
-  FT_List_Finalize(This->currentFontList, NULL,
-		   __glcCommonArea->memoryManager, NULL);
-  __glcFree(This->currentFontList);
+  FT_List_Finalize(&This->currentFontList, NULL,
+		   &__glcCommonArea.memoryManager, NULL);
 
   /* Destroy GLC_FONT_LIST */
-  FT_List_Finalize(This->fontList, __glcFontDestructor,
-                   __glcCommonArea->memoryManager, This);
-  __glcFree(This->fontList);
+  FT_List_Finalize(&This->fontList, __glcFontDestructor,
+                   &__glcCommonArea.memoryManager, This);
 
   /* Destroy the local list of catalogs */
-  FT_List_Finalize(This->localCatalogList, NULL,
-                   __glcCommonArea->memoryManager, NULL);
-  __glcFree(This->localCatalogList);
+  FT_List_Finalize(&This->localCatalogList, NULL,
+                   &__glcCommonArea.memoryManager, NULL);
 
   /* Must be called before the masters are destroyed since
    * the display lists are stored in the masters.
@@ -157,9 +149,8 @@ void __glcCtxDestroy(__glcContextState *This)
   __glcDeleteGLObjects(This);
 
   /* destroy remaining masters */
-  FT_List_Finalize(This->masterList, __glcMasterDestructor,
-		   __glcCommonArea->memoryManager, NULL);
-  __glcFree(This->masterList);
+  FT_List_Finalize(&This->masterList, __glcMasterDestructor,
+		   &__glcCommonArea.memoryManager, NULL);
 
   if (This->bufferSize)
     __glcFree(This->buffer);
@@ -190,7 +181,7 @@ __glcContextState* __glcGetState(GLint inContext)
   __glcContextState *state = NULL;
 
   __glcLock();
-  for (node = __glcCommonArea->stateList->head; node; node = node->next) {
+  for (node = __glcCommonArea.stateList.head; node; node = node->next) {
     state = (__glcContextState *)node->data;
     if (state) {
       if (state->id == inContext) break;
@@ -237,6 +228,14 @@ static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
   FcChar32 prev_base = 0;
   FcChar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
+  FcCharSet* result = NULL;
+
+  /* Add the character set to the GLC_CHAR_LIST of inMaster */
+  result = FcCharSetUnion(inMaster->charList, charSet);
+  if (!result) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
   /* Update the minimum mapped code */
   base = FcCharSetFirstPage(charSet, map, &next);
@@ -265,8 +264,8 @@ static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
   if (inMaster->maxMappedCode < charCode)
     inMaster->maxMappedCode = charCode;
 
-  /* Add the character set to the GLC_CHAR_LIST of inMaster */
-  inMaster->charList = FcCharSetUnion(inMaster->charList, charSet);
+  FcCharSetDestroy(inMaster->charList);
+  inMaster->charList = result;
 }
 
 
@@ -290,7 +289,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 
   /* Verify that the catalog has not already been appended (or prepended) */
   __glcLock();
-  test = FcStrSetMember(__glcCommonArea->catalogList, (FcChar8*)inCatalog);
+  test = FcStrSetMember(__glcCommonArea.catalogList, (FcChar8*)inCatalog);
   __glcUnlock();
 
   if (test)
@@ -376,7 +375,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName)
 	== FcResultTypeMismatch)
       continue;
-    for (node = This->masterList->head; node; node = node->next) {
+    for (node = This->masterList.head; node; node = node->next) {
       master = (__glcMaster*)node->data;
 
       if (!strcmp((const char*)familyName, (const char*)master->family))
@@ -419,7 +418,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       }
 
       node->data = master;
-      FT_List_Add(This->masterList, node);
+      FT_List_Add(&This->masterList, node);
     }
 
     /* FIXME :
@@ -432,11 +431,9 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 	== FcResultTypeMismatch)
       continue;
 
-    for (node = master->faceList->head; node; node = node->next) {
-      __glcFaceDescriptor* faceDesc = NULL;
+    for (node = master->faceList.head; node; node = node->next) {
+      __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)node;
       
-      assert(node->data);
-      faceDesc = (__glcFaceDescriptor*)node->data;
       if (!strcmp((const char*)faceDesc->styleName, (const char*)styleName))
 	break;
     }
@@ -446,6 +443,13 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       __glcFaceDescriptor* faceDesc = NULL;
       int index = 0;
       FT_ListNode newNode = NULL;
+      FcCharSet* dummy = FcCharSetCreate();
+
+      if (!dummy) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	FcFontSetDestroy(fontSet);
+	return;
+      }
 
       /* The current face in the font file is not already loaded in a
        * master : Append (or prepend) the new face and its file name to
@@ -460,20 +464,17 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
 
       __glcUpdateCharList(master, charSet);
 
-      faceDesc = (__glcFaceDescriptor*)__glcMalloc(sizeof(__glcFaceDescriptor));
+      faceDesc =
+	(__glcFaceDescriptor*)__glcMalloc(sizeof(__glcFaceDescriptor));
       if (!faceDesc) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	FcFontSetDestroy(fontSet);
+	FcCharSetDestroy(dummy);
 	return;
       }
 
-      newNode = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-      if (!newNode) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(faceDesc);
-	FcFontSetDestroy(fontSet);
-	return;
-      }
+      newNode = (FT_ListNode)faceDesc;
+      newNode->data = faceDesc;
 
       /* Filenames are kept in their original format which is supposed to
        * be compatible with strlen()
@@ -481,8 +482,8 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       faceDesc->fileName = (FcChar8*)strdup((const char*)fileName);
       if (!faceDesc->fileName) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(newNode);
 	__glcFree(faceDesc);
+	FcCharSetDestroy(dummy);
 	FcFontSetDestroy(fontSet);
 	return;
       }
@@ -490,30 +491,28 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       if (!faceDesc->styleName) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(faceDesc->fileName);
-	__glcFree(newNode);
 	__glcFree(faceDesc);
+	FcCharSetDestroy(dummy);
 	FcFontSetDestroy(fontSet);
 	return;
       }
       faceDesc->indexInFile = index;
-      faceDesc->charSet = FcCharSetCreate();
+      faceDesc->charSet = FcCharSetUnion(dummy, charSet);
       if (!faceDesc->charSet) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(faceDesc->fileName);
 	__glcFree(faceDesc->styleName);
-	__glcFree(newNode);
 	__glcFree(faceDesc);
+	FcCharSetDestroy(dummy);
 	FcFontSetDestroy(fontSet);
 	return;
       }
-      faceDesc->charSet = FcCharSetUnion(faceDesc->charSet, charSet);
-
-      newNode->data = faceDesc;
+      FcCharSetDestroy(dummy);
 
       if (inAppend)
-	FT_List_Add(master->faceList, newNode);
+	FT_List_Add(&master->faceList, newNode);
       else
-	FT_List_Insert(master->faceList, newNode);
+	FT_List_Insert(&master->faceList, newNode);
     }
   }
 
@@ -522,7 +521,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
   /* Append (or prepend) the directory name to the catalog list */
   __glcLock();
   if (inAppend) {
-    if (!FcStrSetAddFilename(__glcCommonArea->catalogList,
+    if (!FcStrSetAddFilename(__glcCommonArea.catalogList,
 			     (FcChar8*)inCatalog)) {
       __glcUnlock();
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -539,7 +538,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
-    iterator = FcStrListCreate(__glcCommonArea->catalogList);
+    iterator = FcStrListCreate(__glcCommonArea.catalogList);
     for (catalog = FcStrListNext(iterator); catalog;
 	catalog = FcStrListNext(iterator)) {
       if (!FcStrSetAdd(newCatalogList, catalog)) {
@@ -551,8 +550,8 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
       }
     }
     FcStrListDone(iterator);
-    FcStrSetDestroy(__glcCommonArea->catalogList);
-    __glcCommonArea->catalogList = newCatalogList;
+    FcStrSetDestroy(__glcCommonArea.catalogList);
+    __glcCommonArea.catalogList = newCatalogList;
   }
   __glcUnlock();
 }
@@ -572,7 +571,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
   FcChar8* catalog = NULL;
 
   __glcLock();
-  iterator = FcStrListCreate(__glcCommonArea->catalogList);
+  iterator = FcStrListCreate(__glcCommonArea.catalogList);
   if (!iterator) {
     __glcUnlock();
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -619,7 +618,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       continue;
 
     /* Search the file name of the font in the masters */
-    for (node = This->masterList->head; node; node = node->next) {
+    for (node = This->masterList.head; node; node = node->next) {
       __glcMaster *master;
       FT_ListNode faceNode = NULL;
       FT_ListNode fontNode = NULL;
@@ -628,12 +627,10 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       if (!master)
 	continue;
 
-      for (faceNode = master->faceList->head; faceNode;
+      for (faceNode = master->faceList.head; faceNode;
 	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = NULL;
+	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
 
-	assert(faceNode->data);
-	faceDesc = (__glcFaceDescriptor*)faceNode->data;
 	if (!strcmp((const char*)faceDesc->fileName, (const char*)fileName))
 	  break;
       }
@@ -642,16 +639,17 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 	continue; /* The file is not in the current master, try the next one */
 
       /* Removes the corresponding faces in the font list */
-      for (fontNode = This->fontList->head; fontNode; fontNode = fontNode->next) {
+      for (fontNode = This->fontList.head; fontNode;
+	   fontNode = fontNode->next) {
 	__glcFont *font = (__glcFont*)fontNode->data;
 	if (font) {
 	  if (font->parent == master) {
 	    /* Eventually remove the font from the current font list */
             FT_ListNode currentFontNode = NULL;
-            for (currentFontNode = This->currentFontList->head; currentFontNode;
-                 currentFontNode = currentFontNode->next) {
+            for (currentFontNode = This->currentFontList.head;
+		 currentFontNode; currentFontNode = currentFontNode->next) {
               if ((__glcFont*)currentFontNode->data == font) {
-                FT_List_Remove(This->currentFontList, currentFontNode);
+                FT_List_Remove(&This->currentFontList, currentFontNode);
                 __glcFree(currentFontNode);
 		break;
 	      }
@@ -661,40 +659,39 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 	}
       }
 
-      FT_List_Remove(master->faceList, faceNode);
-      __glcFree(faceNode->data);
+      FT_List_Remove(&master->faceList, faceNode);
       __glcFree(faceNode);
-
-      /* Remove characters of the font from the char list.
-       * (Actually rebuild the master charset)
-       */
-      FcCharSetDestroy(master->charList);
-      master->charList = FcCharSetCreate();
-      for (faceNode = master->faceList->head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = NULL;
-
-        assert(node->data);
-	faceDesc = (__glcFaceDescriptor*)node->data;
-	master->charList = FcCharSetUnion(master->charList, faceDesc->charSet);
-      }
-      master->minMappedCode = 0x7fffffff;
-      master->maxMappedCode = 0;
-      __glcUpdateCharList(master, master->charList);
 
       /* If the master is empty (i.e. does not contain any face) then
        * remove it.
        */
-      if (!master->faceList->head) {
+      if (!master->faceList.head) {
 	__glcMasterDestroy(master);
 	master = NULL;
+      }
+      else {
+	/* Remove characters of the font from the char list.
+	 * (Actually rebuild the master charset)
+	 */
+	FcCharSetDestroy(master->charList);
+	master->charList = FcCharSetCreate();
+	for (faceNode = master->faceList.head; faceNode;
+	     faceNode = faceNode->next) {
+	  __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
+
+	  master->charList = FcCharSetUnion(master->charList,
+					    faceDesc->charSet);
+	}
+	master->minMappedCode = 0x7fffffff;
+	master->maxMappedCode = 0;
+	__glcUpdateCharList(master, master->charList);
       }
     }
   }
 
   FcFontSetDestroy(fontSet);
   __glcLock();
-  FcStrSetDel(__glcCommonArea->catalogList, catalog);
+  FcStrSetDel(__glcCommonArea.catalogList, catalog);
   __glcUnlock();
   return;
 }
@@ -708,7 +705,7 @@ static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
 {
   FT_ListNode node = NULL;
 
-  for (node = inState->currentFontList->head; node; node = node->next) {
+  for (node = inState->currentFontList.head; node; node = node->next) {
     const GLint font = ((__glcFont*)node->data)->id;
     if (glcGetFontMap(font, inCode))
       return font;
@@ -721,7 +718,8 @@ static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
 /* Calls the callback function (does various tests to determine if it is
  * possible) and returns GL_TRUE if it has succeeded or GL_FALSE otherwise.
  */
-static GLboolean __glcCallCallbackFunc(GLint inCode, __glcContextState *inState)
+static GLboolean __glcCallCallbackFunc(GLint inCode,
+				       __glcContextState *inState)
 {
   GLCfunc callbackFunc = NULL;
   GLboolean result = GL_FALSE;
@@ -786,7 +784,7 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
      * master that maps 'inCode'. If the search succeeds, it creates a font
      * from the master and appends its ID to GLC_CURRENT_FONT_LIST.
      */
-    for (node = This->masterList->head; node; node = node->next) {
+    for (node = This->masterList.head; node; node = node->next) {
       if (glcGetMasterMap(((__glcMaster*)node->data)->id, inCode)) {
 	font = glcNewFontFromMaster(glcGenFontID(), i);
 	if (font) {
@@ -816,7 +814,7 @@ void __glcLock(void)
   assert(area);
 
   if (!area->lockState)
-    pthread_mutex_lock(&__glcCommonArea->mutex);
+    pthread_mutex_lock(&__glcCommonArea.mutex);
 
   area->lockState++;
 }
@@ -836,7 +834,7 @@ void __glcUnlock(void)
 
   area->lockState--;
   if (!area->lockState)
-    pthread_mutex_unlock(&__glcCommonArea->mutex);
+    pthread_mutex_unlock(&__glcCommonArea.mutex);
 }
 
 
@@ -881,7 +879,7 @@ threadArea* __glcGetThreadArea(void)
 {
   threadArea *area = NULL;
 
-  area = (threadArea*)pthread_getspecific(__glcCommonArea->threadKey);
+  area = (threadArea*)pthread_getspecific(__glcCommonArea.threadKey);
 
   if (!area) {
     area = (threadArea*)malloc(sizeof(threadArea));
@@ -891,14 +889,9 @@ threadArea* __glcGetThreadArea(void)
     area->currentContext = NULL;
     area->errorState = GLC_NONE;
     area->lockState = 0;
-    area->exceptContextStack = (FT_List) malloc(sizeof(FT_ListRec));
-    if (!area->exceptContextStack) {
-      free(area);
-      return NULL;
-    }
-    area->exceptContextStack->head = NULL;
-    area->exceptContextStack->tail = NULL;
-    pthread_setspecific(__glcCommonArea->threadKey, (void*)area);
+    area->exceptContextStack.head = NULL;
+    area->exceptContextStack.tail = NULL;
+    pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
   }
 
   return area;

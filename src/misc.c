@@ -47,20 +47,6 @@ void* __glcRealloc(void *ptr, size_t size)
 
 
 
-/* FT list destructor 
- * This destructor should be used whenever the data field of a linked list
- * is used as an actual pointer : in QuesoGLC, some linked lists use the
- * data field to store an integer value, in which case, the destroy parameter
- * of FT_List_Finalize() must be set to NULL, otherwise a segmentation fault
- * will occur.
- */
-void __glcListDestructor(FT_Memory inMemory, void *inData, void *inUser)
-{
-  __glcFree(inData);
-}
-
-
-
 /* Find a token in a list of tokens separated by 'separator' */
 GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
 			    const GLCchar* inSeparator)
@@ -127,15 +113,7 @@ GLint __glcCodeFromName(GLCchar* name)
   return -1;
 }
 
-/* Create an initialize a FreeType  double linked list */
-GLboolean __glcCreateList(FT_List* list)
-{
-  *list = (FT_List)__glcMalloc(sizeof(FT_ListRec));
-  if (!(*list)) return GL_FALSE;
-  (*list)->head = NULL;
-  (*list)->tail = NULL;
-  return GL_TRUE;
-}
+
 
 /* Convert a character from UCS1 to UTF-8 and return the number of bytes
  * needed to encode the char.
@@ -505,6 +483,17 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
     return NULL;
   }
   return string;
+}
+
+
+
+/* This function is called when the texture object list is destroyed */
+void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
+				  void *inUser)
+{
+  GLuint tex = (GLuint)inData;
+
+  glDeleteTextures(1, &tex);
 }
 
 

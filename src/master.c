@@ -120,7 +120,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     return GLC_NONE;
   }
 
-  for(node = state->masterList->head; node; node = node->next) {
+  for(node = state->masterList.head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
   }
@@ -154,15 +154,14 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
   case GLC_FACE_LIST:
     /* Get the face name */
-    for (node = master->faceList->head; inIndex && node; node = node->next,
+    for (node = master->faceList.head; inIndex && node; node = node->next,
 	 inIndex--);
     if (!node) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
-    assert(node->data);
     return __glcConvertFromUtf8ToBuffer(state,
-				 ((__glcFaceDescriptor*)node->data)->styleName,
+				 ((__glcFaceDescriptor*)node)->styleName,
 					state->stringType);
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -221,7 +220,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     return GLC_NONE;
   }
 
-  for(node = state->masterList->head; node; node = node->next) {
+  for(node = state->masterList.head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
   }
@@ -233,14 +232,13 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   }
 
   /* We search for a font file that supports the requested inCode glyph */
-  for (node = master->faceList->head; node; node = node->next) {
+  for (node = master->faceList.head; node; node = node->next) {
     /* Copy the Unicode string into a buffer
      * NOTE : we do not change the encoding format (or string type) of the file
      *        name since we suppose that the encoding format of the OS has not
      *        changed since the user provided the file name
      */
-    assert(node->data);
-    faceDesc = (__glcFaceDescriptor*)node->data;
+    faceDesc = (__glcFaceDescriptor*)node;
 
     if (FcCharSetHasChar(faceDesc->charSet, (FcChar32)inCode))
       break; /* Found !!!*/
@@ -337,7 +335,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  for(node = state->masterList->head; node; node = node->next) {
+  for(node = state->masterList.head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
   }
@@ -445,7 +443,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     return 0;
   }
 
-  for(node = state->masterList->head; node; node = node->next) {
+  for(node = state->masterList.head; node; node = node->next) {
     master = (__glcMaster*)node->data;
     if (master->id == inMaster) break;
   }
@@ -461,7 +459,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   case GLC_CHAR_COUNT:
     return FcCharSetCount(master->charList);
   case GLC_FACE_COUNT:
-    for (node = master->faceList->head; node; node = node->next, count++);
+    for (node = master->faceList.head; node; node = node->next, count++);
     return count;
   case GLC_IS_FIXED_PITCH:
     return master->isFixedPitch;

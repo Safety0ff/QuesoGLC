@@ -117,17 +117,6 @@ void glcDataPointer(GLvoid *inPointer)
 
 
 
-/* This function is called when the texture object list is destroyed */
-static void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
-					 void *inUser)
-{
-  GLuint tex = (GLuint)inData;
-
-  glDeleteTextures(1, &tex);
-}
-
-
-
 /* This functions destroys the display lists and the texture objects that
  * are associated with a context identified by inState. The corresponding
  * linked lists are also deleted.
@@ -138,12 +127,12 @@ void __glcDeleteGLObjects(__glcContextState *inState)
   __glcMaster* master = NULL;
 
   /* Delete display lists and texture objects */
-  for(node = inState->masterList->head; node; node = node->next) {
+  for(node = inState->masterList.head; node; node = node->next) {
     master = (__glcMaster*)node->data;
-    FT_List_Finalize(master->displayList, __glcListDestructor,
-                     __glcCommonArea->memoryManager, NULL);
-    FT_List_Finalize(master->textureObjectList, __glcTextureObjectDestructor,
-		     __glcCommonArea->memoryManager, NULL);
+    FT_List_Finalize(&master->displayList, NULL,
+                     &__glcCommonArea.memoryManager, NULL);
+    FT_List_Finalize(&master->textureObjectList, __glcTextureObjectDestructor,
+		     &__glcCommonArea.memoryManager, NULL);
   }
 }
 
@@ -342,6 +331,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   __glcContextState *state = NULL;
   FcStrList* iterator = NULL;
   FcChar8* catalog = NULL;
+  GLCchar* buffer = NULL;
 
   /* Check the parameters */
   if (inAttrib != GLC_CATALOG_LIST) {
@@ -369,7 +359,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 
   /* Get the string at offset inIndex */
   __glcLock();
-  iterator = FcStrListCreate(__glcCommonArea->catalogList);
+  iterator = FcStrListCreate(__glcCommonArea.catalogList);
   if (!iterator) {
     __glcUnlock();
     __glcRaiseError(GLC_STATE_ERROR);
@@ -398,7 +388,14 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    glcStringType() is called.
    */
 
-  return strdup((const char*)catalog);
+  buffer = __glcCtxQueryBuffer(state, 
+			       (strlen((const char*)catalog)+1)*sizeof(char));
+  if (!buffer) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GLC_NONE;
+  }
+  strncpy((char*)buffer, (const char*)catalog, strlen((const char*)catalog)+1);
+  return buffer;
 }
 
 
@@ -494,7 +491,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
   inIndex--;
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
-    for (node = state->currentFontList->head; inIndex && node;
+    for (node = state->currentFontList.head; inIndex && node;
          node = node->next, inIndex--) {}
 
     if (node)
@@ -504,7 +501,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       return 0;
     }
   case GLC_FONT_LIST:
-    for (node = state->fontList->head; inIndex && node;
+    for (node = state->fontList.head; inIndex && node;
          node = node->next, inIndex--) {}
 
     if (node)
@@ -519,34 +516,24 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
      * even know which glyph of which font of which master the requested index
      * of a display list represents...
      */
-    for(node = state->masterList->head; node; node = node->next) {
+    for(node = state->masterList.head; node; node = node->next) {
       FT_ListNode dlTree = NULL;
-      FT_List list = NULL;
 
-      list = ((__glcMaster*)node->data)->displayList;
-
-      if (list) {
-        for (dlTree = list->head; dlTree && inIndex;
-	     dlTree = dlTree->next, inIndex--) {}
-        if (dlTree)
-	  return ((__glcDisplayListKey*)dlTree->data)->list;
-      }
+      for (dlTree = ((__glcMaster*)node->data)->displayList.head;
+	   dlTree && inIndex; dlTree = dlTree->next, inIndex--);
+      if (dlTree)
+	return ((__glcDisplayListKey*)dlTree)->list;
     }
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
     /* See also comments of GLC_LIST_OBJECT_LIST above */
-    for(node = state->masterList->head; node; node = node->next) {
+    for(node = state->masterList.head; node; node = node->next) {
       FT_ListNode texNode = NULL;
-      FT_List list = NULL;
 
-      list = ((__glcMaster*)node->data)->textureObjectList;
-
-      if (list) {
-        for (texNode = list->head; texNode && inIndex;
-	     texNode = texNode->next, inIndex--) {}
-        if (!inIndex && texNode)
-	  return (GLint)texNode->data;
-      }
+      for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
+	   texNode && inIndex; texNode = texNode->next, inIndex--);
+      if (!inIndex && texNode)
+	return (GLint)texNode->data;
     }
     return 0;
   }
@@ -859,7 +846,7 @@ GLint glcGeti(GLCenum inAttrib)
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
     __glcLock();
-    iterator = FcStrListCreate(__glcCommonArea->catalogList);
+    iterator = FcStrListCreate(__glcCommonArea.catalogList);
     if (!iterator) {
       __glcUnlock();
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -871,27 +858,24 @@ GLint glcGeti(GLCenum inAttrib)
     __glcUnlock();
     return count;
   case GLC_CURRENT_FONT_COUNT:
-    for (node = state->currentFontList->head, count = 0; node;
-	 node = node->next, count++) {}
+    for (node = state->currentFontList.head, count = 0; node;
+	 node = node->next, count++);
     return count;
   case GLC_FONT_COUNT:
-    for (count = 0, node = state->fontList->head; node;
-	 node = node->next, count++) {}
+    for (count = 0, node = state->fontList.head; node;
+	 node = node->next, count++);
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    for (count = 0, node = state->masterList->head; node; node = node->next) {
+    for (count = 0, node = state->masterList.head; node; node = node->next) {
       FT_ListNode dlTree = NULL;
-      FT_List list = NULL;
 
-      list = ((__glcMaster*)node->data)->displayList;
-
-      if (list)
-        for (dlTree = list->head; dlTree; dlTree = dlTree->next, count++) {}
+      for (dlTree = ((__glcMaster*)node->data)->displayList.head; dlTree;
+	   dlTree = dlTree->next, count++);
     }
     return count;
   case GLC_MASTER_COUNT:
-    for (node = state->masterList->head, count = 0; node;
-	 node = node->next, count++) {}
+    for (node = state->masterList.head, count = 0; node;
+	 node = node->next, count++);
     return count;
   case GLC_MEASURED_CHAR_COUNT:
     return state->measuredCharCount;
@@ -902,21 +886,17 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_STRING_TYPE:
     return state->stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    for(count = 0, node = state->masterList->head; node; node = node->next) {
+    for(count = 0, node = state->masterList.head; node; node = node->next) {
       FT_ListNode texNode = NULL;
-      FT_List list = NULL;
 
-      list = ((__glcMaster*)node->data)->textureObjectList;
-
-      if (list)
-        for (texNode = list->head; texNode;
-	     texNode = texNode->next, count++) {}
+      for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
+	   texNode; texNode = texNode->next, count++);
     }
     return count;
   case GLC_VERSION_MAJOR:
-    return __glcCommonArea->versionMajor;
+    return __glcCommonArea.versionMajor;
   case GLC_VERSION_MINOR:
-    return __glcCommonArea->versionMinor;
+    return __glcCommonArea.versionMinor;
   }
 
   return 0;

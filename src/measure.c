@@ -95,7 +95,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
   FT_ListNode node = NULL;
 
   /* Look for the font identified by 'inFont' in the GLC_FONT_LIST */
-  for (node = inState->fontList->head; node; node = node->next) {
+  for (node = inState->fontList.head; node; node = node->next) {
     font = (__glcFont*)node->data;
     if (font->id == inFont) break;
   }
@@ -107,7 +107,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
   metrics = face->glyph->metrics;
 
   /* Retrieve which is the glyph that inCode is mapped to */
-  /* TODO : use a dichotomic algo. instead*/
+  /* TODO : use a dichotomic algo. instead */
   for (i = 0; i < font->charMapCount; i++) {
     if ((FT_ULong)inCode == font->charMap[0][i]) {
       inCode = font->charMap[1][i];
@@ -257,7 +257,7 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   /* For each in GLC_CURRENT_FONT_LIST find the maximum values of the advance
    * width of the bounding boxes.
    */
-  for (node = state->currentFontList->head; node; node = node->next) {
+  for (node = state->currentFontList.head; node; node = node->next) {
     GLfloat temp = 0.f;
     face = ((__glcFont*)node->data)->face;
 

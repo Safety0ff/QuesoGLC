@@ -41,6 +41,7 @@ extern "C" {
 #define GLC_OUT_OF_RANGE_LEN 11
 
   typedef struct {
+    FT_ListNodeRec node;
     __glcFaceDescriptor* faceDesc;
     GLint code;
     GLint renderMode;
@@ -62,10 +63,6 @@ extern "C" {
   extern void __glcFree(void* ptr);
   extern void* __glcRealloc(void* ptr, size_t size);
 
-  /* FT double linked list destructor */
-  extern void __glcListDestructor(FT_Memory inMemory, void *inData,
-				  void *inUser);
-
   /* Find a token in a list of tokens separated by 'separator' */
   extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
 				     const GLCchar* inSeparator);
@@ -81,8 +78,6 @@ extern "C" {
   extern GLCchar* __glcNameFromCode(GLint code);
   /* Find a Unicode code from its name */
   extern GLint __glcCodeFromName(GLCchar* name);
-  /* Create an initialize a FreeType  double linked list */
-  extern GLboolean __glcCreateList(FT_List* list);
 
   /* Duplicate a string in UTF-8 format */
   extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
@@ -97,6 +92,10 @@ extern "C" {
 					       const GLint inStringType);
   /* Count the number of bits that are set in c1  */
   extern FcChar32 FcCharSetPopCount(FcChar32 c1);
+
+  /* This function is called when the texture object list is destroyed */
+  extern void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
+					   void *inUser);
 #ifdef __cplusplus
 }
 #endif
