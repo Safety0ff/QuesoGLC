@@ -1,6 +1,10 @@
 Changes made from the "0.1" release to the "0.2" release:
 -----------------------------------------------------------
 
+- Textures in GLC_TEXTURE mode are now of variable size instead of fixed size
+  (previously 64x64).It both optimized the texture memory and removed the
+  garbage that could appear when rendering some fonts.
+- Added UTF-8 support
 - QuesoGLC does not open anymore the font files at font creation. Instead, font
   files are opened when the fonts are added to GLC_CURRENT_FONT_LIST. It lowers
   the number of font files that are simultaneously opened.
