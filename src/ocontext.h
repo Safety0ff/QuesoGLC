@@ -45,6 +45,9 @@ class __glcContextState {
  public:
   static GDBM_FILE unidb1, unidb2;
 
+  GLuint displayDPIx;
+  GLuint displayDPIy;
+
   FT_Library library;
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */

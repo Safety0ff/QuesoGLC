@@ -228,8 +228,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState, GLin
        divide the scale by 2^6 */
     rendererData.scale = 1./64.;
 
-    /* FIXME : err.. that looks very much like a magic number, no ? */
-    rendererData.tolerance = 0.81 * 5. * 5. * 200.;
+    /* We convert the user given tolerance into sensible units */
+    rendererData.tolerance = inState->resolution * 64. * inFont->face->units_per_EM;
     
     /* FIXME : may be we should use a bigger array ? */
     rendererData.vertex = (GLdouble (*)[3]) malloc(GLC_MAX_VERTEX * sizeof(GLfloat) * 3);

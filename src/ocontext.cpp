@@ -41,7 +41,7 @@ __glcContextState::__glcContextState(GLint inContext)
   autoFont = GL_TRUE;
   glObjects = GL_TRUE;
   mipmap = GL_TRUE;
-  resolution = 0.;
+  resolution = 0.05;
   bitmapMatrix[0] = 1.;
   bitmapMatrix[1] = 0.;
   bitmapMatrix[2] = 0.;

@@ -88,8 +88,9 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
 {
   __glcContextState *state = NULL;
 
-  /* Check the parameters. Note that we do not need to check 'value' since
-   * it has been generated internally.
+  /* Check the parameters. 
+   * NOTE : we do not need to check 'value' since it has been generated
+   * internally.
    */
   switch(inAttrib) {
   case GLC_AUTO_FONT:
@@ -181,11 +182,11 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
     return GLC_NONE;
   }
 
-  /* Notice that at this stage we can not verify if inIndex is greater than
-   * or equal to the last element index. In order to perform such a
-   * verification we would need to have the current context states but GLC
-   * specs says that we should first check the parameters _then_ the current
-   * context (section 2.2 of specs). We are done !
+  /* NOTE : at this stage we can not verify if inIndex is greater than or equal
+   * to the last element index. In order to perform such a verification we
+   * would need to have the current context states but GLC specs says that we
+   * should first check the parameters _then_ the current context (section 2.2
+   * of specs). We are done !
    */
   if (inIndex < 0) {
     __glcContextState::raiseError(GLC_PARAMETER_ERROR);
@@ -212,9 +213,9 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    returns a pointer that points to a copy of the requested data.
    * 2. File names are not translated from one string format (UCS1, UCS2, ...)
    *    to another because it is not relevant. We make the assumption that
-   *    the user gave us the file names in the current coding used by his/her
-   *    OS and that this coding does not change during the program execution
-   *    even when glcStringType() is called.
+   *    the user gave us the file names in the current coding of his/her OS and
+   *    that this coding will not change during the program execution even when
+   *    glcStringType() is called.
    */
 
   /* Get the string at offset inIndex */
@@ -256,11 +257,11 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     return 0;
   }
 
-  /* Notice that at this stage we can not verify if inIndex is greater than
-   * or equal to the last element index. In order to perform such a
-   * verification we would need to have the current context states but GLC
-   * specs says that we should first check the parameters _then_ the current
-   * context (section 2.2 of specs). We are done !
+  /* NOTE : at this stage we can not verify if inIndex is greater than or equal
+   * to the last element index. In order to perform such a verification we
+   * would need to have the current context states but GLC specs says that we
+   * should first check the parameters _then_ the current context (section 2.2
+   * of specs). We are done !
    */
   if (inIndex < 0) {
     __glcContextState::raiseError(GLC_PARAMETER_ERROR);
@@ -300,7 +301,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     }
     /* In order to get the display list name, we have to perform a search
      * through the list of display lists of every master. Actually we do not
-     * know which glyph of which font of which master the requested index
+     * even know which glyph of which font of which master the requested index
      * of a display list represents...
      */
     for (i = 0; i < state->masterCount; i++) {
@@ -360,7 +361,7 @@ const GLCchar* glcGetc(GLCenum inAttrib)
   __glcContextState *state = NULL;
   __glcUniChar s;
   GLCchar *buffer = NULL;
-  int length = 0;
+  GLint length = 0;
 
   /* Check the parameters */
   switch(inAttrib) {

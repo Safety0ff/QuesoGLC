@@ -302,7 +302,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 	}
     }
     
-    if (FT_Set_Char_Size(font->face, 0, GLC_POINT_SIZE << 6, (unsigned int)state->resolution, (unsigned int)state->resolution)) {
+    if (FT_Set_Char_Size(font->face, 0, GLC_POINT_SIZE << 6, state->displayDPIx, state->displayDPIy)) {
 	__glcContextState::raiseError(GLC_RESOURCE_ERROR);
 	return;
     }
