@@ -447,15 +447,8 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 
     /* Add the character identified by 'inCharName' to the list GLC_CHAR_LIST.
      */
-    if (!FT_List_Find(font->parent->charList, (void*)code)) {
-      FT_ListNode node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-      if (!node) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-      }
-      node->data = (void*)code;
-      FT_List_Add(font->parent->charList, node);
-    }
+    if (!FcCharSetHasChar(font->parent->charList, code))
+      FcCharSetAddChar(font->parent->charList, code);
 
     /* FIXME : use a dichotomic algo instead */
     for (i = 0; i < font->charMapCount; i++) {
