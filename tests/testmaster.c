@@ -32,6 +32,7 @@ void testQueso(void)
 	printf("- Family : %s\n", (char *)glcGetMasterc(i, GLC_FAMILY));
 	for (j = 0; j < numFaces; j++)
 	    printf("- Face #%d : %s\n", j, (char *)glcGetMasterListc(i, GLC_FACE_LIST, j));
+	printf("- Master #%d maps 0x%X to %s\n", i, 65 + i, (char *)glcGetMasterMap(i, 65 + i));
     }
     
     my_fini();
