@@ -1003,6 +1003,7 @@ void glcStringType(GLCenum inStringType)
   case GLC_UCS1:
   case GLC_UCS2:
   case GLC_UCS4:
+  case GLC_UTF8:
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);

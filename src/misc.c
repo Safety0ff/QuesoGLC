@@ -276,6 +276,9 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
       *ptr = 0;
     }
     break;
+  case GLC_UTF8:
+    string = (FcChar8*)strdup((const char*)inString);
+    break;
   default:
     return NULL;
   }
@@ -375,6 +378,9 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
 
       *ucs4 = 0;
     }
+    break;
+  case GLC_UTF8:
+    string = strdup((const char*)inString);
     break;
   default:
     return NULL;
@@ -482,6 +488,11 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       *ucs4 = 0;
     }
     break;
+  case GLC_UTF8:
+    string = (GLCchar*)__glcCtxQueryBuffer(This,
+					   strlen((const char*)inString)+1);
+    strcpy(string, (const char*)inString);
+    break;
   default:
     return NULL;
   }
@@ -587,6 +598,21 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
       ptr = string;
       for (i = 0; i < inCount; i++)
 	ptr += FcUcs4ToUtf8(*ucs4++, ptr);
+    }
+    break;
+  case GLC_UTF8:
+    {
+      FcChar8* utf8 = (FcChar8*)inString;
+      FcChar32 dummy = 0;
+      int len = 0;
+
+      for (i = 0; i < inCount; i++) {
+	len += FcUtf8ToUcs4(utf8, &dummy, 6);
+	utf8 += len;
+      }
+
+      string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
+      strncpy((char*)string, (const char*)inString, len);
     }
     break;
   default:
