@@ -5,35 +5,88 @@
 int main(void)
 {
   int ctx = 0;
+  GLCenum error = GLC_NONE;
 
-  printf("Error : %d\n", glcGetError());
+  error = glcGetError();
+  if (error) {
+    printf("Unexpected error #0x%X\n", error);
+    return -1;
+  }
   glcDisable(GLC_AUTO_FONT);
-  printf("Error : %d\n", glcGetError());
-  printf("Error : %d\n", glcGetError());
+  error = glcGetError();
+  if (error != GLC_STATE_ERROR) {
+    printf("GLC_STATE_ERROR expected. Error #0x%X instead\n", error);
+    return -1;
+  }
+  error = glcGetError();
+  if (error) {
+    printf("Error state should have been reset.\nError #0x%X instead\n",
+	   error);
+    return -1;
+  }
 
   ctx = glcGenContext();
   glcContext(ctx);
-  printf("Error : %d\n", glcGetError());
+  error = glcGetError();
+  if (error) {
+    printf("Unexpected error #0x%X\n", error);
+    return -1;
+  }
 
-  printf("AUTO_FONT : %s\n", glcIsEnabled(GLC_AUTO_FONT) ? "True" : "False");
-  printf("GL_OBJECTS : %s\n", glcIsEnabled(GLC_GL_OBJECTS) ? "True" : "False");
-  printf("MIPMAP : %s\n", glcIsEnabled(GLC_MIPMAP) ? "True" : "False");
+  if (!glcIsEnabled(GLC_AUTO_FONT)) {
+    printf("GLC_AUTO_FONT should be enabled by default\n");
+    return -1;
+  }
+  if (!glcIsEnabled(GLC_GL_OBJECTS)) {
+    printf("GLC_GL_OBJECTS should be enabled by default\n");
+    return -1;
+  }
+  if (!glcIsEnabled(GLC_MIPMAP)) {
+    printf("GLC_MIPMAP should be enabled by default\n");
+    return -1;
+  }
+
   glcDisable(GLC_AUTO_FONT);
-  printf("Disable : GLC_AUTO_FONT\n");
+  if (glcIsEnabled(GLC_AUTO_FONT)) {
+    printf("GLC_AUTO_FONT should be disabled now\n");
+    return -1;
+  }
+  if (!glcIsEnabled(GLC_GL_OBJECTS)) {
+    printf("GLC_GL_OBJECTS should be enabled\n");
+    return -1;
+  }
+  if (!glcIsEnabled(GLC_MIPMAP)) {
+    printf("GLC_MIPMAP should be enabled\n");
+    return -1;
+  }
 
-  printf("AUTO_FONT : %s\n", glcIsEnabled(GLC_AUTO_FONT) ? "True" : "False");
-  printf("GL_OBJECTS : %s\n", glcIsEnabled(GLC_GL_OBJECTS) ? "True" : "False");
-  printf("MIPMAP : %s\n", glcIsEnabled(GLC_MIPMAP) ? "True" : "False");
   glcDisable(GLC_GL_OBJECTS);
-  printf("Disable : GLC_GL_OBJECTS\n");
+  if (glcIsEnabled(GLC_AUTO_FONT)) {
+    printf("GLC_AUTO_FONT should be disabled now\n");
+    return -1;
+  }
+  if (glcIsEnabled(GLC_GL_OBJECTS)) {
+    printf("GLC_GL_OBJECTS should be disbled\n");
+    return -1;
+  }
+  if (!glcIsEnabled(GLC_MIPMAP)) {
+    printf("GLC_MIPMAP should be enabled\n");
+    return -1;
+  }
 
-  printf("AUTO_FONT : %s\n", glcIsEnabled(GLC_AUTO_FONT) ? "True" : "False");
-  printf("GL_OBJECTS : %s\n", glcIsEnabled(GLC_GL_OBJECTS) ? "True" : "False");
-  printf("MIPMAP : %s\n", glcIsEnabled(GLC_MIPMAP) ? "True" : "False");
-
-  printf("Error : %d\n", glcGetError());
+  error = glcGetError();
+  if (error) {
+    printf("Unexpected error #0x%X\n", error);
+    return -1;
+  }
   glcDisable(0);
-  printf("Error : %d\n", glcGetError());
+  error = glcGetError();
+  if (error != GLC_PARAMETER_ERROR) {
+    printf("GLC_PARAMETER_ERROR expected. Error #0x%X instead\n", error);
+    return -1;
+  }
+
+  printf("Tests successful!\n");
 
   return 0;
 }
