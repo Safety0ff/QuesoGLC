@@ -23,9 +23,24 @@
  * specs.
  */
 
-/** \defgroup context Context Commands
+/** \defgroup context Context State Commands
  *  Commands to get or modify informations of the context state of the current
  *  thread.
+ *
+ * GLC refers to the current context state whenever it executes a command.
+ * Most of its state is directly available to the user : in order to control
+ * the result of the GLC commands, he or she may want to get or modify the
+ * state of the current context. This is precisely the purpose of the context
+ * state commands.
+ *
+ * \note Some GLC commands create, use or delete display lists and/or textures.
+ * The IDs of those display lists and textures are stored in the current GLC
+ * context but the display lists and the textures themselves are managed by
+ * the current GL context. In order not to impact the performance of error-free
+ * programs, QuesoGLC does not check that the current GL context is the same
+ * than the one where the display lists and the textures were actually created.
+ * If the current GL context has changed meanwhile, the result of commands that
+ * refer to the corresponding display lists or textures is undefined.
  */
 
 #include <stdlib.h>
@@ -58,8 +73,8 @@
  *  </table>
  *  </center>
  *
- *  The callback function can access can access to client data in a thread-safe
- *  manner with glcGetPointer().
+ *  The callback function can access to client data in a thread-safe manner
+ *  with glcGetPointer().
  *  \param inOpcode Type of the callback function
  *  \param inFunc Callback function
  *  \sa glcGetCallbackFunc()
@@ -94,7 +109,7 @@ void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
  *  function.
  *
  *  \e glcDataPointer provides a way to store in a GLC context a pointer to
- *  arbitrary application data. A GLC callback fucntion can subsequently use
+ *  arbitrary application data. A GLC callback function can subsequently use
  *  the command glcGetPointer() to obtain access to these data in a thread-safe
  *  manner.
  *  \param inPointer The pointer to assign to \b GLC_DATA_POINTER
@@ -146,8 +161,8 @@ void __glcDeleteGLObjects(__glcContextState *inState)
  *  in \b GLC_LIST_OBJECT_LIST and uses the command \c glDeleteTextures to
  *  delete all of the GL objects named in \b GLC_TEXTURE_OBJECT_LIST. When an
  *  execution of glcDeleteGLObjects finishes, both of these lists are empty.
- *  \note \e glcDeleteGLObjects deletes only the objects that the current
- *        context owns, not all objects in all contexts.
+ *  \note \c glcDeleteGLObjects deletes only the objects that the current
+ *   context owns, not all objects in all contexts.
  *  \sa glcGetListi()
  */
 void glcDeleteGLObjects(void)
@@ -245,11 +260,11 @@ void glcDisable(GLCenum inAttrib)
  *  This command assigns the value \b GL_TRUE to the boolean variable
  *  identified by \e inAttrib which must be chosen in the table above.
  *
- *  - \b GLC_AUTO_FONT : if enabled, GLC provides a font when the current GLC
- *    context has no fonts (i.e. provides a font to an application if the
- *    application does not want to set up fonts itself.
- *  - \b GLC_GL_OBJECTS : if enabled, GLC stores fonts in GL lists and textures
- *    in GL texture objects.
+ *  - \b GLC_AUTO_FONT : if enabled, GLC tries to automatically find a font
+ *    among the masters to map the character code to be rendered (see also
+ *    glcRenderChar()).
+ *  - \b GLC_GL_OBJECTS : if enabled, GLC stores characters rendering commands
+ *    in GL display lists and textures (if any) in GL texture objects.
  *  - \b GLC_MIPMAP : if enabled, texture objects used by GLC are mipmapped
  *    using GLU's \c gluBuild2DMipmaps.
  *
@@ -271,7 +286,7 @@ void glcEnable(GLCenum inAttrib)
  *  signature are defined in the table shown in glcCallbackFunc()'s
  *  definition.
  *  \param inOpcode The callback function to be retrieved
- *  \return the value of the callback function variable
+ *  \return The value of the callback function variable
  *  \sa glcCallbackFunc()
  */
 GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
@@ -323,7 +338,7 @@ GLCfunc glcGetCallbackFunc(GLCenum inOpcode)
  *  variable.
  *  \param inAttrib The string list attribute
  *  \param inIndex The index from which to retrieve an element.
- *  \return the string list element
+ *  \return The string list element
  *  \sa glcGetListi()
  */
 const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
@@ -444,7 +459,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
  *  variable.
  *  \param inAttrib The integer list attribute
  *  \param inIndex The index from which to retrieve the element.
- *  \return the element from the integer list.
+ *  \return The element from the integer list.
  *  \sa glcGetListc()
  */
 GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
@@ -557,7 +572,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
  *  </table>
  *  </center>
  *  \param inAttrib The pointer category
- *  \return the pointer
+ *  \return The pointer
  *  \sa glcDataPointer()
  */
 GLvoid * glcGetPointer(GLCenum inAttrib)
@@ -603,7 +618,7 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
  *  </table>
  *  </center>
  *  \param inAttrib The attribute that identifies the string constant
- *  \return the string constant.
+ *  \return The string constant.
  *  \sa glcGetf()
  *  \sa glcGeti()
  *  \sa glcGetfv()
@@ -612,8 +627,8 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "";
-  static GLCchar* __glcRelease = (GLCchar*) "Release 0.1";
-  static GLCchar* __glcVendor = (GLCchar*) "Queso Software";
+  static GLCchar* __glcRelease = (GLCchar*) "Release 0.2";
+  static GLCchar* __glcVendor = (GLCchar*) "QuesoGLC";
 
   __glcContextState *state = NULL;
 
@@ -710,7 +725,7 @@ GLfloat glcGetf(GLCenum inAttrib)
  *  </center>
  *  \param inAttrib The parameter value to be returned
  *  \param outVec Specifies where to store the return value
- *  \return the current value of the floating point vector variable
+ *  \return The current value of the floating point vector variable
  *  \sa glcGetf()
  *  \sa glcGeti()
  *  \sa glcGetc()
@@ -798,7 +813,7 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *  </table>
  *  </center>
  *  \param inAttrib Attribute for which an integer variable is requested.
- *  \return the value or values of the integer variable.
+ *  \return The value or values of the integer variable.
  *  \sa glcGetc()
  *  \sa glcGetf()
  *  \sa glcGetfv()
@@ -904,8 +919,8 @@ GLint glcGeti(GLCenum inAttrib)
  *
  *  Attributes that can enabled and disables are listed on the glcDisable()
  *  description.
- *  \param inAttrib the attribute to be tested
- *  \return the state of the attribute \e inAttrib.
+ *  \param inAttrib The attribute to be tested
+ *  \return The state of the attribute \e inAttrib.
  *  \sa glcEnable()
  *  \sa glcDisable()
  */
@@ -954,16 +969,19 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
  *  <table>
  *  <caption>String types</caption>
  *  <tr>
- *    <td>Name</td> <td>Enumerant</td>
+ *    <td>Name</td> <td>Enumerant</td> <td>Type of characters</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_UCS1</b></td> <td>0x0110</td>
+ *    <td><b>GLC_UCS1</b></td> <td>0x0110</td> <td>GLubyte</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_UCS2</b></td> <td>0x0111</td>
+ *    <td><b>GLC_UCS2</b></td> <td>0x0111</td> <td>GLushort</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_UCS4</b></td> <td>0x0112</td>
+ *    <td><b>GLC_UCS4</b></td> <td>0x0112</td> <td>GLuint</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_UTF8</b></td> <td>0x0113</td> <td>GLubyte</td>
  *  </tr>
  *  </table>
  *  </center>
@@ -971,17 +989,16 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
  *  Every character string used in the GLC API is represented as a
  *  zero-terminated array, unless otherwise specified. The value of
  *  the variable \b GLC_STRING_TYPE determines the interpretation of
- *  the array. The values \b GLC_UCS1, \b GLC_UCS2 and \b GLC_UCS4
- *  specify that each array element is a UCS code of type \b GLubyte,
- *  \b GLushort or \b GLint, respectively. The initial value of
+ *  the array. The values \b GLC_UCS1, \b GLC_UCS2, \b GLC_UCS4 and \b GLC_UTF8
+ *  indicate how the element of the string should be interpreted. Currently
+ *  QuesoGLC supports UCS1, UCS2, UCS4 and UTF-8 formats defined in the
+ *  Unicode 4.0.1 and ISO/IEC 10646:2003 standards. The initial value of
  *  \b GLC_STRING_TYPE is \b GLC_UCS1.
  *
- *  Some GLC commands return strings. The return value of these commands
- *  is a pointer to a string return buffer in the issuing thread's current
- *  GLC context. This pointer is valid until the next GLC command is
- *  issued. The pointer may be used as a parameter to the next GLC command.
- *  The client must copy the returned string to a client-provided buffer if
- *  the value of the string is needed after the next GLC command is issued.
+ *  \note Currently, the string formats UCS2 and UCS4 are interpreted according
+ *  to the underlying platform endianess. If the strings are provided in a
+ *  different endianess than the platform's, the client must translate the
+ *  strings in the correct endianess.
  *
  *  The value of a character code in a returned string may exceed the range
  *  of the character encoding selected by \b GLC_STRING_TYPE. In this case,
