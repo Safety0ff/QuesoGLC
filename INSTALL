@@ -1,4 +1,4 @@
-For now, QuesoGLC can only be built on POSIX platforms.
+So far, QuesoGLC can only be built on POSIX platforms.
 
 1. What do you need in order to build QuesoGLC :
 ==============================================
@@ -10,19 +10,23 @@ QuesoGLC depends on tools and libraries that are now widely used in the
 Open Source world, and which might already be installed on your favorite
 platform. If not, you can get them on Internet and build them on your system.
 
-* GNU Make tool (www.gnu.org/software/make/make.html)
-	QuesoGLC's build process heavily rely on this tool. You must install it
-	first.
-* FreeType2 (www.freetype.org)
-	This is the core lib that manage fonts files and datas. QuesoGLC heavily
-	uses its functionnalities.
 * OpenGL, GLU (www.opengl.org/documentation/implementations.html)
 	QuesoGLC is supposed to provide a character rendering service for
 	OpenGL. Hence you definitely need OpenGL ;-)
+* FreeType2 (www.freetype.org)
+	This is the core lib that manage fonts files and datas. QuesoGLC heavily
+	uses its functionnalities.
+* Fontconfig (www.fontconfig.org)
+	Fontconfig is a library for font customization and configuration. It is
+	used by QuesoGLC to automagically detect the fonts that are available
+	on your system.
 * POSIX threads
 	GLC is designed with core support for multi-threading. However,
 	QuesoGLC only supports POSIX threads. 'pthread' lib and headers are
 	mandatory in order to build QuesoGLC.
+* GNU Make tool (www.gnu.org/software/make/make.html)
+	QuesoGLC's build process heavily rely on this tool. You must install it
+	first.
 
 1.1 Tools/headers/libraries that are optional :
 ---------------------------------------------
@@ -45,14 +49,21 @@ Simply type
   make install
 
 on the command line to configure, build and install QuesoGLC on your
-system. Note that the default installation path is "/usr/local".
+system. Note that the default installation path is "/usr/local". If you want to
+install QuesoGLC to another location, use the --prefix option of configure :
 
-4. Is that all ?
+  ./configure --prefix=/another/location
+
+3. Is that all ?
 ================
 
-When the library has been successfully built, you might define the variable
-GLC_PATH in order to indicate QuesoGLC where to find fonts. Depending on your
-shell the command is either
+When the library has been successfully built, you might define the environment
+variable GLC_PATH in order to indicate QuesoGLC where to find fonts. This step
+is optional since QuesoGLC uses Fontconfig to locate fonts on your system. You
+can however add some additional directories to those detected by Fontconfig.
+
+GLC_PATH is a colon-separated list of directories similar to the PATH
+environment variable. Depending on your shell the command is either
 
 export GLC_PATH=/usr/lib/X11/fonts/Type1:/path/to/another/font/directory
 
@@ -63,9 +74,10 @@ setenv GLC_PATH /usr/lib/X11/fonts/Type1:/path/to/another/font/directory
 Note : the path /usr/lib/X11/fonts/Type1 usually leads to Type1 fonts on almost
 all X-window flavor.
 
-5. Is that really all ?
+4. Is that really all ?
 =======================
 
-You should have a look to the README file and get the specifications of GLC
-from www.opengl.org/documentation/specs/glc/glcspec.ps.
-You should also try the tests programs too.
+You should have a look to the README file and to the documentation, especially
+to the tutorial. You can also get the specifications of GLC from
+www.opengl.org/documentation/specs/glc/glcspec.ps. You should also try the tests
+programs too.
