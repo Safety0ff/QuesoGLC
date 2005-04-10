@@ -24,6 +24,8 @@
  */
 
 /** \defgroup global Global Commands
+ *  Commands to create, manage and destroy GLC contexts.
+ *
  *  Those commands do not use GLC context state variables and can therefore be
  *  executed successfully if the issuing thread has no current GLC context. 
  *
