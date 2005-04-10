@@ -29,6 +29,16 @@
  * the state machine of GLC, and issue GL commands to render the characters
  * layout to the GL render target.
  *
+ * \note Some rendering commands create and/or use display lists and/or
+ * textures. The IDs of those display lists and textures are stored in the
+ * current GLC context but the display lists and the textures themselves are
+ * managed by the current GL context. In order not to impact the performance of
+ * error-free programs, QuesoGLC does not check that the current GL context is
+ * the same than the one where the display lists and the textures were actually
+ * created. If the current GL context has changed meanwhile, the result of
+ * commands that refer to the corresponding display lists or textures is
+ * undefined.
+ *
  * As a reminder, the render commands may issue GL commands, hence a GL context
  * must be bound to the current thread such that the GLC commands produce the
  * desired result. It is the responsibility of the GLC client to set up the
@@ -149,14 +159,12 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   /* Get the bounding box of the glyph */
   FT_Outline_Get_CBox(&outline, &boundBox);
 
-  /* Compute the sizes of the pixmap where the glyph will be drawn */
+  /* Compute the size of the pixmap where the glyph will be rendered */
   boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
   boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
   boundBox.xMax = (boundBox.xMax + 63) & -64;	/* ceiling(xMax) */
   boundBox.yMax = (boundBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-  width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64);
-  height = (GLfloat)((boundBox.yMax - boundBox.yMin) / 64);
   pixmap.width = __glcNextPowerOf2((boundBox.xMax - boundBox.xMin) >> 6);
   pixmap.rows = __glcNextPowerOf2((boundBox.yMax - boundBox.yMin) >> 6);
   pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
@@ -263,6 +271,10 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     glBindTexture(GL_TEXTURE_2D, texture);
   }
 
+  /* Compute the size of the glyph */
+  width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64.);
+  height = (GLfloat)((boundBox.yMax - boundBox.yMin) / 64.);
+
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glTexCoord2f(0., 0.);
@@ -283,14 +295,15 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glTranslatef(face->glyph->advance.x / 64. / GLC_POINT_SIZE, 
 	       face->glyph->advance.y / 64. / GLC_POINT_SIZE, 0.);
 
+  glBindTexture(GL_TEXTURE_2D, 0);
+
   if (inState->glObjects) {
     /* Finish display list creation */
-    glBindTexture(GL_TEXTURE_2D, 0);
     glEndList();
     glCallList(dlKey->list);
   }
   else
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glDeleteTextures(1, &texture);
 
   __glcFree(pixmap.buffer);
 }
@@ -365,7 +378,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
 
   /* Define the size of the rendered glyphs (based on screen resolution) */
   if (FT_Set_Char_Size(font->face, GLC_POINT_SIZE << 6, 0, state->displayDPIx,
-		       state->displayDPIy)) {
+		       state->displayDPIy)) { 
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
