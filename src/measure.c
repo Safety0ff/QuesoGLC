@@ -622,7 +622,7 @@ GLint __glcMeasureCountedString(__glcContextState *state,
  *  \param inCount The number of elements to measure, starting at the first
  *                 element.
  *  \param inString The string to be measured.
- *  \returns the variable \b GLC_MEASURED_CHARACTER_COUNT if the command
+ *  \returns The variable \b GLC_MEASURED_CHARACTER_COUNT if the command
  *           succeeds, zero otherwise.
  *  \sa glcGeti() with argument GLC_MEASURED_CHAR_COUNT
  *  \sa glcGetStringCharMetric()
@@ -667,7 +667,7 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 /** \ingroup measure
  *  This command measures the layout that would result from rendering a string
  *  and stores the measurements in the GLC measurement buffer. This command
- *  is indetical to the command glcMeasureCountedString(), except
+ *  is indentical to the command glcMeasureCountedString(), except
  *  that \e inString is zero terminated, not counted.
  *
  *  If the command does not raise an error, its return value is the value of
@@ -675,7 +675,7 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
  *  \param inMeasureChars Specifies whether to compute metrics only for the
  *                        string or for the characters as well.
  *  \param inString The string to be measured.
- *  \returns the variable \b GLC_MEASURED_CHARACTER_COUNT if the command
+ *  \returns The variable \b GLC_MEASURED_CHARACTER_COUNT if the command
  *           succeeds, zero otherwise.
  *  \sa glcGeti() with argument GLC_MEASURED_CHAR_COUNT
  *  \sa glcGetStringCharMetric()
