@@ -38,9 +38,6 @@ typedef struct {
   GLCchar *buffer;
   GLint bufferSize;
 
-  GLuint displayDPIx;
-  GLuint displayDPIy;
-
   FT_Library library;
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */

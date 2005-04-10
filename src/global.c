@@ -317,10 +317,6 @@ void glcContext(GLint inContext)
   char *version = NULL;
   char *extension = NULL;
 #endif
-#ifndef __APPLE__
-  Display *dpy = NULL;
-  Screen *screen = NULL;
-#endif
   __glcContextState *currentState = NULL;
   __glcContextState *state = NULL;
   threadArea *area = NULL;
@@ -335,15 +331,6 @@ void glcContext(GLint inContext)
 
   area = __glcGetThreadArea();
   assert(area);
-
-#ifndef __APPLE__
-  /* Get the screen on which drawing ops will be performed */
-  dpy = glXGetCurrentDisplay();
-  if (dpy) {
-    /* WARNING ! This may not be relevant if the display has several screens */
-    screen = DefaultScreenOfDisplay(dpy);
-  }
-#endif
 
   /* Lock the "Common Area" in order to prevent race conditions */
   __glcLock();
@@ -430,24 +417,6 @@ void glcContext(GLint inContext)
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
 #endif
-
-  if (area->currentContext) {
-#ifndef __APPLE__
-    if (dpy) {
-      /* Compute the resolution of the screen in DPI (dots per inch) */
-      if (WidthMMOfScreen(screen) && HeightMMOfScreen(screen)) {
-	area->currentContext->displayDPIx =
-	  (GLuint)( 25.4 * WidthOfScreen(screen) / WidthMMOfScreen(screen));
-	area->currentContext->displayDPIy =
-	  (GLuint) (25.4 * HeightOfScreen(screen) / HeightMMOfScreen(screen));
-      }
-      return;
-    }
-#endif
-    /* Standard values */
-    area->currentContext->displayDPIx = 72;
-    area->currentContext->displayDPIy = 72;
-  }
 }
 
 

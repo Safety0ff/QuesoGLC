@@ -272,12 +272,11 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
   /* grid_coordinate is given in 26.6 fixed point integer hence we
      divide the scale by 2^6 */
-  rendererData.scale_x = 1./64./GLC_POINT_SIZE/* *72./inState->displayDPIx */;
-  rendererData.scale_y = 1./64./GLC_POINT_SIZE/* *72./inState->displayDPIy */;
+  rendererData.scale_x = 1./64./GLC_POINT_SIZE;
+  rendererData.scale_y = 1./64./GLC_POINT_SIZE;
 
-  /* We convert the user given tolerance into sensible units */
-  rendererData.tolerance = inState->resolution * GLC_POINT_SIZE
-    * inFont->face->units_per_EM;
+  /* Compute the tolerance for the deCasteljau algorithm */
+  rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFont->face->units_per_EM;
 
   /* FIXME : may be we should use a bigger array ? */
   rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX

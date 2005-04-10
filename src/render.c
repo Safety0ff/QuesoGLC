@@ -33,7 +33,7 @@
  * textures. The IDs of those display lists and textures are stored in the
  * current GLC context but the display lists and the textures themselves are
  * managed by the current GL context. In order not to impact the performance of
- * error-free programs, QuesoGLC does not check that the current GL context is
+ * error-free programs, QuesoGLC does not check if the current GL context is
  * the same than the one where the display lists and the textures were actually
  * created. If the current GL context has changed meanwhile, the result of
  * commands that refer to the corresponding display lists or textures is
@@ -377,11 +377,12 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   }
 
   /* Define the size of the rendered glyphs (based on screen resolution) */
-  if (FT_Set_Char_Size(font->face, GLC_POINT_SIZE << 6, 0, state->displayDPIx,
-		       state->displayDPIy)) { 
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  if (FT_Set_Char_Size(font->face, GLC_POINT_SIZE << 6, 0,
+		       (FT_UInt)state->resolution, (FT_UInt)state->resolution))
+    { 
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
 
   /* Get and load the glyph which unicode code is identified by inCode */
   glyphIndex = FcFreeTypeCharIndex(font->face, inCode);
@@ -708,11 +709,11 @@ void glcReplacementCode(GLint inCode)
 
 /** \ingroup render
  *  This command assigns the value \e inVal to the variable \b GLC_RESOLUTION.
- *  \note In QuesoGLC, the resolution is used by the algorithm of
- *  de Casteljau which determine how many segments should be used in order
- *  to approximate a Bezier curve. Bezier curves are generated when
- *  glcRenderChar() is called with \b GLC_RENDER_STYLE set to \b GLC_TRIANGLE
- *  or \b GLC_LINE.
+ *  It is used to compute the size of characters in pixels from the size in
+ *  points.
+ *
+ *  The resolution is given in \e dpi (dots per inch). If \e inVal is zero, the
+ *  resolution defaults to 72 dpi.
  *  \param inVal A floating point number to be used as resolution.
  *  \sa glcGeti() with argument GLC_RESOLUTION
  */
