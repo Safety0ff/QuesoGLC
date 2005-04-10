@@ -5,7 +5,7 @@ C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
-	       tests/testrender
+	       tests/testrender tests/tutorial
 
 LIB_NAME = lib/libGLC
 LIBRARY = @LIBRARY@
