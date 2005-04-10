@@ -51,7 +51,7 @@ The interpretation of arrays of character codes of type GLCchar in the
 GLC API is determined by the value of the GLC context state variable
 GLC_STRING_TYPE. The values GLC_UCS1, GLC_UCS2, GLC_UCS4 and GLC_UTF8 specify
 that each array element is either a Unicode code point of type GLubyte,
-GLushort, GLint, or GLushort respectively. The initial value of GLC_STRING_TYPE
+GLushort, GLint, or GLubyte respectively. The initial value of GLC_STRING_TYPE
 is GLC_UCS1.
 
 Before issuing a GLC rendering command, a client must issue GL commands

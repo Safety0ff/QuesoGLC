@@ -37,7 +37,7 @@
  * The IDs of those display lists and textures are stored in the current GLC
  * context but the display lists and the textures themselves are managed by
  * the current GL context. In order not to impact the performance of error-free
- * programs, QuesoGLC does not check that the current GL context is the same
+ * programs, QuesoGLC does not check if the current GL context is the same
  * than the one where the display lists and the textures were actually created.
  * If the current GL context has changed meanwhile, the result of commands that
  * refer to the corresponding display lists or textures is undefined.
