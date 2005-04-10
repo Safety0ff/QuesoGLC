@@ -24,8 +24,19 @@
  */
 
 /** \defgroup master Master Commands
+ *  Commands to create, manage and destroy masters.
+ *
  *  A master is a representation of a font that is stored outside QuesoGLC in a
  *  standard format such as TrueType or Type1.
+ *
+ *  QuesoGLC maps the font files into master objects that are visible through
+ *  the GLC API. A group of font files from a single typeface family will be
+ *  mapped into a single GLC master object that has multiple faces. For
+ *  example, the files \c Courier.pfa, \c Courier-Bold.pfa,
+ *  \c Courier-BoldOblique.pfa, and \c Courier-Oblique.pfa are visible through
+ *  the GLC API as a single master with \c GLC_VENDOR="Adobe",
+ *  \c GLC_FAMILY="Courier", \c GLC_MASTER_FORMAT="Type1", \c GLC_FACE_COUNT=4
+ *  and \c GLC_FACE_LIST=("Regular", "Bold", "Bold Oblique", "Oblique")
  *
  *  Some GLC commands have a parameter \e inMaster. This parameter is an offset
  *  from the the first element in the GLC master list. The command raises
@@ -176,20 +187,20 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  *  identified by \e inMaster maps \e inCode to.
  *
  *  Every master has associated with it a master map, which is a table of
- *  entries that map inetger values to the name string that identifies the
+ *  entries that map integer values to the name string that identifies the
  *  character.
  *
- *  Every character code used in QuesoGLC is an element of the Universal
- *  Multiple-Octet Coded Character Set (UCS) defined by the standards ISO/IEC
- *  10646-1:1993 and Unicode 2.0 (unless otherwise specified). A UCS code is
- *  denoted as \e U+hexcode, where \e hexcode is a sequence of hexadecimal
- *  digits. Each UCS code corresponds to a character that has a unique name
+ *  Every character code used in QuesoGLC is an element of the Unicode
+ *  Character Database (UCD) defined by the standards ISO/IEC 10646:2003 and
+ *  Unicode 4.0.1 (unless otherwise specified). A Unicode code point is denoted
+ *  as \e U+hexcode, where \e hexcode is a sequence of hexadecimal digits. Each
+ *  Unicode code point corresponds to a character that has a unique name
  *  string. For example, the code \e U+41 corresponds to the character
  *  <em>LATIN CAPITAL LETTER A</em>.
  *
  *  If the master does not map \e inCode, the command returns \b GLC_NONE.
- *  \note While you cannot change the map for a master, you can change the map
- *  for a font using glcFontMap().
+ *  \note While you cannot change the map of a master, you can change the map
+ *  of a font using glcFontMap().
  *  \param inMaster The integer ID of the master from which to select the
  *                  character.
  *  \param inCode The integer ID of character in the master map.
@@ -404,7 +415,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
  *  </center>
  *  \param inMaster The master for which an attribute value is needed.
  *  \param inAttrib The attribute for which the value is needed.
- *  \return the value of the attribute \e inAttrib of the master identified
+ *  \return The value of the attribute \e inAttrib of the master identified
  *  by \e inMaster.
  *  \sa glcGetMasterc()
  *  \sa glcGetMasterMap()
@@ -482,9 +493,9 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
  *  of this string is specified by the value that has been set using
  *  glcStringType().
  *
- *  A catalog is a path to a file named \c fonts.dir which is a list of
- *  masters. A master is a representation of a font that is stored outside
- *  QuesoGLC in a standard format such as TrueType or Type1.
+ *  A catalog is a path to a list of masters. A master is a representation of a
+ *  font that is stored outside QuesoGLC in a standard format such as TrueType
+ *  or Type1.
  *
  *  A catalog defines the list of masters that can be instantiated (that is, be
  *  used as fonts) in a GLC context.
@@ -546,6 +557,9 @@ void glcPrependCatalog(const GLCchar* inCatalog)
  *  the string at offset \e inIndex from the first element in the list. The
  *  command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than zero or is
  *  greater than or equal to the value of the variable \b GLC_CATALOG_COUNT.
+ *
+ *  QuesoGLC also destroys the masters that are defined in the corresponding
+ *  catalog.
  *  \param inIndex The string to remove from the catalog list
  *                 \b GLC_CATALOG_LIST
  *  \sa glcAppendCatalog()
