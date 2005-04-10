@@ -4,6 +4,7 @@ AC_CONFIG_HEADER(include/qglc_config.h:include/qglc_config.hin)
 
 AC_PROG_CC
 
+VERSION="0.2"
 dnl Enable shared library building
 
 AH_TEMPLATE([QUESOGLC_STATIC_LIBRARY], [Define if we are building a static library])
@@ -90,11 +91,13 @@ dnl Locate GLUT headers and libraries
 AC_CHECK_HEADER(GL/glut.h, , fail_glut=y)
 AC_CHECK_LIB(glut, glutInit, LIBS="-lglut $LIBS", fail_glut=y)
 if test -n "$fail_glut"; then
-	AC_MSG_ERROR([Unable to locate required GLUT headers/libraries])
+	EXAMPLES=""
+else
+	EXAMPLES="\$(TEST_OBJECTS)"
 fi
 
 if test -n "$glc_build_shared"; then
-	LIBRARY="\$(LIB_NAME).so"
+	LIBRARY="\$(LIB_NAME).so.\$(VERSION)"
 	CFLAGS4SHARED="-fPIC"
 else
 	LIBS="$LIBS4SHARED $LIBS"
@@ -108,6 +111,8 @@ AC_SUBST(prefix)
 AC_SUBST(LIBRARY)
 AC_SUBST(LIBS4SHARED)
 AC_SUBST(CFLAGS4SHARED)
+AC_SUBST(VERSION)
+AC_SUBST(EXAMPLES)
 
 AC_OUTPUT(makefile:makefile.unx,
   [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h])

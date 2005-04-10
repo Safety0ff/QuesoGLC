@@ -7,8 +7,10 @@ TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
 	       tests/testrender tests/tutorial
 
-LIB_NAME = lib/libGLC
-LIBRARY = @LIBRARY@
+LIB_NAME = libGLC
+VERSION = @VERSION@
+LIBRARY = lib/@LIBRARY@
+EXAMPLES = @EXAMPLES@
 
 # Programs
 CC = @CC@
@@ -30,7 +32,7 @@ endif
 CFLAGS += -Wall -pedantic-errors -Werror
 CPPFLAGS += -Iinclude -Isrc
 
-all: $(TEST_OBJECTS) $(LIBRARY)
+all: $(EXAMPLES) $(LIBRARY)
 
 clean:
 	rm -f config.*
@@ -46,7 +48,7 @@ distclean: clean
 install : $(LIBRARY)
 	mkdir -p $(INCLUDE_DIR)/GL
 	cp include/GL/glc.h $(INCLUDE_DIR)/GL/.
-	cp lib/libGLC.a $(LIB_DIR)/.
+	cp $(LIBRARY) $(LIB_DIR)/.
 
 depend:
 	@echo "Generating dependencies..."
@@ -61,8 +63,8 @@ tests/% :  tests/%.c $(LIBRARY)
 obj/%.o : src/%.c
 	$(CC) -c $(CFLAGS) @CFLAGS4SHARED@ $(CPPFLAGS) $< -o $@
 
-$(LIB_NAME).a : $(LIB_OBJECTS)
+lib/%.a : $(LIB_OBJECTS)
 	ar -r $@ $^
 
-$(LIB_NAME).so : $(LIB_OBJECTS)
-	ld -shared -o $@  -soname libGLC.so.0.2 $(LDFLAGS) @LIBS4SHARED@ $^
+lib/%.so.$(VERSION) : $(LIB_OBJECTS)
+	ld -shared -o $@  -soname libGLC.so.0 $(LDFLAGS) @LIBS4SHARED@ $^
