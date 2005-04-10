@@ -14,8 +14,6 @@ int main(void)
   ctx = glcGenContext();
   glcContext(ctx);
 
-  glcAppendCatalog("../fonts/Type1");
-
   numCatalogs = glcGeti(GLC_CATALOG_COUNT);
   printf("Catalogs : %d\n", numCatalogs);
   
