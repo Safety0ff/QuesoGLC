@@ -44,14 +44,15 @@ A catalog is a file containing a list of master file names. A list of catalog
 names (GLC_CATALOG_LIST) defines the list of masters that can be instantiated
 in a GLC context.
 
-By default, GLC interprets all character codes as elements of the Universal
-Coded Set (UCS) defined by ISO 10646-1:1993.
+By default, GLC interprets all character codes as elements of the Unicode
+Character Database (UCD) defined by Unicode 4.0.1.
 
 The interpretation of arrays of character codes of type GLCchar in the
 GLC API is determined by the value of the GLC context state variable
-GLC_STRING_TYPE. The values GLC_UCS1, GLC_UCS2, and GLC_UCS4 specify that
-each array element is a UCS code of type GLubyte, GLushort, or GLint,
-respectively. The initial value of GLC_STRING_TYPE is GLC_UCS1.
+GLC_STRING_TYPE. The values GLC_UCS1, GLC_UCS2, GLC_UCS4 and GLC_UTF8 specify
+that each array element is either a Unicode code point of type GLubyte,
+GLushort, GLint, or GLushort respectively. The initial value of GLC_STRING_TYPE
+is GLC_UCS1.
 
 Before issuing a GLC rendering command, a client must issue GL commands
 directly to establish a GL state such that the GL commands issued by GLC

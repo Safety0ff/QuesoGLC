@@ -26,7 +26,7 @@ advantages over platform specific interface such as GLX or WGL :
 -# GLC provides better support for the large coded character set defined by the
    standards ISO/IEC 10646:2003 and Unicode 4.0.1
 
-GLC is a library that has been designed by SGI and that is only available on
+GLC is a library that has been designed by SGI and that was only available on
 SGI workstations under IRIX 6.2 and later. The draft of the GLC specifications
 can be downloaded <a href="http://www.opengl.org/documentation/spec.html">
 here</a>. As far as I know, SGI dropped the development of GLC and the draft of
@@ -215,17 +215,26 @@ rendered. Indeed, when the glcRenderString() command will be executed, GLC
 will issue some GL commands but nothing will be displayed if we do not tell
 OpenGL where to render the string.
 
+By default, QuesoGLC renders fonts at a size of 1 point. If we want our text
+to be readable, we must scale it :
+
+\code
+/* Render the text at a size of 100 points */
+glcScale(100.f, 100.f);
+\endcode
+
 If we decide to render text in bitmap mode (which is the default render style
 of GLC), we need to give the raster position and (why not ?) the color of the
 text to OpenGL :
 
 \code
-glRasterPos2f(100.f, 100.f);
 glColor3f(1.f, 0.f, 0.f);
+glRasterPos2f(50.f, 50.f);
 \endcode
 
-Now, our text will be rendered at coordinates (100, 100) in red color. It is
-time now to render the famous <em>"Hello world!"</em> string :
+Now, our text will be rendered at coordinates (50, 50) in red color. 
+
+It is time now to render the famous <em>"Hello world!"</em> string :
 
 \code
 glcRenderString("Hello world!");
@@ -234,6 +243,9 @@ glcRenderString("Hello world!");
 That's it ! With a few lines of code, GLC allows to render some text in an
 OpenGL window.
 
+\image html tutorial.png
+
+\n
 As a reminder, the complete code is given below :
 
 \code
@@ -250,9 +262,12 @@ glcNewFontFromFamily(myFont, "Palatino");
 glcFontFace(myFont, "Bold");
 glcFont(myFont);
 
+/* Render the text at a size of 100 points */
+glcScale(100.f, 100.f);
+
 /* Render "Hello world!" */
-glRasterPos2f(100.f, 100.f);
 glColor3f(1.f, 0.f, 0.f);
+glRasterPos2f(50.f, 50.f);
 glcRenderString("Hello world!");
 \endcode
 
@@ -260,9 +275,8 @@ Most of the code above is executed once in a program : the GLC setup and the
 font creation are done at the beginning of the program, only the rendering
 part of the code (that is 3 lines !) may be located in the main loop of the
 application.
-\note If the rendering style of the text is not \b GLC_BITMAP, then you may
-need to use \c glTranslate() instead of \c glRasterPos() to locate the position
-where the text is to be rendered.
+\note If the rendering style of the text is not \b GLC_BITMAP, then you should
+use \c glTranslate() and \c glScale() instead of \c glRasterPos() and glcScale().
 
 \section whatmore What more ?
 
@@ -342,7 +356,7 @@ defines the list of masters that can be instantiated in a GLC context.
 Before issuing a GLC rendering command a client must issue GL commands directly
 to establish a GL state such that the GL commands issued by GLC produce the
 desired result. For example, before issuing a glcRenderChar() command a client
-may issue \b glColor and \b glRasterPos commands to establish the color and
+may issue \c glColor() and \c glRasterPos() commands to establish the color and
 origin of the resulting layout.
 */
 
@@ -456,7 +470,7 @@ and stores the returned strings.
 \section charcodes Character codes
 
 Except where otherwise specified, every character code in GLC is an element
-of the Universal Character Database (UCD) defined by the standards Unicode 4.0.1
+of the Unicode Character Database (UCD) defined by the standards Unicode 4.0.1
 and ISO/IEC 10646:2003. A Unicode code point is denoted as U+<em>hexcode</em>,
 where \e hexcode is a sequence of hexadecimal digits. Each Unicode code point
 corresponds to a character that has a unique name string. For example, the code
