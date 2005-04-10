@@ -24,6 +24,8 @@
  */
 
 /** \defgroup font Font commands
+ *  Commands to create, manage and destroy fonts.
+ *
  *  A font is a stylistically consistent set of glyphs that can be used to
  *  render some set of characters. Each font has a family name (for example
  *  Palatino) and a state variable that selects one of the faces (for
@@ -435,19 +437,19 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 /** \ingroup font
  *  This command modifies the map of the font identified by \e inFont such that
  *  the font maps \e inCode to the character whose name is the string
- *  \e inCharName. If \e inCharName is \b GLC_NONE,\e inCode is removed from
+ *  \e inCharName. If \e inCharName is \b GLC_NONE, \e inCode is removed from
  *  the font's map.
  *
  *  Every font has an associated font map. A font map is a table of entries
  *  that map integer values to the name string that identifies the character.
  *
- *  Every character code used in QuesoGLC is an element of the Universal
- *  Multiple-Octet Coded Character Set (UCS) defined by the standards ISO/IEC
- *  10646-1:1993 and Unicode 2.0 (unless otherwise specified). A UCS code is
+ *  Every character code used in QuesoGLC is an element of the Unicode
+ *  Character Database (UCD) defined by the standards ISO/IEC 10646:2003 and
+ *  Unicode 4.0.1 (unless otherwise specified). A Unicode code point is
  *  denoted as \e U+hexcode, where \e hexcode is a sequence of hexadecimal
- *  digits. Each UCS code corresponds to a character that has a unique name
- *  string. For example, the code \e U+41 corresponds to the character
- *  <em>LATIN CAPITAL LETTER A</em>.
+ *  digits. Each Unicode code point corresponds to a character that has a
+ *  unique name string. For example, the code \e U+41 corresponds to the
+ *  character <em>LATIN CAPITAL LETTER A</em>.
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inCharName is not
  *  \b GLC_NONE or an element of the font string's list attribute
@@ -571,7 +573,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 /** \ingroup font
  *  This command returns a font ID that is not an element of the list
  *  \b GLC_FONT_LIST.
- *  \return a new font ID
+ *  \return A new font ID
  *  \sa glcDeleteFont()
  *  \sa glcIsFont()
  *  \sa glcNewFontFromFamily()
@@ -603,7 +605,7 @@ GLint glcGenFontID(void)
  *  This command returns the string name of the current face of the font
  *  identified by \e inFont.
  *  \param inFont The font ID
- *  \return the string name of the font \e inFont
+ *  \return The string name of the font \e inFont
  *  \sa glcFontFace()
  */
 const GLCchar* glcGetFontFace(GLint inFont)
@@ -669,7 +671,7 @@ const GLCchar* glcGetFontFace(GLint inFont)
  *  \param inAttrib The string list from which a string is requested
  *  \param inIndex The offset from the first element of the list associated
  *                 with \e inAttrib
- *  \return a string attribute of \e inFont identified by \e inAttrib
+ *  \return A string attribute of \e inFont identified by \e inAttrib
  *  \sa glcGetMasterListc()
  *  \sa glcGetFontc()
  *  \sa glcGetFonti()
@@ -745,11 +747,11 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inFont is not an element of
  *  the list \b GLC_FONT_LIST.
- *  \note Changing the map of a font is possible but changing the map for a
+ *  \note Changing the map of a font is possible but changing the map of a
  *        master is not.
  *  \param inFont The integer ID of the font from which to select the character
  *  \param inCode The integer ID of the character in the font map
- *  \return the string name of the character that the font \e inFont maps
+ *  \return The string name of the character that the font \e inFont maps
  *          \e inCode to.
  *  \sa glcGetMasterMap()
  *  \sa glcFontMap()
@@ -825,7 +827,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
  *  </center>
  *  \param inFont The font for which the attribute is requested
  *  \param inAttrib The requested string attribute
- *  \return the string attribute \e inAttrib of the font \e inFont
+ *  \return The string attribute \e inAttrib of the font \e inFont
  *  \sa glcGetMasterc()
  *  \sa glcGetFonti()
  *  \sa glcGetFontListc()
@@ -872,7 +874,7 @@ const GLCchar* glcGetFontc(GLint inFont, GLCenum inAttrib)
  *  </center>
  *  \param inFont The font for which the attribute is requested.
  *  \param inAttrib The requested integer attribute
- *  \return the value of the specified integer attribute
+ *  \return The value of the specified integer attribute
  *  \sa glcGetMasteri()
  *  \sa glcGetFontc()
  *  \sa glcGetFontListc()
@@ -1017,7 +1019,7 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
  *  \param inFont The ID of the new font.
  *  \param inFamily The font family, that is, the string that \b GLC_FAMILY
  *                  attribute has to match.
- *  \return the ID of the new font if the command succeeds, \c 0 otherwise.
+ *  \return The ID of the new font if the command succeeds, \c 0 otherwise.
  *  \sa glcGetListi() with argument \b GLC_FONT_LIST
  *  \sa glcGeti() with argument GLC_FONT_COUNT
  *  \sa glcIsFont()
