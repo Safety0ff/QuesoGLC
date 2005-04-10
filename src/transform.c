@@ -134,7 +134,7 @@ void glcMultMatrix(const GLfloat *inMatrix)
  *  This command assigns the value [a b c d] to the floating point vector
  *  variable \b GLC_BITMAP_MATRIX, where \e inAngle is measured in degrees,
  *  <em>theta = inAngle * pi / 180</em> and \n
- *  <pre>[a c] = [matrix[0] matrix[2]] * [  cos(theta) sin(theta) ]</pre> <br>
+ *  <pre>[a c] = [matrix[0] matrix[2]] * [  cos(theta) sin(theta) ]</pre>
  *  <pre>[b d]   [matrix[1] matrix[3]]   [ -sin(theta) cos(theta) ]</pre>
  *  \param inAngle The angle of rotation around the Z axis, in degrees.
  *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
@@ -162,7 +162,7 @@ void glcRotate(GLfloat inAngle)
  *  This command produces a general scaling along the \b x and \b y
  *  axes, that is, it assigns the value [a b c d] to the floating point
  *  vector variable GLC_BITMAP_MATRIX, where
- *  <pre>[a c] = [matrix[0] matrix[2]] * [ inX  0  ]</pre><br>
+ *  <pre>[a c] = [matrix[0] matrix[2]] * [ inX  0  ]</pre>
  *  <pre>[b d]   [matrix[1] matrix[3]]   [  0  inY ]</pre>
  *  \param inX The scale factor along the \b x axis
  *  \param inY The scale factor along the \b y axis
