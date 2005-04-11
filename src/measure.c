@@ -43,7 +43,7 @@
  *    <tr>
  *     <td><b>GLC_BOUNDS</b></td> <td>0x0031</td>
  *     <td>[ x<sub>lb</sub> y<sub>lb</sub> x<sub>rb</sub> y<sub>rb</sub>
- *           x<sub>lt</sub> y<sub>lt</sub> x<sub>rt</sub> y<sub>rt</sub> ]</td>
+ *           x<sub>rt</sub> y<sub>rt</sub> x<sub>lt</sub> y<sub>lt</sub> ]</td>
  *    </tr>
  *  </table>
  *  </center>
@@ -59,6 +59,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <fontconfig/fontconfig.h>
+#include <fontconfig/fcfreetype.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -93,6 +96,8 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
   GLint i = 0;
   __glcFont *font = NULL;
   FT_ListNode node = NULL;
+  FT_UInt glyphIndex = 0;
+  GLfloat rasterPos[4] = {0.f, 0.f, 0.f, 0.f};
 
   /* Look for the font identified by 'inFont' in the GLC_FONT_LIST */
   for (node = inState->fontList.head; node; node = node->next) {
@@ -100,8 +105,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
     if (font->id == inFont) break;
   }
 
-  /* No font has been found */
-  if (!node) return NULL;
+  assert(node);
 
   face = font->face;
   metrics = face->glyph->metrics;
@@ -115,42 +119,60 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
     }
   }
 
-  if (FT_Load_Char(face, inCode, FT_LOAD_NO_SCALE)) {
+  assert(FcCharSetHasChar(font->faceDesc->charSet, inCode));
+
+  /* Get and load the glyph which unicode code is identified by inCode */
+  glyphIndex = FcFreeTypeCharIndex(face, inCode);
+
+  if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_SCALE |
+		    FT_LOAD_IGNORE_TRANSFORM)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+
+  if (inState->renderStyle == GLC_BITMAP)
+    glGetFloatv(GL_CURRENT_RASTER_POSITION, rasterPos);
+
+  FT_Get_Glyph(face->glyph, &glyph);
 
   switch(inMetric) {
   case GLC_BASELINE:
     outVec[0] = 0.;
     outVec[1] = 0.;
-    outVec[2] = metrics.horiAdvance;
-    outVec[3] = metrics.vertAdvance;
-    if (inState->renderStyle == GLC_BITMAP)
+    outVec[2] = (GLfloat) face->glyph->advance.x / face->units_per_EM;
+    outVec[3] = (GLfloat) face->glyph->advance.y / face->units_per_EM;
+    if (inState->renderStyle == GLC_BITMAP) {
       __glcTransformVector(&outVec[2], inState);
-    return outVec;
+      for (i = 0; i < 2; i++) {
+	outVec[2*i] += rasterPos[0];
+	outVec[2*i+1] += rasterPos[1];
+      }
+    }
+    break;
   case GLC_BOUNDS:
-    FT_Get_Glyph(face->glyph, &glyph);
     FT_Glyph_Get_CBox(glyph, ft_glyph_bbox_unscaled, &boundBox);
-    outVec[0] = boundBox.xMin;
-    outVec[1] = boundBox.yMin;
-    outVec[2] = boundBox.xMax;
+    outVec[0] = (GLfloat) boundBox.xMin / face->units_per_EM;
+    outVec[1] = (GLfloat) boundBox.yMin / face->units_per_EM;
+    outVec[2] = (GLfloat) boundBox.xMax / face->units_per_EM;
     outVec[3] = outVec[1];
     outVec[4] = outVec[2];
-    outVec[5] = boundBox.yMax;
+    outVec[5] = (GLfloat) boundBox.yMax / face->units_per_EM;
     outVec[6] = outVec[0];
     outVec[7] = outVec[5];
     if (inState->renderStyle == GLC_BITMAP) {
-      __glcTransformVector(&outVec[0], inState);
-      __glcTransformVector(&outVec[2], inState);
-      __glcTransformVector(&outVec[4], inState);
-      __glcTransformVector(&outVec[6], inState);
+      for (i = 0; i < 4; i++) {
+	__glcTransformVector(&outVec[2*i], inState);
+	outVec[2*i] += rasterPos[0];
+	outVec[2*i+1] += rasterPos[1];
+      }
     }
-    FT_Done_Glyph(glyph);
-    return outVec;
+    break;
+  default:
+    return NULL;
   }
 
-  return NULL;
+  FT_Done_Glyph(glyph);
+  return outVec;
 }
 
 
@@ -287,18 +309,18 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   case GLC_BASELINE:
     outVec[0] = 0.;
     outVec[1] = 0.;
-    outVec[2] = advance;
+    outVec[2] = advance / face->units_per_EM;
     outVec[3] = 0.;
     if (state->renderStyle == GLC_BITMAP)
       __glcTransformVector(&outVec[2], state);
     return outVec;
   case GLC_BOUNDS:
-    outVec[0] = xl;
-    outVec[1] = yb;
-    outVec[2] = xr;
+    outVec[0] = xl / face->units_per_EM;
+    outVec[1] = yb / face->units_per_EM;
+    outVec[2] = xr / face->units_per_EM;;
     outVec[3] = outVec[1];
     outVec[4] = outVec[2];
-    outVec[5] = yt;
+    outVec[5] = yt / face->units_per_EM;
     outVec[6] = outVec[0];
     outVec[7] = outVec[5];
     if (state->renderStyle == GLC_BITMAP) {
@@ -397,28 +419,11 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 
   switch(inMetric) {
   case GLC_BASELINE:
-    outVec[0] = state->measurementCharBuffer[inIndex][0];
-    outVec[1] = state->measurementCharBuffer[inIndex][1];
-    outVec[2] = state->measurementCharBuffer[inIndex][2];
-    outVec[3] = state->measurementCharBuffer[inIndex][3];
-    if (state->renderStyle == GLC_BITMAP)
-      __glcTransformVector(&outVec[2], state);
+    memcpy(outVec, state->measurementCharBuffer[inIndex], 4*sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
-    outVec[0] = state->measurementCharBuffer[inIndex][4];
-    outVec[1] = state->measurementCharBuffer[inIndex][5];
-    outVec[2] = state->measurementCharBuffer[inIndex][6];
-    outVec[3] = state->measurementCharBuffer[inIndex][7];
-    outVec[4] = state->measurementCharBuffer[inIndex][8];
-    outVec[5] = state->measurementCharBuffer[inIndex][9];
-    outVec[6] = state->measurementCharBuffer[inIndex][10];
-    outVec[7] = state->measurementCharBuffer[inIndex][11];
-    if (state->renderStyle == GLC_BITMAP) {
-      __glcTransformVector(&outVec[0], state);
-      __glcTransformVector(&outVec[2], state);
-      __glcTransformVector(&outVec[4], state);
-      __glcTransformVector(&outVec[6], state);
-    }
+    memcpy(outVec, &state->measurementCharBuffer[inIndex][4],
+	   8*sizeof(GLfloat));
     return outVec;
   }
 
@@ -468,28 +473,10 @@ GLfloat* glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 
   switch(inMetric) {
   case GLC_BASELINE:
-    outVec[0] = state->measurementStringBuffer[0];
-    outVec[1] = state->measurementStringBuffer[1];
-    outVec[2] = state->measurementStringBuffer[2];
-    outVec[3] = state->measurementStringBuffer[3];
-    if (state->renderStyle == GLC_BITMAP)
-      __glcTransformVector(&outVec[2], state);
+    memcpy(outVec, state->measurementStringBuffer, 4*sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
-    outVec[0] = state->measurementStringBuffer[4];
-    outVec[1] = state->measurementStringBuffer[5];
-    outVec[2] = state->measurementStringBuffer[6];
-    outVec[3] = state->measurementStringBuffer[7];
-    outVec[4] = state->measurementStringBuffer[8];
-    outVec[5] = state->measurementStringBuffer[9];
-    outVec[6] = state->measurementStringBuffer[10];
-    outVec[7] = state->measurementStringBuffer[11];
-    if (state->renderStyle == GLC_BITMAP) {
-      __glcTransformVector(&outVec[0], state);
-      __glcTransformVector(&outVec[2], state);
-      __glcTransformVector(&outVec[4], state);
-      __glcTransformVector(&outVec[6], state);
-    }
+    memcpy(outVec, &state->measurementStringBuffer[4], 8*sizeof(GLfloat));
     return outVec;
   }
 
@@ -505,17 +492,14 @@ GLint __glcMeasureCountedString(__glcContextState *state,
   GLint i = 0, j = 0;
   GLfloat baselineMetric[4] = {0., 0., 0., 0.};
   GLfloat boundsMetric[8] = {0., 0., 0., 0., 0., 0., 0., 0.};
-  GLfloat storeBitmapMatrix[4] = {0., 0., 0., 0.};
+  GLfloat rasterPos[4] = {0.f, 0.f, 0.f, 0.f};
   const FcChar8* ptr = NULL;
+  const GLint storeRenderStyle = state->renderStyle;
 
-  if (state->renderStyle == GLC_BITMAP) {
-    for (i = 0; i < 4; i++)
-      storeBitmapMatrix[i] = state->bitmapMatrix[i];
-    glcLoadIdentity();
-  }
+  if (state->renderStyle == GLC_BITMAP)
+    state->renderStyle = 0;
 
-  for (i = 0; i < 12; i++)
-    state->measurementStringBuffer[i] = 0.;
+  memset(state->measurementStringBuffer, 0, 12*sizeof(GLfloat));
 
   /* FIXME :
    * Computations performed below assume that the string is rendered
@@ -538,10 +522,10 @@ GLint __glcMeasureCountedString(__glcContextState *state,
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars) {
-      for (j = 0; j < 4; j++)
-	state->measurementCharBuffer[i][j] = baselineMetric[j];
-      for (j = 0; j < 8; j++)
-	state->measurementCharBuffer[i][j + 4] = boundsMetric[j];
+      memcpy(state->measurementCharBuffer[i], baselineMetric,
+	     4*sizeof(GLfloat));
+      memcpy(&state->measurementCharBuffer[i][j+4], boundsMetric,
+	     8*sizeof(GLfloat));
     }
 
     /* Initialize the left-most coordinate of the bounding box */
@@ -578,22 +562,25 @@ GLint __glcMeasureCountedString(__glcContextState *state,
   state->measurementStringBuffer[6] -= (baselineMetric[2] - boundsMetric[4]);
   state->measurementStringBuffer[8] -= (baselineMetric[2] - boundsMetric[4]);
 
-  if (state->renderStyle == GLC_BITMAP) {
-    for (i = 0; i < 4; i++)
-      state->bitmapMatrix[i] = storeBitmapMatrix[i];
-    __glcTransformVector(&state->measurementStringBuffer[2], state);
-    __glcTransformVector(&state->measurementStringBuffer[4], state);
-    __glcTransformVector(&state->measurementStringBuffer[6], state);
-    __glcTransformVector(&state->measurementStringBuffer[8], state);
-    __glcTransformVector(&state->measurementStringBuffer[10], state);
-    if (inMeasureChars)
+  if (storeRenderStyle == GLC_BITMAP) {
+    glGetFloatv(GL_CURRENT_RASTER_POSITION, rasterPos);
+
+    state->renderStyle = storeRenderStyle;
+    for (i = 0; i < 6; i++) {
+      __glcTransformVector(&state->measurementStringBuffer[2*i], state);
+      state->measurementStringBuffer[2*i] += rasterPos[0];
+      state->measurementStringBuffer[2*i+1] += rasterPos[1];
+    }
+    if (inMeasureChars) {
+      int j = 0;
       for (i = 0; i < inCount; i++) {
-	__glcTransformVector(&state->measurementCharBuffer[i][2], state);
-	__glcTransformVector(&state->measurementCharBuffer[i][4], state);
-	__glcTransformVector(&state->measurementCharBuffer[i][6], state);
-	__glcTransformVector(&state->measurementCharBuffer[i][8], state);
-	__glcTransformVector(&state->measurementCharBuffer[i][10], state);
+	for (j = 0; j < 6; j++) {
+	  __glcTransformVector(&state->measurementCharBuffer[i][2*j], state);
+	  state->measurementCharBuffer[i][2*j] += rasterPos[0];
+	  state->measurementCharBuffer[i][2*j+1] += rasterPos[1];
+	}
       }
+    }
   }
 
   if (inMeasureChars)
@@ -673,8 +660,8 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 /** \ingroup measure
  *  This command measures the layout that would result from rendering a string
  *  and stores the measurements in the GLC measurement buffer. This command
- *  is indentical to the command glcMeasureCountedString(), except
- *  that \e inString is zero terminated, not counted.
+ *  is identical to the command glcMeasureCountedString(), except that
+ *  \e inString is zero terminated, not counted.
  *
  *  If the command does not raise an error, its return value is the value of
  *  the variable \b GLC_MEASURED_CHARACTER_COUNT.
@@ -692,6 +679,10 @@ GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
   __glcContextState *state = NULL;
   FcChar8* UinString = NULL;
   GLint count = 0;
+  GLint len = 0;
+  int shift = 0;
+  FcChar32 dummy = 0;
+  FcChar8* utf8 = NULL;
 
   /* Verify if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -706,8 +697,20 @@ GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
     return 0;
   }
 
-  count = __glcMeasureCountedString(state, inMeasureChars,
-				    strlen((const char*)UinString), UinString);
+  /* Compute the number of characters of the string */
+  utf8 = UinString;
+  len = 0;
+  while(*utf8) {
+    shift = FcUtf8ToUcs4(utf8, &dummy, 6);
+    if (shift < 0) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return 0;
+    }
+    utf8 += shift;
+    len += shift;
+  }
+
+  count = __glcMeasureCountedString(state, inMeasureChars, len, UinString);
 
   free(UinString);
 
