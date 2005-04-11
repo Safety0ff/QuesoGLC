@@ -4,7 +4,6 @@ AC_CONFIG_HEADER(include/qglc_config.h:include/qglc_config.hin)
 
 AC_PROG_CC
 
-VERSION="0.2"
 dnl Enable shared library building
 
 AH_TEMPLATE([QUESOGLC_STATIC_LIBRARY], [Define if we are building a static library])
@@ -97,7 +96,7 @@ else
 fi
 
 if test -n "$glc_build_shared"; then
-	LIBRARY="\$(LIB_NAME).so.\$(VERSION)"
+	LIBRARY="\$(LIB_NAME).so"
 	CFLAGS4SHARED="-fPIC"
 else
 	LIBS="$LIBS4SHARED $LIBS"
@@ -111,7 +110,6 @@ AC_SUBST(prefix)
 AC_SUBST(LIBRARY)
 AC_SUBST(LIBS4SHARED)
 AC_SUBST(CFLAGS4SHARED)
-AC_SUBST(VERSION)
 AC_SUBST(EXAMPLES)
 
 AC_OUTPUT(makefile:makefile.unx,

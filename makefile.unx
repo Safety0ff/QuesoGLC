@@ -8,7 +8,6 @@ TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 	       tests/testrender tests/tutorial tests/unicode
 
 LIB_NAME = libGLC
-VERSION = @VERSION@
 LIBRARY = lib/@LIBRARY@
 EXAMPLES = @EXAMPLES@
 
@@ -66,5 +65,5 @@ obj/%.o : src/%.c
 lib/%.a : $(LIB_OBJECTS)
 	ar -r $@ $^
 
-lib/%.so.$(VERSION) : $(LIB_OBJECTS)
-	ld -shared -o $@  -soname libGLC.so.0 $(LDFLAGS) @LIBS4SHARED@ $^
+lib/%.so : $(LIB_OBJECTS)
+	ld -shared -o $@  -soname $@ $(LDFLAGS) @LIBS4SHARED@ $^
