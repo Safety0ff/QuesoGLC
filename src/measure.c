@@ -524,8 +524,14 @@ GLint __glcMeasureCountedString(__glcContextState *state,
   ptr = inString;
   for (i = 0; i < inCount; i++) {
     FcChar32 code = 0;
+    int len = 0;
 
-    ptr += FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    if (len < 0) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return 0;
+    }
+    ptr += len;
     /* For each character get the metrics */
     glcGetCharMetric(code, GLC_BASELINE, baselineMetric);
     glcGetCharMetric(code, GLC_BOUNDS, boundsMetric);

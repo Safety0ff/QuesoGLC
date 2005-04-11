@@ -581,7 +581,13 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
   ptr = UinString;
   for (i = 0; i < inCount; i++) {
     FcChar32 code = 0;
-    ptr += FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    int len = 0;
+    len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    if (len < 0) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      break;
+    }
+    ptr += len;
     glcRenderChar(code);
   }
 
@@ -621,7 +627,13 @@ void glcRenderString(const GLCchar *inString)
   /* Render the string */
   ptr = UinString;
   do {
-    ptr += FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    int len = 0;
+    len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
+    if (len < 0) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      break;
+    }
+    ptr += len;
     glcRenderChar(code);
   } while (*ptr);
 

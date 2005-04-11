@@ -162,7 +162,7 @@ static int __glcUtf8ToUcs1(const FcChar8* src_orig,
   int src_shift = FcUtf8ToUcs4(src_orig, &result, len);
 
   if (src_shift > 0) {
-    /* src_orig is an well-formed UTF-8 character */
+    /* src_orig is a well-formed UTF-8 character */
     if (result < 0x100) {
       *dst = result;
       *dstlen = 1;
@@ -189,7 +189,7 @@ static int __glcUtf8ToUcs2(const FcChar8* src_orig,
   int src_shift = FcUtf8ToUcs4(src_orig, &result, len);
 
   if (src_shift > 0) {
-    /* src_orig is an well-formed UTF-8 character */
+    /* src_orig is a well-formed UTF-8 character */
     if (result < 0x10000) {
       *dst = result;
       *dstlen = 1;
@@ -296,6 +296,7 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
   const FcChar8* utf8 = NULL;
   int len_buffer = 0;
   int len = 0;
+  int shift = 0;
 
   switch(inStringType) {
   case GLC_UCS1:
@@ -305,8 +306,14 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
 
       utf8 = inString;
       while(*utf8) {
-	utf8 += __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
+	shift = __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
 				&len_buffer);
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
 	len += len_buffer;
       }
 
@@ -333,8 +340,14 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
 
       utf8 = inString;
       while(*utf8) {
-	utf8 += __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
+	shift = __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
 				&len_buffer);
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
 	len += len_buffer;
       }
 
@@ -361,7 +374,13 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
 
       utf8 = inString;
       while(*utf8) {
-	utf8 += FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
+	shift = FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
 	len++;
       }
 
@@ -400,6 +419,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
   const FcChar8* utf8 = NULL;
   int len_buffer = 0;
   int len = 0;
+  int shift = 0;
 
   if (!inString)
     return GLC_NONE;
@@ -412,8 +432,14 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 
       utf8 = inString;
       while(*utf8) {
-	utf8 += __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
+	shift = __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
 				&len_buffer);
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
 	len += len_buffer;
       }
 
@@ -441,8 +467,14 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 
       utf8 = inString;
       while(*utf8) {
-	utf8 += __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
+	shift = __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
 				&len_buffer);
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
 	len += len_buffer;
       }
 
@@ -469,7 +501,13 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 
       utf8 = inString;
       while(*utf8) {
-	utf8 += FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
+	shift = FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
 	len++;
       }
 
@@ -605,10 +643,17 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
       FcChar8* utf8 = (FcChar8*)inString;
       FcChar32 dummy = 0;
       int len = 0;
+      int shift = 0;
 
       for (i = 0; i < inCount; i++) {
-	len += FcUtf8ToUcs4(utf8, &dummy, 6);
-	utf8 += len;
+	shift += FcUtf8ToUcs4(utf8, &dummy, 6);
+	if (shift < 0) {
+	  /* There is an ill-formed character in the UTF-8 string, abort */
+	  __glcRaiseError(GLC_PARAMETER_ERROR);
+	  return NULL;
+	}
+	utf8 += shift;
+	len += shift;
       }
 
       string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));

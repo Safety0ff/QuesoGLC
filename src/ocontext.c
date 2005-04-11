@@ -290,6 +290,14 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
     FcChar8 *familyName = NULL;
     FcChar8 *styleName = NULL;
     FT_ListNode node = NULL;
+    FcBool outline = FcFalse;
+
+    /* Check whether the glyphs are outlines */
+    if (FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline)
+	== FcResultTypeMismatch)
+      continue;
+    if (!outline)
+      continue;
 
     /* get the file name */
     if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
@@ -716,16 +724,28 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 /* Return the ID of the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'
  * If there is no such font, the function returns zero
  */
-static GLint __glcLookupFont(GLint inCode, __glcContextState *inState)
+static GLint __glcLookupFont(GLint inCode, FT_List fontList)
 {
   FT_ListNode node = NULL;
 
-  for (node = inState->currentFontList.head; node; node = node->next) {
-    const GLint font = ((__glcFont*)node->data)->id;
-    if (glcGetFontMap(font, inCode))
-      return font;
+  for (node = fontList->head; node; node = node->next) {
+    __glcFont* font = (__glcFont*)node->data;
+    int i = 0;
+    /* Look for the character which the character identifed by inCode is
+     * mapped by */
+    /* FIXME : use a dichotomic algo instead */
+    for (i = 0; i < font->charMapCount; i++) {
+      if (font->charMap[1][i] == (FT_ULong)inCode) {
+	inCode = font->charMap[0][i];
+	break;
+      }
+    }
+
+    /* Check if the character identified by inCode exists in the font */
+    if (FcCharSetHasChar(font->faceDesc->charSet, inCode))
+      return font->id;
   }
-  return 0;
+  return -1;
 }
 
 
@@ -765,8 +785,8 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
 {
   GLint font = 0;
 
-  font = __glcLookupFont(inCode, This);
-  if (font)
+  font = __glcLookupFont(inCode, &This->currentFontList);
+  if (font >= 0)
     return font;
 
   /* If a callback function is defined for GLC_OP_glcUnmappedCode then call it.
@@ -774,8 +794,8 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
    * GLC_CURRENT_FONT_LIST the ID of a font that maps 'inCode'.
    */
   if (__glcCallCallbackFunc(inCode, This)) {
-    font = __glcLookupFont(inCode, This);
-    if (font)
+    font = __glcLookupFont(inCode, &This->currentFontList);
+    if (font >= 0)
       return font;
   }
 
@@ -784,15 +804,12 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
    * succeeds, then append the font's ID to GLC_CURRENT_FONT_LIST.
    */
   if (This->autoFont) {
-    GLint i = 0;
     FT_ListNode node = NULL;
 
-    for (i = 0; i < glcGeti(GLC_FONT_COUNT); i++) {
-      font = glcGetListi(GLC_FONT_LIST, i);
-      if (glcGetFontMap(font, inCode)) {
-	glcAppendFont(font);
-	return font;
-      }
+    font = __glcLookupFont(inCode, &This->fontList);
+    if (font >= 0) {
+      glcAppendFont(font);
+      return font;
     }
 
     /* Otherwise, the function searches the GLC master list for the first
@@ -800,16 +817,26 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
      * from the master and appends its ID to GLC_CURRENT_FONT_LIST.
      */
     for (node = This->masterList.head; node; node = node->next) {
-      if (glcGetMasterMap(((__glcMaster*)node->data)->id, inCode)) {
-	font = glcNewFontFromMaster(glcGenFontID(), i);
-	if (font) {
-	  glcAppendFont(font);
-	  return font;
+      __glcMaster* master = (__glcMaster*)node->data;
+      FT_ListNode faceNode = NULL;
+
+      /* We search for a font file that supports the requested inCode glyph */
+      for (faceNode = master->faceList.head; faceNode;
+	   faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
+
+	if (FcCharSetHasChar(faceDesc->charSet, (FcChar32)inCode)) {
+	  font = glcNewFontFromMaster(glcGenFontID(), master->id);
+	  if (font) {
+	    glcAppendFont(font);
+	    glcFontFace(font, faceDesc->styleName);
+	    return font;
+	  }
 	}
       }
     }
   }
-  return 0;
+  return -1;
 }
 
 

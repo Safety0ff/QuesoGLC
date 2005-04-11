@@ -474,7 +474,8 @@ GLint glcGenContext(void)
     return newContext;
   }
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_FOUNDRY,
-			       FC_SPACING, FC_CHARSET, FC_INDEX, 0);
+			       FC_SPACING, FC_CHARSET, FC_INDEX, FC_OUTLINE,
+			       0);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
