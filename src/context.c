@@ -500,11 +500,10 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
   /* Perform the final part of verifications (the one which needs
    * the current context's states) then return the requested value.
    */
-  inIndex--;
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
     for (node = state->currentFontList.head; inIndex && node;
-         node = node->next, inIndex--) {}
+         node = node->next, inIndex--);
 
     if (node)
       return ((__glcFont*)node->data)->id;
@@ -514,7 +513,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     }
   case GLC_FONT_LIST:
     for (node = state->fontList.head; inIndex && node;
-         node = node->next, inIndex--) {}
+         node = node->next, inIndex--);
 
     if (node)
       return ((__glcFont*)node->data)->id;
