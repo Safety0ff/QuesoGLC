@@ -51,6 +51,7 @@ void keyboard(unsigned char key, int x, int y)
 void display(void)
 {
   int i = 0;
+  GLfloat baseline[4] = {0.f, 0.f, 0.f, 0.f};
   GLfloat bbox[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -58,25 +59,32 @@ void display(void)
   /* Render "H" and its bounding box */
   glColor3f(1.f, 0.f, 0.f);
   glRasterPos2f(50.f, 50.f);
-  glcGetCharMetric('H', GLC_BOUNDS, bbox);
   glcRenderChar('H');
 
   glColor3f(0.f, 1.f, 1.f);
+  glcGetCharMetric('H', GLC_BOUNDS, bbox);
   glBegin(GL_LINE_LOOP);
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < 4; i++) {
+    bbox[2*i] += 50.f;
+    bbox[2*i+1] += 50.f;
     glVertex2fv(&bbox[2*i]);
+  }
   glEnd();
 
   /* Render "ello" and its bounding box */
   glColor3f(1.f, 0.f, 0.f);
-  glcMeasureString(GL_FALSE, "ello");
-  glcGetStringMetric(GLC_BOUNDS, bbox);
   glcRenderString("ello");
 
   glColor3f(0.f, 1.f, 1.f);
+  glcGetCharMetric('H', GLC_BASELINE, baseline);
+  glcMeasureString(GL_FALSE, "ello");
+  glcGetStringMetric(GLC_BOUNDS, bbox);
   glBegin(GL_LINE_LOOP);
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < 4; i++) {
+    bbox[2*i] += baseline[2] - baseline[0] + 50.f;
+    bbox[2*i+1] += baseline[3] - baseline[1] + 50.f;
     glVertex2fv(&bbox[2*i]);
+  }
   glEnd();
 
   glFlush();
