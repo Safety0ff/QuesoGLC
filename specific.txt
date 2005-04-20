@@ -35,32 +35,19 @@ Non-conformance:
 Extensions:
 ----------
 
-- QuesoGLC uses the GLC_RESOLUTION parameter to choose the precision of the
-  algorithm of de Casteljau. This algorithm approximates Bezier curves by
-  segments. QuesoGLC uses it when displaying glyphs in GLC_LINE or GLC_TRIANGLE
-  modes. The smaller GLC_RESOLUTION is, the better the Bezier curves will be
-  approximated by segments but the slower the glyphs will be drawn. The initial
-  value of GLC_RESOLUTION is 0.05
+- QuesoGLC uses the GLC_RESOLUTION parameter to translate em units to pixels
+  The resolution is given in dpi (dots per inch). Its default value is 72 dpi.
 
 Arbitrary choices:
 -----------------
 
-- Fonts are rendered at the default size of 100 points. If the user wants to
+- Fonts are rendered at the default size of 1 point. If the user wants to
   display his text at a different size, he should use glScale() or glcScale()
   to precise the actual size he wants.
   
-- When using the textured rendering mode, the default texture size is 64x64.
-  Since GLC does not provide an API entry to modify it, the only way to change
-  this value is to modify GLC_TEXTURE_SIZE in src/render.c and to re-compile
-  QuesoGLC.
-
 - The GLC API is designed to support a variety of master formats, but the
   current implementation supports only masters in scalable formats that can be
   read by FreeType.
-
-- In the current implementation, a catalog file must be in the format generated
-  by the X Window System utility program mkfontdir(1). Future releases may use
-  a different format.
 
 - In the current implementation, the font files that belong to the same family
   will be mapped into a single GLC master object that has multiple faces. For
@@ -81,16 +68,6 @@ Arbitrary choices:
 	display lists by encapsulating glcRenderChar by a glNewList / glEndList
 	pair. This will fail because QuesoGLC deletes the picture used to
 	render the character as soon as the picture is drawn.
-
-- When the user asks for the list of the display lists using the command
-  "glcGetListi(GLC_LIST_OBJECT_LIST, i)", QuesoGLC may not return the display
-  lists names in growing order nor in the order in which they were created. In
-  other words, when QuesoGLC adds a display list name to the list, the new entry
-  may not be the last one. Moreover, the global ordering of the list may change
-  each time QuesoGLC creates a new display list. This is due to internal
-  management of the display lists (QuesoGLC uses binay trees which are not
-  convenient to keep track of the order in which display lists have been
-  created).
 
 - GLC specifications allows any implementation to load some "default masters"
   during the initialization. This feature allows the user to access to some
