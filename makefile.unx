@@ -5,7 +5,8 @@ C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
-	       tests/testrender tests/tutorial tests/unicode tests/tutorial2
+	       tests/testrender tests/tutorial tests/unicode tests/tutorial2 \
+	       tests/glcdemo
 
 LIB_NAME = libGLC
 LIBRARY = lib/@LIBRARY@
@@ -17,7 +18,7 @@ CC = @CC@
 LIBS=@LIBS@
 CPPFLAGS=@CPPFLAGS@
 LDFLAGS=@LDFLAGS@
-prefix = @prefix@
+prefix = ${DESTDIR}@prefix@
 exec_prefix = @exec_prefix@
 INCLUDE_DIR=@includedir@
 LIB_DIR=@libdir@
@@ -47,6 +48,7 @@ distclean: clean
 install : $(LIBRARY)
 	mkdir -p $(INCLUDE_DIR)/GL
 	cp include/GL/glc.h $(INCLUDE_DIR)/GL/.
+	mkdir -p $(LIB_DIR)
 	cp $(LIBRARY) $(LIB_DIR)/.
 
 depend:
