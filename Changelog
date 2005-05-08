@@ -1,3 +1,13 @@
+Changes made from the "0.2" release to the "0.3" release:
+-----------------------------------------------------------
+
+- Added an "uninstall" target to the makefile
+- When the shared library is built, the version number is appended to the
+  library name and the corresponding links are created when QuesoGLC is
+  installed. This allows several different versions of QuesoGLC to coexist
+  on most *nix.
+- Pablo Barbáchano fixed the install process of QuesoGLC
+
 Changes made from the "0.1" release to the "0.2" release:
 -----------------------------------------------------------
 
