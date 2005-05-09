@@ -144,7 +144,7 @@ void __glcDeleteGLObjects(__glcContextState *inState)
   /* Delete display lists and texture objects */
   for(node = inState->masterList.head; node; node = node->next) {
     master = (__glcMaster*)node->data;
-    FT_List_Finalize(&master->displayList, NULL,
+    FT_List_Finalize(&master->displayList, __glcDisplayListDestructor,
                      &__glcCommonArea.memoryManager, NULL);
     FT_List_Finalize(&master->textureObjectList, __glcTextureObjectDestructor,
 		     &__glcCommonArea.memoryManager, NULL);
@@ -347,6 +347,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   FcStrList* iterator = NULL;
   FcChar8* catalog = NULL;
   GLCchar* buffer = NULL;
+  int length = 0;
 
   /* Check the parameters */
   if (inAttrib != GLC_CATALOG_LIST) {
@@ -375,7 +376,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
   /* Get the string at offset inIndex */
   iterator = FcStrListCreate(state->catalogList);
   if (!iterator) {
-    __glcRaiseError(GLC_STATE_ERROR);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
   for (catalog = FcStrListNext(iterator); catalog && inIndex;
@@ -400,13 +401,14 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    glcStringType() is called.
    */
 
-  buffer = __glcCtxQueryBuffer(state, 
-			       (strlen((const char*)catalog)+1)*sizeof(char));
+  length = strlen((const char*) catalog) + 1;
+
+  buffer = __glcCtxQueryBuffer(state, length*sizeof(char));
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
   }
-  strncpy((char*)buffer, (const char*)catalog, strlen((const char*)catalog)+1);
+  strncpy((char*)buffer, (const char*)catalog, length);
   return buffer;
 }
 
@@ -528,12 +530,12 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
      * of a display list represents...
      */
     for(node = state->masterList.head; node; node = node->next) {
-      FT_ListNode dlTree = NULL;
+      FT_ListNode dlNode = NULL;
 
-      for (dlTree = ((__glcMaster*)node->data)->displayList.head;
-	   dlTree && inIndex; dlTree = dlTree->next, inIndex--);
-      if (dlTree)
-	return ((__glcDisplayListKey*)dlTree)->list;
+      for (dlNode = ((__glcMaster*)node->data)->displayList.head;
+	   dlNode && inIndex; dlNode = dlNode->next, inIndex--);
+      if (dlNode)
+	return ((__glcDisplayListKey*)dlNode)->list;
     }
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
@@ -543,7 +545,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 
       for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
 	   texNode && inIndex; texNode = texNode->next, inIndex--);
-      if (!inIndex && texNode)
+      if (texNode)
 	return (GLint)texNode->data;
     }
     return 0;
@@ -649,14 +651,16 @@ const GLCchar* glcGetc(GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  /* Get the relevant string in a Unicode string in GLC_UCS1 format */
+  /* Translate the string in the relevant Unicode format */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
-    return __glcConvertFromUtf8ToBuffer(state, __glcExtensions, GLC_UCS1);
+    return __glcConvertFromUtf8ToBuffer(state, __glcExtensions,
+					state->stringType);
   case GLC_RELEASE:
-    return __glcConvertFromUtf8ToBuffer(state, __glcRelease, GLC_UCS1);
+    return __glcConvertFromUtf8ToBuffer(state, __glcRelease,
+					state->stringType);
   case GLC_VENDOR:
-    return __glcConvertFromUtf8ToBuffer(state, __glcVendor, GLC_UCS1);
+    return __glcConvertFromUtf8ToBuffer(state, __glcVendor, state->stringType);
   default:
     return GLC_NONE;
   }
@@ -875,10 +879,10 @@ GLint glcGeti(GLCenum inAttrib)
     return count;
   case GLC_LIST_OBJECT_COUNT:
     for (count = 0, node = state->masterList.head; node; node = node->next) {
-      FT_ListNode dlTree = NULL;
+      FT_ListNode dlNode = NULL;
 
-      for (dlTree = ((__glcMaster*)node->data)->displayList.head; dlTree;
-	   dlTree = dlTree->next, count++);
+      for (dlNode = ((__glcMaster*)node->data)->displayList.head; dlNode;
+	   dlNode = dlNode->next, count++);
     }
     return count;
   case GLC_MASTER_COUNT:

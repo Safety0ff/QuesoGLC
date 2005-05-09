@@ -1,6 +1,9 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Fixed a bug so that display lists created by QuesoGLC are now deleted when
+  glcDeleteGLObjects() is called or when a master is destroyed
+- Strings returned by glcGetc() are now converted in the relevant Unicode format
 - Added an "uninstall" target to the makefile
 - When the shared library is built, the version number is appended to the
   library name and the corresponding links are created when QuesoGLC is

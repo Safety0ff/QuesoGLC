@@ -539,13 +539,24 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 
 
 
-/* This function is called when the texture object list is destroyed */
+/* This function is called to destroy texture objects */
 void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
 				  void *inUser)
 {
   GLuint tex = (GLuint)inData;
 
   glDeleteTextures(1, &tex);
+}
+
+
+
+/* This function is called to destroy display lists */
+void __glcDisplayListDestructor(FT_Memory inMemory, void *inData,
+				  void *inUser)
+{
+  GLuint dlist = (GLuint)inData;
+
+  glDeleteLists(dlist, 1);
 }
 
 

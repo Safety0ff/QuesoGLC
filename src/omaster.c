@@ -117,7 +117,7 @@ static void __glcFaceDestructor(FT_Memory inMemory, void *inData,
  */
 void __glcMasterDestroy(__glcMaster *This)
 {
-  FT_List_Finalize(&This->displayList, NULL,
+  FT_List_Finalize(&This->displayList, __glcDisplayListDestructor,
 		   &__glcCommonArea.memoryManager, NULL);
   FT_List_Finalize(&This->textureObjectList, __glcTextureObjectDestructor,
 		   &__glcCommonArea.memoryManager, NULL);

@@ -99,8 +99,12 @@ extern "C" {
   /* Count the number of bits that are set in c1  */
   extern FcChar32 FcCharSetPopCount(FcChar32 c1);
 
-  /* This function is called when the texture object list is destroyed */
+  /* This function is called to destroy texture objects */
   extern void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
+					   void *inUser);
+
+  /* This function is called to destroy display lists */
+  extern void __glcDisplayListDestructor(FT_Memory inMemory, void *inData,
 					   void *inUser);
 
   /* This function parses the font set and add the font files to the masters
