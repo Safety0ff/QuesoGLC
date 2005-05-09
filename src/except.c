@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2004, Bertrand Coconnier
+ * Copyright (c) 2002-2005, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@
  * http://www.freetype.org/david/reliable-c.html
  */
 
-/* Unhandled exceptions (when area->exceptContextStack->tail == NULL)
+/* Unhandled exceptions (when area->exceptContextStack.tail == NULL)
  * still need to be implemented. Such situations can occur if an exception
  * is thrown out of a try/catch block.
  */
@@ -56,17 +56,14 @@ jmp_buf* __glcExceptionCreateContext(void)
  
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
-
-  xContext =
-    (__glcExceptContext*)__glcMalloc(sizeof(__glcExceptContext));
+  xContext = (__glcExceptContext*)__glcMalloc(sizeof(__glcExceptContext));
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
   node->data = xContext;
   xContext->exception = GLC_NO_EXC;
   xContext->cleanupStack = (FT_List)__glcMalloc(sizeof(FT_ListRec));
   xContext->cleanupStack->head = NULL;
   xContext->cleanupStack->tail = NULL;
-  FT_List_Add(area->exceptContextStack, node);
+  FT_List_Add(&area->exceptContextStack, node);
 
   return &xContext->env;
 }
@@ -79,9 +76,8 @@ void __glcExceptionReleaseContext(void)
 
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
 
-  node = area->exceptContextStack->tail;
+  node = area->exceptContextStack.tail;
   assert(node);
 
   xContext = (__glcExceptContext*)node->data;
@@ -91,7 +87,7 @@ void __glcExceptionReleaseContext(void)
   assert(!xContext->cleanupStack->head);
 
   __glcFree(xContext->cleanupStack);
-  FT_List_Remove(area->exceptContextStack, node);
+  FT_List_Remove(&area->exceptContextStack, node);
   __glcFree(node);
   __glcFree(xContext);
 }
@@ -106,10 +102,9 @@ void __glcExceptionPush(void (*destructor)(void*), void *data)
 
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
-  assert(area->exceptContextStack->tail);
+  assert(area->exceptContextStack.tail);
 
-  xContext = (__glcExceptContext*)area->exceptContextStack->tail->data;
+  xContext = (__glcExceptContext*)area->exceptContextStack.tail->data;
   assert(xContext);
   assert(xContext->cleanupStack);
 
@@ -137,10 +132,9 @@ void __glcExceptionPop(int destroy)
 
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
-  assert(area->exceptContextStack->tail);
+  assert(area->exceptContextStack.tail);
 
-  xContext = (__glcExceptContext*)area->exceptContextStack->tail->data;
+  xContext = (__glcExceptContext*)area->exceptContextStack.tail->data;
   assert(xContext);
   assert(xContext->cleanupStack);
 
@@ -164,10 +158,9 @@ void __glcExceptionUnwind(int destroy)
 
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
-  assert(area->exceptContextStack->tail);
+  assert(area->exceptContextStack.tail);
 
-  xContext = (__glcExceptContext*)area->exceptContextStack->tail->data;
+  xContext = (__glcExceptContext*)area->exceptContextStack.tail->data;
   assert(xContext);
   assert(xContext->cleanupStack);
 
@@ -193,10 +186,9 @@ jmp_buf* __glcExceptionThrow(__glcException exception)
 
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
-  assert(area->exceptContextStack->tail);
+  assert(area->exceptContextStack.tail);
 
-  xContext = (__glcExceptContext*)area->exceptContextStack->tail->data;
+  xContext = (__glcExceptContext*)area->exceptContextStack.tail->data;
   assert(xContext);
 
   xContext->exception = exception;
@@ -210,10 +202,9 @@ __glcException __glcExceptionCatch(void)
 
   area = __glcGetThreadArea();
   assert(area);
-  assert(area->exceptContextStack);
-  assert(area->exceptContextStack->tail);
+  assert(area->exceptContextStack.tail);
 
-  xContext = (__glcExceptContext*)area->exceptContextStack->tail->data;
+  xContext = (__glcExceptContext*)area->exceptContextStack.tail->data;
   assert(xContext);
 
   return xContext->exception;

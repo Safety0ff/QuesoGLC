@@ -24,6 +24,7 @@
 
 #include "list.h"
 #include "ocontext.h"
+#include "internal.h"
 
 #ifndef __WIN32__
 typedef struct {
@@ -74,7 +75,7 @@ void __glcListFinalize(__glcList list, void (*__glcDestructor)(void *data,
   udat.func = __glcDestructor;
 
   FT_List_Finalize(list, __glcFTListDestructor,
-		   __glcCommonArea->memoryManager, &udat);
+		   &__glcCommonArea.memoryManager, &udat);
   __glcFree(list);
 }
 #else
