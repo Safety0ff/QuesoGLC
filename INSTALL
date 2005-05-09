@@ -1,4 +1,4 @@
-So far, QuesoGLC can only be built on POSIX platforms.
+QuesoGLC can only be built on POSIX platforms.
 
 1. What do you need in order to build QuesoGLC :
 ==============================================
@@ -28,15 +28,15 @@ platform. If not, you can get them on Internet and build them on your system.
 	QuesoGLC's build process heavily rely on this tool. You must install it
 	first.
 
-1.1 Tools/headers/libraries that are optional :
+1.2 Tools/headers/libraries that are optional :
 ---------------------------------------------
 
-Not all test programs need GLUT, but some of them need it in order to display
-OpenGL graphics.
+QuesoGLC can be safely built and used without GLUT. However, some test programs
+need GLUT in order to display OpenGL graphics : if GLUT is not installed on your
+system, the examples will not build.
 
 * Mark Kilgard's GLUT (www.opengl.org/resources/libraries/glut.html)
-	It provides platform independant support for OpenGL. However, QuesoGLC
-	can safely be used without GLUT.
+	It provides platform independant support for OpenGL.
 
 2. OK, all those libs and headers are installed on my machine.
 What shall I do now ?
@@ -53,6 +53,12 @@ system. Note that the default installation path is "/usr/local". If you want to
 install QuesoGLC to another location, use the --prefix option of configure :
 
   ./configure --prefix=/another/location
+
+By default, QuesoGLC is built as a static library, but it can also be built as a
+shared library, in which case you must use the --enable-shared option of the
+configure script :
+
+  ./configure --enable-shared
 
 3. Is that all ?
 ================
