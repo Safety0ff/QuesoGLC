@@ -5,11 +5,15 @@ C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
-	       tests/testrender tests/tutorial tests/unicode tests/tutorial2 \
-	       tests/glcdemo
+	       tests/testrender tests/tutorial tests/unicode tests/tutorial2
 
 LIB_NAME = libGLC
-LIBRARY = lib/@LIBRARY@
+MAJOR = 0
+MINOR = 2
+REVISION = 0
+
+VERSION = $(MAJOR).$(MINOR).$(REVISION)
+LIBRARY = @LIBRARY@
 EXAMPLES = @EXAMPLES@
 
 # Programs
@@ -29,15 +33,16 @@ CFLAGS = -g
 else
 CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
-CFLAGS += -Wall -pedantic-errors -Werror
+CFLAGS += -Wall -Werror
 CPPFLAGS += -Iinclude -Isrc
+QHOME = $(PWD)
 
-all: $(EXAMPLES) $(LIBRARY)
+all: $(EXAMPLES) lib/$(LIBRARY)
 
 clean:
 	rm -f config.*
 	rm -f $(OBJECTS) obj/*.o
-	rm -f $(LIBRARY)
+	rm -f lib/$(LIBRARY)
 	rm -f $(TEST_OBJECTS)
 	rm -fR docs/html docs/rtf
 
@@ -45,11 +50,23 @@ distclean: clean
 	rm -f makefile makefile.dep stamp-h
 	rm -f include/qglc_config.h
 
-install : $(LIBRARY)
+install : lib/$(LIBRARY)
 	mkdir -p $(INCLUDE_DIR)/GL
 	cp include/GL/glc.h $(INCLUDE_DIR)/GL/.
 	mkdir -p $(LIB_DIR)
-	cp $(LIBRARY) $(LIB_DIR)/.
+	cp lib/$(LIBRARY) $(LIB_DIR)/.
+	if test -f $(LIB_DIR)/$(LIB_NAME).so.$(VERSION); then \
+		cd $(LIB_DIR); \
+		ln -s $(LIBRARY) $(LIB_NAME).so; \
+		ln -s $(LIBRARY) $(LIB_NAME).so.$(MAJOR); \
+		ln -s $(LIBRARY) $(LIB_NAME).so.$(MAJOR).$(MINOR); \
+		cd $(QHOME); \
+	fi; \
+
+uninstall :
+	rm -f $(INCLUDE_DIR)/GL/glc.h
+	rm -f $(LIB_DIR)/$(LIB_NAME).so*
+	rm -f $(LIB_DIR)/$(LIB_NAME).a
 
 depend:
 	@echo "Generating dependencies..."
@@ -58,7 +75,7 @@ depend:
 
 include makefile.dep
 
-tests/% :  tests/%.c $(LIBRARY)
+tests/% :  tests/%.c lib/$(LIBRARY)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) $^ -o $@ $(LIBS)
 
 obj/%.o : src/%.c
@@ -67,5 +84,5 @@ obj/%.o : src/%.c
 lib/%.a : $(LIB_OBJECTS)
 	ar -r $@ $^
 
-lib/%.so : $(LIB_OBJECTS)
-	ld -shared -o $@  -soname $@ $(LDFLAGS) @LIBS4SHARED@ $^
+lib/%.so.$(VERSION) : $(LIB_OBJECTS)
+	ld -shared -o $@  -soname $(LIB_NAME).so.$(MAJOR) $(LDFLAGS) @LIBS4SHARED@ $^

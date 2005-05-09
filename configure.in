@@ -96,7 +96,7 @@ else
 fi
 
 if test -n "$glc_build_shared"; then
-	LIBRARY="\$(LIB_NAME).so"
+	LIBRARY="\$(LIB_NAME).so.\$(VERSION)"
 	CFLAGS4SHARED="-fPIC"
 else
 	LIBS="$LIBS4SHARED $LIBS"
