@@ -564,7 +564,7 @@ void __glcDisplayListDestructor(FT_Memory inMemory, void *inData,
 /* This function counts the number of bits that are set in c1 
  * Copied from Keith Packard's fontconfig
  */
-FcChar32 FcCharSetPopCount(FcChar32 c1)
+FcChar32 __glcCharSetPopCount(FcChar32 c1)
 {
   /* hackmem 169 */
   FcChar32    c2 = (c1 >> 1) & 033333333333;
@@ -676,4 +676,60 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
   }
 
   return string;
+}
+
+/* Convert a UCS-4 character code into the current string type. The result is
+ * stored in a GLint. This function is needed since the GLC specs store
+ * individual character codes in GLint which may cause problems for the UTF-8
+ * format.
+ */
+GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
+{
+  if (inState->stringType == GLC_UTF8) {
+    /* Things can go wrong if GLC_UTF8 is the expected string type :
+     * the length of some character code in UTF-8 format can exceed the size
+     * of the GLint type in which case a GLC_PARAMETER_ERROR is issued.
+     * This is a limitation of the GLC API as it is defined in the specs
+     * version 0.2. The most obvious workaround is to use the UCS-4/UTF-32
+     * format...
+     */
+    FcChar8 buffer[FC_UTF8_MAX_LEN];
+    int len = FcUcs4ToUtf8((FcChar32)inCode, buffer);
+
+    if (len > sizeof(GLint)) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return 0;
+    }
+
+    return *((GLint*)buffer);
+  }
+
+  return inCode;
+}
+
+/* Convert a character encoded in the current string type to the UCS-4 format.
+ * This function is needed since the GLC specs store individual character codes
+ * in GLint which may cause problems for the UTF-8 format.
+ */
+GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
+{
+  GLint code = inCode;
+  
+  /* If the current string type is GLC_UTF8 then converts to GLC_UCS4 */
+  if (inState->stringType == GLC_UTF8) {
+    /* If the user gives a character code in UTF-8 format then the code must
+     * be small enough to be contained within a GLint, otherwise QuesoGLC
+     * consider the code to be ill-formed and issues a GLC_PARAMETER_ERROR.
+     * As a consequence, not all the Unicode character codes can be given to
+     * glcReplacementCode() in UTF-8 format. This is a limitation of the GLC
+     * API as it is defined in the specs version 0.2.
+     * The most obvious workaround is to use the UCS-4/UTF-32 format...
+     */
+    if (FcUtf8ToUcs4((FcChar8*)&inCode, (FcChar32*)&code, sizeof(GLint)) < 0) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return -1;
+    }
+  }
+
+  return code;
 }

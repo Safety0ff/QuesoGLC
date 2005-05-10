@@ -97,7 +97,7 @@ extern "C" {
 					   const GLint inStringType);
 
   /* Count the number of bits that are set in c1  */
-  extern FcChar32 FcCharSetPopCount(FcChar32 c1);
+  extern FcChar32 __glcCharSetPopCount(FcChar32 c1);
 
   /* This function is called to destroy texture objects */
   extern void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
@@ -112,6 +112,19 @@ extern "C" {
    */
   void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 			      GLboolean inAppend);
+
+  /* Convert a UCS-4 character code into the current string type. The result is
+   * stored in a GLint. This function is needed since the GLC specs store
+   * individual character codes in GLint which may cause problems for the UTF-8
+   * format.
+   */
+  GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode);
+
+  /* Convert a character encoded in the current string type to the UCS-4 format.
+   * This function is needed since the GLC specs store individual character codes
+   * in GLint which may cause problems for the UTF-8 format.
+   */
+  GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode);
 #ifdef __cplusplus
 }
 #endif

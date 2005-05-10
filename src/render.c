@@ -142,7 +142,9 @@ static int __glcNextPowerOf2(int value)
   return power;
 }
 
-/* Internal function that renders glyph in textures */
+/* Internal function that renders glyph in textures :
+ * 'inCode' must be given in UCS-4 format
+ */
 static void __glcRenderCharTexture(__glcFont* inFont,
 				   __glcContextState* inState, GLint inCode)
 {
@@ -347,7 +349,9 @@ static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
   return GL_FALSE;
 }
 
-/* Internal function that is called to do the actual rendering */
+/* Internal function that is called to do the actual rendering :
+ * 'inCode' must be given in UCS-4 format
+ */
 static void __glcRenderChar(GLint inCode, GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
@@ -418,6 +422,74 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   }
 }
 
+/* Process the character in order to find a font that maps the code and to
+ * render the corresponding glyph. Replacement code and '<hexcode>' format
+ * are issued if necessary.
+ * 'inCode' must be given in UCS-4 format
+ */
+static void __glcProcessChar(__glcContextState *inState, GLint inCode)
+{  
+  GLint repCode = 0;
+  GLint font = 0;
+  
+  /* Get a font that maps inCode */
+  font = __glcCtxGetFont(inState, inCode);
+  if (font) {
+    /* A font has been found */
+    __glcRenderChar(inCode, font);
+    return;
+  }
+
+  /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
+   * produce an alternate rendering.
+   */
+
+  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and __glcCtxGetFont()
+   * finds a font that maps the replacement code, we now render the character
+   * that the replacement code is mapped to
+   */
+  repCode = inState->replacementCode;
+  font = __glcCtxGetFont(inState, repCode);
+  if (repCode && font) {
+    __glcRenderChar(repCode, font);
+    return;
+  }
+  else {
+    /* If we get there, we failed to render both the character that inCode maps
+     * to and the replacement code. Now, we will try to render the character
+     * sequence "\<hexcode>", where '\' is the character REVERSE SOLIDUS 
+     * (U+5C), '<' is the character LESS-THAN SIGN (U+3C), '>' is the character
+     * GREATER-THAN SIGN (U+3E), and 'hexcode' is inCode represented as a
+     * sequence of hexadecimal digits. The sequence has no leading zeros, and
+     * alphabetic digits are in upper case. The GLC measurement commands treat
+     * the sequence as a single character.
+     */
+    char buf[10];
+    GLint i = 0;
+    GLint n = 0;
+
+    /* Check if a font maps to '\', '<' and '>'. */
+    if (!__glcCtxGetFont(inState, '\\') || !__glcCtxGetFont(inState, '<')
+	|| !__glcCtxGetFont(inState, '>'))
+      return;
+
+    /* Check if a font maps hexadecimal digits */
+    sprintf(buf,"%X", (int)inCode);
+    n = strlen(buf);
+    for (i = 0; i < n; i++) {
+      if (!__glcCtxGetFont(inState, buf[i]))
+	return;
+    }
+
+    /* Render the '\<hexcode>' sequence */
+    __glcRenderChar('\\', __glcCtxGetFont(inState, '\\'));
+    __glcRenderChar('<', __glcCtxGetFont(inState, '<'));
+    for (i = 0; i < n; i++)
+      __glcRenderChar(buf[i], __glcCtxGetFont(inState, buf[i]));
+    __glcRenderChar('>', __glcCtxGetFont(inState, '>'));
+  }
+}
+
 /** \ingroup render
  *  This command renders the character that \e inCode is mapped to.
  *
@@ -465,9 +537,8 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
  */
 void glcRenderChar(GLint inCode)
 {
-  GLint repCode = 0;
-  GLint font = 0;
   __glcContextState *state = NULL;
+  GLint code = 0;
 
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -476,64 +547,17 @@ void glcRenderChar(GLint inCode)
     return;
   }
 
-  /* Get a font that maps inCode */
-  font = __glcCtxGetFont(state, inCode);
-  if (font) {
-    /* A font has been found */
-    __glcRenderChar(inCode, font);
-    return;
-  }
-
-  /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
-   * produce an alternate rendering.
+  /* Get the character code converted to the UCS-4 format.
+   * See comments at the definition of __glcConvertGLintToUcs4() for known
+   * limitations
    */
-
-  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and __glcCtxGetFont()
-   * finds a font that maps the replacement code, we now render the character
-   * that the replacement code is mapped to
-   */
-  repCode = glcGeti(GLC_REPLACEMENT_CODE);
-  font = __glcCtxGetFont(state, repCode);
-  if (repCode && font) {
-    __glcRenderChar(repCode, font);
+  code = __glcConvertGLintToUcs4(state, inCode);
+  if (code < 0)
     return;
-  }
-  else {
-    /* If we get there, we failed to render both the character that inCode maps
-     * to and the replacement code. Now, we will try to render the character
-     * sequence "\<hexcode>", where '\' is the character REVERSE SOLIDUS 
-     * (U+5C), '<' is the character LESS-THAN SIGN (U+3C), '>' is the character
-     * GREATER-THAN SIGN (U+3E), and 'hexcode' is inCode represented as a
-     * sequence of hexadecimal digits. The sequence has no leading zeros, and
-     * alphabetic digits are in upper case. The GLC measurement commands treat
-     * the sequence as a single character.
-     */
-    char buf[10];
-    GLint i = 0;
-    GLint n = 0;
 
-    /* Check if a font maps to '\', '<' and '>'. */
-    if (!__glcCtxGetFont(state, '\\') || !__glcCtxGetFont(state, '<')
-	|| !__glcCtxGetFont(state, '>'))
-      return;
-
-    /* Check if a font maps hexadecimal digits */
-    sprintf(buf,"%X", (int)inCode);
-    n = strlen(buf);
-    for (i = 0; i < n; i++) {
-      if (!__glcCtxGetFont(state, buf[i]))
-	return;
-    }
-
-    /* Render the '\<hexcode>' sequence */
-    __glcRenderChar('\\', __glcCtxGetFont(state, '\\'));
-    __glcRenderChar('<', __glcCtxGetFont(state, '<'));
-    for (i = 0; i < n; i++)
-      __glcRenderChar(buf[i], __glcCtxGetFont(state, buf[i]));
-    __glcRenderChar('>', __glcCtxGetFont(state, '>'));
-  }
+  __glcProcessChar(state, code);
 }
-
+  
 /** \ingroup render
  *  This command is identical to the command glcRenderChar(), except that it
  *  renders a string of characters. The string comprises the first \e inCount
@@ -588,7 +612,7 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
       break;
     }
     ptr += len;
-    glcRenderChar(code);
+    __glcProcessChar(state, code);
   }
 
   __glcFree(UinString);
@@ -634,7 +658,7 @@ void glcRenderString(const GLCchar *inString)
       break;
     }
     ptr += len;
-    glcRenderChar(code);
+    __glcProcessChar(state, code);
   } while (*ptr);
 
   __glcFree(UinString);
@@ -707,6 +731,7 @@ void glcRenderStyle(GLCenum inStyle)
 void glcReplacementCode(GLint inCode)
 {
   __glcContextState *state = __glcGetCurrent();
+  GLint code = 0;
 
   /* Check if the current thread owns a current state */
   if (!state) {
@@ -714,8 +739,16 @@ void glcReplacementCode(GLint inCode)
     return;
   }
 
+  /* Get the replacement character converted to the UCS-4 format.
+   * See comments at the definition of __glcConvertGLintToUcs4() for known
+   * limitations
+   */
+  code = __glcConvertGLintToUcs4(state, inCode);
+  if (code < 0)
+    return;
+  
   /* Stores the replacement code */
-  state->replacementCode = inCode;
+  state->replacementCode = code;
   return;
 }
 

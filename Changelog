@@ -1,6 +1,11 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Fixed all GLC functions that uses individual character : if the current string
+  type is GLC_UTF8, the GLint code is now correctly handled
+- Fixed a bug in the detection of the filename extension of font files
+- Fixed the master creation when glcGenContext() is called : no void master
+  should be created anymore
 - Fixed a bug so that display lists created by QuesoGLC are now deleted when
   glcDeleteGLObjects() is called or when a master is destroyed
 - Strings returned by glcGetc() are now converted in the relevant Unicode format

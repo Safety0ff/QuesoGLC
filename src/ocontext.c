@@ -242,6 +242,8 @@ static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
 
   /* Update the minimum mapped code */
   base = FcCharSetFirstPage(charSet, map, &next);
+  assert(base != FC_CHARSET_DONE);
+
   for (i = 0; i < FC_CHARSET_MAP_SIZE; i++)
     if (map[i]) break;
   assert(i < FC_CHARSET_MAP_SIZE); /* If the map contains no char then
@@ -282,7 +284,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
   int i = 0;
 
   for (i = 0; i < fontSet->nfont; i++) {
-    char *end = NULL;
     char *ext = NULL;
     __glcMaster *master = NULL;
     FcChar8 *fileName = NULL;
@@ -291,6 +292,9 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
     FcChar8 *styleName = NULL;
     FT_ListNode node = NULL;
     FcBool outline = FcFalse;
+    int fixed = 0;
+    FcCharSet *charSet = NULL;
+    int index = 0;
 
     /* Check whether the glyphs are outlines */
     if (FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline)
@@ -309,19 +313,52 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 	== FcResultTypeMismatch)
       vendorName = NULL;
 
+    /* get the style name */
+    if (FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName)
+	== FcResultTypeMismatch)
+      continue;
+
+    /* get the family name */
+    if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName)
+	== FcResultTypeMismatch)
+      continue;
+    
+    /* Is this a fixed font ? */
+    if (FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed)
+	== FcResultTypeMismatch)
+      continue;
+
+    /* get the char set */
+    if (FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet)
+	== FcResultTypeMismatch)
+      continue;
+    else {
+      FcChar32 base = 0;
+      FcChar32 next = 0;
+      FcChar32 map[FC_CHARSET_MAP_SIZE];
+      
+      base = FcCharSetFirstPage(charSet, map, &next);
+      if (base == FC_CHARSET_DONE)
+        continue;
+    }
+    
+    /* get the index of the font in font file */
+    if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index)
+	== FcResultTypeMismatch)
+      continue;
+
     /* get the extension of the file */
     ext = (char*)fileName + (strlen((const char*)fileName) - 1);
-    while ((*ext != '.') && (end - (char*)fileName))
+    while ((*ext != '.') && (ext - (char*)fileName))
       ext--;
     if (ext != (char*)fileName)
       ext++;
+    else
+      ext = NULL;
 
     /* Determine if the family (i.e. "Times", "Courier", ...) is already
      * associated to a master.
      */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName)
-	== FcResultTypeMismatch)
-      continue;
     for (node = This->masterList.head; node; node = node->next) {
       master = (__glcMaster*)node->data;
 
@@ -332,7 +369,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
     if (!node) {
       /* No master has been found. We must create one */
       GLint id;
-      int fixed;
 
       /* Create a new master and add it to the current context */
       if (master)
@@ -344,16 +380,12 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
       else
 	id = 0;
 
-      if (FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed)
-	  == FcResultTypeMismatch)
-	continue;
-
       master = __glcMasterCreate(familyName, vendorName, ext, id,
 				 (fixed != FC_PROPORTIONAL),
 				 This->stringType);
       if (!master) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
-	continue;
+	break;
       }
 
       node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
@@ -361,22 +393,12 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 	__glcMasterDestroy(master);
 	master = NULL;
 	__glcRaiseError(GLC_RESOURCE_ERROR);
-	continue;
+	break;
       }
 
       node->data = master;
       FT_List_Add(&This->masterList, node);
     }
-
-    /* FIXME :
-     * If fontconfig is not able to get the style or the charset of a font
-     * then the master creation is stopped. This may lead to void masters
-     * if the master has just been created above. We should check if the
-     * master needs to be destroyed since it won't contain a thing.
-     */
-    if (FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName)
-	== FcResultTypeMismatch)
-      continue;
 
     for (node = master->faceList.head; node; node = node->next) {
       __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)node;
@@ -386,9 +408,7 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
     }
 
     if (!node) {
-      FcCharSet *charSet = NULL;
       __glcFaceDescriptor* faceDesc = NULL;
-      int index = 0;
       FT_ListNode newNode = NULL;
       FcCharSet* dummy = FcCharSetCreate();
 
@@ -402,13 +422,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
        * master : Append (or prepend) the new face and its file name to
        * the master.
        */
-      if (FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet)
-	  == FcResultTypeMismatch)
-        continue;
-      if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index)
-	  == FcResultTypeMismatch)
-	continue;
-
       __glcUpdateCharList(master, charSet);
 
       faceDesc =
@@ -723,6 +736,7 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 
 /* Return the ID of the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'
  * If there is no such font, the function returns zero
+ * 'inCode' must be given in UCS-4 format.
  */
 static GLint __glcLookupFont(GLint inCode, FT_List fontList)
 {
@@ -752,6 +766,7 @@ static GLint __glcLookupFont(GLint inCode, FT_List fontList)
 
 /* Calls the callback function (does various tests to determine if it is
  * possible) and returns GL_TRUE if it has succeeded or GL_FALSE otherwise.
+ * 'inCode' must be given in UCS-4 format.
  */
 static GLboolean __glcCallCallbackFunc(GLint inCode,
 				       __glcContextState *inState)
@@ -768,7 +783,11 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
     return GL_FALSE;
 
   inState->isInCallbackFunc = GL_TRUE;
-  result = (*callbackFunc)(inCode);
+  /* Call the callback function with the character converted to the current
+   * string type. See comments at the definition of __glcConvertUcs4ToGLint()
+   * for known limitations
+   */
+  result = (*callbackFunc)(__glcConvertUcs4ToGLint(inState, inCode));
   inState->isInCallbackFunc = GL_FALSE;
 
   return result;
@@ -780,6 +799,7 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
  * 'inCode'. If there is no such font, the function attempts to append a new
  * font from GLC_FONT_LIST (or from a master) to GLC_CURRENT_FONT_LIST. If the
  * attempt fails the function returns zero.
+ * 'inCode' must be given in UCS-4 format.
  */
 GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
 {

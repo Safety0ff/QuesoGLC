@@ -83,7 +83,8 @@ static void __glcTransformVector(GLfloat* outVec, __glcContextState *inState)
 
 
 /* Retrieve the metrics of a character identified by 'inCode' in a font
- * idetified by 'inFont'.
+ * identified by 'inFont'.
+ * 'inCode' must be given in UCS-4 format
  */
 static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
 				   GLfloat *outVec, GLint inFont,
@@ -164,6 +165,36 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
 }
 
 
+
+/* Process the character in order to find a font that maps the code and to
+ * get the metrics of th corresponding glyph. Replacement code and '<hexcode>'
+ * format are issued if necessary.
+ * 'inCode' must be given in UCS-4 format
+ */
+static  GLfloat* __glcProcessCharMetric(__glcContextState *inState, GLint inCode,
+					GLCenum inMetric, GLfloat *outVec)
+{
+  GLint repCode = 0;
+  GLint font = 0;
+  
+  /* Finds a font that owns a glyph which maps to inCode */
+  font = __glcCtxGetFont(inState, inCode);
+  if (font)
+    return __glcGetCharMetric(inCode, inMetric, outVec, font, inState);
+
+  /* No glyph maps to in inCode. Use the replacement code instead */
+  repCode = inState->replacementCode;
+  font = __glcCtxGetFont(inState, repCode);
+  if (repCode && font)
+    return __glcGetCharMetric(repCode, inMetric, outVec, font, inState);
+
+  /* Here GLC must render /<hexcode>. Should we return the metrics of
+     the whole string or nothing at all ? */
+  return NULL;
+}
+
+
+
 /** \ingroup measure
  *  This command is identical to the command glcRenderChar(), except that
  *  instead of rendering the character that \e inCode is mapped to, the command
@@ -183,9 +214,8 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
  */
 GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 {
-  GLint repCode = 0;
-  GLint font = 0;
   __glcContextState *state = NULL;
+  GLint code = 0;
 
   switch(inMetric) {
   case GLC_BASELINE:
@@ -203,22 +233,17 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
     return NULL;
   }
 
-  /* Finds a font that owns a glyph which maps to inCode */
-  font = __glcCtxGetFont(state, inCode);
-  if (font)
-    return __glcGetCharMetric(inCode, inMetric, outVec, font, state);
+  /* Get the character code converted to the UCS-4 format.
+   * See comments at the definition of __glcConvertGLintToUcs4() for known
+   * limitations
+   */
+  code = __glcConvertGLintToUcs4(state, inCode);
+  if (code < 0)
+    return NULL;
 
-  /* No glyph maps to in inCode. Use the replacement code instead */
-  repCode = state->replacementCode;
-  font = __glcCtxGetFont(state, repCode);
-  if (repCode && font)
-    return __glcGetCharMetric(repCode, inMetric, outVec, font, state);
-
-  /* Here GLC must render /<hexcode>. Should we return the metrics of
-     the whole string or nothing at all ? */
-  return NULL;
+  return __glcProcessCharMetric(state, code, inMetric, outVec);
 }
-
+  
 
 
 /** \ingroup measure
@@ -504,8 +529,8 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
     }
     ptr += len;
     /* For each character get the metrics */
-    glcGetCharMetric(code, GLC_BASELINE, baselineMetric);
-    glcGetCharMetric(code, GLC_BOUNDS, boundsMetric);
+    __glcProcessCharMetric(state, code, GLC_BASELINE, baselineMetric);
+    __glcProcessCharMetric(state, code, GLC_BOUNDS, boundsMetric);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars) {

@@ -147,7 +147,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     base = FcCharSetFirstPage(master->charList, map, &next);
     do {
       for (i = 0; i < FC_CHARSET_MAP_SIZE; i++) {
-        FcChar32 value = FcCharSetPopCount(map[i]);
+        FcChar32 value = __glcCharSetPopCount(map[i]);
         if (count + value >= inIndex + 1) {
           for (j = 0; j < 32; j++) {
             if ((map[i] >> j) & 1) count++;
@@ -217,6 +217,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   FT_ListNode node = NULL;
   __glcFaceDescriptor* faceDesc = NULL;
   FcChar8* name = NULL;
+  GLint code = 0;
 
   /* Verify if the thread has a current context */
   state = __glcGetCurrent();
@@ -242,6 +243,14 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     return GLC_NONE;
   }
 
+  /* Get the character code converted to the UCS-4 format.
+   * See comments at the definition of __glcConvertGLintToUcs4() for known
+   * limitations
+   */
+  code = __glcConvertGLintToUcs4(state, inCode);
+  if (code < 0)
+    return NULL;
+
   /* We search for a font file that supports the requested inCode glyph */
   for (node = master->faceList.head; node; node = node->next) {
     /* Copy the Unicode string into a buffer
@@ -251,7 +260,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
      */
     faceDesc = (__glcFaceDescriptor*)node;
 
-    if (FcCharSetHasChar(faceDesc->charSet, (FcChar32)inCode))
+    if (FcCharSetHasChar(faceDesc->charSet, (FcChar32)code))
       break; /* Found !!!*/
   }
 
@@ -264,7 +273,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   /* The database gives the Unicode name in UCS1 encoding. We should now
    * change its encoding if needed.
    */
-  name = __glcNameFromCode(inCode);
+  name = __glcNameFromCode(code);
   if (!name) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;

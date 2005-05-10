@@ -894,7 +894,11 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_RENDER_STYLE:
     return state->renderStyle;
   case GLC_REPLACEMENT_CODE:
-    return state->replacementCode;
+    /* Return the replacement character converted to the current string type.
+     * See comments at the definition of __glcConvertUcs4ToGLint() for known
+     * limitations
+     */
+    return __glcConvertUcs4ToGLint(state, state->replacementCode);
   case GLC_STRING_TYPE:
     return state->stringType;
   case GLC_TEXTURE_OBJECT_COUNT:

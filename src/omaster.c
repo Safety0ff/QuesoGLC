@@ -56,10 +56,12 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 
   /* use file extension to determine the face format */
   This->masterFormat = (FcChar8*)unknown;
-  if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
-    This->masterFormat = (FcChar8*)format1;
-  if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
-    This->masterFormat = (FcChar8*)format2;
+  if (inFileExt) {
+    if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
+      This->masterFormat = (FcChar8*)format1;
+    if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
+      This->masterFormat = (FcChar8*)format2;
+  }
 
   /* We assume that the format of data strings in font files is GLC_UCS1 */
   if (inVendorName) {
