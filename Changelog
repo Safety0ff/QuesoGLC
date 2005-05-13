@@ -1,17 +1,20 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Fixed a bug in glcFontMap() which screwed the charMap array when a character
+  was removed from the font map (bug reported by Brandon Casey)
 - Textures in the GLC_TEXTURE mode are now stored in GL_ALPHA format in order
-  to nicely superimpose the glyph on the background instead of rendering it over
-  a black box
-- Fixed all GLC functions that uses individual character : if the current string
-  type is GLC_UTF8, the GLint code is now correctly handled
+  to nicely superimpose the glyph on the background instead of rendering it
+  over a black box (bug reported by Brandon Casey)
+- Fixed all GLC functions that uses individual character : if the current
+  string type is GLC_UTF8, the GLint code is now correctly handled
 - Fixed a bug in the detection of the filename extension of font files
 - Fixed the master creation when glcGenContext() is called : no void master
   should be created anymore
 - Fixed a bug so that display lists created by QuesoGLC are now deleted when
   glcDeleteGLObjects() is called or when a master is destroyed
-- Strings returned by glcGetc() are now converted in the relevant Unicode format
+- Strings returned by glcGetc() are now converted in the relevant Unicode
+  format
 - Added an "uninstall" target to the makefile
 - When the shared library is built, the version number is appended to the
   library name and the corresponding links are created when QuesoGLC is

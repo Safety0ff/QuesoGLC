@@ -392,8 +392,8 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   /* Convert the code 'inCode' using the charmap */
   /* TODO : use a dichotomic algo. instead*/
   for (i = 0; i < font->charMapCount; i++) {
-    if ((FT_ULong)inCode == font->charMap[0][i]) {
-      inCode = (GLint)font->charMap[1][i];
+    if ((FT_ULong)inCode == font->charMap[i][0]) {
+      inCode = (GLint)font->charMap[i][1];
       break;
     }
   }

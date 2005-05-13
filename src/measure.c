@@ -113,8 +113,8 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
   /* Retrieve which is the glyph that inCode is mapped to */
   /* TODO : use a dichotomic algo. instead */
   for (i = 0; i < font->charMapCount; i++) {
-    if ((FT_ULong)inCode == font->charMap[0][i]) {
-      inCode = font->charMap[1][i];
+    if ((FT_ULong)inCode == font->charMap[i][0]) {
+      inCode = font->charMap[i][1];
       break;
     }
   }

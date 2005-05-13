@@ -483,10 +483,10 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     /* Look for the character mapped by inCode in the charmap */
     /* FIXME : use a dichotomic algo. instead */
     for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[1][i] == (FT_ULong)code) {
+      if (font->charMap[i][1] == (FT_ULong)code) {
 	/* Remove the character mapped by inCode */
 	if (i < font->charMapCount-1)
-	  memmove(&font->charMap[0][i], &font->charMap[0][i+1],
+	  memmove(&font->charMap[i][0], &font->charMap[i+1][0],
 		  (font->charMapCount-i-1) * 2 * sizeof(GLint));
 	font->charMapCount--;
 	break;
@@ -553,19 +553,19 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 
     /* FIXME : use a dichotomic algo instead */
     for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[0][i] >= mappedCode)
+      if (font->charMap[i][0] >= mappedCode)
 	break;
     }
-    if ((i == font->charMapCount) || (font->charMap[0][i] != mappedCode)) {
+    if ((i == font->charMapCount) || (font->charMap[i][0] != mappedCode)) {
       /* The character identified by inCharName is not yet registered, we add
        * it to the charmap.
        */
       if (font->charMapCount < GLC_MAX_CHARMAP) {
         if (font->charMapCount != i)
-	  memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
+	  memmove(&font->charMap[i+1][0], &font->charMap[i][0], 
 		  (font->charMapCount - i) * 2 * sizeof(GLint));
 	font->charMapCount++;
-	font->charMap[0][i] = mappedCode;
+	font->charMap[i][0] = mappedCode;
       }
       else {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -573,7 +573,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       }
     }
     /* Stores the code which 'inCharName' must be mapped by */
-    font->charMap[1][i] = code;
+    font->charMap[i][1] = code;
     /* FIXME : the master charList is not updated */
   }
 }
@@ -780,8 +780,8 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
      * mapped by */
     /* FIXME : use a dichotomic algo instead */
     for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[1][i] == (FT_ULong)inCode) {
-	inCode = font->charMap[0][i];
+      if (font->charMap[i][1] == (FT_ULong)inCode) {
+	inCode = font->charMap[i][0];
 	break;
       }
     }

@@ -33,7 +33,7 @@ typedef struct {
   __glcFaceDescriptor* faceDesc;
   __glcMaster *parent;
   FT_Face face;
-  FT_ULong charMap[2][GLC_MAX_CHARMAP];
+  FT_ULong charMap[GLC_MAX_CHARMAP][2];
   GLint charMapCount;
 } __glcFont;
 

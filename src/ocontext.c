@@ -749,8 +749,8 @@ static GLint __glcLookupFont(GLint inCode, FT_List fontList)
      * mapped by */
     /* FIXME : use a dichotomic algo instead */
     for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[1][i] == (FT_ULong)inCode) {
-	inCode = font->charMap[0][i];
+      if (font->charMap[i][1] == (FT_ULong)inCode) {
+	inCode = font->charMap[i][0];
 	break;
       }
     }
