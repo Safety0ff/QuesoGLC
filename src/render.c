@@ -157,6 +157,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   GLint format = 0;
   __glcDisplayListKey *dlKey = NULL;
   FT_ListNode node = NULL;
+  GLint boundTexture = 0;
+  GLint unpackAlignment = 0;
 
   /* Get the bounding box of the glyph */
   FT_Outline_Get_CBox(&outline, &boundBox);
@@ -172,8 +174,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
 
   /* Check if a new texture can be created */
-  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_LUMINANCE, pixmap.width,
-	       pixmap.rows, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, pixmap.width,
+	       pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
   glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
 			   &format);
   if (!format) {
@@ -209,7 +211,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 
   /* Create a texture object and make it current */
   glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
 
   /* Add the new texture to the texture list */
   if (inState->glObjects) {
@@ -220,24 +221,31 @@ static void __glcRenderCharTexture(__glcFont* inFont,
       node->data = (void*)texture;
       FT_List_Add(&inFont->parent->textureObjectList, node);
     }
-    else
+    else {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      glDeleteTextures(1, &texture);
+      __glcFree(pixmap.buffer);
+      return;
+    }
   }
 
   /* Create the texture */
+  glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glBindTexture(GL_TEXTURE_2D, texture);
 
   if (inState->mipmap) {
-    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_LUMINANCE8, pixmap.width,
-		      pixmap.rows, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_ALPHA8, pixmap.width,
+		      pixmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE,
 		      pixmap.buffer);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		    GL_LINEAR_MIPMAP_LINEAR);
   }
   else {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, pixmap.width,
-		 pixmap.rows, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA8, pixmap.width,
+		 pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE,
 		 pixmap.buffer);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -246,6 +254,9 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  
+  glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
+  glBindTexture(GL_TEXTURE_2D, boundTexture);
 
   if (inState->glObjects) {
     dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
@@ -270,8 +281,15 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 
     /* Create the display list */
     glNewList(dlKey->list, GL_COMPILE);
-    glBindTexture(GL_TEXTURE_2D, texture);
   }
+
+  glPushAttrib(GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  /* Repeat glBindTexture() so that the display list included it */
+  glBindTexture(GL_TEXTURE_2D, texture);
 
   /* Compute the size of the glyph */
   width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64.);
@@ -297,7 +315,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glTranslatef(face->glyph->advance.x / 64. / GLC_POINT_SIZE, 
 	       face->glyph->advance.y / 64. / GLC_POINT_SIZE, 0.);
 
-  glBindTexture(GL_TEXTURE_2D, 0);
+  glPopAttrib();
 
   if (inState->glObjects) {
     /* Finish display list creation */
