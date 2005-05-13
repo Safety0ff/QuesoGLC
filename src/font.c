@@ -496,7 +496,6 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
   }
   else {
     FT_ULong mappedCode  = 0;
-    __glcContextState *state = __glcGetCurrent();
     GLCchar* buffer = NULL;
     FcCharSet* charSet = NULL;
     FcCharSet* result = NULL;
@@ -562,8 +561,9 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
        * it to the charmap.
        */
       if (font->charMapCount < GLC_MAX_CHARMAP) {
-	memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
-		(font->charMapCount - i) * 2 * sizeof(GLint));
+        if (font->charMapCount != i)
+	  memmove(&font->charMap[0][i+1], &font->charMap[0][i], 
+		  (font->charMapCount - i) * 2 * sizeof(GLint));
 	font->charMapCount++;
 	font->charMap[0][i] = mappedCode;
       }
