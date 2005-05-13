@@ -1,3 +1,21 @@
+/* QuesoGLC
+ * A free implementation of the OpenGL Character Renderer (GLC)
+ * Copyright (c) 2002-2005, Bertrand Coconnier
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 /* $Id$ */
 #include "GL/glc.h"
 #include <stdio.h>
@@ -37,9 +55,25 @@ int main(void)
   printf("Font Map #%d : %s\n", 65, (char *)glcGetFontMap(font, 65));
   printf("Font Map #%d : %s\n", 92, (char *)glcGetFontMap(font, 92));
 
-  glcFontMap(font, 90, "LATIN CAPITAL LETTER A");
+  /* The characters maps are given in disorder in order to test the insertion
+   * algorithm in glcFontMap()
+   */
+  glcFontMap(font, 87, "LATIN CAPITAL LETTER A");
+  glcFontMap(font, 90, "LATIN CAPITAL LETTER D");
+  glcFontMap(font, 89, "LATIN CAPITAL LETTER C");
+  glcFontMap(font, 88, "LATIN CAPITAL LETTER B");
 
-  printf("Font Map #%d : %s\n", 90, (char *)glcGetFontMap(font, 90));
+  /* Check that the characters are correctly mapped */
+  for (i = 87; i < 91; i++)
+    printf("Font Map #%d : %s\n", i, (char *)glcGetFontMap(font, i));
+
+  /* The character code 88 is removed from the font map */
+  glcFontMap(font, 88, NULL);
+  printf("Character 88 removed from the font map\n");
+
+  /* Check that the remaining characters in the font map are still correctly mapped */
+  for (i = 87; i < 91; i++)
+    printf("Font Map #%d : %s\n", i, (char *)glcGetFontMap(font, i));
 
   i = 1;
   last = glcGetMasteri(i, GLC_CHAR_COUNT);
