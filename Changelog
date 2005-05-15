@@ -1,6 +1,10 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Brandon Casey modified testrender.c so that a box is drawn around the text
+  rendered in GLC_BITMAP style in order to demonstrate proper rotation. This
+  example is analogous to the test that shows failure of SGI's GLC to properly
+  perform this operation (http://www.opengl.org/resources/features/fontsurvey)
 - Fixed a bug in glcFontMap() which screwed the charMap array when a character
   was removed from the font map (bug reported by Brandon Casey)
 - Textures in the GLC_TEXTURE mode are now stored in GL_ALPHA format in order
