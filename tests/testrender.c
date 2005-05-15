@@ -33,6 +33,8 @@
 
 void display(void)
 {
+  GLfloat BitmapBoundingBox[8];
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glLoadIdentity();
@@ -47,7 +49,7 @@ void display(void)
   glLoadIdentity();
   glcRenderStyle(GLC_TEXTURE);
   glColor3f(0., 0., 1.);
-  glTranslatef(30., 350., 0.);
+  glTranslatef(30., 150., 0.);
   glScalef(90., 90., 0.);
   glcRenderChar('T');
   glcRenderString("exture");
@@ -61,6 +63,19 @@ void display(void)
   glcRotate(-10.);
   glcRenderChar('B');
   glcRenderString("itmap");
+
+  glcLoadIdentity();
+  glcMeasureString(GL_FALSE, "Bitmap");
+  glcGetStringMetric(GLC_BOUNDS, BitmapBoundingBox);
+  glTranslatef(30., 200., 0.);
+  glScalef(90., 90., 1.);
+  glRotatef(-10., 0., 0., 1.);
+  glBegin(GL_LINE_LOOP);
+    glVertex2fv(&(BitmapBoundingBox[0]));
+    glVertex2fv(&(BitmapBoundingBox[2]));
+    glVertex2fv(&(BitmapBoundingBox[4]));
+    glVertex2fv(&(BitmapBoundingBox[6]));
+  glEnd();
 
   glLoadIdentity();
   glcRenderStyle(GLC_TRIANGLE);
@@ -112,8 +127,6 @@ int main(int argc, char **argv)
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
   glutKeyboardFunc(keyboard);
-
-  glEnable(GL_TEXTURE_2D);
 
   ctx = glcGenContext();
   glcContext(ctx);
