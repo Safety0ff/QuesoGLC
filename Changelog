@@ -1,6 +1,8 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Brandon Casey fixed a bug in glclogo.c where GLC_GL_OBJECTS was not disabled
+  hence preventing the display lists to be correctly built.
 - Brandon Casey modified testrender.c so that a box is drawn around the text
   rendered in GLC_BITMAP style in order to demonstrate proper rotation. This
   example is analogous to the test that shows failure of SGI's GLC to properly

@@ -17,6 +17,9 @@
    - Added 'return 0;' at the end of main() in order to be compliant with
      its int type.
    - Removed the unused function my_init()
+   Fixes by Brandon Casey :
+   - GLC_GL_OBJECTS is enabled by default, it should be disabled here since
+     display lists are created by the program.
 */
 
 #if defined __APPLE__ && defined __MACH__
@@ -228,6 +231,9 @@ access_font()
             /* rather than the display list you are trying to construct.  */
             glcEnable(GLC_GL_OBJECTS);
             check_glc_error("glcEnable(GLC_GL_OBJECTS)");
+#else
+            glcDisable(GLC_GL_OBJECTS);
+            check_glc_error("glcDisable(GLC_GL_OBJECTS)");
 #endif
 
             /* Draw as polygons for smooth rotation & zoom. */
