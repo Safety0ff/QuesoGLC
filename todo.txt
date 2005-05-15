@@ -1,4 +1,4 @@
-QuesoGLC 0.2
+QuesoGLC 0.3
 
 These are things to do by order of preference. It does not mean however that
 contributions should only concern the first topic nor that contributions that
@@ -7,32 +7,29 @@ Topics that are prepended by (?) are suggestions and I am not sure if they are
 really needed.
 
 1. Write an extensive set of test programs
-2. Use FreeType's double linked lists in order to remove the hard-limited
-   arrays of QuesoGLC (in other words, remove the file include/constant.h) and
-   replace them by linked lists.
-3. Unicode support needs much better support than what has been done so far
-   3.1. The so-called "bidi" algorithm have to be included in order to handle
+2. Unicode support needs much better support than what has been done so far
+   2.1. The so-called "bidi" algorithm have to be included in order to handle
         strings that are coded in multiple languages
-   3.2. (?) QuesoGLC should support the BOM (Byte Order Mask) at the beginning
+   2.2. (?) QuesoGLC should support the BOM (Byte Order Mask) at the beginning
         of a string (0xFEFF : legal character, 0xFFFE :  illegal character)
-   3.3. (?) QuesoGLC should support the combining characters (see technical note
+   2.3. (?) QuesoGLC should support the combining characters (see technical note
 	UAX #15 "Unicode Normalization" on the Unicode web site).
-   3.4. QuesoGLC should be conformant with Unicode standard and should pass the
+   2.4. QuesoGLC should be conformant with Unicode standard and should pass the
         conformance tests defined in www.unicode.org
-4. Improve performance
-   4.1. Use FreeType cache system, in order not to load/unload face files too
+3. Improve performance
+   3.1. Use FreeType cache system, in order not to load/unload face files too
 	much
-   4.2. Use a common database to store fonts and masters so that no redundant
+   3.2. Use a common database to store fonts and masters so that no redundant
 	information is stored from one thread to another one.
-   4.3. Use binary trees to improve search delay of display lists and textures.
-   4.4. Use a cache to store the pictures used when drawing glyphs with
+   3.3. Use binary trees to improve search delay of display lists and textures.
+   3.4. Use a cache to store the pictures used when drawing glyphs with
 	GLC_BITMAP
-5. (?) Use setjmp/longjmp to manage memory-related errors.
-6. Try to optimize texture memory : draw several glyphs on each texture in
+4. (?) Use setjmp/longjmp to manage memory-related errors.
+5. Try to optimize texture memory : draw several glyphs on each texture in
    order to minimize unused texture space.
-7. Try to make Fontconfig optional, QuesoGLC should use the X font server (xfs)
+6. Try to make Fontconfig optional, QuesoGLC should use the X font server (xfs)
    and 'fonts.dir' files to locate files if Fontconfig is not available.
-8. Use an algorithm to determine the approximate size of the character on the
+7. Use an algorithm to determine the approximate size of the character on the
    screen in order to compute an optimal size in points for a better use of the
    FreeType hinter.
 8. Separate platform specific code from the main code set.
