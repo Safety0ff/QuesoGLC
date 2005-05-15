@@ -163,6 +163,14 @@ void __glcCtxDestroy(__glcContextState *This)
   if (This->bufferSize)
     __glcFree(This->buffer);
 
+  if (This->measurementCharBuffer) {
+    GLint i = 0;
+
+    for (i = 0; i < This->measuredCharCount; i++)
+      __glcFree(This->measurementCharBuffer[i]);
+    __glcFree(This->measurementCharBuffer);
+  }
+
   FT_Done_Library(This->library);
   __glcFree(This);
 }

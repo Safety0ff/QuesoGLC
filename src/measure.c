@@ -502,7 +502,7 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
 				GLboolean inMeasureChars, GLint inCount,
 				const FcChar8* inString)
 {
-  GLint i = 0, j = 0;
+  GLint i = 0;
   GLfloat baselineMetric[4] = {0., 0., 0., 0.};
   GLfloat boundsMetric[8] = {0., 0., 0., 0., 0., 0., 0., 0.};
   const FcChar8* ptr = NULL;
@@ -512,6 +512,44 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
     state->renderStyle = 0;
 
   memset(state->measurementStringBuffer, 0, 12*sizeof(GLfloat));
+
+  /* free previously allocated measurementCharBuffer */
+  if (state->measurementCharBuffer) {
+    for (i = 0; i < state->measuredCharCount; i++)
+      __glcFree(state->measurementCharBuffer[i]);
+    __glcFree(state->measurementCharBuffer);
+    state->measurementCharBuffer = NULL;
+  }
+  state->measuredCharCount = 0;
+
+  /* allocate space for measurementCharBuffer */
+  if (inMeasureChars) {
+
+    state->measurementCharBuffer =
+      (GLfloat**)__glcMalloc(sizeof(GLfloat*) * inCount);
+    if (!state->measurementCharBuffer) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return 0;
+    }
+
+    for (i = 0; i < inCount; i++) {
+      state->measurementCharBuffer[i] =
+	(GLfloat*)__glcMalloc(sizeof(GLfloat) * 12);
+      if (!state->measurementCharBuffer[i]) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	for (--i; i >= 0; i--)
+	  __glcFree(state->measurementCharBuffer[i]);
+	__glcFree(state->measurementCharBuffer);
+	state->measurementCharBuffer = NULL;
+	return 0;
+      }
+    }
+
+    /* we rely on this to be able to free our memory, so it
+     * must be set, even if we fail later */
+    state->measuredCharCount = inCount;
+  }
+
 
   /* FIXME :
    * Computations performed below assume that the string is rendered
@@ -536,7 +574,7 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
     if (inMeasureChars) {
       memcpy(state->measurementCharBuffer[i], baselineMetric,
 	     4*sizeof(GLfloat));
-      memcpy(&state->measurementCharBuffer[i][j+4], boundsMetric,
+      memcpy(&state->measurementCharBuffer[i][4], boundsMetric,
 	     8*sizeof(GLfloat));
     }
 
@@ -586,11 +624,6 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
       }
     }
   }
-
-  if (inMeasureChars)
-    state->measuredCharCount = inCount;
-  else
-    state->measuredCharCount = 0;
 
   return inCount;
 }
