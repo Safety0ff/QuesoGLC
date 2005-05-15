@@ -1,293 +1,184 @@
-H1 {
-	text-align: center;
-	font-family: Arial, Helvetica, sans-serif;
-}
-H2 {
-	font-family: Geneva, Arial, Helvetica, sans-serif;
-    	border: 1px #BABABA solid;
-    	padding: 2px;
-    	background: #E7E7E7;
-}
-TR.trnews {
-    	background: #E7E7D7;
-}
-TH.thnews1 {
-	text-decoration: none;
-    	border-left: 1px #BABABA solid;
-    	border-top: 1px #BABABA solid;
-    	border-bottom: 1px #BABABA solid;
-	padding: 4px;
-	margin: 0px;
-}
-TH.thnews2 {
-	text-decoration: none;
-    	border-right: 1px #BABABA solid;
-    	border-top: 1px #BABABA solid;
-    	border-bottom: 1px #BABABA solid;
-	padding: 4px;
-	margin: 0px;
-}
-TD.tdnews {
-	border-left: 1px #BABABA solid;
-	border-right: 1px #BABABA solid;
-	border-bottom: 1px #BABABA solid;
-    	padding: 8px;
-	text-align: left;
-	background: #FFFFCC;
-}
-A.newsidx { text-decoration: none; font-weight: bold; color: #990000 }
-A.newsidx:visited { text-decoration: none; font-weight: bold; color: #990000 }
-A.newsidx:hover { text-decoration: none; color: #0000ee; background-color: #E7E7E7 }
-CAPTION { font-weight: bold }
-DIV.qindex { width: 100%;
-             background-color: #eeeeff;
-             border: 4px solid #eeeeff;
-             text-align: center;
-             margin-bottom: 2px
+/* RedBlog */
+a:link, a:visited {
+    text-decoration : none;
+    color : #314e96;
 }
 
-div.content {
-    padding: 20px;
-
-    /* this is a hack */
-    margin-left: 160px;
-    margin-right: 20px;
-/*    padding-bottom: 10px*/
-}
-DIV.footer { width: 100%;
-	     border-top: 1px solid #000000
-}
-A.qindex { text-decoration: none; font-weight: bold; color: #0000ee }
-A.qindex:visited { text-decoration: none; font-weight: bold; color: #0000ee }
-A.qindex:hover { text-decoration: none; background-color: #ddddff }
-A.qindexHL { text-decoration: none; font-weight: bold;
-             background-color: #6666cc;
-             color: #ffffff
-           }
-A.qindexHL:hover { text-decoration: none; background-color: #6666cc; color: #ffffff }
-A.qindexHL:visited { text-decoration: none; background-color: #6666cc; color: #ffffff }
-A.el { text-decoration: none; font-weight: bold }
-A.elRef { font-weight: bold }
-A.code { text-decoration: none; font-weight: normal; color: #4444ee }
-A.codeRef { font-weight: normal; color: #4444ee }
-/*A:hover { text-decoration: none; background-color: #f2f2ff }*/
-#menu {
+a:hover {
     text-decoration: none;
-    float: left;
-    border: 1px #999999 solid;
-    width: 150px;
-    margin-left: 10px;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    color : #fe7405;
 }
 
-#menu ul {
-    text-decoration: none;
-    list-style: none;
-    padding: 0px;
-    margin: 0px;
+body {	
+    background-color: #ffffff;	
+    margin-top : 10px;	
+    font-family: Verdana, Arial, sans-serif;
+    font-size: 12px;
 }
 
-#menu li.sub {
+hr { height: 1px; border: solid #fe7405 0px; border-top-width: 1px;}
+
+/* QuesoGLC */
+TABLE.menu {
     text-decoration: none;
-    color: #000000;
-    background: #d6d6d6;
-    font-weight: bold;
-    padding: 0px;
+    width: 160px;
+    margin-top: 0px;
+    padding-left: 2px;
+    padding-right: 2px;
+    background: #f5f5f5;
+    border: 1px #cccccc solid;
+    /*background: #ffffff;
+    border: 1px #555555 solid;*/
 }
 
-#menu .title {
+TABLE.submenu {
+    border: 0px #cccccc solid;
+    background: #f5f5f5;
+    /*background: #e6ebf7;
+    border: 1px #555559 solid;*/
+}
+
+TD.title {
     text-decoration: none;
-    padding: 4px;
     text-align: center;
-}
-
-#menu ul.sub {
-    text-decoration: none;
-    padding: 0px;
+    color: #fe7405;
+    /*color: #555555;*/
+    font-size: 15px;
+    padding-bottom: 4px;
+    padding-left: 0px;
     margin: 0px;
-    border-top: 1px #999999 solid;
-    border-bottom: 1px #999999 solid;
-    list-style: none;
 }
 
-#menu li a {
+TD.item a {
     text-decoration: none;
     display: block;
-    background: #f0f0f0;
-    color: #0081ac;
-    border-top: 1px #d6d6d6 solid;
-    border-bottom: 1px #d6d6d6 solid;
+    background: #ffffff;
+    /*background: #e6ebf7;*/
+    color: #314e96;
     margin: 0px;
     padding: 4px;
     padding-left: 10px;
-    width: 100%;
-}
-#menu li a:visited {
-    text-decoration: none;
-    color: #0081ac;
+    border: 1px #cccccc solid;
 }
 
-html>body #menu li a {
-    width: auto;
-}
-
-#menu li.item a:hover, ul.sub li.item a:hover {
+TD.item a:hover {
     text-decoration: none;
     display: block;
-    background-color: #6666cc;
-    color: #ffffff;
-    border-top: 1px #6666cc solid;
-    border-bottom: 1px #6666cc solid;
+    color: #fe7405;
+    border: 1px #cccccc solid;
     text-decoration: none;
 }
 
-#menu ul.subsub {
-    text-decoration: none;
-    background-color: #f0f0f0;
-    border-left: 1px #d6d6d6 solid;
-    padding-left: 20px;
-    margin-left: 0px;
+TABLE.icons {
+    border: 0px;
+    background: #ffffff;
+    padding-top: 20px;
 }
 
-DL.el { margin-left: -1cm }
+TD.icons {
+    padding-bottom: 10px;
+    text-align: center;
+}
+
+TD.main {
+    border: 0px #cccccc solid;
+    background: #ffffff;
+    padding: 4px;
+}
+
+/* Doxygen */
+A.anchor, A.anchor:hover, H1 {
+    text-align: center;
+    color: #000000;
+}
+
+H2 {
+    text-decoration: none;
+    border: 1px #cccccc solid;
+    padding: 4px;
+    background: #f5f5f5;
+    color: #555555;
+    font-size: 20px;
+}
+
+TABLE.mdTable {
+    border: 1px solid #555599;
+    background-color: #e6ebf7;
+    color: #555555;
+}
+
+TD.mdRow {
+    padding: 8px 20px;
+    color: #555555;
+}
+
+TD.md {
+    background-color: #e6ebf7;
+    font-weight: bold;
+    color: #555555;
+}
+
+TD.mdname1 {
+    background-color: #e6ebf7;
+    font-weight: bold;
+    color: #A03030;
+}
+
+TD.mdname {
+    background-color: #e6ebf7;
+    font-weight: bold;
+    color: #A03030;
+    width: 600px;
+}
+
 DIV.fragment {
-	width: 98%;
-	border: 1px solid #CCCCCC;
-	background-color: #f5f5f5;
-	padding-left: 4px;
-	margin: 4px;
+    width: 98%;
+    border: 1px solid #c6cbd7;
+    background-color: #eff1f8;
+    padding-left: 4px;
+    margin: 4px;
 }
-DIV.ah { background-color: black; font-weight: bold; color: #ffffff; margin-bottom: 3px; margin-top: 3px }
-TD.md { background-color: #f2f2ff; font-weight: bold; }
-TD.mdname1 { background-color: #f2f2ff; font-weight: bold; color: #602020; }
-TD.mdname { background-color: #f2f2ff; font-weight: bold; color: #602020; width: 600px; }
-DIV.groupHeader { margin-left: 16px; margin-top: 12px; margin-bottom: 6px; font-weight: bold }
-DIV.groupText { margin-left: 16px; font-style: italic; font-size: smaller }
-BODY {
-	background: white;
-	color: black;
-	margin-right: 20px;
-	margin-left: 20px;
-}
-TD.indexkey { 
-   background-color: #eeeeff; 
-   font-weight: bold; 
-   padding-right  : 10px; 
-   padding-top    : 2px; 
-   padding-left   : 10px; 
-   padding-bottom : 2px; 
-   margin-left    : 0px; 
-   margin-right   : 0px; 
-   margin-top     : 2px; 
-   margin-bottom  : 2px  
-}
-TD.indexvalue { 
-   background-color: #eeeeff; 
-   font-style: italic; 
-   padding-right  : 10px; 
-   padding-top    : 2px; 
-   padding-left   : 10px; 
-   padding-bottom : 2px; 
-   margin-left    : 0px; 
-   margin-right   : 0px; 
-   margin-top     : 2px; 
-   margin-bottom  : 2px  
-}
-TR.memlist {
-   background-color: #f0f0f0; 
-}
-P.formulaDsp { text-align: center; }
-IMG.formulaDsp { }
-IMG.formulaInl { vertical-align: middle; }
+
 SPAN.keyword       { color: #008000 }
 SPAN.keywordtype   { color: #604020 }
 SPAN.keywordflow   { color: #e08000 }
 SPAN.comment       { color: #800000 }
 SPAN.preprocessor  { color: #806020 }
-SPAN.stringliteral { color: #002080 }
+SPAN.stringliteral { color: #008020 }
 SPAN.charliteral   { color: #008080 }
-.mdTable {
-	border: 1px solid #868686;
-	background-color: #f2f2ff;
+
+/* News */
+TR.trnews {
+    background: #f5f5f5;
 }
-.mdRow {
-	padding: 8px 20px;
+
+TH.thnews1 {
+    text-decoration: none;
+    border-left: 1px #cccccc solid;
+    border-top: 1px #cccccc solid;
+    /*border-bottom: 1px #cccccc solid;*/
+    padding: 4px;
+    margin: 0px;
+    color: #fe7405;
 }
-.mdescLeft {
-	font-size: smaller;
-	font-family: Arial, Helvetica, sans-serif;
-	background-color: #FAFAFA;
-	padding-left: 8px;
-	border-top: 1px none #E0E0E0;
-	border-right: 1px none #E0E0E0;
-	border-bottom: 1px none #E0E0E0;
-	border-left: 1px none #E0E0E0;
-	margin: 0px;
+
+TH.thnews2 {
+    text-decoration: none;
+    border-right: 1px #cccccc solid;
+    border-top: 1px #cccccc solid;
+    /*border-bottom: 1px #cccccc solid;*/
+    padding: 4px;
+    margin: 0px;
+    color: #555555;
 }
-.mdescRight {
-	font-size: smaller;
-	font-family: Arial, Helvetica, sans-serif;
-	font-style: italic;
-	background-color: #FAFAFA;
-	padding-left: 4px;
-	border-top: 1px none #E0E0E0;
-	border-right: 1px none #E0E0E0;
-	border-bottom: 1px none #E0E0E0;
-	border-left: 1px none #E0E0E0;
-	margin: 0px;
-	padding-bottom: 0px;
-	padding-right: 8px;
+
+TD.tdnews {
+	border-left: 1px #cccccc solid;
+	border-right: 1px #cccccc solid;
+	border-bottom: 1px #cccccc solid;
+    	padding: 8px;
+	text-align: left;
+	background: #ffffff;
 }
-.memItemLeft {
-	padding: 1px 0px 0px 8px;
-	margin: 4px;
-	border-top-width: 1px;
-	border-right-width: 1px;
-	border-bottom-width: 1px;
-	border-left-width: 1px;
-	border-top-style: solid;
-	border-top-color: #E0E0E0;
-	border-right-color: #E0E0E0;
-	border-bottom-color: #E0E0E0;
-	border-left-color: #E0E0E0;
-	border-right-style: none;
-	border-bottom-style: none;
-	border-left-style: none;
-	background-color: #FAFAFA;
-	font-family: Geneva, Arial, Helvetica, sans-serif;
-	font-size: 12px;
-}
-.memItemRight {
-	padding: 1px 0px 0px 8px;
-	margin: 4px;
-	border-top-width: 1px;
-	border-right-width: 1px;
-	border-bottom-width: 1px;
-	border-left-width: 1px;
-	border-top-style: solid;
-	border-top-color: #E0E0E0;
-	border-right-color: #E0E0E0;
-	border-bottom-color: #E0E0E0;
-	border-left-color: #E0E0E0;
-	border-right-style: none;
-	border-bottom-style: none;
-	border-left-style: none;
-	background-color: #FAFAFA;
-	font-family: Geneva, Arial, Helvetica, sans-serif;
-	font-size: 13px;
-}
-.search     { color: #0000ee;
-              font-weight: bold;
-}
-FORM.search {
-              margin-bottom: 0px;
-              margin-top: 0px;
-}
-INPUT.search { font-size: 75%;
-               color: #000080;
-               font-weight: normal;
-               background-color: #eeeeff;
-}
-TD.tiny      { font-size: 75%;
-}
+
+CAPTION { font-weight: bold }
