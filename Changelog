@@ -1,6 +1,7 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Brandon Casey removed the hard-coded limit of the charMap array for fonts
 - Brandon Casey modified the allocation and the management of the
   measurementCharBuffer. It is now dynamically allocated instead of statically
   defined.

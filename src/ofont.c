@@ -46,7 +46,9 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
 
   This->faceDesc = (__glcFaceDescriptor*)inParent->faceList.head;
   This->parent = inParent;
+  This->charMap = NULL;
   This->charMapCount = 0;
+  This->charMapLen = 0;
   This->id = inID;
   This->face = NULL;
 
@@ -57,5 +59,9 @@ void __glcFontDestroy(__glcFont *This)
 {
   if (This->face)
     FT_Done_Face(This->face);
+
+  if (This->charMap)
+    __glcFree(This->charMap);
+
   __glcFree(This);
 }

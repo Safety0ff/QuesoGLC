@@ -465,6 +465,8 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
   GLint i = 0;
   GLint code = 0;
   __glcContextState* state = __glcGetCurrent();
+  FT_ULong (*charMapPtr)[2] = NULL;
+  GLint charMapLen = 0;
 
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
@@ -489,6 +491,13 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 	  memmove(&font->charMap[i][0], &font->charMap[i+1][0],
 		  (font->charMapCount-i-1) * 2 * sizeof(GLint));
 	font->charMapCount--;
+
+	font->charMapLen = font->charMapCount;
+	charMapPtr = (FT_ULong (*)[2])__glcRealloc(font->charMap,
+				     sizeof(FT_ULong) * 2 * font->charMapLen);
+	if (charMapPtr || font->charMapLen == 0)
+	  font->charMap = charMapPtr;
+
 	break;
       }
     }
@@ -560,17 +569,23 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       /* The character identified by inCharName is not yet registered, we add
        * it to the charmap.
        */
-      if (font->charMapCount < GLC_MAX_CHARMAP) {
-        if (font->charMapCount != i)
-	  memmove(&font->charMap[i+1][0], &font->charMap[i][0], 
-		  (font->charMapCount - i) * 2 * sizeof(GLint));
-	font->charMapCount++;
-	font->charMap[i][0] = mappedCode;
+      if (font->charMapCount >= font->charMapLen) {
+	charMapLen = font->charMapLen + GLC_CHARMAP_BLOCKSIZE;
+	charMapPtr = (FT_ULong (*)[2])__glcRealloc(font->charMap,
+					    sizeof(FT_ULong) * 2 * charMapLen);
+	if (!charMapPtr) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  return;
+	}
+
+	font->charMap = charMapPtr;
+	font->charMapLen = charMapLen;
       }
-      else {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-      }
+      if (font->charMapCount != i)
+	memmove(&font->charMap[i+1][0], &font->charMap[i][0], 
+		(font->charMapCount - i) * 2 * sizeof(GLint));
+      font->charMapCount++;
+      font->charMap[i][0] = mappedCode;
     }
     /* Stores the code which 'inCharName' must be mapped by */
     font->charMap[i][1] = code;
