@@ -89,6 +89,8 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
   This->bitmapMatrix[3] = 1.;
+  This->measurementCharBuffer = NULL;
+  This->measurementCharLength = 0;
   This->measuredCharCount = 0;
   This->renderStyle = GLC_BITMAP;
   This->replacementCode = 0;
@@ -163,13 +165,8 @@ void __glcCtxDestroy(__glcContextState *This)
   if (This->bufferSize)
     __glcFree(This->buffer);
 
-  if (This->measurementCharBuffer) {
-    GLint i = 0;
-
-    for (i = 0; i < This->measuredCharCount; i++)
-      __glcFree(This->measurementCharBuffer[i]);
+  if (This->measurementCharBuffer)
     __glcFree(This->measurementCharBuffer);
-  }
 
   FT_Done_Library(This->library);
   __glcFree(This);

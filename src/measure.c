@@ -432,10 +432,11 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 
   switch(inMetric) {
   case GLC_BASELINE:
-    memcpy(outVec, state->measurementCharBuffer[inIndex], 4*sizeof(GLfloat));
+    memcpy(outVec, &state->measurementCharBuffer[0][inIndex],
+           4*sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
-    memcpy(outVec, &state->measurementCharBuffer[inIndex][4],
+    memcpy(outVec, &state->measurementCharBuffer[4][inIndex],
 	   8*sizeof(GLfloat));
     return outVec;
   }
@@ -508,48 +509,29 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
   const FcChar8* ptr = NULL;
   const GLint storeRenderStyle = state->renderStyle;
 
-  if (state->renderStyle == GLC_BITMAP)
-    state->renderStyle = 0;
-
-  memset(state->measurementStringBuffer, 0, 12*sizeof(GLfloat));
-
-  /* free previously allocated measurementCharBuffer */
-  if (state->measurementCharBuffer) {
-    for (i = 0; i < state->measuredCharCount; i++)
-      __glcFree(state->measurementCharBuffer[i]);
-    __glcFree(state->measurementCharBuffer);
-    state->measurementCharBuffer = NULL;
-  }
-  state->measuredCharCount = 0;
-
-  /* allocate space for measurementCharBuffer */
-  if (inMeasureChars) {
-
+  /* Verify that measurementCharBuffer is big enough to contain the string
+   * metrics. Grow its size if necessary.
+   */
+  if ((!state->measurementCharBuffer)
+      || (state->measurementCharLength < inCount)) {
     state->measurementCharBuffer =
-      (GLfloat**)__glcMalloc(sizeof(GLfloat*) * inCount);
+      (GLfloat (*)[12])__glcRealloc(state->measurementCharBuffer,
+				    sizeof(GLfloat) * 12 * inCount);
     if (!state->measurementCharBuffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return 0;
     }
-
-    for (i = 0; i < inCount; i++) {
-      state->measurementCharBuffer[i] =
-	(GLfloat*)__glcMalloc(sizeof(GLfloat) * 12);
-      if (!state->measurementCharBuffer[i]) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	for (--i; i >= 0; i--)
-	  __glcFree(state->measurementCharBuffer[i]);
-	__glcFree(state->measurementCharBuffer);
-	state->measurementCharBuffer = NULL;
-	return 0;
-      }
-    }
-
-    /* we rely on this to be able to free our memory, so it
-     * must be set, even if we fail later */
-    state->measuredCharCount = inCount;
+    state->measurementCharLength = inCount;
   }
 
+  if (state->renderStyle == GLC_BITMAP) {
+     /* In order to prevent __glcProcessCharMetric() to transform its results
+      * by the 2x2 GLC_MATRIX, state->renderStyle must not be GLC_BITMAP
+      */
+    state->renderStyle = 0;
+  }
+
+  memset(state->measurementStringBuffer, 0, 12*sizeof(GLfloat));
 
   /* FIXME :
    * Computations performed below assume that the string is rendered
@@ -563,6 +545,7 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
     len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
     if (len < 0) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
+      state->renderStyle = storeRenderStyle;
       return 0;
     }
     ptr += len;
@@ -572,9 +555,9 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars) {
-      memcpy(state->measurementCharBuffer[i], baselineMetric,
+      memcpy(&state->measurementCharBuffer[0][i], baselineMetric,
 	     4*sizeof(GLfloat));
-      memcpy(&state->measurementCharBuffer[i][4], boundsMetric,
+      memcpy(&state->measurementCharBuffer[4][i], boundsMetric,
 	     8*sizeof(GLfloat));
     }
 
@@ -620,10 +603,15 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
       int j = 0;
       for (i = 0; i < inCount; i++) {
 	for (j = 0; j < 6; j++)
-	  __glcTransformVector(&state->measurementCharBuffer[i][2*j], state);
+	  __glcTransformVector(&state->measurementCharBuffer[2*j][i], state);
       }
     }
   }
+
+  if (inMeasureChars)
+    state->measuredCharCount = inCount;
+  else
+    state->measuredCharCount = 0;
 
   return inCount;
 }

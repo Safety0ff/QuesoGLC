@@ -56,7 +56,8 @@ typedef struct {
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
   GLint stringType;		/* GLC_STRING_TYPE */
-  GLfloat** measurementCharBuffer;
+  GLfloat (*measurementCharBuffer)[12];
+  GLint measurementCharLength;
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
 } __glcContextState;
