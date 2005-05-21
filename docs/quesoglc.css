@@ -1,23 +1,46 @@
 /* RedBlog */
 a:link, a:visited {
-    text-decoration : none;
-    color : #314e96;
+    text-decoration: none;
+    color: #314e96;
 }
 
 a:hover {
     text-decoration: none;
-    color : #fe7405;
+    color: #fe7405;
 }
 
 body {	
     background-color: #ffffff;	
-    margin-top : 10px;	
+    margin-top: 10px;	
     font-family: Verdana, Arial, sans-serif;
     font-size: 12px;
 }
 
 hr { height: 1px; border: solid #fe7405 0px; border-top-width: 1px;}
 
+TABLE.module {
+    border: 1px solid #cccccc;
+    background-color: #ffffff;
+}
+
+TABLE.module2 {
+    border: 1px solid #cccccc;
+    background-color: #f8f8f8; 
+}
+
+TABLE.mark3 {
+    border: solid 1px #cccccc;
+    padding: 2px;
+}
+
+SPAN.gen {
+    font-size: 12px;
+}
+
+SPAN.light {
+    font-size: 12px;
+    color: #555555;
+}
 /* QuesoGLC */
 TABLE.menu {
     text-decoration: none;
@@ -27,23 +50,19 @@ TABLE.menu {
     padding-right: 2px;
     background: #f5f5f5;
     border: 1px #cccccc solid;
-    /*background: #ffffff;
-    border: 1px #555555 solid;*/
+    font-size: 11pt;
 }
 
 TABLE.submenu {
     border: 0px #cccccc solid;
     background: #f5f5f5;
-    /*background: #e6ebf7;
-    border: 1px #555559 solid;*/
+    font-size: 12px;
 }
 
 TD.title {
     text-decoration: none;
     text-align: center;
     color: #fe7405;
-    /*color: #555555;*/
-    font-size: 15px;
     padding-bottom: 4px;
     padding-left: 0px;
     margin: 0px;
@@ -53,7 +72,6 @@ TD.item a {
     text-decoration: none;
     display: block;
     background: #ffffff;
-    /*background: #e6ebf7;*/
     color: #314e96;
     margin: 0px;
     padding: 4px;
@@ -148,37 +166,11 @@ SPAN.stringliteral { color: #008020 }
 SPAN.charliteral   { color: #008080 }
 
 /* News */
-TR.trnews {
-    background: #f5f5f5;
-}
-
-TH.thnews1 {
-    text-decoration: none;
-    border-left: 1px #cccccc solid;
-    border-top: 1px #cccccc solid;
-    /*border-bottom: 1px #cccccc solid;*/
-    padding: 4px;
-    margin: 0px;
-    color: #fe7405;
-}
-
-TH.thnews2 {
-    text-decoration: none;
-    border-right: 1px #cccccc solid;
-    border-top: 1px #cccccc solid;
-    /*border-bottom: 1px #cccccc solid;*/
-    padding: 4px;
-    margin: 0px;
-    color: #555555;
-}
-
 TD.tdnews {
-	border-left: 1px #cccccc solid;
-	border-right: 1px #cccccc solid;
-	border-bottom: 1px #cccccc solid;
-    	padding: 8px;
-	text-align: left;
-	background: #ffffff;
+    font-size: 15px;
+    color: #fe7405;
+    text-indent: 10px;
+    background-color: #f5f5f5;
 }
 
 CAPTION { font-weight: bold }
