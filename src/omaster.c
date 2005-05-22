@@ -30,7 +30,7 @@ static const char unknown[] = "Unknown";
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const FcChar8* inVendorName,
 			       const char* inFileExt, GLint inID,
-			       GLboolean fixed, GLint inStringType)
+			       GLint inStringType)
 {
   static const char format1[] = "Type1";
   static const char format2[] = "True Type";
@@ -77,7 +77,6 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
     goto error;
 
   This->version = NULL;
-  This->isFixedPitch = fixed;
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
   This->id = inID;

@@ -34,6 +34,7 @@ typedef struct {
   FcChar8* styleName;
   int indexInFile;
   FcCharSet* charSet;
+  GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
 } __glcFaceDescriptor;
 
 typedef struct {
@@ -44,7 +45,6 @@ typedef struct {
   FcChar8* masterFormat;	/* GLC_MASTER_FORMAT */
   FcChar8* vendor;		/* GLC_VENDOR */
   FcChar8* version;	        /* GLC_VERSION */
-  GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
   FT_ListRec displayList;	/* GLC_LIST_OBJECT_LIST */
@@ -54,7 +54,7 @@ typedef struct {
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const FcChar8* inVendorName,
 			       const char* inFileExt, GLint inID,
-			       GLboolean fixed, GLint inStringType);
+			       GLint inStringType);
 void __glcMasterDestroy(__glcMaster *This);
 
 #endif /* __glc_omaster_h */
