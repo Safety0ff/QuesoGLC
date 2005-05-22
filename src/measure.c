@@ -59,7 +59,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
 
