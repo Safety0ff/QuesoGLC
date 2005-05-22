@@ -212,7 +212,7 @@ int main(int argc, char **argv)
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
   glutInitWindowSize(640, 480);
-  glutCreateWindow("Quick Brown Fox");
+  glutCreateWindow("Unicode test");
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
   glutKeyboardFunc(keyboard);
@@ -221,16 +221,10 @@ int main(int argc, char **argv)
 
   ctx = glcGenContext();
   glcContext(ctx);
-  /*font = glcNewFontFromFamily(glcGenFontID(), "Courier");
-    glcFont(font);
-    glcFontFace(font, "Italic"); */
-
-  /*glcAppendCatalog("../fonts/Type1");*/
-  /*    glcFontMap(font, 0x57, "LATIN SMALL LETTER W"); */
 
   glcDisable(GLC_GL_OBJECTS);
   glcRenderStyle(GLC_TEXTURE);
-  glcStringType(GLC_UTF8);
+  glcStringType(GLC_UTF8_QX);
 
   glutMainLoop();
   return 0;
