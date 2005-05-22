@@ -21,7 +21,6 @@
 /* Defines the methods of an object that is intended to managed contexts */
 
 #include <stdio.h>
-#include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -98,6 +97,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->isInCallbackFunc = GL_FALSE;
   This->buffer = NULL;
   This->bufferSize = 0;
+  This->lastFontID = 1;
 
   return This;
 }
@@ -123,9 +123,6 @@ static void __glcMasterDestructor(FT_Memory memory, void *data, void *user)
 static void __glcFontDestructor(FT_Memory inMemory, void *inData, void* inUser)
 {
   __glcFont *font = (__glcFont*)inData;
-  __glcContextState* state = (__glcContextState*)inUser;
-  
-  assert(state);
 
   if (font)
     __glcFontDestroy(font);
@@ -148,7 +145,7 @@ void __glcCtxDestroy(__glcContextState *This)
 
   /* Destroy GLC_FONT_LIST */
   FT_List_Finalize(&This->fontList, __glcFontDestructor,
-                   &__glcCommonArea.memoryManager, This);
+                   &__glcCommonArea.memoryManager, NULL);
 
   /* Destroy the list of catalogs */
   FcStrSetDestroy(This->catalogList);
@@ -231,11 +228,6 @@ void __glcRaiseError(GLCenum inError)
 static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
 {
   FcChar32 charCode;
-  FcChar32 base = 0;
-  FcChar32 next = 0;
-  FcChar32 prev_base = 0;
-  FcChar32 map[FC_CHARSET_MAP_SIZE];
-  int i = 0, j = 0;
   FcCharSet* result = NULL;
 
   /* Add the character set to the GLC_CHAR_LIST of inMaster */
@@ -246,31 +238,12 @@ static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
   }
 
   /* Update the minimum mapped code */
-  base = FcCharSetFirstPage(charSet, map, &next);
-  assert(base != FC_CHARSET_DONE);
-
-  for (i = 0; i < FC_CHARSET_MAP_SIZE; i++)
-    if (map[i]) break;
-  assert(i < FC_CHARSET_MAP_SIZE); /* If the map contains no char then
-				    * something went wrong... */
-  for (j = 0; j < 32; j++)
-    if ((map[i] >> j) & 1) break;
-  charCode = base + (i << 5) + j;
+  charCode = __glcGetMinMappedCode(charSet);
   if (inMaster->minMappedCode > charCode)
     inMaster->minMappedCode = charCode;
 
   /* Update the maximum mapped code */
-  base = FcCharSetFirstPage(charSet, map, &next);
-  do {
-    prev_base = base;
-    base = FcCharSetNextPage(charSet, map, &next);
-  } while (base != FC_CHARSET_DONE);
-
-  for (i = FC_CHARSET_MAP_SIZE - 1; i >= 0; i--)
-    if (map[i]) break;
-  for (j = 31; j >= 0; j--)
-    if ((map[i] >> j) & 1) break;
-  charCode = prev_base + (i << 5) + j;
+  charCode = __glcGetMaxMappedCode(charSet);
   if (inMaster->maxMappedCode < charCode)
     inMaster->maxMappedCode = charCode;
 
@@ -386,7 +359,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 	id = 0;
 
       master = __glcMasterCreate(familyName, vendorName, ext, id,
-				 (fixed != FC_PROPORTIONAL),
 				 This->stringType);
       if (!master) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -462,6 +434,7 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 	return;
       }
       faceDesc->indexInFile = index;
+      faceDesc->isFixedPitch = (fixed != FC_PROPORTIONAL);
       faceDesc->charSet = FcCharSetUnion(dummy, charSet);
       if (!faceDesc->charSet) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
