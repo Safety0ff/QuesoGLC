@@ -132,27 +132,6 @@ void glcDataPointer(GLvoid *inPointer)
 
 
 
-/* This functions destroys the display lists and the texture objects that
- * are associated with a context identified by inState. The corresponding
- * linked lists are also deleted.
- */
-void __glcDeleteGLObjects(__glcContextState *inState)
-{
-  FT_ListNode node = NULL;
-  __glcMaster* master = NULL;
-
-  /* Delete display lists and texture objects */
-  for(node = inState->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
-    FT_List_Finalize(&master->displayList, __glcDisplayListDestructor,
-                     &__glcCommonArea.memoryManager, NULL);
-    FT_List_Finalize(&master->textureObjectList, __glcTextureObjectDestructor,
-		     &__glcCommonArea.memoryManager, NULL);
-  }
-}
-
-
-
 /** \ingroup context
  *  This command causes GLC to issue a sequence of GL commands to delete all
  *  of the GL objects that it owns.
@@ -189,10 +168,9 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
 {
   __glcContextState *state = NULL;
 
-  /* Check the parameters. 
-   * NOTE : we do not need to check 'value' since it has been generated
-   * internally.
-   */
+  /* Check the parameters. */
+  assert((value == GL_TRUE) || (value == GL_FALSE));
+
   switch(inAttrib) {
   case GLC_AUTO_FONT:
   case GLC_GL_OBJECTS:
@@ -220,6 +198,7 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
     break;
   case GLC_MIPMAP:
     state->mipmap = value;
+    break;
   }
 }
 
@@ -357,7 +336,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 
   /* NOTE : at this stage we can not verify if inIndex is greater than or equal
    * to the last element index. In order to perform such a verification we
-   * would need to have the current context states but GLC specs says that we
+   * would need to have the current context state but GLC specs tells that we
    * should first check the parameters _then_ the current context (section 2.2
    * of specs). We are done !
    */
@@ -403,7 +382,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
 
   length = strlen((const char*) catalog) + 1;
 
-  buffer = __glcCtxQueryBuffer(state, length*sizeof(char));
+  buffer = __glcCtxQueryBuffer(state, length * sizeof(char));
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
@@ -537,6 +516,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       if (dlNode)
 	return ((__glcDisplayListKey*)dlNode)->list;
     }
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
     /* See also comments of GLC_LIST_OBJECT_LIST above */
@@ -548,6 +528,7 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       if (texNode)
 	return (GLint)texNode->data;
     }
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   }
 
@@ -628,7 +609,7 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "";
-  static GLCchar* __glcRelease = (GLCchar*) "Release 0.2";
+  static GLCchar* __glcRelease = (GLCchar*) "Release 0.3";
   static GLCchar* __glcVendor = (GLCchar*) "QuesoGLC";
 
   __glcContextState *state = NULL;
@@ -651,7 +632,7 @@ const GLCchar* glcGetc(GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  /* Translate the string in the relevant Unicode format */
+  /* Translate the string to the relevant Unicode format */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
     return __glcConvertFromUtf8ToBuffer(state, __glcExtensions,
@@ -854,7 +835,7 @@ GLint glcGeti(GLCenum inAttrib)
   state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
-    return 0;
+    return GLC_NONE;
   }
 
   /* Returns the requested value */
@@ -1027,7 +1008,7 @@ void glcStringType(GLCenum inStringType)
   case GLC_UCS1:
   case GLC_UCS2:
   case GLC_UCS4:
-  case GLC_UTF8:
+  case GLC_UTF8_QX: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
