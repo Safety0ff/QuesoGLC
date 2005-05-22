@@ -20,8 +20,6 @@
 
 /* Defines the methods of an object that is intended to managed fonts */
 
-#include <assert.h>
-
 #include "internal.h"
 #include "ocontext.h"
 #include "ofont.h"

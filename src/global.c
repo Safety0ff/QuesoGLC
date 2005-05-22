@@ -64,7 +64,6 @@
 #include <X11/Xlib.h>
 #endif
 #include <fcntl.h>
-#include <assert.h>
 #include <fontconfig/fontconfig.h>
 
 #include "GL/glc.h"

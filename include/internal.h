@@ -23,16 +23,17 @@
 
 #include <stdlib.h>
 
+#ifndef DEBUGMODE
+#define NDEBUG
+#endif
+#include <assert.h>
+
 #include "GL/glc.h"
 #if !defined __APPLE__ && !defined __MACH__
 #include "qglc_config.h"
 #endif
 #include "ofont.h"
 #include "ocontext.h"
-
-#ifndef DEBUGMODE
-#define NDEBUG 1
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,10 +122,21 @@ extern "C" {
   GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode);
 
   /* Convert a character encoded in the current string type to the UCS-4 format.
-   * This function is needed since the GLC specs store individual character codes
-   * in GLint which may cause problems for the UTF-8 format.
+   * This function is needed since the GLC specs store individual character
+   * codes in GLint which may cause problems for the UTF-8 format.
    */
   GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode);
+
+  /* Verify that the thread has a current context and that the master identified
+   * by 'inMaster' exists.
+   */
+  __glcMaster* __glcVerifyMasterParameters(GLint inMaster);
+
+  /* Get the minimum mapped code of a character set */
+  GLint __glcGetMinMappedCode(FcCharSet *charSet);
+
+  /* Get the maximum mapped code of a character set */
+  GLint __glcGetMaxMappedCode(FcCharSet *charSet);
 #ifdef __cplusplus
 }
 #endif
