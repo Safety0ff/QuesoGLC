@@ -110,7 +110,8 @@ static void __glcFaceDestructor(FT_Memory inMemory, void *inData,
 
   __glcFree(faceDesc->fileName);
   __glcFree(faceDesc->styleName);
-  FcCharSetDestroy(faceDesc->charSet);
+  if (faceDesc->charSet)
+    FcCharSetDestroy(faceDesc->charSet);
 }
 
 /* FIXME :

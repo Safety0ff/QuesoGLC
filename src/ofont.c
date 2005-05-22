@@ -41,12 +41,16 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-
   This->faceDesc = (__glcFaceDescriptor*)inParent->faceList.head;
+
+  This->charMap = __glcCharMapCreate(This->faceDesc->charSet);
+  if (!This->charMap) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFree(This);
+    return NULL;
+  }
+
   This->parent = inParent;
-  This->charMap = NULL;
-  This->charMapCount = 0;
-  This->charMapLen = 0;
   This->id = inID;
   This->face = NULL;
 
@@ -59,7 +63,7 @@ void __glcFontDestroy(__glcFont *This)
     FT_Done_Face(This->face);
 
   if (This->charMap)
-    __glcFree(This->charMap);
+    __glcCharMapDestroy(This->charMap);
 
   __glcFree(This);
 }

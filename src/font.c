@@ -47,6 +47,7 @@
 #include "GL/glc.h"
 #include "internal.h"
 #include FT_LIST_H
+#include "ocharmap.h"
 
 
 
@@ -351,18 +352,26 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
   if (FT_List_Find(&inState->currentFontList, font)) {
     FT_Face newFace = NULL;
+    __glcCharMap* newCharMap = __glcCharMapCreate(faceDesc->charSet);
+
+    if (!newCharMap) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return GL_FALSE;
+    }
 
     /* Open the new face */
     if (FT_New_Face(inState->library, 
 		    (const char*)faceDesc->fileName, faceDesc->indexInFile,
 		    &newFace)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcCharMapDestroy(newCharMap);
       return GL_FALSE;
     }
 
     /* select a Unicode charmap */
     if (FT_Select_Charmap(newFace, ft_encoding_unicode)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcCharMapDestroy(newCharMap);
       FT_Done_Face(newFace);
       return GL_FALSE;
     }
@@ -371,7 +380,12 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
     if (font->face)
       FT_Done_Face(font->face);
 
+    /* Destroy the current charmap */
+    if (font->charMap)
+      __glcCharMapDestroy(font->charMap);
+
     font->face = newFace;
+    font->charMap = newCharMap;
   }
 
   font->faceDesc = faceDesc;
@@ -513,11 +527,8 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
   __glcFont *font = NULL;
-  GLint i = 0;
   GLint code = 0;
   __glcContextState* state = __glcGetCurrent();
-  FT_ULong (*charMapPtr)[2] = NULL;
-  GLint charMapLen = 0;
 
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
@@ -532,116 +543,10 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
   if (code < 0)
     return;
 
-  if (!inCharName) {
-    /* Look for the character mapped by inCode in the charmap */
-    /* FIXME : use a dichotomic algo. instead */
-    for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[i][1] == (FT_ULong)code) {
-	/* Remove the character mapped by inCode */
-	if (i < font->charMapCount-1)
-	  memmove(&font->charMap[i][0], &font->charMap[i+1][0],
-		  (font->charMapCount-i-1) * 2 * sizeof(GLint));
-	font->charMapCount--;
-
-	font->charMapLen = font->charMapCount;
-	charMapPtr = (FT_ULong (*)[2])__glcRealloc(font->charMap,
-				     sizeof(FT_ULong) * 2 * font->charMapLen);
-	if (charMapPtr || font->charMapLen == 0)
-	  font->charMap = charMapPtr;
-
-	break;
-      }
-    }
-    return;
-  }
-  else {
-    FT_ULong mappedCode  = 0;
-    GLCchar* buffer = NULL;
-    FcCharSet* charSet = NULL;
-    FcCharSet* result = NULL;
-
-    /* Convert the character name identified by inCharName into the GLC_UCS1
-     * format. The result is stored into 'buffer'. */
-    buffer = __glcConvertFromUtf8ToBuffer(state, inCharName,
-					  state->stringType);
-    if (!buffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-
-    /* Retrieve the Unicode code from its name */
-    mappedCode = __glcCodeFromName(buffer);
-    if (mappedCode == -1) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return;
-    }
-
-    /* Verify that the glyph exists in the face */
-    if (!FcCharSetHasChar(font->faceDesc->charSet, code)) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return;
-    }
-
-    /* Remove the character identified by 'inCode' */
-    charSet = FcCharSetCreate();
-    if (!charSet) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-    if (!FcCharSetAddChar(charSet, code)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcCharSetDestroy(charSet);
-      return;
-    }
-
-    result = FcCharSetSubtract(font->faceDesc->charSet,	charSet);
-    if (!result) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcCharSetDestroy(charSet);
-      return;
-    }
-    FcCharSetDestroy(font->faceDesc->charSet);
-    FcCharSetDestroy(charSet);
-    font->faceDesc->charSet = result;
-
-    /* Add the character identified by 'inCharName' to the list GLC_CHAR_LIST.
-     */
-    if (!FcCharSetAddChar(font->parent->charList, mappedCode)) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return;
-    }
-
-    /* FIXME : use a dichotomic algo instead */
-    for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[i][0] >= mappedCode)
-	break;
-    }
-    if ((i == font->charMapCount) || (font->charMap[i][0] != mappedCode)) {
-      /* The character identified by inCharName is not yet registered, we add
-       * it to the charmap.
-       */
-      if (font->charMapCount >= font->charMapLen) {
-	charMapLen = font->charMapLen + GLC_CHARMAP_BLOCKSIZE;
-	charMapPtr = (FT_ULong (*)[2])__glcRealloc(font->charMap,
-					    sizeof(FT_ULong) * 2 * charMapLen);
-	if (!charMapPtr) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  return;
-	}
-
-	font->charMap = charMapPtr;
-	font->charMapLen = charMapLen;
-      }
-      if (font->charMapCount != i)
-	memmove(&font->charMap[i+1][0], &font->charMap[i][0], 
-		(font->charMapCount - i) * 2 * sizeof(GLint));
-      font->charMapCount++;
-      font->charMap[i][0] = mappedCode;
-    }
-    /* Stores the code which 'inCharName' must be mapped by */
-    font->charMap[i][1] = code;
-    /* FIXME : the master charList is not updated */
-  }
+  if (!inCharName)
+    __glcCharMapRemoveChar(font->charMap, code);
+  else
+    __glcCharMapAddChar(font->charMap, code, inCharName, state);
 }
 
 
@@ -749,9 +654,6 @@ const GLCchar* glcGetFontFace(GLint inFont)
 const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
-  int i = 0;
-  int j = 0;
-  FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
 
   if (!font)
     return GLC_NONE;
@@ -769,44 +671,7 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
   case GLC_FACE_LIST:
     return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
   case GLC_CHAR_LIST:
-    base = FcCharSetFirstPage(font->faceDesc->charSet, map, &next);
-    do {
-      for (i = 0; i < FC_CHARSET_MAP_SIZE; i++) {
-	FcChar32 count = 0;
-	FcChar32 value = __glcCharSetPopCount(map[i]);
-
-	if (count + value >= inIndex + 1) {
-	  for (j = 0; j < 32; j++) {
-	    if ((map[i] >> j) & 1) count++;
-	    if (count == inIndex + 1) {
-	      FcChar8* name = __glcNameFromCode(base + (i << 5) + j);
-	      GLCchar* buffer = NULL;
-	      __glcContextState* state = __glcGetCurrent();
-    
-	      if (!name) {
-		__glcRaiseError(GLC_PARAMETER_ERROR);
-		return GLC_NONE;
-	      }
-
-	      /* Performs the conversion */
-	      buffer = __glcConvertFromUtf8ToBuffer(state, name,
-						    state->stringType);
-	      if (!buffer) {
-		__glcRaiseError(GLC_RESOURCE_ERROR);
-		return GLC_NONE;
-	      }
-
-	      return buffer;
-	    }
-	  }
-	}
-	count += value;  
-      }
-      base = FcCharSetNextPage(font->faceDesc->charSet, map, &next);
-    } while (base != FC_CHARSET_DONE);
-    /* The character has not been found */
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return __glcCharMapGetCharNameByIndex(font->charMap, inIndex);
   default:
     return GLC_NONE;
   }
@@ -840,41 +705,19 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
+  __glcContextState *state = __glcGetCurrent();
+  GLint code = 0;
 
   if (font) {
-    GLCchar *buffer = NULL;
-    __glcContextState *state = __glcGetCurrent();
-    FcChar8* name = NULL;
-    GLint i = 0;
-
-    /* Look for the character which the character identifed by inCode is
-     * mapped by */
-    /* FIXME : use a dichotomic algo instead */
-    for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[i][1] == (FT_ULong)inCode) {
-	inCode = font->charMap[i][0];
-	break;
-      }
-    }
-
-    /* Check if the character identified by inCode exists in the font */
-    if (!FcCharSetHasChar(font->faceDesc->charSet, inCode))
+    /* Get the character code converted to the UCS-4 format.
+     * See comments at the definition of __glcConvertGLintToUcs4() for known
+     * limitations
+     */
+    code = __glcConvertGLintToUcs4(state, inCode);
+    if (code < 0)
       return GLC_NONE;
-
-    name = __glcNameFromCode(inCode);
-    if (!name) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return GLC_NONE;
-    }
-
-    /* Convert the Unicode to the current string type */
-    buffer = __glcConvertFromUtf8ToBuffer(state, name, state->stringType);
-    if (!buffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return GLC_NONE;
-    }
-
-    return buffer;
+  
+    return __glcCharMapGetCharName(font->charMap, code, state);
   }
   else
     return GLC_NONE;
@@ -969,13 +812,13 @@ GLint glcGetFonti(GLint inFont, GLCenum inAttrib)
 
   switch(inAttrib) {
   case GLC_CHAR_COUNT:
-    return FcCharSetCount(font->faceDesc->charSet);
+    return __glcCharMapGetCount(font->charMap);
   case GLC_IS_FIXED_PITCH:
     return font->faceDesc->isFixedPitch;
   case GLC_MAX_MAPPED_CODE:
-    return __glcGetMaxMappedCode(font->faceDesc->charSet);
+    return __glcCharMapGetMaxMappedCode(font->charMap);
   case GLC_MIN_MAPPED_CODE:
-    return __glcGetMinMappedCode(font->faceDesc->charSet);
+    return __glcCharMapGetMinMappedCode(font->charMap);
   case GLC_FACE_COUNT:
     return glcGetMasteri(font->parent->id, inAttrib);
   default:

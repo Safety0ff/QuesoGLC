@@ -54,7 +54,6 @@
 #include <GL/glu.h>
 #endif
 #include <fontconfig/fontconfig.h>
-#include <fontconfig/fcfreetype.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -374,7 +373,6 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   __glcContextState *state = __glcGetCurrent();
   __glcFont* font = NULL;
   FT_UInt glyphIndex = 0;
-  GLint i = 0;
   FT_ListNode node = NULL;
 
   for (node = state->fontList.head; node; node = node->next) {
@@ -386,17 +384,6 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   if (!node)
     return;
 
-  assert(FcCharSetHasChar(font->faceDesc->charSet, inCode));
-
-  /* Convert the code 'inCode' using the charmap */
-  /* TODO : use a dichotomic algo. instead*/
-  for (i = 0; i < font->charMapCount; i++) {
-    if ((FT_ULong)inCode == font->charMap[i][0]) {
-      inCode = (GLint)font->charMap[i][1];
-      break;
-    }
-  }
-
   /* Define the size of the rendered glyphs (based on screen resolution) */
   if (FT_Set_Char_Size(font->face, GLC_POINT_SIZE << 6, 0,
 		       (FT_UInt)state->resolution, (FT_UInt)state->resolution))
@@ -406,7 +393,11 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
     }
 
   /* Get and load the glyph which unicode code is identified by inCode */
-  glyphIndex = FcFreeTypeCharIndex(font->face, inCode);
+  glyphIndex = __glcCharMapGlyphIndex(font->charMap, font->face, inCode);
+  if (!glyphIndex) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
 
   if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_NO_BITMAP |
 		    FT_LOAD_IGNORE_TRANSFORM)) {

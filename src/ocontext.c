@@ -387,13 +387,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
     if (!node) {
       __glcFaceDescriptor* faceDesc = NULL;
       FT_ListNode newNode = NULL;
-      FcCharSet* dummy = FcCharSetCreate();
-
-      if (!dummy) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	FcFontSetDestroy(fontSet);
-	return;
-      }
 
       /* The current face in the font file is not already loaded in a
        * master : Append (or prepend) the new face and its file name to
@@ -406,7 +399,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
       if (!faceDesc) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	FcFontSetDestroy(fontSet);
-	FcCharSetDestroy(dummy);
 	return;
       }
 
@@ -420,7 +412,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
       if (!faceDesc->fileName) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(faceDesc);
-	FcCharSetDestroy(dummy);
 	FcFontSetDestroy(fontSet);
 	return;
       }
@@ -429,23 +420,21 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(faceDesc->fileName);
 	__glcFree(faceDesc);
-	FcCharSetDestroy(dummy);
 	FcFontSetDestroy(fontSet);
 	return;
       }
+
       faceDesc->indexInFile = index;
       faceDesc->isFixedPitch = (fixed != FC_PROPORTIONAL);
-      faceDesc->charSet = FcCharSetUnion(dummy, charSet);
+      faceDesc->charSet = FcCharSetCopy(charSet);
       if (!faceDesc->charSet) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(faceDesc->fileName);
 	__glcFree(faceDesc->styleName);
 	__glcFree(faceDesc);
-	FcCharSetDestroy(dummy);
 	FcFontSetDestroy(fontSet);
 	return;
       }
-      FcCharSetDestroy(dummy);
 
       if (inAppend)
 	FT_List_Add(&master->faceList, newNode);
@@ -722,19 +711,9 @@ static GLint __glcLookupFont(GLint inCode, FT_List fontList)
 
   for (node = fontList->head; node; node = node->next) {
     __glcFont* font = (__glcFont*)node->data;
-    int i = 0;
-    /* Look for the character which the character identifed by inCode is
-     * mapped by */
-    /* FIXME : use a dichotomic algo instead */
-    for (i = 0; i < font->charMapCount; i++) {
-      if (font->charMap[i][1] == (FT_ULong)inCode) {
-	inCode = font->charMap[i][0];
-	break;
-      }
-    }
 
     /* Check if the character identified by inCode exists in the font */
-    if (FcCharSetHasChar(font->faceDesc->charSet, inCode))
+    if (__glcCharMapHasChar(font->charMap, inCode))
       return font->id;
   }
   return -1;
@@ -817,6 +796,9 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
     for (node = This->masterList.head; node; node = node->next) {
       __glcMaster* master = (__glcMaster*)node->data;
       FT_ListNode faceNode = NULL;
+
+      if (!FcCharSetHasChar(master->charList, (FcChar32)inCode))
+        continue;
 
       /* We search for a font file that supports the requested inCode glyph */
       for (faceNode = master->faceList.head; faceNode;

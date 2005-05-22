@@ -18,27 +18,35 @@
  */
 /* $Id$ */
 
-#ifndef __glc_ofont_h
-#define __glc_ofont_h
+#ifndef __glc_ocharmap_h
+#define __glc_ocharmap_h
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include <fontconfig/fontconfig.h>
+
 #include "GL/glc.h"
-#include "constant.h"
-#include "omaster.h"
 #include "ocontext.h"
-#include "ocharmap.h"
 
 typedef struct {
-  GLint id;
-  __glcFaceDescriptor* faceDesc;
-  __glcMaster* parent;
-  FT_Face face;
-  __glcCharMap* charMap;
-} __glcFont;
+  FcCharSet* charSet;
+  FT_ULong (*map)[2];
+  GLint count;
+  GLint length;
+} __glcCharMap;
 
-__glcFont*  __glcFontCreate(GLint id, __glcMaster *parent,
-			    __glcContextState* state);
-void __glcFontDestroy(__glcFont *This);
-
-#endif /* __glc_ofont_h */
+__glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet);
+void __glcCharMapDestroy(__glcCharMap* This);
+void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
+		    const GLCchar* inCharName, __glcContextState* inState);
+void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode);
+GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
+				 __glcContextState* inState);
+FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace,
+			       GLint inCode);
+GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
+GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex);
+GLint __glcCharMapGetCount(__glcCharMap* This);
+GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This);
+GLint __glcCharMapGetMinMappedCode(__glcCharMap* This);
+#endif

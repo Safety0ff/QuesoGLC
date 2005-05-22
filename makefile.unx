@@ -1,12 +1,11 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
-	  transform.c misc.c omaster.c ofont.c ocontext.c database.c
+	  transform.c misc.c omaster.c ofont.c ocontext.c ocharmap.c database.c
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
-	       tests/testrender tests/tutorial tests/unicode tests/tutorial2 \
-	       tests/glcdemo
+	       tests/testrender tests/tutorial tests/unicode tests/tutorial2
 
 LIB_NAME = libGLC
 MAJOR = 0

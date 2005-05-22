@@ -60,7 +60,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fontconfig/fontconfig.h>
-#include <fontconfig/fcfreetype.h>
 
 #include "GL/glc.h"
 #include "internal.h"
@@ -109,19 +108,11 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
   face = font->face;
   metrics = face->glyph->metrics;
 
-  /* Retrieve which is the glyph that inCode is mapped to */
-  /* TODO : use a dichotomic algo. instead */
-  for (i = 0; i < font->charMapCount; i++) {
-    if ((FT_ULong)inCode == font->charMap[i][0]) {
-      inCode = font->charMap[i][1];
-      break;
-    }
+  glyphIndex = __glcCharMapGlyphIndex(font->charMap, face, inCode);
+  if (!glyphIndex) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
   }
-
-  assert(FcCharSetHasChar(font->faceDesc->charSet, inCode));
-
-  /* Get and load the glyph which unicode code is identified by inCode */
-  glyphIndex = FcFreeTypeCharIndex(face, inCode);
 
   if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_SCALE |
 		    FT_LOAD_IGNORE_TRANSFORM)) {
