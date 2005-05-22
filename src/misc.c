@@ -276,7 +276,7 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
       *ptr = 0;
     }
     break;
-  case GLC_UTF8:
+  case GLC_UTF8_QX:
     string = (FcChar8*)strdup((const char*)inString);
     break;
   default:
@@ -398,7 +398,7 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
       *ucs4 = 0;
     }
     break;
-  case GLC_UTF8:
+  case GLC_UTF8_QX:
     string = strdup((const char*)inString);
     break;
   default:
@@ -526,7 +526,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       *ucs4 = 0;
     }
     break;
-  case GLC_UTF8:
+  case GLC_UTF8_QX:
     string = (GLCchar*)__glcCtxQueryBuffer(This,
 					   strlen((const char*)inString)+1);
     strcpy(string, (const char*)inString);
@@ -649,7 +649,7 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 	ptr += FcUcs4ToUtf8(*ucs4++, ptr);
     }
     break;
-  case GLC_UTF8:
+  case GLC_UTF8_QX:
     {
       FcChar8* utf8 = (FcChar8*)inString;
       FcChar32 dummy = 0;
@@ -685,8 +685,8 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
  */
 GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
 {
-  if (inState->stringType == GLC_UTF8) {
-    /* Things can go wrong if GLC_UTF8 is the expected string type :
+  if (inState->stringType == GLC_UTF8_QX) {
+    /* Things can go wrong if GLC_UTF8_QX is the expected string type :
      * the length of some character code in UTF-8 format can exceed the size
      * of the GLint type in which case a GLC_PARAMETER_ERROR is issued.
      * This is a limitation of the GLC API as it is defined in the specs
@@ -715,8 +715,8 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 {
   GLint code = inCode;
   
-  /* If the current string type is GLC_UTF8 then converts to GLC_UCS4 */
-  if (inState->stringType == GLC_UTF8) {
+  /* If the current string type is GLC_UTF8_QX then converts to GLC_UCS4 */
+  if (inState->stringType == GLC_UTF8_QX) {
     /* If the user gives a character code in UTF-8 format then the code must
      * be small enough to be contained within a GLint, otherwise QuesoGLC
      * consider the code to be ill-formed and issues a GLC_PARAMETER_ERROR.
@@ -732,4 +732,75 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
   }
 
   return code;
+}
+
+
+
+/* This functions destroys the display lists and the texture objects that
+ * are associated with a context identified by inState. The corresponding
+ * linked lists are also deleted.
+ */
+void __glcDeleteGLObjects(__glcContextState *inState)
+{
+  FT_ListNode node = NULL;
+  __glcMaster* master = NULL;
+
+  /* Delete display lists and texture objects */
+  for(node = inState->masterList.head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    FT_List_Finalize(&master->displayList, __glcDisplayListDestructor,
+                     &__glcCommonArea.memoryManager, NULL);
+    FT_List_Finalize(&master->textureObjectList, __glcTextureObjectDestructor,
+		     &__glcCommonArea.memoryManager, NULL);
+  }
+}
+
+
+
+/* Get the minimum mapped code of a character set */
+GLint __glcGetMinMappedCode(FcCharSet *charSet)
+{
+  FcChar32 base = 0;
+  FcChar32 next = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  int i = 0, j = 0;
+  
+  base = FcCharSetFirstPage(charSet, map, &next);
+  assert(base != FC_CHARSET_DONE);
+
+  for (i = 0; i < FC_CHARSET_MAP_SIZE; i++)
+    if (map[i]) break;
+  assert(i < FC_CHARSET_MAP_SIZE); /* If the map contains no char then
+				    * something went wrong... */
+  for (j = 0; j < 32; j++)
+    if ((map[i] >> j) & 1) break;
+  return base + (i << 5) + j;
+}
+
+
+
+/* Get the maximum mapped code of a character set */
+GLint __glcGetMaxMappedCode(FcCharSet *charSet)
+{
+  FcChar32 base = 0;
+  FcChar32 next = 0;
+  FcChar32 prev_base = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  int i = 0, j = 0;
+  
+  base = FcCharSetFirstPage(charSet, map, &next);
+  assert(base != FC_CHARSET_DONE);
+
+  do {
+    prev_base = base;
+    base = FcCharSetNextPage(charSet, map, &next);
+  } while (base != FC_CHARSET_DONE);
+
+  for (i = FC_CHARSET_MAP_SIZE - 1; i >= 0; i--)
+    if (map[i]) break;
+  assert(i >= 0); /* If the map contains no char then
+		   * something went wrong... */
+  for (j = 31; j >= 0; j--)
+    if ((map[i] >> j) & 1) break;
+  return prev_base + (i << 5) + j;
 }
