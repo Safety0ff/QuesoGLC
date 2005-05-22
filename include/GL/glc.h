@@ -89,7 +89,7 @@ typedef GLboolean (*GLCfunc)();
 #define GLC_UCS1                                  0x0110
 #define GLC_UCS2                                  0x0111
 #define GLC_UCS4                                  0x0112
-#define GLC_UTF8                                  0x0113
+#define GLC_UTF8_QX                               0x0113
 
 /*************************************************************/
 
