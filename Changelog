@@ -1,6 +1,22 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- The GLC_IS_FIXED_PITCH attribute is now managed per font, not per master
+- The verification of master parameters has been moved to the specific function
+  __glcVerifyMasterParameters(). This simplified the code
+- The management of the header file assert.h has been moved in internal.h
+- Fixed glcIsFont() so that it does not raise GLC_PARAMETER_ERROR when 'inFont'
+  is not the ID of a font
+- Fixed glcGetFonti() so that it returns the font attributes instead of the
+  parent master attributes
+- Fixed glcGenFontID() so that it returns sensible results when it is called
+  several times in a row
+- Fixed glcFontFace() so that the face of every fonts of GLC_CURRENT_FONT_LIST
+  are set to the face identified by 'inFace' if 'inFont' is zero (previously
+  only one face was modified when 'inFont' was zero)
+- Fixed glcFont() so that the client state is left unchanged if an error occurs
+- The UTF-8 support is an extension of QuesoGLC, hence the GLC_UTF8 enumerant
+  has been appended with 'QX' (like 'QuesoGLC eXtension')
 - Brandon Casey removed the hard-coded limit of the charMap array for fonts
 - Brandon Casey modified the allocation and the management of the
   measurementCharBuffer. It is now dynamically allocated instead of statically
