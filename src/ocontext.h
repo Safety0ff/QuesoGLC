@@ -60,6 +60,7 @@ typedef struct {
   GLint measurementCharLength;
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
+  GLint lastFontID;
 } __glcContextState;
 
 typedef struct {
@@ -80,7 +81,7 @@ typedef struct {
 
   /* Evil hack : we use the FT_MemoryRec_ structure definition which is
    * supposed not to be exported by FreeType headers. So this definition may
-   * fail if the guys of FreeType decide not to exposeFT_MemoryRec_ anymore.
+   * fail if the guys of FreeType decide not to expose FT_MemoryRec_ anymore.
    * However, this has not happened yet so we still rely on FT_MemoryRec_ ...
    */
   struct FT_MemoryRec_ memoryManager;
