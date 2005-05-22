@@ -47,11 +47,45 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 
 #include "GL/glc.h"
 #include "internal.h"
 #include FT_LIST_H
+
+
+
+/* Most master commands need to check that :
+ *   1. The current thread owns a context state
+ *   2. The master identifier 'inMaster' is legal
+ * This internal function does both checks and returns the pointer to the
+ * __glcMaster object that is identified by 'inMaster'.
+ */
+__glcMaster* __glcVerifyMasterParameters(GLint inMaster)
+{
+  __glcContextState *state = __glcGetCurrent();
+  FT_ListNode node = NULL;
+  __glcMaster *master = NULL;
+
+  /* Check if the current thread owns a context state */
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return NULL;
+  }
+
+  /* Verify if the master identifier is in legal bounds */
+  for (node = state->masterList.head; node; node = node->next) {
+    master = (__glcMaster*)node->data;
+    if (master->id == inMaster) break;
+  }
+
+  if (!node) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  /* Returns the __glcMaster object identified by inMaster */
+  return master;
+}
 
 
 
@@ -96,7 +130,7 @@
 const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 				 GLint inIndex)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
   FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
@@ -118,29 +152,18 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     return GLC_NONE;
   }
 
-  /* Verify if inIndex and inMaster are in legal bounds */
-  if ((inIndex < 0) || (inMaster < 0)) {
+  /* Verify if inIndex is in legal bounds */
+  if (inIndex < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
-  /* Verify if a context is current to the thread */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
+  /* Verify that the thread has a current context and that the master identified
+   * by 'inMaster' exists.
+   */
+  master = __glcVerifyMasterParameters(inMaster);
+  if (!master)
     return GLC_NONE;
-  }
-
-  for(node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
-    if (master->id == inMaster) break;
-  }
-
-  /* No master identified by inMaster has been found */
-  if (!node) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-  }
 
   switch(inAttrib) {
   case GLC_CHAR_LIST:
@@ -211,37 +234,24 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  */
 const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = NULL;
   GLCchar *buffer = NULL;
-  FT_ListNode node = NULL;
-  __glcFaceDescriptor* faceDesc = NULL;
   FcChar8* name = NULL;
   GLint code = 0;
 
-  /* Verify if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return GLC_NONE;
-  }
-
-  /* Check if inMaster and inCode are in legal bounds */
-  if ((inMaster < 0) || (inCode < 0)) {
+  /* Check if inCode is in legal bounds */
+  if (inCode < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 
-  for(node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
-    if (master->id == inMaster) break;
-  }
-
-  /* No master identified by inMaster has been found */
-  if (!node) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
+  /* Verify that the thread has a current context and that the master identified
+   * by 'inMaster' exists.
+   */
+  master = __glcVerifyMasterParameters(inMaster);
+  if (!master)
     return GLC_NONE;
-  }
 
   /* Get the character code converted to the UCS-4 format.
    * See comments at the definition of __glcConvertGLintToUcs4() for known
@@ -251,23 +261,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   if (code < 0)
     return NULL;
 
-  /* We search for a font file that supports the requested inCode glyph */
-  for (node = master->faceList.head; node; node = node->next) {
-    /* Copy the Unicode string into a buffer
-     * NOTE : we do not change the encoding format (or string type) of the file
-     *        name since we suppose that the encoding format of the OS has not
-     *        changed since the user provided the file name
-     */
-    faceDesc = (__glcFaceDescriptor*)node;
-
-    if (FcCharSetHasChar(faceDesc->charSet, (FcChar32)code))
-      break; /* Found !!!*/
-  }
-
-  /* We have looked for the glyph in every font files of the master but did
-   * not find a matching glyph => QUIT !!
-   */
-  if (!node)
+  if (!FcCharSetHasChar(master->charList, (FcChar32)code))
     return GLC_NONE;
     
   /* The database gives the Unicode name in UCS1 encoding. We should now
@@ -324,10 +318,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
  */
 const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
-  __glcContextState *state = NULL;
+  __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = NULL;
   GLCchar *buffer = NULL;
-  FT_ListNode node = NULL;
   FcChar8* s = NULL;
 
   /* Check parameter inAttrib */
@@ -342,30 +335,13 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  /* Check if inMaster is in legal bounds */
-  if (inMaster < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
+  /* Verify that the thread has a current context and that the master identified
+   * by 'inMaster' exists.
+   */
+  master = __glcVerifyMasterParameters(inMaster);
+  if (!master)
     return GLC_NONE;
-  }
 
-  /* Verify if the thread owns a GLC context */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return GLC_NONE;
-  }
-
-  for(node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
-    if (master->id == inMaster) break;
-  }
-
-  /* No master identified by inMaster has been found */
-  if (!node) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-  }
-  
   /* Get the Unicode string which corresponds to the requested attribute */
   switch(inAttrib) {
   case GLC_FAMILY:
@@ -422,6 +398,9 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
  *    </tr>
  *  </table>
  *  </center>
+ *  \n If the requested master attribute is \b GLC_IS_FIXED_PITCH then the
+ *  command returns \b GL_TRUE if and only if each face of the master identified
+ *  by \e inMaster has a fixed pitch.
  *  \param inMaster The master for which an attribute value is needed.
  *  \param inAttrib The attribute for which the value is needed.
  *  \return The value of the attribute \e inAttrib of the master identified
@@ -432,7 +411,6 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
  */
 GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 {
-  __glcContextState *state = NULL;
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
   GLint count = 0;
@@ -450,29 +428,12 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  /* Check if inMaster is in legal bounds */
-  if (inMaster < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
+  /* Verify that the thread has a current context and that the master identified
+   * by 'inMaster' exists.
+   */
+  master = __glcVerifyMasterParameters(inMaster);
+  if (!master)
     return GLC_NONE;
-  }
-
-  /* Verify that the thread owns a context */
-  state = __glcGetCurrent();
-  if (!state) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return 0;
-  }
-
-  for(node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
-    if (master->id == inMaster) break;
-  }
-
-  /* No master identified by inMaster has been found */
-  if (!node) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-  }
 
   /* returns the requested attribute */
   switch(inAttrib) {
@@ -482,7 +443,12 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     for (node = master->faceList.head; node; node = node->next, count++);
     return count;
   case GLC_IS_FIXED_PITCH:
-    return master->isFixedPitch;
+    for (node = master->faceList.head; node; node = node->next) {
+      __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)node;
+      if (!faceDesc->isFixedPitch)
+        return GL_FALSE;
+    }
+    return GL_TRUE;
   case GLC_MAX_MAPPED_CODE:
     return master->maxMappedCode;
   case GLC_MIN_MAPPED_CODE:
