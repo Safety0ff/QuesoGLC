@@ -35,8 +35,8 @@ its specifications has not evolved since late 1996.
 \section whatisqglc What is QuesoGLC ?
 QuesoGLC is a free implementation of the OpenGL Character Renderer (GLC).
 QuesoGLC is based on the FreeType library, provides Unicode support and is
-designed to be easily ported on any platform that supports both FreeType and
-OpenGL.
+designed to be easily ported to any platform that supports both FreeType and
+OpenGL API.
 
 QuesoGLC is free software; you can redistribute it and/or modify it under the
 terms of the GNU Lesser General Public License as published by the Free
