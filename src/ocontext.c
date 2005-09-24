@@ -20,19 +20,17 @@
 
 /* Defines the methods of an object that is intended to managed contexts */
 
-#include <stdio.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fontconfig/fontconfig.h>
 
 #include "internal.h"
-#include "ocontext.h"
 #include FT_MODULE_H
 #include FT_LIST_H
 
 
+
 commonArea __glcCommonArea;
+
 
 
 /* Creates a new context : returns a struct that contains the GLC state
@@ -167,57 +165,6 @@ void __glcCtxDestroy(__glcContextState *This)
 
   FT_Done_Library(This->library);
   __glcFree(This);
-}
-
-
-
-/* Get the current context of the issuing thread */
-__glcContextState* __glcGetCurrent(void)
-{
-  threadArea *area = NULL;
-
-  area = __glcGetThreadArea();
-  assert(area);
-
-  return area->currentContext;
-}
-
-
-
-/* Get the context state of a given context */
-__glcContextState* __glcGetState(GLint inContext)
-{
-  FT_ListNode node = NULL;
-
-  __glcLock();
-  for (node = __glcCommonArea.stateList.head; node; node = node->next)
-    if (((__glcContextState*)node)->id == inContext) break;
-
-  __glcUnlock();
-
-  return (__glcContextState*)node;
-}
-
-
-
-/* Raise an error. This function must be called each time the current error
- * of the issuing thread must be set
- */
-void __glcRaiseError(GLCenum inError)
-{
-  GLCenum error = GLC_NONE;
-  threadArea *area = NULL;
-
-  area = __glcGetThreadArea();
-  assert(area);
-
-  /* An error can only be raised if the current error value is GLC_NONE. 
-   * However, when inError == GLC_NONE then we must force the current error
-   * value to GLC_NONE whatever its previous value was.
-   */
-  error = area->errorState;
-  if ((inError && !error) || !inError)
-    area->errorState = inError;
 }
 
 
@@ -394,47 +341,16 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
        */
       __glcUpdateCharList(master, charSet);
 
-      faceDesc =
-	(__glcFaceDescriptor*)__glcMalloc(sizeof(__glcFaceDescriptor));
+      faceDesc = __glcFaceDescCreate(styleName, charSet,
+				     (fixed != FC_PROPORTIONAL), fileName,
+				     index);
       if (!faceDesc) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
 	FcFontSetDestroy(fontSet);
 	return;
       }
 
       newNode = (FT_ListNode)faceDesc;
       newNode->data = faceDesc;
-
-      /* Filenames are kept in their original format which is supposed to
-       * be compatible with strlen()
-       */
-      faceDesc->fileName = (FcChar8*)strdup((const char*)fileName);
-      if (!faceDesc->fileName) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(faceDesc);
-	FcFontSetDestroy(fontSet);
-	return;
-      }
-      faceDesc->styleName = (FcChar8*)strdup((const char*)styleName);
-      if (!faceDesc->styleName) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(faceDesc->fileName);
-	__glcFree(faceDesc);
-	FcFontSetDestroy(fontSet);
-	return;
-      }
-
-      faceDesc->indexInFile = index;
-      faceDesc->isFixedPitch = (fixed != FC_PROPORTIONAL);
-      faceDesc->charSet = FcCharSetCopy(charSet);
-      if (!faceDesc->charSet) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
-	__glcFree(faceDesc->fileName);
-	__glcFree(faceDesc->styleName);
-	__glcFree(faceDesc);
-	FcFontSetDestroy(fontSet);
-	return;
-      }
 
       if (inAppend)
 	FT_List_Add(&master->faceList, newNode);
@@ -528,7 +444,6 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     FcStrList* iterator = NULL;
 
     if (!FcStrSetAddFilename(newCatalogList, (FcChar8*)inCatalog)) {
-      __glcUnlock();
       FcStrSetDestroy(newCatalogList);
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
@@ -537,7 +452,6 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     for (catalog = FcStrListNext(iterator); catalog;
 	catalog = FcStrListNext(iterator)) {
       if (!FcStrSetAdd(newCatalogList, catalog)) {
-	__glcUnlock();
 	FcStrListDone(iterator);
 	FcStrSetDestroy(newCatalogList);
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -821,46 +735,6 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
 
 
 
-/* Since the common area can be accessed by any thread, this function should
- * be called before any access (read or write) to the common area. Otherwise
- * race conditons can occur.
- * __glcLock/__glcUnlock can be nested : they keep track of the number of
- * time they have been called and the mutex will be released as soon as
- * __glcUnlock() will be called as many time __glcLock().
- */
-void __glcLock(void)
-{
-  threadArea *area = NULL;
-
-  area = __glcGetThreadArea();
-  assert(area);
-
-  if (!area->lockState)
-    pthread_mutex_lock(&__glcCommonArea.mutex);
-
-  area->lockState++;
-}
-
-
-
-/* Unlock the mutex in order to allow other threads to amke accesses to the
- * common area.
- * See also the note on nested calls in __glcLock's description.
- */
-void __glcUnlock(void)
-{
-  threadArea *area = NULL;
-
-  area = __glcGetThreadArea();
-  assert(area);
-
-  area->lockState--;
-  if (!area->lockState)
-    pthread_mutex_unlock(&__glcCommonArea.mutex);
-}
-
-
-
 /* Sometimes informations may need to be stored temporarily by a thread.
  * The so-called 'buffer' is created for that purpose. Notice that it is a
  * component of the GLC state struct hence its lifetime is the same as the
@@ -872,7 +746,7 @@ void __glcUnlock(void)
  * is provided to reduce its size so it should be freed and re-allocated
  * manually in case of emergency ;-)
  */
-GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
+GLCchar* __glcCtxQueryBuffer(__glcContextState *This, int inSize)
 {
   if (inSize > This->bufferSize) {
     This->buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);
@@ -883,38 +757,4 @@ GLCchar* __glcCtxQueryBuffer(__glcContextState *This,int inSize)
   }
 
   return This->buffer;
-}
-
-
-
-/* Each thread has to store specific informations so they can retrieved later.
- * __glcGetThreadArea() returns a struct which contains thread specific info
- * for GLC. Notice that even if the lib does not support threads, this function
- * must be used.
- * If the 'threadArea' of the current thread does not exist, it is created and
- * initialized.
- * IMPORTANT NOTE : __glcGetThreadArea() must never use __glcMalloc() and
- *    __glcFree() since those functions could use the exceptContextStack
- *    before it is initialized.
- */
-threadArea* __glcGetThreadArea(void)
-{
-  threadArea *area = NULL;
-
-  area = (threadArea*)pthread_getspecific(__glcCommonArea.threadKey);
-
-  if (!area) {
-    area = (threadArea*)malloc(sizeof(threadArea));
-    if (!area)
-      return NULL;
-
-    area->currentContext = NULL;
-    area->errorState = GLC_NONE;
-    area->lockState = 0;
-    area->exceptContextStack.head = NULL;
-    area->exceptContextStack.tail = NULL;
-    pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
-  }
-
-  return area;
 }
