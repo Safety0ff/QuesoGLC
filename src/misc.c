@@ -20,10 +20,6 @@
 
 /* This file defines miscellaneous utility routines used throughout the lib */
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "ocontext.h"
 #include "internal.h"
 #include FT_LIST_H
 
@@ -719,10 +715,10 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
   if (inState->stringType == GLC_UTF8_QX) {
     /* If the user gives a character code in UTF-8 format then the code must
      * be small enough to be contained within a GLint, otherwise QuesoGLC
-     * consider the code to be ill-formed and issues a GLC_PARAMETER_ERROR.
+     * considers the code to be ill-formed and issues a GLC_PARAMETER_ERROR.
      * As a consequence, not all the Unicode character codes can be given to
-     * glcReplacementCode() in UTF-8 format. This is a limitation of the GLC
-     * API as it is defined in the specs version 0.2.
+     * functions such as glcReplacementCode() in UTF-8 format. This is a known
+     * limitation of the GLC API as it is defined in the specs version 0.2.
      * The most obvious workaround is to use the UCS-4/UTF-32 format...
      */
     if (FcUtf8ToUcs4((FcChar8*)&inCode, (FcChar32*)&code, sizeof(GLint)) < 0) {
@@ -803,4 +799,73 @@ GLint __glcGetMaxMappedCode(FcCharSet *charSet)
   for (j = 31; j >= 0; j--)
     if ((map[i] >> j) & 1) break;
   return prev_base + (i << 5) + j;
+}
+
+
+
+/* Each thread has to store specific informations so they can retrieved later.
+ * __glcGetThreadArea() returns a struct which contains thread specific info
+ * for GLC. Notice that even if the lib does not support threads, this function
+ * must be used.
+ * If the 'threadArea' of the current thread does not exist, it is created and
+ * initialized.
+ * IMPORTANT NOTE : __glcGetThreadArea() must never use __glcMalloc() and
+ *    __glcFree() since those functions could use the exceptContextStack
+ *    before it is initialized.
+ */
+threadArea* __glcGetThreadArea(void)
+{
+  threadArea *area = NULL;
+
+  area = (threadArea*)pthread_getspecific(__glcCommonArea.threadKey);
+
+  if (!area) {
+    area = (threadArea*)malloc(sizeof(threadArea));
+    if (!area)
+      return NULL;
+
+    area->currentContext = NULL;
+    area->errorState = GLC_NONE;
+    area->lockState = 0;
+    area->exceptContextStack.head = NULL;
+    area->exceptContextStack.tail = NULL;
+    pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
+  }
+
+  return area;
+}
+
+
+
+/* Raise an error. This function must be called each time the current error
+ * of the issuing thread must be set
+ */
+void __glcRaiseError(GLCenum inError)
+{
+  GLCenum error = GLC_NONE;
+  threadArea *area = NULL;
+
+  area = __glcGetThreadArea();
+  assert(area);
+
+  /* An error can only be raised if the current error value is GLC_NONE. 
+   * However, when inError == GLC_NONE then we must force the current error
+   * value to GLC_NONE whatever its previous value was.
+   */
+  error = area->errorState;
+  if ((inError && !error) || !inError)
+    area->errorState = inError;
+}
+
+
+
+/* Get the current context of the issuing thread */
+__glcContextState* __glcGetCurrent(void)
+{
+  threadArea *area = NULL;
+
+  area = __glcGetThreadArea();
+  assert(area);
+
+  return area->currentContext;
 }
