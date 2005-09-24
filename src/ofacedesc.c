@@ -104,15 +104,19 @@ FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
       return NULL;
     }
 
+    This->faceRefCount = 1;
+    
     /* Define the size of the rendered glyphs (based on screen resolution) */
     if (__glcFaceDescSetCharSize(This, (FT_UInt)inState->resolution)) {
       FT_Done_Face(This->face);
       This->face = NULL;
+      This->faceRefCount = 0;
       return NULL;
     }
   }
+  else
+    This->faceRefCount++;
 
-  This->faceRefCount++;
   return This->face;
 }
 
