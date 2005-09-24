@@ -1,5 +1,6 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
-	  transform.c misc.c omaster.c ofont.c ocontext.c ocharmap.c database.c
+	  transform.c misc.c omaster.c ofont.c ocontext.c ocharmap.c \
+	  ofacedesc.c database.c
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
@@ -9,7 +10,7 @@ TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
 
 LIB_NAME = libGLC
 MAJOR = 0
-MINOR = 2
+MINOR = 3
 REVISION = 0
 
 VERSION = $(MAJOR).$(MINOR).$(REVISION)
