@@ -57,11 +57,6 @@
  *  \b GLC_BITMAP_MATRIX.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <fontconfig/fontconfig.h>
-
-#include "GL/glc.h"
 #include "internal.h"
 #include FT_GLYPH_H
 
@@ -105,7 +100,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
 
   assert(node);
 
-  face = font->face;
+  face = __glcFaceDescOpen(font->faceDesc, inState);
   metrics = face->glyph->metrics;
 
   glyphIndex = __glcCharMapGlyphIndex(font->charMap, face, inCode);
@@ -147,10 +142,12 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
     }
     break;
   default:
+    __glcFaceDescClose(font->faceDesc);
     return NULL;
   }
 
   FT_Done_Glyph(glyph);
+  __glcFaceDescClose(font->faceDesc);
   return outVec;
 }
 
@@ -258,7 +255,6 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 {
   __glcContextState *state = NULL;
-  FT_Face face = NULL;
   GLfloat advance = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
   FT_ListNode node = NULL;
 
@@ -279,32 +275,35 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     return NULL;
   }
 
-  /* For each in GLC_CURRENT_FONT_LIST find the maximum values of the advance
-   * width of the bounding boxes.
+  /* For each font in GLC_CURRENT_FONT_LIST find the maximum values of the
+   * advance width of the bounding boxes.
    */
   for (node = state->currentFontList.head; node; node = node->next) {
     GLfloat temp = 0.f;
-    face = ((__glcFont*)node->data)->face;
+    __glcFont* font = (__glcFont*)node->data;
+    FT_Face face = __glcFaceDescOpen(font->faceDesc, state);
 
-    temp = (GLfloat)face->max_advance_width;
+    temp = (GLfloat)face->max_advance_width / face->units_per_EM;
     if (temp > advance)
       advance = temp;
 
-    temp = (GLfloat)face->bbox.yMax;
+    temp = (GLfloat)face->bbox.yMax / face->units_per_EM;
     if (temp > yt)
       yt = temp;
 
-    temp = (GLfloat)face->bbox.yMin;
+    temp = (GLfloat)face->bbox.yMin / face->units_per_EM;
     if (temp > yb)
       yb = temp;
 
-    temp = (GLfloat)face->bbox.xMax;
+    temp = (GLfloat)face->bbox.xMax / face->units_per_EM;
     if (temp > xr)
       xr = temp;
 
-    temp = (GLfloat)face->bbox.xMin;
+    temp = (GLfloat)face->bbox.xMin / face->units_per_EM;
     if (temp > xl)
       xl = temp;
+
+    __glcFaceDescClose(font->faceDesc);
   }
 
   /* Update and transform, if necessary, the return value */
@@ -312,18 +311,18 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   case GLC_BASELINE:
     outVec[0] = 0.;
     outVec[1] = 0.;
-    outVec[2] = advance / face->units_per_EM;
+    outVec[2] = advance;
     outVec[3] = 0.;
     if (state->renderStyle == GLC_BITMAP)
       __glcTransformVector(&outVec[2], state);
     return outVec;
   case GLC_BOUNDS:
-    outVec[0] = xl / face->units_per_EM;
-    outVec[1] = yb / face->units_per_EM;
-    outVec[2] = xr / face->units_per_EM;;
+    outVec[0] = xl;
+    outVec[1] = yb;
+    outVec[2] = xr;
     outVec[3] = outVec[1];
     outVec[4] = outVec[2];
-    outVec[5] = yt / face->units_per_EM;
+    outVec[5] = yt;
     outVec[6] = outVec[0];
     outVec[7] = outVec[5];
     if (state->renderStyle == GLC_BITMAP) {
