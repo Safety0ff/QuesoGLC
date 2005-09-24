@@ -100,14 +100,7 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* catalog,
 void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex);
 GLint __glcCtxGetFont(__glcContextState *This, GLint code);
 GLCchar* __glcCtxQueryBuffer(__glcContextState *This, int inSize);
-
-__glcContextState* __glcGetState(GLint inContext);
-void __glcLock(void);
-void __glcUnlock(void);
-
-__glcContextState* __glcGetCurrent(void);
-void __glcRaiseError(GLCenum inError);
-
-threadArea* __glcGetThreadArea(void);
+void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
+			    GLboolean inAppend);
 
 #endif /* __glc_ocontext_h */
