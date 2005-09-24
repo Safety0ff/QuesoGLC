@@ -37,7 +37,6 @@
  *  set up the appropriate GL transformations.
  */
 
-#include <string.h>
 #include <math.h>
 
 #include "GL/glc.h"

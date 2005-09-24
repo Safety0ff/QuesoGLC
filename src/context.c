@@ -43,12 +43,7 @@
  * refer to the corresponding display lists or textures is undefined.
  */
 
-#include <stdlib.h>
-#include <string.h>
-
-#include "GL/glc.h"
 #include "internal.h"
-#include FT_LIST_H
 
 
 

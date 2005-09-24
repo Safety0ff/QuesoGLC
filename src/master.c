@@ -44,11 +44,6 @@
  *  or equal to the value of the variable \b GLC_MASTER_COUNT.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "GL/glc.h"
 #include "internal.h"
 #include FT_LIST_H
 
