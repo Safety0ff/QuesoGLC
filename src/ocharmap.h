@@ -27,15 +27,17 @@
 
 #include "GL/glc.h"
 #include "ocontext.h"
+#include "ofacedesc.h"
 
 typedef struct {
+  __glcFaceDescriptor* faceDesc;
   FcCharSet* charSet;
   FT_ULong (*map)[2];
   GLint count;
   GLint length;
 } __glcCharMap;
 
-__glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet);
+__glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc);
 void __glcCharMapDestroy(__glcCharMap* This);
 void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
 		    const GLCchar* inCharName, __glcContextState* inState);
@@ -45,7 +47,8 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace,
 			       GLint inCode);
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
-GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex);
+GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
+					__glcContextState* inState);
 GLint __glcCharMapGetCount(__glcCharMap* This);
 GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This);
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This);
