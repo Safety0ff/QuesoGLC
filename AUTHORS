@@ -1,7 +1,7 @@
 QuesoGLC
 Released under LGPL license (see attached file LICENSE).
-Copyright 2002-2005 Bertrand Coconnier < bcoconni@users.sourceforge.net >
+Copyright (c) 2002-2005 Bertrand Coconnier < bcoconni@users.sourceforge.net >
 
-QuesoGLC uses the FreeType Project (www.freetype.org) which is
-copyright (c) 1996-2003 by David Turner, Robert Wilheim, and Werner Lemberg.
+QuesoGLC uses the FreeType Project (www.freetype.org)
+Copyright (c) 1996-2003 by David Turner, Robert Wilheim, and Werner Lemberg.
 All rights reserved.
