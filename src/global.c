@@ -57,23 +57,52 @@
  *  no current GLC context.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#ifndef __APPLE__
-#include <GL/glx.h>
-#include <X11/Xlib.h>
-#endif
-#include <fcntl.h>
-#include <fontconfig/fontconfig.h>
-
-#include "GL/glc.h"
 #include "internal.h"
-#include "ocontext.h"
 #include FT_LIST_H
 
 #ifdef QUESOGLC_STATIC_LIBRARY
 pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
 #endif
+
+
+
+/* Since the common area can be accessed by any thread, this function should
+ * be called before any access (read or write) to the common area. Otherwise
+ * race conditons can occur.
+ * __glcLock/__glcUnlock can be nested : they keep track of the number of
+ * time they have been called and the mutex will be released as soon as
+ * __glcUnlock() will be called as many time as __glcLock().
+ */
+static void __glcLock(void)
+{
+  threadArea *area = NULL;
+
+  area = __glcGetThreadArea();
+  assert(area);
+
+  if (!area->lockState)
+    pthread_mutex_lock(&__glcCommonArea.mutex);
+
+  area->lockState++;
+}
+
+
+
+/* Unlock the mutex in order to allow other threads to amke accesses to the
+ * common area.
+ * See also the note on nested calls in __glcLock's description.
+ */
+static void __glcUnlock(void)
+{
+  threadArea *area = NULL;
+
+  area = __glcGetThreadArea();
+  assert(area);
+
+  area->lockState--;
+  if (!area->lockState)
+    pthread_mutex_unlock(&__glcCommonArea.mutex);
+}
 
 
 
@@ -188,6 +217,22 @@ void _init(void)
   /* Is there a better thing to do than that ? */
   perror("GLC Fatal Error");
   exit(-1);
+}
+
+
+
+/* Get the context state of a given context */
+static __glcContextState* __glcGetState(GLint inContext)
+{
+  FT_ListNode node = NULL;
+
+  __glcLock();
+  for (node = __glcCommonArea.stateList.head; node; node = node->next)
+    if (((__glcContextState*)node)->id == inContext) break;
+
+  __glcUnlock();
+
+  return (__glcContextState*)node;
 }
 
 
