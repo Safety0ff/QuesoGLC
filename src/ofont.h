@@ -28,12 +28,12 @@
 #include "omaster.h"
 #include "ocontext.h"
 #include "ocharmap.h"
+#include "ofacedesc.h"
 
 typedef struct {
   GLint id;
   __glcFaceDescriptor* faceDesc;
   __glcMaster* parent;
-  FT_Face face;
   __glcCharMap* charMap;
 } __glcFont;
 

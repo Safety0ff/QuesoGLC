@@ -29,15 +29,6 @@
 
 
 typedef struct {
-  FT_ListNodeRec node;
-  FcChar8* fileName;
-  FcChar8* styleName;
-  int indexInFile;
-  FcCharSet* charSet;
-  GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
-} __glcFaceDescriptor;
-
-typedef struct {
   GLint id;
   FT_ListRec faceList;	        /* GLC_FACE_LIST */
   FcCharSet* charList;          /* GLC_CHAR_LIST */
@@ -56,5 +47,4 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const char* inFileExt, GLint inID,
 			       GLint inStringType);
 void __glcMasterDestroy(__glcMaster *This);
-
 #endif /* __glc_omaster_h */

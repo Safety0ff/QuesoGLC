@@ -25,10 +25,7 @@
 #else
 #include <GL/glu.h>
 #endif
-#include <stdlib.h>
-#include <stdio.h>
 
-#include "GL/glc.h"
 #include "internal.h"
 #include FT_OUTLINE_H
 #include FT_LIST_H
@@ -249,7 +246,7 @@ static void __glcCallbackError(GLenum inErrorCode)
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
-			     GLint inCode, GLboolean inFill)
+			     GLint inCode, GLboolean inFill, FT_Face inFace)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
@@ -259,7 +256,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   __glcRendererData rendererData;
   GLUtesselator *tess = gluNewTess();
 
-  outline = &inFont->face->glyph->outline;
+  outline = &inFace->glyph->outline;
   interface.shift = 0;
   interface.delta = 0;
   interface.move_to = __glcMoveTo;
@@ -276,7 +273,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   rendererData.scale_y = 1./64./GLC_POINT_SIZE;
 
   /* Compute the tolerance for the deCasteljau algorithm */
-  rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFont->face->units_per_EM;
+  rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFace->units_per_EM;
 
   /* FIXME : may be we should use a bigger array ? */
   rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX
@@ -327,8 +324,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   gluTessEndContour(tess);
   gluTessEndPolygon(tess);
 
-  glTranslatef(inFont->face->glyph->advance.x * rendererData.scale_x,
-	       inFont->face->glyph->advance.y * rendererData.scale_y, 0.);
+  glTranslatef(inFace->glyph->advance.x * rendererData.scale_x,
+	       inFace->glyph->advance.y * rendererData.scale_y, 0.);
 
   if (inState->glObjects) {
     glEndList();

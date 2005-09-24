@@ -21,9 +21,6 @@
 /* Defines the methods of an object that is intended to managed fonts */
 
 #include "internal.h"
-#include "ocontext.h"
-#include "ofont.h"
-#include FT_LIST_H
 
 __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
 			   __glcContextState* state)
@@ -43,7 +40,7 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
    */
   This->faceDesc = (__glcFaceDescriptor*)inParent->faceList.head;
 
-  This->charMap = __glcCharMapCreate(This->faceDesc->charSet);
+  This->charMap = __glcCharMapCreate(This->faceDesc);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
@@ -52,16 +49,12 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
 
   This->parent = inParent;
   This->id = inID;
-  This->face = NULL;
 
   return This;
 }
 
 void __glcFontDestroy(__glcFont *This)
 {
-  if (This->face)
-    FT_Done_Face(This->face);
-
   if (This->charMap)
     __glcCharMapDestroy(This->charMap);
 

@@ -21,8 +21,6 @@
 /* Defines the methods of an object that is intended to managed masters */
 
 #include "internal.h"
-#include "omaster.h"
-#include "ocontext.h"
 #include FT_LIST_H
 
 static const char unknown[] = "Unknown";
@@ -103,28 +101,29 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   return NULL;
 }
 
-static void __glcFaceDestructor(FT_Memory inMemory, void *inData,
-				void *inUser)
-{
-  __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)inData;
-
-  __glcFree(faceDesc->fileName);
-  __glcFree(faceDesc->styleName);
-  if (faceDesc->charSet)
-    FcCharSetDestroy(faceDesc->charSet);
-}
-
 /* FIXME :
  * Check that linked lists are empty before the pointer is freed
  */
 void __glcMasterDestroy(__glcMaster *This)
 {
+  FT_ListNode node = NULL;
+  FT_ListNode next = NULL;
+
   FT_List_Finalize(&This->displayList, __glcDisplayListDestructor,
 		   &__glcCommonArea.memoryManager, NULL);
   FT_List_Finalize(&This->textureObjectList, __glcTextureObjectDestructor,
 		   &__glcCommonArea.memoryManager, NULL);
-  FT_List_Finalize(&This->faceList, __glcFaceDestructor,
-		   &__glcCommonArea.memoryManager, NULL);
+
+  /* Don't use FT_List_Finalize here, since __glcFaceDescDestroy also destroys
+   * the node itself.
+   */
+  node = This->faceList.head;
+  while (node) {
+    next = node->next;
+    __glcFaceDescDestroy((__glcFaceDescriptor*)node);
+    node = next;
+  }
+
   FcCharSetDestroy(This->charList);
   if (This->family)
     __glcFree(This->family);
