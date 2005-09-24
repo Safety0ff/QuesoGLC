@@ -1,10 +1,18 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Char maps can now exploit the glyph names that are stored in the font files
+- Fixed glcGetMaxCharMetric() where the maximum size of the characters were
+  computed in EM units thus leading to wrong results if the different
+  characters did not have the same EM square size.
+- General management of header files has been moved to internal.h (most source
+  files now just need to include a unique header file "internal.h")
+- Modified glcResolution() so that the resolution of every font of the
+  GLC_CURRENT_FONT_LIST is updated whenever glcResolution() is called
 - The GLC_IS_FIXED_PITCH attribute is now managed per font, not per master
 - The verification of master parameters has been moved to the specific function
   __glcVerifyMasterParameters(). This simplified the code
-- The management of the header file assert.h has been moved in internal.h
+- The management of the header file assert.h has been moved to internal.h
 - Fixed glcIsFont() so that it does not raise GLC_PARAMETER_ERROR when 'inFont'
   is not the ID of a font
 - Fixed glcGetFonti() so that it returns the font attributes instead of the
@@ -39,13 +47,13 @@ Changes made from the "0.2" release to the "0.3" release:
   should be created anymore
 - Fixed a bug so that display lists created by QuesoGLC are now deleted when
   glcDeleteGLObjects() is called or when a master is destroyed
-- Strings returned by glcGetc() are now converted in the relevant Unicode
+- Strings returned by glcGetc() are now converted into the relevant Unicode
   format
 - Added an "uninstall" target to the makefile
 - When the shared library is built, the version number is appended to the
   library name and the corresponding links are created when QuesoGLC is
   installed. This allows several different versions of QuesoGLC to coexist
-  on most *nix.
+  on most *nix (feature suggested by Pablo Barbáchano).
 - Pablo Barbáchano fixed the install process of QuesoGLC
 
 Changes made from the "0.1" release to the "0.2" release:
@@ -84,7 +92,7 @@ Changes made from the "Birth" release to the "0.1" release:
   objects of the current context instead of those of the context to be deleted.
 - Contexts are now stored in a linked list and their number is not limited to
   16 anymore.
-- Fixed glcGetAllContexts which returned wrong context IDs and did not zero-
+- Fixed glcGetAllContexts() which returned wrong context IDs and did not zero-
   terminate the array.
 - Fixed the error path in __glcInitLibrary where glcCommonArea was freed before
   its members.
@@ -94,7 +102,7 @@ Changes made from the "Birth" release to the "0.1" release:
   X window commands.
 - The GLC_RESOLUTION parameter now provides a way for the user to choose the
   precision of de Casteljau's algorithm.
-- Fixed a bug that occured when a context was deleted : its entry were not
+- Fixed a bug that occured when a context was deleted : its entry was not
   deleted from the 'stateList' array.
 - QuesoGLC now has the ability to use custom memory manager routines
   (see __glcFree, __glcMalloc and __glcRealloc)
@@ -103,18 +111,18 @@ Changes made from the "Birth" release to the "0.1" release:
 - Variables GLC_MIN_MAPPED_CODE, GLC_MAX_MAPPED_CODE, GLC_CHAR_COUNT and the
   list GLC_CHAR_LIST are now updated when a new font file is added to a master.
 - Changed license of QuesoGLC to LGPL
-- Fixed glcAppendFont so that it raises GLC_PARAMETER_ERROR if the font is an
+- Fixed glcAppendFont() so that it raises GLC_PARAMETER_ERROR if the font is an
   element of GLC_CURENT_FONT_LIST at the beginning of the command execution.
-- Fixed glcFont so that it behaves correctly if the font parameter is zero.
-- Fixed glcFontFace so that it leaves the current face unchanged if it fails to
-  set a new face.
-- Fixed glcFontMap so that it checks if the character to be mapped is an
+- Fixed glcFont() so that it behaves correctly if the font parameter is zero.
+- Fixed glcFontFace() so that it leaves the current face unchanged if it fails
+  to set a new face.
+- Fixed glcFontMap() so that it checks if the character to be mapped is an
   element of the list GLC_CHAR_LIST.
-- Fixed glcFontMap so that if no character name is given then the code 'inCode'
-  is removed from the charmap.
-- Fixed glcRenderCountedString, so that it raises GLC_PARAMETER_ERROR if the
+- Fixed glcFontMap() so that if no character name is given then the code
+  'inCode' is removed from the charmap.
+- Fixed glcRenderCountedString(), so that it raises GLC_PARAMETER_ERROR if the
   parameter inCount is less than zero.
-- Fixed glcReplacementCode so that it can use a code other than
+- Fixed glcReplacementCode() so that it can use a code other than
   GLC_REPLACEMENT_CODE.
 - Translated C++ code to pure ANSI C (i.e. get rid of C++)
 - QuesoGLC can now be built as a shared library.
