@@ -45,19 +45,13 @@
  * underlying GL implementation.
  */
 
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
 #if defined __APPLE__ && defined __MACH__
 #include <OpenGL/glu.h>
 #else
 #include <GL/glu.h>
 #endif
-#include <fontconfig/fontconfig.h>
 
-#include "GL/glc.h"
 #include "internal.h"
-#include FT_GLYPH_H
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
@@ -67,10 +61,17 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
 				  __glcContextState* inState)
 {
   FT_Matrix matrix;
-  FT_Face face = inFont->face;
-  FT_Outline outline = face->glyph->outline;
+  FT_Face face = __glcFaceDescOpen(inFont->faceDesc, inState);
+  FT_Outline outline;
   FT_BBox boundBox;
   FT_Bitmap pixmap;
+
+  if (!face) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  outline = face->glyph->outline;
 
   /* compute glyph dimensions */
   matrix.xx = (FT_Fixed)(inState->bitmapMatrix[0] * 65536. / GLC_POINT_SIZE);
@@ -98,6 +99,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
   if (!pixmap.buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -115,6 +117,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
     __glcFree(pixmap.buffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -128,6 +131,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
 	   pixmap.buffer);
 
   __glcFree(pixmap.buffer);
+  __glcFaceDescClose(inFont->faceDesc);
 }
 
 
@@ -146,8 +150,8 @@ static int __glcNextPowerOf2(int value)
 static void __glcRenderCharTexture(__glcFont* inFont,
 				   __glcContextState* inState, GLint inCode)
 {
-  FT_Face face = inFont->face;
-  FT_Outline outline = face->glyph->outline;
+  FT_Face face = __glcFaceDescOpen(inFont->faceDesc, inState);
+  FT_Outline outline;
   FT_BBox boundBox;
   FT_Bitmap pixmap;
   GLuint texture = 0;
@@ -157,6 +161,13 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   FT_ListNode node = NULL;
   GLint boundTexture = 0;
   GLint unpackAlignment = 0;
+
+  if (!face) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  outline = face->glyph->outline;
 
   /* Get the bounding box of the glyph */
   FT_Outline_Get_CBox(&outline, &boundBox);
@@ -178,6 +189,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 			   &format);
   if (!format) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -187,6 +199,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
   if (!pixmap.buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -204,6 +217,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
     __glcFree(pixmap.buffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -223,6 +237,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
       __glcRaiseError(GLC_RESOURCE_ERROR);
       glDeleteTextures(1, &texture);
       __glcFree(pixmap.buffer);
+      __glcFaceDescClose(inFont->faceDesc);
       return;
     }
   }
@@ -261,6 +276,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     if (!dlKey) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFree(pixmap.buffer);
+      __glcFaceDescClose(inFont->faceDesc);
       return;
     }
 
@@ -324,6 +340,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     glDeleteTextures(1, &texture);
 
   __glcFree(pixmap.buffer);
+  __glcFaceDescClose(inFont->faceDesc);
 }
 
 static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
@@ -368,14 +385,15 @@ static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
-static void __glcRenderChar(GLint inCode, GLint inFont)
+static void __glcRenderChar(GLint inCode, GLint inFont,
+			    __glcContextState* inState)
 {
-  __glcContextState *state = __glcGetCurrent();
   __glcFont* font = NULL;
   FT_UInt glyphIndex = 0;
   FT_ListNode node = NULL;
+  FT_Face face = NULL;
 
-  for (node = state->fontList.head; node; node = node->next) {
+  for (node = inState->fontList.head; node; node = node->next) {
     font = (__glcFont*)node->data;
     assert(font);
     if (font->id == inFont) break;
@@ -384,50 +402,51 @@ static void __glcRenderChar(GLint inCode, GLint inFont)
   if (!node)
     return;
 
-  /* Define the size of the rendered glyphs (based on screen resolution) */
-  if (FT_Set_Char_Size(font->face, GLC_POINT_SIZE << 6, 0,
-		       (FT_UInt)state->resolution, (FT_UInt)state->resolution))
-    { 
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-
-  /* Get and load the glyph which unicode code is identified by inCode */
-  glyphIndex = __glcCharMapGlyphIndex(font->charMap, font->face, inCode);
-  if (!glyphIndex) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
-  }
-
-  if (FT_Load_Glyph(font->face, glyphIndex, FT_LOAD_NO_BITMAP |
-		    FT_LOAD_IGNORE_TRANSFORM)) {
+  face = __glcFaceDescOpen(font->faceDesc, inState);
+  if (!face) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
+  /* Get and load the glyph which unicode code is identified by inCode */
+  glyphIndex = __glcCharMapGlyphIndex(font->charMap, face, inCode);
+  if (!glyphIndex) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    __glcFaceDescClose(font->faceDesc);
+    return;
+  }
+
+  if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP |
+		    FT_LOAD_IGNORE_TRANSFORM)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(font->faceDesc);
+    return;
+  }
+  
   /* Call the appropriate function depending on the rendering mode. It first
    * checks if a display list that draws the desired glyph has already been
    * defined
    */
-  switch(state->renderStyle) {
+  switch(inState->renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(font, state);
-    return;
+    __glcRenderCharBitmap(font, inState);
+    break;
   case GLC_TEXTURE:
     if (!__glcFindDisplayList(font, inCode, 2))
-      __glcRenderCharTexture(font, state, inCode);
-    return;
+      __glcRenderCharTexture(font, inState, inCode);
+    break;
   case GLC_LINE:
   case GLC_TRIANGLE:
     if (!__glcFindDisplayList(font, inCode,
-			      (state->renderStyle == GLC_TRIANGLE) ? 4 : 3))
-      __glcRenderCharScalable(font, state, inCode, 
-			      (state->renderStyle == GLC_TRIANGLE));
-    return;
+			      (inState->renderStyle == GLC_TRIANGLE) ? 4 : 3))
+      __glcRenderCharScalable(font, inState, inCode, 
+			      (inState->renderStyle == GLC_TRIANGLE), face);
+    break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
   }
+
+  __glcFaceDescClose(font->faceDesc);
 }
 
 /* Process the character in order to find a font that maps the code and to
@@ -444,7 +463,7 @@ static void __glcProcessChar(__glcContextState *inState, GLint inCode)
   font = __glcCtxGetFont(inState, inCode);
   if (font) {
     /* A font has been found */
-    __glcRenderChar(inCode, font);
+    __glcRenderChar(inCode, font, inState);
     return;
   }
 
@@ -459,7 +478,7 @@ static void __glcProcessChar(__glcContextState *inState, GLint inCode)
   repCode = inState->replacementCode;
   font = __glcCtxGetFont(inState, repCode);
   if (repCode && font) {
-    __glcRenderChar(repCode, font);
+    __glcRenderChar(repCode, font, inState);
     return;
   }
   else {
@@ -490,11 +509,11 @@ static void __glcProcessChar(__glcContextState *inState, GLint inCode)
     }
 
     /* Render the '\<hexcode>' sequence */
-    __glcRenderChar('\\', __glcCtxGetFont(inState, '\\'));
-    __glcRenderChar('<', __glcCtxGetFont(inState, '<'));
+    __glcRenderChar('\\', __glcCtxGetFont(inState, '\\'), inState);
+    __glcRenderChar('<', __glcCtxGetFont(inState, '<'), inState);
     for (i = 0; i < n; i++)
-      __glcRenderChar(buf[i], __glcCtxGetFont(inState, buf[i]));
-    __glcRenderChar('>', __glcCtxGetFont(inState, '>'));
+      __glcRenderChar(buf[i], __glcCtxGetFont(inState, buf[i]), inState);
+    __glcRenderChar('>', __glcCtxGetFont(inState, '>'), inState);
   }
 }
 
@@ -773,6 +792,7 @@ void glcReplacementCode(GLint inCode)
 void glcResolution(GLfloat inVal)
 {
   __glcContextState *state = __glcGetCurrent();
+  FT_ListNode node = NULL;
 
   /* Check if the current thread owns a current state */
   if (!state) {
@@ -782,5 +802,13 @@ void glcResolution(GLfloat inVal)
 
   /* Stores the resolution */
   state->resolution = inVal;
+
+  /* Modify the resolution of every font of the GLC_CURRENT_FONT_LIST */
+  for (node = state->currentFontList.head; node; node = node->next) {
+    assert(node->data);
+    __glcFaceDescSetCharSize(((__glcFont*)node->data)->faceDesc,
+			     (FT_UInt)inVal);
+  }
+
   return;
 }
