@@ -41,13 +41,8 @@
  *  the variable \b GLC_FONT_COUNT.
  */
 
-#include <string.h>
-#include <stdlib.h>
-
-#include "GL/glc.h"
 #include "internal.h"
 #include FT_LIST_H
-#include "ocharmap.h"
 
 
 
@@ -118,31 +113,19 @@ void glcAppendFont(GLint inFont)
     return;
   }
 
-  if (FT_New_Face(state->library, (const char*)font->faceDesc->fileName,
-		  font->faceDesc->indexInFile, &font->face)) {
-    /* Unable to load the face file */
+  node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+  if (!node) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  /* select a Unicode charmap */
-  if (FT_Select_Charmap(font->face, ft_encoding_unicode)) {
-    /* No Unicode charmap is available */
+  if (!__glcFaceDescOpen(font->faceDesc, state)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FT_Done_Face(font->face);
-    font->face = NULL;
+    __glcFree(node);
     return;
   }
 
   /* Add the font to GLC_CURRENT_FONT_LIST */
-  node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-  if (!node) {
-    FT_Done_Face(font->face);
-    font->face = NULL;
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
   node->data = font;
   FT_List_Add(&state->currentFontList, node);
 
@@ -209,15 +192,16 @@ void glcDeleteFont(GLint inFont)
 
 
 
-/* Close the face of a font when GLC_CURRENT_FONT_LIST is deleted */
+/* Function called by FT_List_Finalize
+ * Close the face of a font when GLC_CURRENT_FONT_LIST is deleted
+ */
 static void __glcCloseFace(FT_Memory inMemory, void* data, void* user)
 {
   __glcFont* font = (__glcFont*)data;
 
   assert(font);
-  assert(font->face);
-  FT_Done_Face(font->face);
-  font->face = NULL;
+  assert(font->faceDesc);
+  __glcFaceDescClose(font->faceDesc);
 }
 
 
@@ -266,19 +250,8 @@ void glcFont(GLint inFont)
       FT_List_Remove(&state->currentFontList, node);
     }
     else {
-      assert(!font->face);
-
-      if (FT_New_Face(state->library, (const char*)font->faceDesc->fileName,
-		      font->faceDesc->indexInFile, &font->face)) {
+      if (!__glcFaceDescOpen(font->faceDesc, state)) {
         __glcRaiseError(GLC_RESOURCE_ERROR);
-        return;
-      }
-
-      /* select a Unicode charmap */
-      if (FT_Select_Charmap(font->face, ft_encoding_unicode)) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
-        FT_Done_Face(font->face);
-        font->face = NULL;
         return;
       }
 
@@ -291,9 +264,7 @@ void glcFont(GLint inFont)
         __glcFont* dummyFont = (__glcFont*)node->data;
 
         /* Close the face of the font stored in the first node */
-        assert(dummyFont->face);
-        FT_Done_Face(dummyFont->face);
-        dummyFont->face=NULL;
+	__glcFaceDescClose(dummyFont->faceDesc);
         /* Remove the first node of the list to prevent it to be deleted by
          * FT_List_Finalize().
          */
@@ -303,8 +274,7 @@ void glcFont(GLint inFont)
         /* The list is empty, create a new node */
         node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
         if (!node) {
-	  FT_Done_Face(font->face);
-	  font->face = NULL;
+	  __glcFaceDescClose(font->faceDesc);
           __glcRaiseError(GLC_RESOURCE_ERROR);
           return;
         }
@@ -345,14 +315,18 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
     if (!strcmp((const char*)faceDesc->styleName, (const char*)inFace))
       break;
   }
-  
+
+  /* Face descriptor not found ? */
   if (!node)
     return GL_FALSE;
 
+  /* Verify if the font has already the required face activated */
+  if (font->faceDesc == faceDesc)
+    return GL_TRUE;
+
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
   if (FT_List_Find(&inState->currentFontList, font)) {
-    FT_Face newFace = NULL;
-    __glcCharMap* newCharMap = __glcCharMapCreate(faceDesc->charSet);
+    __glcCharMap* newCharMap = __glcCharMapCreate(faceDesc);
 
     if (!newCharMap) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -360,31 +334,19 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
     }
 
     /* Open the new face */
-    if (FT_New_Face(inState->library, 
-		    (const char*)faceDesc->fileName, faceDesc->indexInFile,
-		    &newFace)) {
+    if (!__glcFaceDescOpen(faceDesc, inState)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcCharMapDestroy(newCharMap);
-      return GL_FALSE;
-    }
-
-    /* select a Unicode charmap */
-    if (FT_Select_Charmap(newFace, ft_encoding_unicode)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      __glcCharMapDestroy(newCharMap);
-      FT_Done_Face(newFace);
       return GL_FALSE;
     }
 
     /* Close the current face */
-    if (font->face)
-      FT_Done_Face(font->face);
+    __glcFaceDescClose(font->faceDesc);
 
     /* Destroy the current charmap */
     if (font->charMap)
       __glcCharMapDestroy(font->charMap);
 
-    font->face = newFace;
     font->charMap = newCharMap;
   }
 
@@ -653,26 +615,19 @@ const GLCchar* glcGetFontFace(GLint inFont)
  */
 const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 {
-  __glcFont *font = __glcVerifyFontParameters(inFont);
+  __glcFont* font = __glcVerifyFontParameters(inFont);
+  __glcContextState* state = __glcGetCurrent();
 
   if (!font)
     return GLC_NONE;
   
   switch(inAttrib) {
-  case GLC_CHAR_LIST:
-  case GLC_FACE_LIST:
-    break;
-  default:
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-  }
-  
-  switch(inAttrib) {
   case GLC_FACE_LIST:
     return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
   case GLC_CHAR_LIST:
-    return __glcCharMapGetCharNameByIndex(font->charMap, inIndex);
+    return __glcCharMapGetCharNameByIndex(font->charMap, inIndex, state);
   default:
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
   }
 }
