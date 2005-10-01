@@ -1,3 +1,6 @@
+TD, CAPTION {
+    font-size: 14px;
+}
 /* RedBlog */
 a:link, a:visited {
     text-decoration: none;
@@ -13,7 +16,6 @@ body {
     background-color: #ffffff;	
     margin-top: 10px;	
     font-family: Verdana, Arial, sans-serif;
-    font-size: 12px;
 }
 
 hr { height: 1px; border: solid #fe7405 0px; border-top-width: 1px;}
@@ -50,13 +52,11 @@ TABLE.menu {
     padding-right: 2px;
     background: #f5f5f5;
     border: 1px #cccccc solid;
-    font-size: 11pt;
 }
 
 TABLE.submenu {
     border: 0px #cccccc solid;
     background: #f5f5f5;
-    font-size: 12px;
 }
 
 TD.title {
@@ -66,6 +66,7 @@ TD.title {
     padding-bottom: 4px;
     padding-left: 0px;
     margin: 0px;
+    font-size: 14px;
 }
 
 TD.item a {
@@ -77,6 +78,7 @@ TD.item a {
     padding: 4px;
     padding-left: 10px;
     border: 1px #cccccc solid;
+    font-size: 12px;
 }
 
 TD.item a:hover {
@@ -102,6 +104,7 @@ TD.main {
     border: 0px #cccccc solid;
     background: #ffffff;
     padding: 4px;
+    font-size: 14px;
 }
 
 /* Doxygen */
@@ -123,11 +126,13 @@ TABLE.mdTable {
     border: 1px solid #555599;
     background-color: #e6ebf7;
     color: #555555;
+    font-size: 14px;
 }
 
 TD.mdRow {
     padding: 8px 20px;
     color: #555555;
+    font-size: 14px;
 }
 
 TD.md {
