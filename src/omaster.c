@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -27,11 +27,8 @@ static const char unknown[] = "Unknown";
 
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const FcChar8* inVendorName,
-			       const char* inFileExt, GLint inID,
-			       GLint inStringType)
+			       GLint inID, GLint inStringType)
 {
-  static const char format1[] = "Type1";
-  static const char format2[] = "True Type";
   __glcMaster *This = NULL;
 
   This = (__glcMaster*)__glcMalloc(sizeof(__glcMaster));
@@ -52,15 +49,6 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   if (!This->family)
     goto error;
 
-  /* use file extension to determine the face format */
-  This->masterFormat = (FcChar8*)unknown;
-  if (inFileExt) {
-    if (!strcmp(inFileExt, "pfa") || !strcmp(inFileExt, "pfb"))
-      This->masterFormat = (FcChar8*)format1;
-    if (!strcmp(inFileExt, "ttf") || !strcmp(inFileExt, "ttc"))
-      This->masterFormat = (FcChar8*)format2;
-  }
-
   /* We assume that the format of data strings in font files is GLC_UCS1 */
   if (inVendorName) {
     This->vendor = (FcChar8*)strdup((const char*)inVendorName);
@@ -74,6 +62,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   if (!This->charList)
     goto error;
 
+  This->fullNameSGI = NULL;
   This->version = NULL;
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
@@ -129,6 +118,10 @@ void __glcMasterDestroy(__glcMaster *This)
     __glcFree(This->family);
   if (This->vendor != (FcChar8*)unknown)
     __glcFree(This->vendor);
+  if (This->fullNameSGI)
+    __glcFree(This->fullNameSGI);
+  if (This->version)
+    __glcFree(This->version);
 
   __glcFree(This);
 }

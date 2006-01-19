@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -46,6 +46,11 @@
 
 #include "internal.h"
 #include FT_LIST_H
+#include FT_TYPE1_TABLES_H
+#include FT_BDF_H
+#include FT_WINFONTS_H
+#include FT_SFNT_NAMES_H
+#include FT_TRUETYPE_IDS_H
 
 
 
@@ -128,10 +133,6 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
-  FcChar32 base, next, map[FC_CHARSET_MAP_SIZE];
-  FcChar32 count = 0;
-  int i = 0;
-  int j = 0;
 
   /* Check some parameter.
    * NOTE : the verification of some parameters needs to get the current
@@ -162,25 +163,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
   switch(inAttrib) {
   case GLC_CHAR_LIST:
-    base = FcCharSetFirstPage(master->charList, map, &next);
-    do {
-      for (i = 0; i < FC_CHARSET_MAP_SIZE; i++) {
-        FcChar32 value = __glcCharSetPopCount(map[i]);
-        if (count + value >= inIndex + 1) {
-          for (j = 0; j < 32; j++) {
-            if ((map[i] >> j) & 1) count++;
-            if (count == inIndex + 1)
-              return glcGetMasterMap(inMaster, base + (i << 5) + j);
-          }
-        }
-        count += value;  
-      }
-      base = FcCharSetNextPage(master->charList, map, &next);
-    } while (base != FC_CHARSET_DONE);
-    /* The character has not been found */
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-
+    return __glcGetCharNameByIndex(master->charList, inIndex, state);
   case GLC_FACE_LIST:
     /* Get the face name */
     for (node = master->faceList.head; inIndex && node; node = node->next,
@@ -217,6 +200,9 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  *  <em>LATIN CAPITAL LETTER A</em>.
  *
  *  If the master does not map \e inCode, the command returns \b GLC_NONE.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
+ *  \b GLC_UTF8_QSO.
  *  \note While you cannot change the map of a master, you can change the map
  *  of a font using glcFontMap().
  *  \param inMaster The integer ID of the master from which to select the
@@ -258,7 +244,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 
   if (!FcCharSetHasChar(master->charList, (FcChar32)code))
     return GLC_NONE;
-    
+
   /* The database gives the Unicode name in UCS1 encoding. We should now
    * change its encoding if needed.
    */
@@ -276,6 +262,94 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   }
 
   return buffer;
+}
+
+
+
+/* This subroutine is called whenever the user wants to access to informations
+ * that have not been loaded from the font files yet. In order to reduce disk
+ * accesses, informations such as the master format, full name or version are
+ * read "just in time" i.e. only when the user requests them.
+ */
+static GLboolean __glcGetMasterInfoJustInTime(__glcMaster* inMaster,
+					      __glcContextState* inState)
+{
+  static FcChar8 unknown[] = "Unknown";
+  static FcChar8 masterFormat1[] = "Type 1";
+  static FcChar8 masterFormat2[] = "BDF";
+  static FcChar8 masterFormat3[] = "Windows FNT";
+  static FcChar8 masterFormat4[] = "TrueType/OpenType";
+
+  __glcFaceDescriptor* faceDesc =
+	(__glcFaceDescriptor*)inMaster->faceList.head;
+  FT_Face face = NULL;
+  PS_FontInfoRec afont_info;
+  const char* acharset_encoding = NULL;
+  const char* acharset_registry = NULL;
+  FT_WinFNT_HeaderRec aheader;
+  FT_UInt count = 0;
+
+  assert(faceDesc);
+
+  face = __glcFaceDescOpen(faceDesc, inState);
+  if (!face) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+
+  /* Is it Type 1 ? */
+  if (!FT_Get_PS_Font_Info(faceDesc->face, &afont_info)) {
+    inMaster->masterFormat = masterFormat1;
+    if (afont_info.full_name)
+      inMaster->fullNameSGI = (FcChar8*)strdup(afont_info.full_name);
+    if (afont_info.version)
+      inMaster->version = (FcChar8*)strdup(afont_info.version);
+  }
+  /* Is it BDF ? */
+  else if (!FT_Get_BDF_Charset_ID(faceDesc->face, &acharset_encoding,
+				  &acharset_registry)) {
+    inMaster->masterFormat = masterFormat2;
+    inMaster->fullNameSGI = unknown;
+    inMaster->version = unknown;
+  }
+  /* Is it Windows FNT ? */
+  else if (!FT_Get_WinFNT_Header(faceDesc->face, &aheader)) {
+    inMaster->masterFormat = masterFormat3;
+    inMaster->fullNameSGI = unknown;
+    inMaster->version = unknown;
+  }
+  /* Is it TrueType/OpenType ? */
+  else if ((count = FT_Get_Sfnt_Name_Count(faceDesc->face))) {
+    #if 0
+    FT_UInt i = 0;
+    FT_SfntName aName;
+    #endif
+
+    inMaster->masterFormat = masterFormat4;
+
+    /* TODO : decode the SFNT name tables in order to get full name
+     * of the TrueType/OpenType fonts and their version
+     */
+    #if 0
+    for (i = 0; i < count; i++) {
+      if (!FT_Get_Sfnt_Name(faceDesc->face, i, &aName)) {
+        if ((aName.name_id != TT_NAME_ID_FULL_NAME)
+		&& (aName.name_id != TT_NAME_ID_VERSION_STRING))
+	  continue;
+
+        switch (aName.platform_id) {
+	case TT_PLATFORM_APPLE_UNICODE:
+	  break;
+	case TT_PLATFORM_MICROSOFT:
+	  break;
+	}
+      }
+    }
+    #endif
+  }
+
+  __glcFaceDescClose(faceDesc);
+  return GL_TRUE;
 }
 
 
@@ -302,6 +376,9 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
  *    <tr>
  *      <td><b>GLC_VERSION</b></td> <td>0x0063</td>
  *    </tr>
+ *    <tr>
+ *      <td><b>GLC_FULL_NAME_SGI</b></td> <td>0x8002</td>
+ *    </tr>
  *  </table>
  *  </center>
  *  \param inMaster The master for which an attribute value is needed.
@@ -324,6 +401,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   case GLC_MASTER_FORMAT:
   case GLC_VENDOR:
   case GLC_VERSION:
+  case GLC_FULL_NAME_SGI:
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -343,13 +421,28 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     s = master->family;
     break;
   case GLC_MASTER_FORMAT:
+    if (!master->masterFormat) {
+      if (!__glcGetMasterInfoJustInTime(master, state))
+        return GLC_NONE;
+    }
     s = master->masterFormat;
     break;
   case GLC_VENDOR:
     s = master->vendor;
     break;
   case GLC_VERSION:
+    if (!master->version) {
+      if (!__glcGetMasterInfoJustInTime(master, state))
+        return GLC_NONE;
+    }
     s = master->version;
+    break;
+  case GLC_FULL_NAME_SGI:
+    if (!master->fullNameSGI) {
+      if (!__glcGetMasterInfoJustInTime(master, state))
+        return GLC_NONE;
+    }
+    s = master->fullNameSGI;
     break;
   }
 

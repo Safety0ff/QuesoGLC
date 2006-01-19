@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -130,6 +130,12 @@ GLint __glcGetMinMappedCode(FcCharSet *charSet);
 
 /* Get the maximum mapped code of a character set */
 GLint __glcGetMaxMappedCode(FcCharSet *charSet);
+
+/* Get the name of the character at offset inIndex from the first element of the
+ * character set inCharSet
+ */
+GLCchar* __glcGetCharNameByIndex(FcCharSet* inCharSet, GLint inIndex,
+				 __glcContextState* inState);
 
 /* Return a struct which contains thread specific info */
 threadArea* __glcGetThreadArea(void);

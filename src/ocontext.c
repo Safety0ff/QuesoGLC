@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -209,7 +209,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
   int i = 0;
 
   for (i = 0; i < fontSet->nfont; i++) {
-    char *ext = NULL;
     __glcMaster *master = NULL;
     FcChar8 *fileName = NULL;
     FcChar8 *vendorName = NULL;
@@ -272,15 +271,6 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 	== FcResultTypeMismatch)
       continue;
 
-    /* get the extension of the file */
-    ext = (char*)fileName + (strlen((const char*)fileName) - 1);
-    while ((*ext != '.') && (ext - (char*)fileName))
-      ext--;
-    if (ext != (char*)fileName)
-      ext++;
-    else
-      ext = NULL;
-
     /* Determine if the family (i.e. "Times", "Courier", ...) is already
      * associated to a master.
      */
@@ -305,8 +295,7 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
       else
 	id = 0;
 
-      master = __glcMasterCreate(familyName, vendorName, ext, id,
-				 This->stringType);
+      master = __glcMasterCreate(familyName, vendorName, id, This->stringType);
       if (!master) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	break;
@@ -644,6 +633,7 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
 {
   GLCfunc callbackFunc = NULL;
   GLboolean result = GL_FALSE;
+  GLint aCode = 0;
 
   /* Recursivity is not allowed */
   if (inState->isInCallbackFunc)
@@ -653,12 +643,18 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
   if (!callbackFunc)
     return GL_FALSE;
 
+  /* Convert the character code back to the current string type */
+  aCode = __glcConvertUcs4ToGLint(inState, inCode);
+  /* Check if the character has been converted */
+  if (aCode < 0)
+    return GL_FALSE;
+
   inState->isInCallbackFunc = GL_TRUE;
   /* Call the callback function with the character converted to the current
    * string type. See comments at the definition of __glcConvertUcs4ToGLint()
    * for known limitations
    */
-  result = (*callbackFunc)(__glcConvertUcs4ToGLint(inState, inCode));
+  result = (*callbackFunc)(aCode);
   inState->isInCallbackFunc = GL_FALSE;
 
   return result;

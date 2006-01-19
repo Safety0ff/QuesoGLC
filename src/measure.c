@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -188,7 +188,10 @@ static  GLfloat* __glcProcessCharMetric(__glcContextState *inState, GLint inCode
  *  measures the resulting layout and stores in \e outVec the value of the
  *  metric identified by \e inMetric. If the command does not raise an error,
  *  its return value is \e outVec.
- *  \param inCode The character to measure.
+  *
+ *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
+ *  \b GLC_UTF8_QSO.
+*  \param inCode The character to measure.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                   \b GLC_BOUNDS.
  *  \param outVec A vector in which to store value of \e inMetric for specified

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -75,6 +75,7 @@
  *  \sa glcGetCallbackFunc()
  *  \sa glcGetPointer()
  *  \sa glcDataPointer()
+ *  \sa glcRenderChar()
  */
 void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 {
@@ -159,7 +160,7 @@ void glcDeleteGLObjects(void)
  * actually do the same job : put a value into a member of the
  * __glcContextState struct. The only difference is the value that it puts.
  */
-static void __glcDisable(GLCenum inAttrib, GLboolean value)
+static void __glcChangeState(GLCenum inAttrib, GLboolean value)
 {
   __glcContextState *state = NULL;
 
@@ -225,7 +226,7 @@ static void __glcDisable(GLCenum inAttrib, GLboolean value)
  */
 void glcDisable(GLCenum inAttrib)
 {
-  __glcDisable(inAttrib, GL_FALSE);
+  __glcChangeState(inAttrib, GL_FALSE);
 }
 
 
@@ -248,7 +249,7 @@ void glcDisable(GLCenum inAttrib)
  */
 void glcEnable(GLCenum inAttrib)
 {
-  __glcDisable(inAttrib, GL_TRUE);
+  __glcChangeState(inAttrib, GL_TRUE);
 }
 
 
@@ -375,6 +376,9 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    glcStringType() is called.
    */
 
+  /* Grmmff, is the use of strlen() adequate here ? 
+   * What if catalog is encoded in UCS2 format ?
+   */
   length = strlen((const char*) catalog) + 1;
 
   buffer = __glcCtxQueryBuffer(state, length * sizeof(char));
@@ -520,8 +524,19 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
 
       for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
 	   texNode && inIndex; texNode = texNode->next, inIndex--);
-      if (texNode)
-	return (GLint)texNode->data;
+      if (texNode) {
+	/* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
+	 * void* pointer so that we do not need to allocate memory just to store
+	 * a single integer value
+	 */
+        union {
+	  void* ptr;
+	  GLint i;
+	} voidToGLint;
+	
+	voidToGLint.ptr = texNode->data;
+	return voidToGLint.i;
+      }
     }
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
@@ -603,9 +618,9 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
-  static GLCchar* __glcExtensions = (GLCchar*) "";
-  static GLCchar* __glcRelease = (GLCchar*) "Release 0.3";
-  static GLCchar* __glcVendor = (GLCchar*) "QuesoGLC";
+  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name";
+  static GLCchar* __glcRelease = (GLCchar*) "0.3";
+  static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
   __glcContextState *state = NULL;
 
@@ -791,6 +806,9 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *  </tr>
  *  </table>
  *  </center>
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inAttrib is equal to
+ *  \b GLC_REPLACEMENT_CODE and the current string type is \b GLC_UTF8_QSO.
  *  \param inAttrib Attribute for which an integer variable is requested.
  *  \return The value or values of the integer variable.
  *  \sa glcGetc()
@@ -964,7 +982,9 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
  *    <td><b>GLC_UCS4</b></td> <td>0x0112</td> <td>GLuint</td>
  *  </tr>
  *  <tr>
- *    <td><b>GLC_UTF8</b></td> <td>0x0113</td> <td>GLubyte</td>
+ *    <td><b>GLC_UTF8_QSO</b></td>
+ *    <td>0x8004</td>
+ *    <td>\<character dependent\></td>
  *  </tr>
  *  </table>
  *  </center>
@@ -972,11 +992,11 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
  *  Every character string used in the GLC API is represented as a
  *  zero-terminated array, unless otherwise specified. The value of
  *  the variable \b GLC_STRING_TYPE determines the interpretation of
- *  the array. The values \b GLC_UCS1, \b GLC_UCS2, \b GLC_UCS4 and \b GLC_UTF8
- *  indicate how the element of the string should be interpreted. Currently
- *  QuesoGLC supports UCS1, UCS2, UCS4 and UTF-8 formats defined in the
- *  Unicode 4.0.1 and ISO/IEC 10646:2003 standards. The initial value of
- *  \b GLC_STRING_TYPE is \b GLC_UCS1.
+ *  the array. The values \b GLC_UCS1, \b GLC_UCS2, \b GLC_UCS4 and
+ *  \b GLC_UTF8_QSO indicate how the element of the string should be
+ *  interpreted. Currently QuesoGLC supports UCS1, UCS2, UCS4 and UTF-8 formats
+ *  defined in the Unicode 4.0.1 and ISO/IEC 10646:2003 standards. The initial
+ *  value of \b GLC_STRING_TYPE is \b GLC_UCS1.
  *
  *  \note Currently, the string formats UCS2 and UCS4 are interpreted according
  *  to the underlying platform endianess. If the strings are provided in a
@@ -1003,7 +1023,7 @@ void glcStringType(GLCenum inStringType)
   case GLC_UCS1:
   case GLC_UCS2:
   case GLC_UCS4:
-  case GLC_UTF8_QX: /* QuesoGLC Extension */
+  case GLC_UTF8_QSO: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);

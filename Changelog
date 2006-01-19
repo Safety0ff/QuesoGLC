@@ -1,7 +1,20 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
-- Char maps can now exploit the glyph names that are stored in the font files
+- A GLC_PARAMETER_ERROR is raised if the string type is GLC_UTF8_QSO and one of
+  the following functions is called :
+    * glcGeti(GLC_REPLACEMENT_CODE)
+    * the callback function defined by glcCallbackFunc()
+    * glcFontMap()
+    * glcGetFontMap()
+    * glcGetMasterMap()
+    * glcGetCharMetric()
+    * glcRenderChar()
+    * glcReplacementCode()
+- Fixed several issues that prevented QuesoGLC to compile and run on 64 bits
+  platforms
+- Improved the mechanism that determine the format of font files
+- Added support for the GLC_SGI_full_name extension
 - Fixed glcGetMaxCharMetric() where the maximum size of the characters were
   computed in EM units thus leading to wrong results if the different
   characters did not have the same EM square size.
@@ -24,7 +37,8 @@ Changes made from the "0.2" release to the "0.3" release:
   only one face was modified when 'inFont' was zero)
 - Fixed glcFont() so that the client state is left unchanged if an error occurs
 - The UTF-8 support is an extension of QuesoGLC, hence the GLC_UTF8 enumerant
-  has been appended with 'QX' (like 'QuesoGLC eXtension')
+  has been appended with 'QSO' (like 'QueSO GLC extension'). The enumerant has
+  also been modified which broke the ABI compatibility with version 0.2
 - Brandon Casey removed the hard-coded limit of the charMap array for fonts
 - Brandon Casey modified the allocation and the management of the
   measurementCharBuffer. It is now dynamically allocated instead of statically

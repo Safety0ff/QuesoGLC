@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -128,6 +128,8 @@ void _fini(void)
 
   __glcUnlock();
   pthread_mutex_destroy(&__glcCommonArea.mutex);
+
+  FcFini();
 }
 
 
@@ -519,13 +521,13 @@ GLint glcGenContext(void)
   }
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_FOUNDRY,
 			       FC_SPACING, FC_CHARSET, FC_INDEX, FC_OUTLINE,
-			       0);
+			       NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
     return newContext;
   }
-  fontSet = FcFontList(0, pattern, objectSet);
+  fontSet = FcFontList(NULL, pattern, objectSet);
   FcPatternDestroy(pattern);
   FcObjectSetDestroy(objectSet);
 

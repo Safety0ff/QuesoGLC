@@ -69,11 +69,11 @@ int main(void)
   list = glcGetAllContexts();
   i = 0;
   while (list[i]) {
-    if (list[i++] != i) {
+    if (list[i] != i+1) {
       printf("GLC error : context %d has not been created\n", i);
       return -1;
     }
-    /*i++;*/
+    i++;
   }
   free(list);
 

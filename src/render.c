@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,45 @@
  * commands gather glyph datas according to the parameters that has been set in
  * the state machine of GLC, and issue GL commands to render the characters
  * layout to the GL render target.
+ *
+ * When it renders a character, GLC finds a font that maps the character code
+ * to a character such as LATIN CAPITAL LETTER A, then uses one or more glyphs
+ * from the font to create a graphical layout that represents the character.
+ * Finally, GLC issues a sequence of GL commands to draw the layout. Glyph
+ * coordinates are defined in EM units and are transformed during rendering to
+ * produce the desired mapping of the glyph shape into the GL window coordinate
+ * system.
+ *
+ * If GLC cannot find a font that maps the character code in the list
+ * \b GLC_CURRENT_FONT_LIST, it attemps to produce an alternate rendering. If the
+ * value of the boolean variable \b GLC_AUTO_FONT is set to \b GL_TRUE, GLC searches
+ * for a font that has the character that maps the character code. If the search
+ * succeeds, the font's ID is appended to \b GLC_CURRENT_FONT_LIST and the character
+ * is rendered.
+ *
+ * If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for
+ * the character code cannot be found in any of those fonts, GLC goes through
+ * these steps :
+ * -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero,
+ * GLC finds a font that maps the replacement code, and renders the character that
+ * the replacement code is mapped to.
+ * -# If the variable \b GLC_REPLACEMENT_CODE is zero, or if the replacement
+ * code does not result in a match, GLC checks whether a callback function is
+ * defined. If a callback function is defined for \b GLC_OP_glcUnmappedCode, GLC
+ * calls the function. The callback function provides the character code to the user
+ * and allows loading of the appropriate font. After the callback returns, GLC tries
+ * to render the character code again.
+ * -# Otherwise, the command attemps to render the character sequence
+ * <em>\\\<hexcode\></em>, where \\ is the character REVERSE SOLIDUS (U+5C),
+ * \< is the character LESS-THAN SIGN (U+3C), \> is the character GREATER-THAN
+ * SIGN (U+3E), and \e hexcode is the character code represented as a sequence of
+ * hexadecimal digits. The sequence has no leading zeros, and alphabetic
+ * digits are in upper case. The GLC measurement commands treat the sequence
+ * as a single character.
+ *
+ * The rendering commands raise \b GLC_PARAMETER_ERROR if the callback function
+ * defined for \b GLC_OP_glcUnmappedCode is called and the current string type is
+ * \b GLC_UTF8_QSO.
  *
  * \note Some rendering commands create and/or use display lists and/or
  * textures. The IDs of those display lists and textures are stored in the
@@ -230,7 +269,18 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 
     node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
     if (node) {
-      node->data = (void*)texture;
+      /* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
+       * void* pointer so that we do not need to allocate memory just to store
+       * a single integer value
+       */
+      union {
+	void* ptr;
+	GLuint ui;
+      } voidToGLuint;
+
+      voidToGLuint.ui = texture;
+
+      node->data = voidToGLuint.ptr;
       FT_List_Add(&inFont->parent->textureObjectList, node);
     }
     else {
@@ -520,41 +570,8 @@ static void __glcProcessChar(__glcContextState *inState, GLint inCode)
 /** \ingroup render
  *  This command renders the character that \e inCode is mapped to.
  *
- *  GLC finds a font that maps \e inCode to a character such as LATIN CAPITAL
- *  LETTER A, then uses one or more glyphs from the font to create a graphical
- *  layout that represents the character. Finally, GLC issues a sequence of GL
- *  commands to draw the layout. Glyph coordinates are defined in em units and
- *  are transformed during rendering to produce the desired mapping of the
- *  glyph shape into the GL window coordinate system.
- *
- *  If \e glcRenderChar cannot find a font in the list \b GLC_CURRENT_FONT_LIST
- *  that maps \e inCode, it attemps to produce an alternate rendering. If the
- *  value of the boolean variable \b GLC_AUTO_FONT is set to \b GL_TRUE,
- *  \b glcRenderChar finds a font that has the character that maps \e inCode.
- *  If the search succeeds, \e glcRenderChar appends the font's ID to
- *  \b GLC_CURRENT_FONT_LIST and renders the character.
- *
- *  If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for
- *  \e inCode cannot be found in any of those fonts, \e glcRenderChar goes
- *  through these steps :
- *  -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero,
- *  \e glcRenderChar finds a font that maps the replacement code, and renders
- *  the character that the replacement code is mapped to.
- *  -# If the variable \b GLC_REPLACEMENT_CODE is zero, or if the replacement
- *  code does not result in a match, \e glcRenderChar checks whether a callback
- *  function is defined. If a callback function is defined for
- *  \b GLC_OP_glcUnmappedCode, \e glcRenderChar calls the function. The
- *  callback function provides \e inCode to the user and allows loading of the
- *  appropriate font. After the callback returns, \e glcRenderChar tries to
- *  render \e inCode again.
- *  -# Otherwise, the command attemps to render the character sequence
- *  <em>\\\<hexcode\></em>, where \\ is the character REVERSE SOLIDUS (U+5C),
- *  \< is the character LESS-THAN SIGN (U+3C), \> is the character GREATER-THAN
- *  SIGN (U+3E), and \e hexcode is \e inCode represented as a sequence of
- *  hexadecimal digits. The sequence has no leading zeros, and alphabetic
- *  digits are in upper case. The GLC measurement commands treat the sequence
- *  as a single character.
- *
+ *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
+ *  \b GLC_UTF8_QSO.
  *  \param inCode The character to render
  *  \sa glcRenderString()
  *  \sa glcRenderCountedString()
@@ -751,6 +768,9 @@ void glcRenderStyle(GLCenum inStyle)
  *  \b GLC_REPLACEMENT_CODE. The replacement code is the code which is used
  *  whenever glcRenderChar() can not find a font that owns a character which
  *  the parameter \e inCode of glcRenderChar() maps to.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
+ *  \b GLC_UTF8_QSO.
  *  \param inCode An integer to assign to \b GLC_REPLACEMENT_CODE.
  *  \sa glcGeti() with argument \b GLC_REPLACEMENT_CODE
  *  \sa glcRenderChar()

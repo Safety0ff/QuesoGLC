@@ -89,7 +89,6 @@ typedef GLboolean (*GLCfunc)();
 #define GLC_UCS1                                  0x0110
 #define GLC_UCS2                                  0x0111
 #define GLC_UCS4                                  0x0112
-#define GLC_UTF8_QX                               0x0113
 
 /*************************************************************/
 
@@ -162,6 +161,20 @@ extern GLfloat* glcGetStringCharMetric (GLint inIndex, GLCenum inMetric, GLfloat
 extern GLfloat* glcGetStringMetric (GLCenum inMetric, GLfloat *outVec);
 extern GLint glcMeasureCountedString (GLboolean inMeasureChars, GLint inCount, const GLCchar *inString);
 extern GLint glcMeasureString (GLboolean inMeasureChars, const GLCchar *inString);
+
+/*************************************************************/
+
+#define GLC_SGI_ufm_typeface_handle		  1
+#define GLC_UFM_TYPEFACE_HANDLE_SGI		  0x8001
+#define GLC_UFM_TYPEFACE_HANDLE_COUNT_SGI	  0x8003
+extern GLint glcGetMasterListiSGI(GLint inMaster, GLCenum inAttrib, GLint inIndex);
+extern GLint glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint inIndex);
+
+#define GLC_SGI_full_name			  1
+#define GLC_FULL_NAME_SGI			  0x8002
+
+#define GLC_QSO_utf8				  1
+#define GLC_UTF8_QSO                              0x8004
 
 #if defined (__cplusplus)
     }

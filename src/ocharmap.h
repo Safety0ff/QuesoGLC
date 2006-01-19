@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@
 typedef struct {
   __glcFaceDescriptor* faceDesc;
   FcCharSet* charSet;
-  FT_ULong (*map)[2];
+  FT_ULong (*map)[3];
   GLint count;
   GLint length;
 } __glcCharMap;

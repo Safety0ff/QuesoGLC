@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 
   glcDisable(GLC_GL_OBJECTS);
   glcRenderStyle(GLC_TEXTURE);
-  glcStringType(GLC_UTF8_QX);
+  glcStringType(GLC_UTF8_QSO);
 
   glutMainLoop();
   return 0;

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -272,7 +272,7 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
       *ptr = 0;
     }
     break;
-  case GLC_UTF8_QX:
+  case GLC_UTF8_QSO:
     string = (FcChar8*)strdup((const char*)inString);
     break;
   default:
@@ -394,7 +394,7 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
       *ucs4 = 0;
     }
     break;
-  case GLC_UTF8_QX:
+  case GLC_UTF8_QSO:
     string = strdup((const char*)inString);
     break;
   default:
@@ -522,7 +522,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       *ucs4 = 0;
     }
     break;
-  case GLC_UTF8_QX:
+  case GLC_UTF8_QSO:
     string = (GLCchar*)__glcCtxQueryBuffer(This,
 					   strlen((const char*)inString)+1);
     strcpy(string, (const char*)inString);
@@ -539,9 +539,18 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
 				  void *inUser)
 {
-  GLuint tex = (GLuint)inData;
+  /* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
+   * void* pointer so that we do not need to allocate memory just to store
+   * a single integer value
+   */
+  union {
+    void* ptr;
+    GLuint ui;
+  } voidToGLuint;
 
-  glDeleteTextures(1, &tex);
+  voidToGLuint.ptr = inData;
+
+  glDeleteTextures(1, &voidToGLuint.ui);
 }
 
 
@@ -550,9 +559,18 @@ void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
 void __glcDisplayListDestructor(FT_Memory inMemory, void *inData,
 				  void *inUser)
 {
-  GLuint dlist = (GLuint)inData;
+  /* Hack in order to be able to store a 32 bits display list ID in a 32/64 bits
+   * void* pointer so that we do not need to allocate memory just to store
+   * a single integer value
+   */
+  union {
+    void* ptr;
+    GLuint ui;
+  } voidToGLuint;
 
-  glDeleteLists(dlist, 1);
+  voidToGLuint.ptr = inData;
+
+  glDeleteLists(voidToGLuint.ui, 1);
 }
 
 
@@ -645,7 +663,7 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 	ptr += FcUcs4ToUtf8(*ucs4++, ptr);
     }
     break;
-  case GLC_UTF8_QX:
+  case GLC_UTF8_QSO:
     {
       FcChar8* utf8 = (FcChar8*)inString;
       FcChar32 dummy = 0;
@@ -675,29 +693,31 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 }
 
 /* Convert a UCS-4 character code into the current string type. The result is
- * stored in a GLint. This function is needed since the GLC specs store
- * individual character codes in GLint which may cause problems for the UTF-8
- * format.
+ * stored in a GLint. If the code can not be converted to the current string
+ * type a GLC_PARAMETER_ERROR is issued.
  */
 GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
 {
-  if (inState->stringType == GLC_UTF8_QX) {
-    /* Things can go wrong if GLC_UTF8_QX is the expected string type :
+  switch(inState->stringType) {
+  case GLC_UCS2:
+    /* Check that inCode can be stored in UCS-2 format */
+    if (inCode <= 65535)
+      break;
+  case GLC_UCS1:
+    /* Check that inCode can be stored in UCS-1 format */
+    if (inCode <= 255)
+      break;
+  case GLC_UTF8_QSO:
+    /* Things can go wrong if GLC_UTF8_QSO is the expected string type :
      * the length of some character code in UTF-8 format can exceed the size
-     * of the GLint type in which case a GLC_PARAMETER_ERROR is issued.
+     * of the GLint type. Hence whenever the string type is GLC_UTF8_QSO, this
+     * function issues a GLC_PARAMETER_ERROR.
      * This is a limitation of the GLC API as it is defined in the specs
      * version 0.2. The most obvious workaround is to use the UCS-4/UTF-32
      * format...
      */
-    FcChar8 buffer[FC_UTF8_MAX_LEN];
-    int len = FcUcs4ToUtf8((FcChar32)inCode, buffer);
-
-    if (len > sizeof(GLint)) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return 0;
-    }
-
-    return *((GLint*)buffer);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return -1;
   }
 
   return inCode;
@@ -710,21 +730,19 @@ GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
 GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 {
   GLint code = inCode;
-  
-  /* If the current string type is GLC_UTF8_QX then converts to GLC_UCS4 */
-  if (inState->stringType == GLC_UTF8_QX) {
-    /* If the user gives a character code in UTF-8 format then the code must
-     * be small enough to be contained within a GLint, otherwise QuesoGLC
-     * considers the code to be ill-formed and issues a GLC_PARAMETER_ERROR.
-     * As a consequence, not all the Unicode character codes can be given to
-     * functions such as glcReplacementCode() in UTF-8 format. This is a known
-     * limitation of the GLC API as it is defined in the specs version 0.2.
-     * The most obvious workaround is to use the UCS-4/UTF-32 format...
+
+  /* If the current string type is GLC_UTF8_QSO then converts to GLC_UCS4 */
+  if (inState->stringType == GLC_UTF8_QSO) {
+    /* Things can go wrong if GLC_UTF8_QSO is the expected string type :
+     * the length of some character code in UTF-8 format can exceed the size
+     * of the GLint type. Hence whenever the string type is GLC_UTF8_QSO, this
+     * function issues a GLC_PARAMETER_ERROR.
+     * This is a limitation of the GLC API as it is defined in the specs
+     * version 0.2. The most obvious workaround is to use the UCS-4/UTF-32
+     * format...
      */
-    if (FcUtf8ToUcs4((FcChar8*)&inCode, (FcChar32*)&code, sizeof(GLint)) < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return -1;
-    }
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return -1;
   }
 
   return code;
@@ -868,4 +886,55 @@ __glcContextState* __glcGetCurrent(void)
   assert(area);
 
   return area->currentContext;
+}
+
+
+
+GLCchar* __glcGetCharNameByIndex(FcCharSet* inCharSet, GLint inIndex,
+				 __glcContextState* inState)
+{
+  int i = 0;
+  int j = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  FcChar32 next = 0;
+  FcChar32 base = FcCharSetFirstPage(inCharSet, map, &next);
+  FcChar32 count = 0;
+  FcChar32 value = 0;
+
+  do {
+    for (i = 0; i < FC_CHARSET_MAP_SIZE; i++) {
+      value = __glcCharSetPopCount(map[i]);
+
+      if (count + value >= inIndex + 1) {
+	for (j = 0; j < 32; j++) {
+	  if ((map[i] >> j) & 1) count++;
+	  if (count == inIndex + 1) {
+	    FcChar8* name = __glcNameFromCode(base + (i << 5) + j);
+	    GLCchar* buffer = NULL;
+
+	    if (!name) {
+	      __glcRaiseError(GLC_PARAMETER_ERROR);
+	      return GLC_NONE;
+	    }
+
+	    /* Performs the conversion */
+	    buffer = __glcConvertFromUtf8ToBuffer(inState, name,
+						  inState->stringType);
+	    if (!buffer) {
+	      __glcRaiseError(GLC_RESOURCE_ERROR);
+	      return GLC_NONE;
+	    }
+
+	    return buffer;
+	  }
+	}
+      }
+      count += value;
+    }
+    base = FcCharSetNextPage(inCharSet, map, &next);
+  } while (base != FC_CHARSET_DONE);
+
+  /* The character has not been found */
+  __glcRaiseError(GLC_PARAMETER_ERROR);
+  return GLC_NONE;
 }

@@ -26,6 +26,7 @@ int main(void)
   int font = 0;
   int i = 0;
   int last = 0;
+  int count = 0;
 
   ctx = glcGenContext();
   glcContext(ctx);
@@ -43,7 +44,9 @@ int main(void)
     printf("Font #%d face #%d: %s\n", font, i,
 	   (char *)glcGetFontListc(font, GLC_FACE_LIST, i));
 
-  for (i = 0; i < 5; i++)
+  count = glcGetFonti(font, GLC_CHAR_COUNT);
+  printf("Font #%d character count : %d\n", font, count);
+  for (i = 0; i < count; i++)
     printf("Font #%d char #%d: %s\n", font, i,
 	   (char*)glcGetFontListc(font, GLC_CHAR_LIST, i));
 

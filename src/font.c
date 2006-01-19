@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -480,7 +480,7 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inCharName is not
  *  \b GLC_NONE or an element of the font string's list attribute
- *  \b GLC_CHAR_LIST.
+ *  \b GLC_CHAR_LIST or the current string type is \b GLC_UTF8_QSO.
  *  \param inFont The ID of the font
  *  \param inCode The integer ID of a character
  *  \param inCharName The string name of a character
@@ -647,7 +647,7 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
  *  If \e inCode cannot be mapped in the font, the command returns \b GLC_NONE.
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inFont is not an element of
- *  the list \b GLC_FONT_LIST.
+ *  the list \b GLC_FONT_LIST or the current string type is \b GLC_UTF8_QSO.
  *  \note Changing the map of a font is possible but changing the map of a
  *        master is not.
  *  \param inFont The integer ID of the font from which to select the character
@@ -701,6 +701,9 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
  *    </tr>
  *    <tr>
  *      <td><b>GLC_VERSION</b></td> <td>0x0063</td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_FULL_NAME_SGI</b></td> <td>0x8002</td>
  *    </tr>
  *  </table>
  *  </center>
