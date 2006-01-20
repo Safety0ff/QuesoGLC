@@ -34,13 +34,24 @@ platform. If not, you can get them on Internet and build them on your system.
 QuesoGLC can be safely built and used without GLUT. However, some test programs
 need GLUT in order to display OpenGL graphics : if GLUT is not installed on your
 system, the examples will not build.
+Doxygen is a tool to generate the docs, you need it if you want to generate the
+documentation yourself; otherwise you can get the reference manual of QuesoGLC
+by either downloading it from sourceforge or browsing it on-line on the QuesoGLC
+web site (http://quesoglc.sourceforge.net).
 
 * Mark Kilgard's GLUT (www.opengl.org/resources/libraries/glut.html)
 	It provides platform independant support for OpenGL.
+* Doxygen (www.stack.nl/~dimitri/doxygen)
+	A documentation system for several language (including C) that
+	generates the on-line documentation (in HTML) and the off-line
+	reference manual (in Latex/PDF/HTML) of QuesoGLC
 
 2. OK, all those libs and headers are installed on my machine.
 What shall I do now ?
 =============================================================
+
+2.1. Build the library and the examples :
+---------------------------------------
 
 Simply type
 
@@ -59,6 +70,19 @@ shared library, in which case you must use the --enable-shared option of the
 configure script :
 
   ./configure --enable-shared
+
+2.2 Build the docs (optional) :
+-----------------------------
+
+You may also want to build the documentation; QuesoGLC uses Doxygen that does
+the job nicely. In order to get the docs, go to the docs/ directory and run
+Doxygen:
+
+  cd docs
+  doxygen
+
+This should build the docs in HTML and Latex/PDF (the later needs latex and
+pdflatex to be installed on your system).
 
 3. Is that all ?
 ================
