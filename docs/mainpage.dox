@@ -1,4 +1,4 @@
-/** \file mainpage.foo
+/** \file mainpage.dox
  *
  *
  */
@@ -358,6 +358,412 @@ to establish a GL state such that the GL commands issued by GLC produce the
 desired result. For example, before issuing a glcRenderChar() command a client
 may issue \c glColor() and \c glRasterPos() commands to establish the color and
 origin of the resulting layout.
+*/
+
+/**\page glyph Glyph Conventions
+
+\section preamble Preamble
+This document discusses in great details the definition of various concepts
+related to digital typography, as well as the core conventions used within
+QuesoGLC library to manage font and glyph data. It also explains the ways
+typographic information, like glyph metrics, kerning distances, etc.. is to be
+managed and used. It relates to the layout and display of text strings, either
+in a conventional (i.e. Roman) layout, or with right-to-left or vertical ones.
+Some aspects like rotation and transformation are explained too.
+
+It is a \e must-read for all developers who need to understand digital
+typography, especially if you want to use the QuesoGLC library in your projects.
+
+This document is largely inspired of the FreeType documentation which has been
+slightly modified in order to give valuable informations to QuesoGLC users. For
+instance, parts dealing with outline and bitmap management has been removed
+since this does not concern the GLC library.
+
+The original document entitled "FreeType Glyph Conventions" is copyright
+1998-2000 David Turner and copyright 2000 The FreeType Development Team.
+
+\section basic Basic Typographic Concepts
+
+\subsection format Font files, format and information
+
+A font is a collection of various character images that can be used to display
+or print text. The images in a single font share some common properties,
+including look, style, serifs, etc. Typographically speaking, one has to
+distinguish between a <em>font family</em> and its multiple <em>font faces</em>,
+which usually differ in style though come from the same template.
+
+For example, "Palatino Regular" and "Palatino Italic" are two distinct \e faces
+from the same famous \e family, called "Palatino" itself.
+
+The single term \e font is nearly always used in ambiguous ways to refer to
+either a given family or given face, depending on the context. For example, most
+users of word-processors use "font" to describe a font family (e.g. "Courier",
+"Palatino", etc.); however most of these families are implemented through
+several data files depending on the file format: for TrueType, this is usually
+one per face (i.e. \c arial.ttf for "Arial Regular", \c ariali.ttf for "Arial
+Italic", etc.). The file is also called a "font" but really contains a font
+face.
+
+A digital font is thus a data file that may contain <em>one or more font
+faces</em>. For each of these, it contains character images, character metrics,
+as well as other kind of information important to the layout of text and the
+processing of specific character encodings. In some awkward formats, like
+Adobe's Type 1, a single font face is described through several files (i.e. one
+contains the character images, another one the character metrics). We will
+ignore this implementation issue in most parts of this document and consider
+digital fonts as single files, though QuesoGLC is able to support
+multiple-files fonts correctly.
+
+As a convenience, a font file containing more than one face is called a <em>font
+collection</em>. This case is rather rare but can be seen in many Asian fonts,
+which contain images for two or more representation forms of a given scripts
+(usually for horizontal and vertical layout).
+
+\subsection character Character images and mappings
+
+The character images are called \e glyphs. A single character can have several
+distinct images, i.e. several glyphs, depending on script, usage or context.
+Several characters can also take a single glyph (good examples are Roman
+ligatures like "fi" and "fl" which can be represented by a single glyph). The
+relationships between characters and glyphs can be very complex, but won't be
+discussed in this document. Moreover, some formats use more or less awkward
+schemes to store and access glyphs. For the sake of clarity, we only retain the
+following notions when working with QuesoGLC :
+
+- A font file contains a set of glyphs; each one can be stored as a bitmap, a
+vector representation or any other scheme (most scalable formats use a
+combination of mathematical representation and control data/programs). These
+glyphs can be stored in any order in the font file, and is typically accessed
+through a simple glyph index.
+
+- The font file contains one or more tables, called a \e character \e map (or
+charmap in short), which is used to convert character codes for a given encoding
+(e.g. ASCII, Unicode, DBCS, Big5, etc..) into glyph indices relative to the font
+file. A single font face may contain several charmaps. For example, most
+TrueType fonts contain an Apple-specific charmap as well as a Unicode charmap,
+which makes them usable on both Mac and Windows platforms.
+
+\subsection metrics Character and font metrics
+
+Each glyph image is associated with various metrics which are used to describe
+how must be placed and managed when rendering text. These are described in more
+details in \ref glyphmetrics, they relate to glyph placement, cursor advances as
+well as text layout. They are extremely important to compute the flow of text
+when rendering a string of text.
+
+Each scalable format also contains some global metrics, expressed in notional
+units, to describe some properties of all glyphs in the same face. Examples for
+global metrics are the maximum glyph bounding box, the ascender, descender and
+text height for the font.
+
+Though these metrics also exist for non-scalable formats, they only apply for a
+set of given character dimensions and resolutions, and are usually expressed in
+pixels then.
+
+\section outlines Glyph outlines
+
+This section describes the way scalable representations of glyph images, called
+\e outlines, are used by QuesoGLC as well as client applications.
+
+\subsection resolution Pixels, points and device resolutions
+
+Though it is a very common assumption when dealing with computer graphics
+programs, the physical dimensions of a given pixel (be it for screens or
+printers) are not squared. Often, the output device, be it a screen or printer,
+exhibits varying resolutions in both horizontal and vertical direction, and this
+must be taken care of when rendering text.
+
+It is thus common to define a device's characteristics through two numbers
+expressed in dpi (dots per inch). For example, a printer with a resolution of
+300x600 dpi has 300 pixels per inch in the horizontal direction, and 600 in the
+vertical one. The resolution of a typical computer monitor varies with its size
+(15" and 17" monitors don't have the same pixel sizes at 640x480), and of course
+the graphics mode resolution.
+
+As a consequence, the size of text is usually given in \e points, rather than
+device-specific pixels. Points are a simple \e physical unit, where
+1&nbsp;point&nbsp;=&nbsp;1/72th of an inch, in digital typography. As an
+example, most Roman books are printed with a body text whose size is somewhere
+between 10 and 14 points.
+
+It is thus possible to compute the size of text in pixels from the size in
+points with the following formula:
+
+<center><dfn>pixel_size = point_size * resolution / 72</dfn></center>
+
+The resolution is expressed in \e dpi. Since horizontal and vertical resolutions
+may differ, a single point size usually defines a different text width and
+height in pixels.
+
+<em>Unlike what is often thought, the "size of text in pixels" is not directly
+related to the real dimensions of characters when they are displayed or printed.
+The relationship between these two concepts is a bit more complex and relate to
+some design choices made by the font designer. This is described in more detail
+in the next sub-section (see the explanations on the EM square).</em>
+
+\subsection vectorial Vectorial representation
+
+The source format of outlines is a collection of closed paths called
+\e contours. Each contour delimits an outer or inner \e region of the glyph, and
+can be made of either <em>line segments</em> or <em>Bézier arcs</em>.
+
+The arcs are defined through <em>control points</em>, and can be either
+second-order (these are \e conic Béziers) or third-order (\e cubic Béziers)
+polynomials, depending on the font format. Note that conic Béziers are usually
+called \e quadratic Béziers in the literature. Hence, each point of the outline
+has an associated flag indicating its type (normal or control point). And
+scaling the points will scale the whole outline.
+
+Each glyph's original outline points are located on a grid of indivisible units.
+The points are usually stored in a font file as 16-bit integer grid coordinates,
+with the grid origin's being at (0,0); they thus range from -16384 to 16383.
+(Even though point coordinates can be floats in other formats such as Type 1,
+we will restrict our analysis to integer values for simplicity).
+
+<em>The grid is always oriented like the traditional mathematical
+two-dimensional plane, i.e., the X axis from the left to the right, and the Y
+axis from bottom to top.</em>
+
+In creating the glyph outlines, a type designer uses an imaginary square called
+the <em>EM square</em>. Typically, the EM square can be thought of as a tablet
+on which the characters are drawn. The square's size, i.e., the number of grid
+units on its sides, is very important for two reasons:
+
+- It is the reference used to scale the outlines to a given text dimension. For
+example, a size of 12pt at 300x300 dpi corresponds to 12*300/72 = 50 pixels.
+This is the size the EM square would appear on the output device if it was
+rendered directly. In other words, scaling from grid units to pixels uses the
+formula:
+
+<center><dfn>pixel_size = point_size * resolution / 72</dfn></center>
+<center><dfn>pixel_coord = grid_coord * pixel_size / EM_size</dfn></center>
+
+- The greater the EM size is, the larger resolution the designer can use when
+digitizing outlines. For example, in the extreme example of an EM size of 4
+units, there are only 25 point positions available within the EM square which
+is clearly not enough. Typical TrueType fonts use an EM size of 2048 units; Type
+1 PostScript fonts have a fixed EM size of 1000 grid units but point coordinates
+can be expressed as floating values.
+
+Note that glyphs can freely extend beyond the EM square if the font designer
+wants so. The EM is used as a convenience, and is a valuable convenience from
+traditional typography.
+
+Grid units are very often called font units or EM units.
+
+<em>As said before, <dfn>pixel_size</dfn> computed in the above formula does
+not relate directly to the size of characters on the screen. It simply is the
+size of the EM square if it was to be displayed. Each font designer is free to
+place its glyphs as it pleases him within the square. This explains why the
+letters of the following text have not the same height, even though they are
+displayed at the same point size with distinct fonts:</em>
+
+\image html body_comparison.png
+
+As one can see, the glyphs of the Courier family are smaller than those of Times
+New Roman, which themselves are slightly smaller than those of Arial, even
+though everything is displayed or printed at a size of 16 points. This only
+reflects design choices.
+
+\subsection hinting Hinting and Bitmap rendering
+
+The outline as stored in a font file is called the "master" outline, as its
+points coordinates are expressed in font units. Before it can be converted into
+a bitmap, it must be scaled to a given size/resolution. This is done through a
+very simple transformation, but always creates undesirable artifacts, e.g. stems
+of different widths or heights in letters like "E" or "H".
+
+As a consequence, proper glyph rendering needs the scaled points to be aligned
+along the target device pixel grid, through an operation called
+<em>grid-fitting</em> (often called \e hinting). One of its main purposes is to
+ensure that important widths and heights are respected throughout the whole font
+(for example, it is very often desirable that the "I" and the "T" have their
+central vertical line of the same pixel width), as well as to manage features
+like stems and overshoots, which can cause problems at small pixel sizes.
+
+\section glyphmetrics Glyph metrics
+
+\subsection basline_pens_layouts Baseline, pens and layouts
+
+The baseline is an imaginary line that is used to "guide" glyphs when rendering
+text. It can be horizontal (e.g. Roman, Cyrillic, Arabic, etc.) or vertical
+(e.g. Chinese, Japanese, Korean, etc). Moreover, to render text, a virtual
+point, located on the baseline, called the <em>pen position</em> or \e origin,
+is used to locate glyphs.
+
+Each layout uses a different convention for glyph placement:
+
+- With horizontal layout, glyphs simply "rest" on the baseline. Text is
+  rendered by incrementing the pen position, either to the right or to the
+  left.\n\n
+  The distance between two successive pen positions is glyph-specific and is
+  called the <em>advance width</em>. Note that its value is \e always positive,
+  even for right-to-left oriented alphabets, like Arabic. This introduces some
+  differences in the way text is rendered.\n\n
+  <em>The pen position is always placed on the baseline.</em>
+
+\image html Image1.png
+
+- With a vertical layout, glyphs are centered around the baseline:
+
+\image html Image2.png
+
+\subsection typographic Typographic metrics and bounding boxes
+
+A various number of face metrics are defined for all glyphs in a given font.
+
+- \e Ascent \n\n
+  The distance from the baseline to the highest/upper grid coordinate used to
+  place an outline point. It is a positive value, due to the grid's orientation
+  with the Y axis upwards.
+
+- \e Descent \n\n
+  The distance from the baseline to the lowest grid coordinate used to place an
+  outline point. This is a negative value, due to the grid's orientation.
+
+- \e Linegap \n\n
+  The distance that must be placed between two lines of text. The
+  baseline-to-baseline distance should be computed as: \n\n
+  <center><dfn>ascent - descent + linegap</dfn></center> \n
+  if you use the typographic values.
+
+Other, simpler metrics are:
+
+- <em>The glyph's bounding box</em>, also called \e bbox \n\n
+  This is an imaginary box that encloses all glyphs from the font, usually as
+  tightly as possible. It is represented by four fields, namely \p xMin,
+  \p yMin, \p xMax, and \p yMax, that can be computed for any outline. Their
+  values can be in font units (if measured in the original outline) or in
+  fractional/integer pixel units (when measured on scaled outlines).\n\n
+  Note that if it wasn't for grid-fitting, you wouldn't need to know a box's
+  complete values, but only its dimensions to know how big is a glyph
+  outline/bitmap. However, correct rendering of hinted glyphs needs the
+  preservation of important grid alignment on each glyph translation/placement
+  on the baseline.
+
+- <em>Internal leading</em> \n\n
+  This concept comes directly from the world of traditional typography. It
+  represents the amount of space within the \e leading which is reserved for
+  glyph features that lay outside of the EM square (like accentuation). It
+  usually can be computed as: \n\n
+  <center><dfn>internal leading = ascent - descent - EM_size</dfn></center>
+
+- <em>External leading</em> \n\n
+  This is another name for the line gap.
+
+\subsection bearings Bearings and advances
+
+Each glyph has also distances called \e bearings and \e advances. Their
+definition is constant, but their values depend on the layout, as the same glyph
+can be used to render text either horizontally or vertically:
+
+- <em>Left side bearing</em> or \e bearingX \n\n
+  The horizontal distance from the current pen position to the glyph's left bbox
+  edge. It is positive for horizontal layouts, and in most cases negative for
+  vertical ones.
+
+- <em>Top side bearing</em> or \e bearingY \n\n
+  The vertical distance from the baseline to the top of the glyph's bbox. It is
+  usually positive for horizontal layouts, and negative for vertical ones.
+
+- <em>Advance width</em> or \e advanceX \n\n
+  The horizontal distance the pen position must be incremented (for
+  left-to-right writing) or decremented (for right-to-left writing) by after
+  each glyph is rendered when processing text. It is always positive for
+  horizontal layouts, and null for vertical ones.
+
+- <em>Advance height</em> or \e advanceY \n\n
+  The vertical distance the pen position must be decremented by after each glyph
+  is rendered. It is always null for horizontal layouts, and positive for
+  vertical layouts.
+
+- <em>Glyph width</em> \n\n
+  The glyph's horizontal extent. For unscaled font coordinates, it is
+  <tt>bbox.xMax-bbox.xMin</tt>. For scaled glyphs, its computation requests
+  specific care, described in the grid-fitting chapter below.
+
+- <em>Glyph height</em> \n\n
+  The glyph's vertical extent. For unscaled font coordinates, it is
+  <tt>bbox.yMax-bbox.yMin</tt>. For scaled glyphs, its computation requests
+  specific care, described in the grid-fitting chapter below.
+
+- <em>Right side bearing</em> \n\n
+  Only used for horizontal layouts to describe the distance from the bbox's
+  right edge to the advance width. It is in most cases a non-negative number:
+  \n\n
+  <center><tt>advance_width - left_side_bearing - (xMax-xMin)</tt></center>
+
+Here is a picture giving all the details for horizontal metrics:
+
+\image html Image3.png
+
+And here is another one for the vertical metrics:
+
+\image html Image4.png
+
+\subsection gridfitting_effect The effects of grid-fitting
+
+Because hinting aligns the glyph's control points to the pixel grid, this
+process slightly modifies the dimensions of character images in ways that differ
+from simple scaling.
+
+For example, the image of the lowercase "m" letter sometimes fits a square in
+the master grid. However, to make it readable at small pixel sizes, hinting
+tends to enlarge its scaled outline in order to keep its three legs distinctly
+visible, resulting in a larger character bitmap.
+
+The glyph metrics are also influenced by the grid-fitting process: 
+
+- The image's width and height are altered. Even if this is only by one pixel,
+  it can make a big difference at small pixel sizes.
+- The image's bounding box is modified, thus modifying the bearings.
+- The advances must be updated. For example, the advance width must be
+  incremented if the hinted bitmap is larger than the scaled one, to reflect the
+  augmented glyph width.
+
+This has some implications:
+
+- Because of hinting, simply scaling the font ascent or descent might not give
+  correct results. A possible solution is to keep the ceiling of the scaled
+  ascent, and floor of the scaled descent.
+- There is no easy way to get the hinted glyph and advance widths of a range of
+  glyphs, as hinting works differently on each outline. The only solution is to
+  hint each glyph separately and record the returned values. Some formats, like
+  TrueType, even include a table of pre-computed values for a small set of
+  common character pixel sizes.
+- Hinting depends on the final character width and height in pixels, which means
+  that it is highly resolution-dependent. This property makes correct WYSIWYG
+  layouts difficult to implement.
+
+<em>Performing 2D transformations on glyph outlines is very easy with FreeType.
+However, when using translation on a hinted outlines, one should aways take care
+of <b>exclusively using integer pixel distances</b>.
+
+Otherwise, the translation will simply ruin the hinter's work, resulting in a
+very low quality bitmaps!</em>
+
+\subsection text_width_bbox Text widths and bounding box
+
+As seen before, the "origin" of a given glyph corresponds to the position of
+the pen on the baseline. It is not necessarily located on one of the glyph's
+bounding box corners, unlike many typical bitmapped font formats. In some cases,
+the origin can be out of the bounding box, in others, it can be within it,
+depending on the shape of the given glyph.
+
+Likewise, the glyph's "advance width" is the increment to apply to the pen
+position during layout, and is not related to the glyph's "width", which really
+is the glyph's bounding width.
+
+The same conventions apply to strings of text. This means that: 
+
+- The bounding box of a given string of text doesn't necessarily contain the
+  text cursor, nor is the latter located on one of its corners.
+- The string's advance width isn't related to its bounding box dimensions.
+  Especially if it contains beginning and terminal spaces or tabs.
+- Finally, additional processing like kerning creates strings of text whose
+  dimensions are not directly related to the simple juxtaposition of individual
+  glyph metrics. For example, the advance width of "VA" isn't the sum of the
+  advances of "V" and "A" taken separately.
 */
 
 /**\page machinedef Machine definition
