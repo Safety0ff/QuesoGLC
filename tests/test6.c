@@ -421,7 +421,7 @@ int main(void)
     return -1;
 
   if (strcmp(glcGetc(GLC_RELEASE), __glcRelease)) {
-    printf("GLC_RELEASE : %s (expected to be %s)",
+    printf("GLC_RELEASE : %s (expected to be %s)\n",
     	  (char*)glcGetc(GLC_RELEASE), (char*)__glcRelease);
     return -1;
   }
