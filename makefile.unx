@@ -4,9 +4,11 @@ C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
-TEST_OBJECTS = tests/testmaster tests/testfont tests/testcontex tests/test1 \
-	       tests/test2 tests/test3 tests/test4 tests/test5 tests/glclogo \
-	       tests/testrender tests/tutorial tests/unicode tests/tutorial2
+TEST_OBJECTS_WITHOUT_GLUT = tests/testmaster tests/testfont tests/testcontex \
+	tests/test1 tests/test2 tests/test3 tests/test4 tests/test5 tests/test6
+TEST_OBJECTS_WITH_GLUT = tests/testrender
+EXAMPLE_OBJECTS = examples/unicode examples/tutorial examples/glclogo \
+	examples/tutorial2
 
 LIB_NAME = libGLC
 MAJOR = 0
@@ -44,7 +46,7 @@ clean:
 	rm -f config.*
 	rm -f $(OBJECTS) obj/*.o
 	rm -f lib/$(LIBRARY)
-	rm -f $(TEST_OBJECTS)
+	rm -f $(EXAMPLES)
 	rm -fR docs/html docs/rtf
 
 distclean: clean
@@ -77,6 +79,9 @@ depend:
 include makefile.dep
 
 tests/% :  tests/%.c lib/$(LIBRARY)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) $^ -o $@ $(LIBS)
+
+examples/% :  examples/%.c lib/$(LIBRARY)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) $^ -o $@ $(LIBS)
 
 obj/%.o : src/%.c

@@ -90,9 +90,9 @@ dnl Locate GLUT headers and libraries
 AC_CHECK_HEADER(GL/glut.h, , fail_glut=y)
 AC_CHECK_LIB(glut, glutInit, LIBS="-lglut $LIBS", fail_glut=y)
 if test -n "$fail_glut"; then
-	EXAMPLES=""
+	EXAMPLES="\$(TEST_OBJECTS_WITHOUT_GLUT)"
 else
-	EXAMPLES="\$(TEST_OBJECTS)"
+	EXAMPLES="\$(TEST_OBJECTS_WITHOUT_GLUT) \$(TEST_OBJECTS_WITH_GLUT) \$(EXAMPLE_OBJECTS)"
 fi
 
 if test -n "$glc_build_shared"; then
