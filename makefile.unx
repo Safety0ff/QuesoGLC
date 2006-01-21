@@ -85,7 +85,7 @@ examples/% :  examples/%.c lib/$(LIBRARY)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(CPPFLAGS) $^ -o $@ $(LIBS)
 
 obj/%.o : src/%.c
-	$(CC) -c $(CFLAGS) @CFLAGS4SHARED@ $(CPPFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) -DQUESOGLC_VERSION_MAJOR=$(MAJOR) -DQUESOGLC_VERSION_MINOR=$(MINOR) @CFLAGS4SHARED@ $(CPPFLAGS) $< -o $@
 
 lib/%.a : $(LIB_OBJECTS)
 	ar -r $@ $^

@@ -619,8 +619,8 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name";
-  static GLCchar* __glcRelease = (GLCchar*) "0.3";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
+  char __glcRelease[4] = " . ";
 
   __glcContextState *state = NULL;
 
@@ -648,7 +648,9 @@ const GLCchar* glcGetc(GLCenum inAttrib)
     return __glcConvertFromUtf8ToBuffer(state, __glcExtensions,
 					state->stringType);
   case GLC_RELEASE:
-    return __glcConvertFromUtf8ToBuffer(state, __glcRelease,
+    __glcRelease[0] = QUESOGLC_VERSION_MAJOR+'0';
+    __glcRelease[2] = QUESOGLC_VERSION_MINOR+'0';
+    return __glcConvertFromUtf8ToBuffer(state, (GLCchar*)__glcRelease,
 					state->stringType);
   case GLC_VENDOR:
     return __glcConvertFromUtf8ToBuffer(state, __glcVendor, state->stringType);
