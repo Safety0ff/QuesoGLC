@@ -123,10 +123,11 @@ H2 {
 }
 
 TABLE.mdTable {
-    border: 1px solid #555599;
-    background-color: #e6ebf7;
+    border: 1px solid #e8e0d8;
+    background-color: #fff4e0;
     color: #555555;
     font-size: 14px;
+    width: 100%;
 }
 
 TD.mdRow {
@@ -136,30 +137,31 @@ TD.mdRow {
 }
 
 TD.md {
-    background-color: #e6ebf7;
+    background-color: #fff4e0;
     font-weight: bold;
     color: #555555;
 }
 
 TD.mdname1 {
-    background-color: #e6ebf7;
+    background-color: #fff4e0;
     font-weight: bold;
     color: #A03030;
 }
 
 TD.mdname {
-    background-color: #e6ebf7;
+    background-color: #fff4e0;
     font-weight: bold;
     color: #A03030;
     width: 600px;
 }
 
 DIV.fragment {
-    width: 98%;
-    border: 1px solid #c6cbd7;
-    background-color: #eff1f8;
-    padding-left: 4px;
+    width: 80%;
+    border: 1px solid #f0f0d0;
+    background-color: #ffffe8;
+    padding-left: 3%;
     margin: 4px;
+    margin-left: 10%;
 }
 
 SPAN.keyword       { color: #008000 }
@@ -170,12 +172,58 @@ SPAN.preprocessor  { color: #806020 }
 SPAN.stringliteral { color: #008020 }
 SPAN.charliteral   { color: #008080 }
 
-/* News */
-TD.tdnews {
-    font-size: 15px;
-    color: #fe7405;
-    text-indent: 10px;
-    background-color: #f5f5f5;
+CAPTION { font-weight: bold }
+
+ul#menu li ul{
+  display:none;
 }
 
-CAPTION { font-weight: bold }
+ul#menu li:hover>ul{
+  display:block;
+}
+
+ul#menu{
+  float:left;
+}
+
+ul#menu,
+ul#menu ul{
+  list-style:none;
+  width: 100%;
+  padding:0px;
+}
+
+ul#menu ul{
+  position:absolute;
+  top:-1px;
+  left:150px;
+  border: 1px #cccccc solid;
+  background: #ffffff;
+}
+
+ul#menu li.mainmenu{
+  text-decoration: none;
+/*  display: block; */
+  background: #ffffff;
+  color: #314e96;
+  margin: 2px;
+  margin-left: 1px;
+  margin-right: 1px;
+  padding: 2px;
+  border: 1px #cccccc solid;
+  font-size: 12px;
+  position:relative;
+}
+
+ul#menu a{
+  text-decoration: none;
+  display: block;
+  color: #314e96;
+  padding: 2px;
+  padding-left: 10px;
+  font-size: 12px;
+}
+
+ul#menu a:hover{
+  color: #fe7405;
+}
