@@ -63,7 +63,7 @@ So far, Fontconfig is mandatory in order to build and run the QuesoGLC library.
 However, it is expected that Fontconfig will become optional in the future.
 \n
 */
-/** \page tutorial Tutorial
+/** \page tutorial First Steps
 
 \section general General description
 
@@ -145,8 +145,8 @@ fonts in additional directories, especially if your application comes with its
 own fonts. This can be achieved with the command glcAppendCatalog() :
 
 \code
-/* For many Unixes (included Linux), /usr/lib/X11/fonts/Type1/ is a standard
-directory where X windows stores fonts in Adobe's Type1 format. */
+// For many Unixes (included Linux), /usr/lib/X11/fonts/Type1/ is a standard
+// directory where X windows stores fonts in Adobe's Type1 format.
 
 glcAppendCatalog("/usr/lib/X11/fonts/Type1/");
 \endcode
@@ -162,11 +162,11 @@ list with the command glcGetListc() as in the following code :
 \code
 GLint count, i;
 
-/* Get the number of entries in the catalog list */
+// Get the number of entries in the catalog list
 count = glcGeti(GLC_CATALOG_COUNT);
 
-/* Print the path to the catalogs */
-for (i = 0; i < count; i++)
+// Print the path to the catalogs
+for (i = 0; i \< count; i++)
 	printf("%s\n", glcGetListc(GLC_CATALOG_LIST, i));
 \endcode
 
@@ -195,8 +195,8 @@ In our example, we want to use "Palatino Bold" to render the text. This is
 done with the following code :
 
 \code
-glcNewFontFromFamily(myFont, "Palatino"); /* Select the family of my font */
-glcFontFace(myFont, "Bold"); /* Select the face of my font */
+glcNewFontFromFamily(myFont, "Palatino"); // Select the family of my font
+glcFontFace(myFont, "Bold"); // Select the face of my font
 \endcode
 
 At this stage, a new font "Palatino Bold" which is identified by \c myFont has
@@ -219,7 +219,7 @@ By default, QuesoGLC renders fonts at a size of 1 point. If we want our text
 to be readable, we must scale it :
 
 \code
-/* Render the text at a size of 100 points */
+// Render the text at a size of 100 points
 glcScale(100.f, 100.f);
 \endcode
 
@@ -251,21 +251,21 @@ As a reminder, the complete code is given below :
 \code
 GLint ctx, myFont;
 
-/* Set up and initialize GLC */
+// Set up and initialize GLC
 ctx = glcGenContext();
 glcContext(ctx);
 glcAppendCatalog("/usr/lib/X11/fonts/Type1/");
 
-/* Create a font "Palatino Bold" */
+// Create a font "Palatino Bold"
 myFont = glcGenFontID();
 glcNewFontFromFamily(myFont, "Palatino");
 glcFontFace(myFont, "Bold");
 glcFont(myFont);
 
-/* Render the text at a size of 100 points */
+// Render the text at a size of 100 points
 glcScale(100.f, 100.f);
 
-/* Render "Hello world!" */
+// Render "Hello world!"
 glColor3f(1.f, 0.f, 0.f);
 glRasterPos2f(50.f, 50.f);
 glcRenderString("Hello world!");
@@ -294,16 +294,284 @@ GLC also provides a nice set of functions (all of them beginning with
 \c glcGet* ) to introspect a context and see, for instance, which fonts are
 available.
 
-The <a href="group__measure.html">measurement commands</a> have not been used in
-the example above but you may use them to get some basic metrics of a string in
-order to precisely locate it on the screen.
+The \ref measure have not been used in the example above but you may use them
+to get some basic metrics of a string in order to precisely locate it on the
+screen (see the \ref tutorial2  for instance).
 
-The <a href="group__transform.html">transformations commands</a> can be used
-to obtain fancy effects with bitmap rendering (rotation and scaling) which
-are not available in GLX.
+The \ref transform can be used with \b GLC_BITMAP rendering to obtain fancy
+effects (rotation and scaling) which are not available in GLX.
 
 Finally, you can have a look at the tests and examples of QuesoGLC to learn
 how to use some GLC commands and which are their effect.
+ */
+
+/** \page tutorial2 Measurement tutorial
+
+\section preamble Preamble
+
+In this tutorial we will see how to use the \ref measure of GLC and what they
+are intended for. It is assumed that you have a basic knowledge of the GLC API
+(the \ref tutorial tutorial is a good place to start with) and that you have
+read the \ref glyph so that you know what a <em>bounding box</em> and a
+<em>baseline</em> are.
+
+Basically, in order to display some text an application have to go through the
+following stages :
+-# The <b>text layout</b> determines where and how the text must be layed out :
+this task can be as simple as computing the location of the word
+<em>"Score"</em> so that it appears in the upper left corner of the screen or
+as complex as laying out a complete document with titles, fonts, styles,
+paragraphs and chapters; just like word processors do.
+-# The <b>text rendering</b> draws the text that has been layed out in the
+previous stage : the application determines which glyphs of which fonts it
+should use in order to obtain the desired result, eventually converts data into
+graphic primitives, and finally sends the required commands to the output
+device which can be either a screen or a printer.
+
+The GLC API only covers the later stage and provides no layout services : it
+has no concept of sentence, line break or paragraph. GLC only manipulates
+\e strings that it views as a succession of characters that has to be rendered
+on the screen in a row. So in order to be able to handle complex text layout the
+client application has to decompose text in several strings that can be
+rendered by GLC. This can be done by <em>rendering engines</em> like
+<a href="http://www.pango.org">Pango</a> or
+<a href="http://www-306.ibm.com/software/globalization/icu/index.jsp">ICU</a>.
+
+For instance, when a sentence is larger than the width of the output device, it
+has to be broken into two or more lines before being rendered so that it can be
+read. In order to determine where to put the line break(s), the layout engine
+needs to know the width of the output device as well as the size of the
+characters used to render the text (actually it also needs to understand the
+exact structure of the sentence to prevent the line break to take place in the
+middle of a word or between a word and a comma for example). This is where
+\ref measure take place.
+
+<em>General layout management is far beyond the scope of this tutorial but you
+can find some more informations at the <a href="http://www.unicode.org">Unicode
+web site</a></em>.
+
+\section baseelements Base elements
+
+In this tutorial we will see how to render the string <em>Hello world!</em>
+with a bounding box around the capital letter \e "H" and another bounding box
+around the 4 last letters of the word <em>"Hello"</em> as shown in the image
+below.
+
+\image html tutorial2.png "Figure 1 - The result of the tutorial"
+
+The code presented in the \ref tutorial tutorial is the starting point of the
+current example. Notice however that it has been slightly changed : a call to
+the function glcRotate() has been added in order to rotate the text of 10°
+counterclockwise. The call to glcAppendCatalog() has also been commented out :
+it is not needed if <a href="http://www.fontconfig.org">Fontconfig</a> has been
+carefully installed (which is the case on most of the recent Linux
+distributions).
+
+\code
+GLint ctx, myFont;
+
+// Set up and initialize GLC
+ctx = glcGenContext();
+glcContext(ctx);
+//glcAppendCatalog("/usr/lib/X11/fonts/Type1");
+
+// Create a font "Palatino Bold"
+myFont = glcGenFontID();
+glcNewFontFromFamily(myFont, "Palatino");
+glcFontFace(myFont, "Bold");
+glcFont(myFont);
+
+// Render the text at a size of 100 points
+glcScale(100.f, 100.f);
+glcRotate(10.f); // Rotate the text of 10° couterclockwise
+
+// Render "Hello world!"
+glColor3f(1.f, 0.f, 0.f);
+glRasterPos2f(50.f, 50.f);
+glcRenderString("Hello world!");
+\endcode
+
+\section hbbox Drawing the bounding box of a single letter
+
+GLC defines the geometry of a bounding box by the coordinates [ x<sub>lb</sub>
+y<sub>lb</sub> x<sub>rb</sub> y<sub>rb</sub> x<sub>rt</sub> y<sub>rt</sub>
+x<sub>lt</sub> y<sub>lt</sub> ] of its corners. Each point is given in 2D
+coordinates : \e z is always assumed to be \e 0 and \e w to be \e 1. They are
+<em>object coordinates</em> which means that they are affected by both the
+\b GL_MODELVIEW and the \b GL_PROJECTION transformations. Moreover if the value
+of the variable \b GLC_RENDER_STYLE is \b GLC_BITMAP then each point is
+transformed by the 2x2 \b GLC_BITMAP_MATRIX.
+
+\image html measure.png "Figure 2 - Metrics coordinates"
+
+Since there are 4 corners, we need to define an array of 8 floating point
+numbers which will contain the <em>(x, y)</em> coordinates of the bounding box.
+
+\code
+GLfloat bbox[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+\endcode
+
+The bounding box of the letter \e "H" is stored in the \e bbox array by calling
+glcGetCharMetric() :
+
+\code
+glcGetCharMetric('H', GLC_BOUNDS, bbox);
+\endcode
+
+GLC assumes that the origin of the layout is \e (0,0) but in our example the
+string <em>"Hello world!"</em> has been rendered from the coordinates \e (50,50)
+so we need to translate the bounding box before it is rendered :
+
+\code
+// Translate the bbox to the origin of the layout
+glTranslatef(50.f, 50.f, 0.f);
+// Render the bounding box
+glBegin(GL_LINE_LOOP);
+for (i = 0; i < 4; i++)
+  glVertex2fv(&bbox[2*i]);
+glEnd();
+\endcode
+
+\note <em>We do not need to rotate the bounding box of 10° since it has already
+been done by GLC. If we were using a \b GLC_RENDER_STYLE that were not
+\b GLC_BITMAP, we would need to add a call to <tt>glRotatef(0., 0., 1.,
+10.);</tt></em>
+
+
+\section ellobbox Drawing the bounding box of a string
+
+We now want to draw the bounding box of the 4 last letters of the word \e Hello.
+Although this can be achieved by computing the bounding box of the bounding boxes of each character, this would be rather tedious, so GLC provides a
+function that does the work for us : glcMeasureString().
+
+Actually, glcMeasureString() is designed to measure the whole string metrics
+and can also store on demand the metrics of each character of the string.
+Here we only want the \e "ello" string metrics so we set the first parameter
+of glcMeasureString() to \b GL_FALSE :
+
+\code
+glcMeasureString(GL_FALSE, "ello");
+\endcode
+
+At this stage, the metrics are computed and stored in the GLC state machine so
+we now have to call glcGetStringMetric() to get the bounding box of the string :
+
+\code
+glcGetStringMetric(GLC_BOUNDS, bbox);
+\endcode
+
+If we would render the bounding box now, it would be drawn at the wrong
+location since we do not have taken the advance of the character \e "H" into
+account :
+
+\image html tutorial2_wrong.png "Figure 3 - The bounding box of 'ello' is misplaced"
+
+Hence we need first to translate the bounding box of the advance of the
+character \e "H". Since the advance of a character is equal to the length of its
+\e baseline, the translation must be equal to the vector \f$ \left (
+\begin {array}{ll} x_r-x_l \\ y_r-y_l \\ \end{array} \right ) \f$ according to
+the notations of the Figure 2.
+
+\note <em>It must be stressed that this formula assumes that the string is
+rendered in left-to-right order. If you intend to render strings in
+right-to-left order you must use the opposite of the vector defined above</em>.
+
+An array of 4 floating point numbers must be used in order to store the
+coordinates [ x<sub>l</sub> y<sub>l</sub> x<sub>r</sub> y<sub>r</sub> ] of the
+baseline :
+\code
+GLfloat baseline[4] = {0.f, 0.f, 0.f, 0.f};
+\endcode
+
+Then the baseline of \e "H" is obtained by calling glcGetCharMetric() with the
+second parameter set to \b GLC_BASELINE. The advance of the character is then
+computed and added to the \b GL_MODELVIEW matrix :
+
+\code
+// Get the baseline of the character "H"
+glcGetCharMetric('H', GLC_BASELINE, baseline);
+// Translate the bounding box of the advance of "H"
+glTranslatef(baseline[2] - baseline[0], baseline[3] - baseline[1], 0.f);
+\endcode
+
+Afterwards the bounding box of \e "ello" is rendered at the right place :
+
+\code
+// Render the bounding box
+glBegin(GL_LINE_LOOP);
+for (i = 0; i < 4; i++)
+  glVertex2fv(&bbox[2*i]);
+glEnd();
+\endcode
+
+\section conclusion Conclusion
+
+In this tutorial, the basic concepts of character metrics available in GLC have
+been presented. Although the chosen example is somewhat artificial since there
+are few chances that you need to display the bounding boxes of a character or a
+string, it illustrates how the character metrics are handled by GLC and how
+they should be manipulated.
+
+Character metrics are primarily intended for layout management, although this
+topic is far beyond the scope of this tutorial, the concepts exposed here are sufficient to handle basic cases like processing the location of a centered
+string on the screen.
+
+Finally, a program that display the bounding boxes of a character and a string
+has been elaborated in this tutorial. Its listing is shown hereafter (the
+commands that bind a GL context to the current thread are not included) :
+
+\code
+GLint ctx, myFont, i;
+GLfloat bbox[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+GLfloat baseline[4] = {0.f, 0.f, 0.f, 0.f};
+
+// Set up and initialize GLC
+ctx = glcGenContext();
+glcContext(ctx);
+//glcAppendCatalog("/usr/lib/X11/fonts/Type1");
+
+// Create a font "Palatino Bold"
+myFont = glcGenFontID();
+glcNewFontFromFamily(myFont, "Palatino");
+glcFontFace(myFont, "Bold");
+glcFont(myFont);
+
+// Render the text at a size of 100 points
+glcScale(100.f, 100.f);
+glcRotate(10.f); // Rotate the text of 10° couterclockwise
+
+// Render "Hello world!"
+glColor3f(1.f, 0.f, 0.f);
+glRasterPos2f(50.f, 50.f);
+glcRenderString("Hello world!");
+
+glColor3f(0.f, 1.f, 1.f);
+
+// Render the bounding box of "H"
+glcGetCharMetric('H', GLC_BOUNDS, bbox);
+// Translate the bbox to the origin of the layout
+glTranslatef(50.f, 50.f, 0.f);
+// Render the bounding box
+glBegin(GL_LINE_LOOP);
+for (i = 0; i < 4; i++)
+  glVertex2fv(&bbox[2*i]);
+glEnd();
+
+// Translate the origin in order to take the width of "H" into account
+// Get the baseline of the character "H"
+glcGetCharMetric('H', GLC_BASELINE, baseline);
+// Translate the bounding box of the advance of "H"
+glTranslatef(baseline[2] - baseline[0], baseline[3] - baseline[1], 0.f);
+
+// Render the bounding box of "ello"
+glcMeasureString(GL_FALSE, "ello");
+glcGetStringMetric(GLC_BOUNDS, bbox);
+// Render the bounding box
+glBegin(GL_LINE_LOOP);
+for (i = 0; i < 4; i++)
+  glVertex2fv(&bbox[2*i]);
+glEnd();
+\endcode
  */
 
 /** \page overview Documentation overview
@@ -315,8 +583,7 @@ The documentation of QuesoGLC is based on the
 Therefore, the principles, functions, and generally speaking the API described
 hereafter apply to every implementation of GLC.
 
-If you are new to GLC, may be you should begin with the
-<a href="tutorial.html">tutorial</a> ?
+If you are new to GLC, may be you should begin with the \ref tutorial tutorial ?
 
 \section theoverview Overview
 
@@ -379,8 +646,10 @@ slightly modified in order to give valuable informations to QuesoGLC users. For
 instance, parts dealing with outline and bitmap management has been removed
 since this does not concern the GLC library.
 
-The original document entitled "FreeType Glyph Conventions" is copyright
-1998-2000 David Turner and copyright 2000 The FreeType Development Team.
+The original document
+<a href="http://www.freetype.org/freetype2/docs/glyphs/index.html">FreeType
+Glyph Conventions</a> is copyright 1998-2000 David Turner and copyright
+2000 The FreeType Development Team.
 
 \section basic Basic Typographic Concepts
 
