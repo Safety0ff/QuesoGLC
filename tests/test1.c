@@ -1,8 +1,3 @@
-#ifdef __MACOSX__
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
 #include "GL/glc.h"
 #include <stdio.h>
 #include <stdlib.h>
