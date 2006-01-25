@@ -188,8 +188,8 @@ void _init(void)
   if (!FcInit())
     goto FatalError;
 
-  __glcCommonArea.versionMajor = QUESOGLC_VERSION_MAJOR;
-  __glcCommonArea.versionMinor = QUESOGLC_VERSION_MINOR;
+  __glcCommonArea.versionMajor = 0;
+  __glcCommonArea.versionMinor = 2;
 
   /* Create the thread-local storage for GLC errors */
   if (pthread_key_create(&__glcCommonArea.threadKey, __glcFreeThreadArea))
