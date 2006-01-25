@@ -1,6 +1,9 @@
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 
+- Fixed a bug in glcRenderChar(), glcRenderString() and glcRenderCountedString()
+  that prevented the replacement code or the character sequence '\<hexcode>' to
+  be displayed when QuesoGLC failed to find a font that maps a character code.
 - A GLC_PARAMETER_ERROR is raised if the string type is GLC_UTF8_QSO and one of
   the following functions is called :
     * glcGeti(GLC_REPLACEMENT_CODE)

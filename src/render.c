@@ -511,7 +511,7 @@ static void __glcProcessChar(__glcContextState *inState, GLint inCode)
   
   /* Get a font that maps inCode */
   font = __glcCtxGetFont(inState, inCode);
-  if (font) {
+  if (font >= 0) {
     /* A font has been found */
     __glcRenderChar(inCode, font, inState);
     return;
