@@ -56,35 +56,29 @@ void display(void)
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  /* Render "H" and its bounding box */
   glColor3f(1.f, 0.f, 0.f);
   glRasterPos2f(50.f, 50.f);
-  glcRenderChar('H');
+  glcRenderString("Hello world!");
 
+  /* Render "H" and its bounding box */
   glColor3f(0.f, 1.f, 1.f);
+  glTranslatef(50.f, 50.f, 0.f);
   glcGetCharMetric('H', GLC_BOUNDS, bbox);
   glBegin(GL_LINE_LOOP);
-  for (i = 0; i < 4; i++) {
-    bbox[2*i] += 50.f;
-    bbox[2*i+1] += 50.f;
+  for (i = 0; i < 4; i++)
     glVertex2fv(&bbox[2*i]);
-  }
   glEnd();
 
-  /* Render "ello" and its bounding box */
-  glColor3f(1.f, 0.f, 0.f);
-  glcRenderString("ello");
-
-  glColor3f(0.f, 1.f, 1.f);
+  /* Translate the model view matrix of the width of "H" */
   glcGetCharMetric('H', GLC_BASELINE, baseline);
+  glTranslatef(baseline[2] - baseline[0], baseline[3] - baseline[1], 0.f);
+
+  /* Render the bouding box of "ello" */
   glcMeasureString(GL_FALSE, "ello");
   glcGetStringMetric(GLC_BOUNDS, bbox);
   glBegin(GL_LINE_LOOP);
-  for (i = 0; i < 4; i++) {
-    bbox[2*i] += baseline[2] - baseline[0] + 50.f;
-    bbox[2*i+1] += baseline[3] - baseline[1] + 50.f;
+  for (i = 0; i < 4; i++)
     glVertex2fv(&bbox[2*i]);
-  }
   glEnd();
 
   glFlush();
@@ -97,7 +91,7 @@ int main(int argc, char **argv)
 
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-  glutInitWindowSize(640, 180);
+  glutInitWindowSize(640, 230);
   glutCreateWindow("Tutorial 2");
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
