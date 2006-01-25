@@ -129,7 +129,9 @@ void _fini(void)
   __glcUnlock();
   pthread_mutex_destroy(&__glcCommonArea.mutex);
 
+#if FC_MINOR > 2
   FcFini();
+#endif
 }
 
 
