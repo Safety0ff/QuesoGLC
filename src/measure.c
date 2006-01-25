@@ -50,6 +50,7 @@
  *  \n \b GLC_BASELINE is the line segment from the origin of the layout to the
  *  origin of the following layout. \b GLC_BOUNDS is the bounding box of the
  *  layout.
+ *
  *  \image html measure.png
  *  \n Each point <em>(x,y)</em> is computed in em coordinates, with the origin
  *  of a layout at <em>(0,0)</em>. If the value of the variable
