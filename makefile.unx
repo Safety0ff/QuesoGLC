@@ -47,7 +47,7 @@ clean:
 	rm -f $(OBJECTS) obj/*.o
 	rm -f lib/$(LIBRARY)
 	rm -f $(EXAMPLES)
-	rm -fR docs/html docs/rtf
+	rm -fR docs/html docs/rtf docs/latex
 
 distclean: clean
 	rm -f makefile makefile.dep stamp-h
