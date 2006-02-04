@@ -23,9 +23,6 @@
 
 #include "ocharmap.h"
 #include "internal.h"
-#include "ofont.h"
-
-#define GLC_CHARMAP_BLOCKSIZE 16
 
 
 
@@ -46,9 +43,7 @@ __glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc)
     __glcFree(This);
     return NULL;
   }
-  This->map = NULL;
-  This->count = 0;
-  This->length = 0;
+  This->map = __glcArrayCreate(3 * sizeof(FT_ULong));
 
   return This;
 }
@@ -58,7 +53,7 @@ __glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc)
 void __glcCharMapDestroy(__glcCharMap* This)
 {
   if (This->map)
-    __glcFree(This->map);
+    __glcArrayDestroy(This->map);
 
   FcCharSetDestroy(This->charSet);
 
@@ -71,41 +66,34 @@ static GLboolean __glcCharMapInsertCode(__glcCharMap* This, GLint inCode,
 					GLint inMappedCode, GLint inGlyph)
 {
   GLint i = 0;
+  FT_ULong (*map)[3] = NULL;
+
+  assert(This->map);
+  assert(This->map->data);
+
+  map = (FT_ULong (*)[3])This->map->data;
 
   /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < This->count; i++) {
-    if (This->map[i][0] >= inCode)
+  for (i = 0; i < This->map->length; i++) {
+    if (map[i][0] >= inCode)
       break;
   }
 
-  if ((i == This->count) || (This->map[i][0] != inCode)) {
-    FT_ULong (*charMapPtr)[3] = NULL;
-    GLint charMapLen = 0;
+  if ((i == This->map->length) || (map[i][0] != inCode)) {
+    FT_ULong data[3] = {0, 0, 0};
 
-    /* The character identified by inCharName is not yet registered, we add
-     * it to the charmap.
-     */
-    if (This->count >= This->length) {
-      charMapLen = This->length + GLC_CHARMAP_BLOCKSIZE;
-      charMapPtr = (FT_ULong (*)[3])__glcRealloc(This->map,
-					    sizeof(FT_ULong) * 3 * charMapLen);
-      if (!charMapPtr) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return GL_FALSE;
-      }
+    data[0] = inCode;
+    data[1] = inGlyph;
+    data[2] = inMappedCode;
 
-      This->map = charMapPtr;
-      This->length = charMapLen;
-    }
-    if (This->count != i)
-      memmove(&This->map[i+1][0], &This->map[i][0], 
-	      (This->count - i) * 3 * sizeof(FT_ULong));
-    This->count++;
-    This->map[i][0] = inCode;
+    if (!__glcArrayInsert(This->map, i, data))
+      return GL_FALSE;
+
+    return GL_TRUE;
   }
 
-  This->map[i][1] = inGlyph;
-  This->map[i][2] = inMappedCode;
+  map[i][1] = inGlyph;
+  map[i][2] = inMappedCode;
   return GL_TRUE;
 }
 
@@ -193,16 +181,19 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
 {
   GLint i = 0;
+  FT_ULong (*map)[3] = NULL;
+
+  assert(This->map);
+  assert(This->map->data);
+
+  map = (FT_ULong (*)[3])This->map->data;
 
   /* Look for the character mapped by inCode in the charmap */
   /* FIXME : use a dichotomic algo. instead */
-  for (i = 0; i < This->count; i++) {
-    if (This->map[i][0] == (FT_ULong)inCode) {
+  for (i = 0; i < This->map->length; i++) {
+    if (map[i][0] == (FT_ULong)inCode) {
       /* Remove the character mapped by inCode */
-      if (i < This->count-1)
-	memmove(&This->map[i][0], &This->map[i+1][0],
-		(This->count-i-1) * 3 * sizeof(FT_ULong));
-      This->count--;
+      __glcArrayRemove(This->map, i);
       break;
     }
   }
@@ -243,13 +234,19 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
   GLCchar *buffer = NULL;
   FcChar8* name = NULL;
   GLint i = 0;
+  FT_ULong (*map)[3] = NULL;
+
+  assert(This->map);
+  assert(This->map->data);
+
+  map = (FT_ULong (*)[3])This->map->data;
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
   /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < This->count; i++) {
-    if (This->map[i][0] == (FT_ULong)inCode) {
-      inCode = This->map[i][2];
+  for (i = 0; i < This->map->length; i++) {
+    if (map[i][0] == (FT_ULong)inCode) {
+      inCode = map[i][2];
       break;
     }
   }
@@ -280,12 +277,18 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
 {
   GLint i = 0;
   FT_UInt glyph = 0;
+  FT_ULong (*map)[3] = NULL;
+
+  assert(This->map);
+  assert(This->map->data);
+
+  map = (FT_ULong (*)[3])This->map->data;
 
   /* Retrieve which is the glyph that inCode is mapped to */
   /* TODO : use a dichotomic algo. instead */
-  for (i = 0; i < This->count; i++) {
-    if ((FT_ULong)inCode == This->map[i][0])
-      return This->map[i][1];
+  for (i = 0; i < This->map->length; i++) {
+    if ((FT_ULong)inCode == map[i][0])
+      return map[i][1];
   }
 
   assert(FcCharSetHasChar(This->charSet, inCode));
@@ -304,12 +307,19 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
 {
   int i = 0;
+  FT_ULong (*map)[3] = NULL;
+
+  assert(This->map);
+  assert(This->map->data);
+
+  map = (FT_ULong (*)[3])This->map->data;
+
   /* Look for the character which the character identifed by inCode is
    * mapped by */
   /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < This->count; i++) {
-    if (This->map[i][0] == (FT_ULong)inCode) {
-      inCode = This->map[i][2];
+  for (i = 0; i < This->map->length; i++) {
+    if (map[i][0] == (FT_ULong)inCode) {
+      inCode = map[i][2];
       break;
     }
   }

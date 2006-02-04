@@ -1,3 +1,8 @@
+Changes made from the "0.3" release to the "0.4" release:
+-----------------------------------------------------------
+
+- Charmaps now use arrays of variable size (see oarray.[ch])
+
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
 

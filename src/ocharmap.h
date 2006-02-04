@@ -28,13 +28,12 @@
 #include "GL/glc.h"
 #include "ocontext.h"
 #include "ofacedesc.h"
+#include "oarray.h"
 
 typedef struct {
   __glcFaceDescriptor* faceDesc;
   FcCharSet* charSet;
-  FT_ULong (*map)[3];
-  GLint count;
-  GLint length;
+  __glcArray* map;
 } __glcCharMap;
 
 __glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc);
