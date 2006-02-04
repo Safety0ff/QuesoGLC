@@ -174,26 +174,26 @@ SPAN.charliteral   { color: #008080 }
 
 CAPTION { font-weight: bold }
 
-ul#menu li ul{
+ul.qmenu li ul{
   display:none;
 }
 
-ul#menu li:hover>ul{
+ul.qmenu li:hover>ul{
   display:block;
 }
 
-ul#menu{
+ul.qmenu{
   float:left;
 }
 
-ul#menu,
-ul#menu ul{
+ul.qmenu,
+ul.qmenu ul{
   list-style:none;
   width: 100%;
   padding:0px;
 }
 
-ul#menu ul{
+ul.qmenu ul{
   position:absolute;
   top:-1px;
   left:150px;
@@ -201,7 +201,7 @@ ul#menu ul{
   background: #fbfbfb;
 }
 
-ul#menu li.mainmenu{
+ul.qmenu li.mainmenu{
   text-decoration: none;
 /*  display: block; */
   background: #ffffff;
@@ -215,7 +215,7 @@ ul#menu li.mainmenu{
   position:relative;
 }
 
-ul#menu a{
+ul.qmenu a{
   text-decoration: none;
   display: block;
   color: #314e96;
@@ -224,6 +224,6 @@ ul#menu a{
   font-size: 12px;
 }
 
-ul#menu a:hover{
+ul.qmenu a:hover{
   color: #fe7405;
 }
