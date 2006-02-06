@@ -1,6 +1,8 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Revamped the implementation of de Casteljau's algorithm : hard-coded limits of
+  the arrays has been removed.
 - Charmaps now use arrays of variable size (see oarray.[ch])
 
 Changes made from the "0.2" release to the "0.3" release:

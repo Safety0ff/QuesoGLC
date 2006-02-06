@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -30,23 +30,14 @@
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
-#define GLC_MAX_VERTEX	1024
-
-typedef struct __Node__ {
-  GLfloat x;
-  GLfloat y;
-  GLfloat t;
-  struct __Node__ *next;
-} __glcNode;
-
 typedef struct {
-  GLUtesselator *tess;	        /* GLU tesselator */
   FT_Vector pen;		/* Current coordinates */
-  GLfloat tolerance;		/* Chordal tolerance */
-  GLdouble (*vertex)[3];	/* Vertices array */
-  GLint numVertex;		/* Number of vertices in the vertices array */
-  GLfloat scale_x;		/* Scale to convert grid point coordinates.. */
-  GLfloat scale_y;		/* ..into pixel coordinates */
+  GLdouble tolerance;		/* Chordal tolerance */
+  __glcArray* vertexArray;	/* Array of vertices */
+  __glcArray* controlPoints;	/* Array of control points */
+  __glcArray* endContour;	/* Array of contour limits */
+  GLdouble scale_x;		/* Scale to convert grid point coordinates.. */
+  GLdouble scale_y;		/* ..into pixel coordinates */
 }__glcRendererData;
 
 /* __glcdeCasteljau : 
@@ -59,125 +50,151 @@ typedef struct {
  * parametric midpoint, (t = 0.5), to the chord. This may not always be
  * correct, but, in the small lengths which are being considered, this is good
  * enough. In order to mitigate any error, the chordal tolerance is taken to be
- * slightly smaller than the tolerance specified by the user. 
+ * slightly smaller than the tolerance specified by the user.
  * A second simplifying assumption is that when too large a tolerance is
  * encountered, the chord is split at the parametric midpoint, rather than
  * guessing the exact location of the best chord. This could lead to slightly
  * sub-optimal lines, but it provides a fast method for choosing the
  * subdivision point. This guess can be refined by lengthening the lines.
  */ 
-static void __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
+static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 			     void *inUserData, GLint inOrder)
 {
-  GLboolean loop = GL_TRUE;
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLfloat px[10], py[10];
-  __glcNode nodeList[256];		/* FIXME : use a dynamic list */
-  __glcNode *firstNode = &nodeList[0];
-  __glcNode *currentNode = &nodeList[1];
-  __glcNode *endList = &nodeList[2];
-  GLint i = 0;
+  GLdouble(*controlPoint)[2] = NULL;
+  GLdouble cp[3] = {0., 0., 0.};
+  GLint i = 0, nArc = 1, arc = 0, rank = 0;
 
-  px[0] = (GLfloat) data->pen.x;
-  py[0] = (GLfloat) data->pen.y;
-  for (i = 1; i < inOrder; i++) {
-    px[i] = (GLfloat) inControl[i - 1]->x;
-    py[i] = (GLfloat) inControl[i - 1]->y;
+  /* Append the control points to the vertex array */
+  cp[0] = (GLdouble) data->pen.x * data->scale_x;
+  cp[1] = (GLdouble) data->pen.y * data->scale_y;
+  if (!__glcArrayAppend(data->controlPoints, cp)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
   }
-  px[inOrder] = (GLfloat) inVecTo->x;
-  py[inOrder] = (GLfloat) inVecTo->y;
 
-  firstNode->x = px[0];
-  firstNode->y = py[0];
-  firstNode->t = 0.;
-  firstNode->next = currentNode;
+  /* Append the first vertex of the curve to the vertex array */
+  rank = data->vertexArray->length;
+  if (!__glcArrayAppend(data->vertexArray, cp)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
+  }
 
-  currentNode->x = px[inOrder];
-  currentNode->y = py[inOrder];
-  currentNode->t = 1.;
-  currentNode->next = NULL;
+  for (i = 1; i < inOrder; i++) {
+    cp[0] = (GLdouble) inControl[i - 1]->x * data->scale_x;
+    cp[1] = (GLdouble) inControl[i - 1]->y * data->scale_y;
+    if (!__glcArrayAppend(data->controlPoints, cp)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return 1;
+    }
+  }
+  cp[0] = (GLdouble) inVecTo->x * data->scale_x;
+  cp[1] = (GLdouble) inVecTo->y * data->scale_y;
+  if (!__glcArrayAppend(data->controlPoints, cp)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
+  }
 
-  while (loop) {
-    GLfloat projx = 0., projy = 0.;
-    __glcNode newNode;
-    GLfloat s = 0., t = 0., distance = 0.;
+  /* controlPoint[] must be computed there because data->controlPoints->data may have
+   * been modified by a realloc() in __glcArrayInsert()
+   */
+  controlPoint = (GLdouble(*)[2]) data->controlPoints->data;
+
+  while(1) {
+    GLdouble projx = 0., projy = 0.;
+    GLdouble s = 0., distance = 0., dmax = 0.;
+    GLdouble ax = 0., ay = 0., abx = 0., aby = 0.;
     GLint j = 0;
-    GLint n = 0, ind = 0;
 
-    t = (firstNode->t + currentNode->t) / 2.;
+    dmax = 0.;
+    ax = controlPoint[0][0];
+    ay = controlPoint[0][1];
+    abx = controlPoint[inOrder][0] - ax;
+    aby = controlPoint[inOrder][1] - ay;
 
-    n = inOrder;
+    /* For each control point, compute its chordal distance that is its distance
+     * from the line between the first and the last control points
+     */
+    for (i = 1; i < inOrder; i++) {
+      cp[0] = controlPoint[i][0];
+      cp[1] = controlPoint[i][1];
 
-    for (i = 0; i < inOrder ; i++) {
-      for (j = 0; j < inOrder - i; j++) {
-	ind = n - inOrder + i + j;
-	px[n + j + 1] = (1 - t) * px[ind] + t * px[ind + 1];
-	py[n + j + 1] = (1 - t) * py[ind] + t * py[ind + 1];
-      }
-      n += inOrder - i;
+      /* Compute the chordal distance */
+      s = ((cp[0] - ax) * abx + (cp[1] - ay) * aby)
+	  / (abx * abx + aby * aby);
+      projx = ax + s * abx;
+      projy = ay + s * aby;
+
+      distance = (projx - cp[0]) * (projx - cp[0])
+		+ (projy - cp[1]) * (projy - cp[1]);
+      dmax = distance > dmax ? distance : dmax;
     }
 
-    newNode.x = px[n];
-    newNode.y = py[n];
-    newNode.t = t;
-
-    /* Compute the coordinate of the projection of 'new_node' onto the
-     * chord */
-    s = ((newNode.x - firstNode->x) * (currentNode->x - firstNode->x)
-	 + (newNode.y - firstNode->y) * (currentNode->y - firstNode->y))
-      / ((currentNode->x - firstNode->x) * (currentNode->x - firstNode->x)
-	 +  (currentNode->y - firstNode->y) * (currentNode->y - firstNode->y));
-
-    projx = firstNode->x + s * (currentNode->x - firstNode->x);
-    projy = firstNode->y + s * (currentNode->y - firstNode->y);
-
-    /* Compute the chordal distance */
-    distance = (projx - newNode.x) * (projx - newNode.x)
-      + (projy - newNode.y) * (projy - newNode.y);
-
-    /* If the chordal distance is greater than the tolerance then we
-       split the chord */
-    if (distance > data->tolerance) {
-      /* Add the current node to the list (i.e. store the next
-	 chord ends) */
-      endList->x = newNode.x;
-      endList->y = newNode.y;
-      endList->t = newNode.t;
-
-      /* The current chord ends are now 'first_node' and 'new_node' */
-      firstNode->next = endList;
-      endList->next = currentNode;
-      currentNode = endList;
-
-      endList++;
+    if (dmax < data->tolerance) {
+      arc++; /* Process the next arc */
+      if (arc == nArc)
+	break; /* Every arc has been processed : exit */
+      controlPoint = ((GLdouble(*)[2]) data->controlPoints->data) + arc * inOrder;
+      rank++; /* Update the place where new vertices will be inserted in the vertex array */
     }
     else {
-      GLdouble *vertex = &data->vertex[data->numVertex][0];
+      /* Split an arc into two smaller arcs (this is the actual de Casteljau algorithm */
+      for (i = 0; i < inOrder; i++) {
+	cp[0] = 0.5*(controlPoint[i][0]+controlPoint[i+1][0]);
+	cp[1] = 0.5*(controlPoint[i][1]+controlPoint[i+1][1]);
+	if (!__glcArrayInsert(data->controlPoints, arc * inOrder + i + 1, cp)) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  return 1;
+	}
 
-      vertex[0] = currentNode->x * data->scale_x;
-      vertex[1] = currentNode->y * data->scale_y;
-      vertex[2] = 0.;
-      gluTessVertex(data->tess, vertex, vertex);
-      data->numVertex++;
+	/* controlPoint[] must be updated there because data->controlPoints->data may have
+	* been modified by a realloc() in __glcArrayInsert()
+	*/
+	controlPoint = ((GLdouble(*)[2]) data->controlPoints->data) + arc * inOrder;
 
-      if (currentNode->next) {
-	/* Prepare to examine the next chord */
-	firstNode = currentNode;
-	currentNode = currentNode->next;
+	for (j = 0; j < inOrder - i - 1; j++) {
+	  controlPoint[i+j+2][0] = 0.5*(controlPoint[i+j+2][0]+controlPoint[i+j+3][0]);
+	  controlPoint[i+j+2][1] = 0.5*(controlPoint[i+j+2][1]+controlPoint[i+j+3][1]);
+	}
       }
-      else
-	/* No next chord : exit */
-	loop = GL_FALSE;
+
+      /* The point in cp[] is a point located on the Bezier curve : it must be added
+       * to the vertex array
+       */
+      if (!__glcArrayInsert(data->vertexArray, rank+1, cp)) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return 1;
+      }
+
+      nArc++; /* A new arc has been defined */
     }
   }
+
+  /* The array of control points must be emptied in order to be ready for the next
+   * call to the de Casteljau routine
+   */
+  data->controlPoints->length = 0;
+  /* The last control point doesn't need to be stored since it is equal to the first
+   * control point of the next line/quadric/conic. If it was stored nevertheless
+   * then it would be duplicated and that would be pointless.
+   */
+  data->vertexArray->length--;
+  return 0;
 }
 
 static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
 
-  gluTessEndContour(data->tess);
-  gluTessBeginContour(data->tess);
+  /* We don't need to store the point where the pen is since glyphs are defined by
+   * closed loops (i.e. the first point and the last point are the same) and the
+   * first point will be stored by the next call to lineto/conicto/cubicto.
+   */
+
+  if (!__glcArrayAppend(data->endContour, &data->vertexArray->length)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
+  }
 
   data->pen = *inVecTo;
   return 0;
@@ -186,13 +203,15 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLdouble *vertex = &data->vertex[data->numVertex][0];
+  GLdouble vertex[3];
 
-  vertex[0] = (GLdouble) inVecTo->x * data->scale_x;
-  vertex[1] = (GLdouble) inVecTo->y * data->scale_y;
+  vertex[0] = (GLdouble) data->pen.x * data->scale_x;
+  vertex[1] = (GLdouble) data->pen.y * data->scale_y;
   vertex[2] = 0.;
-  gluTessVertex(data->tess, vertex, vertex);
-  data->numVertex++;
+  if (!__glcArrayAppend(data->vertexArray, vertex)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
+  }
 
   data->pen = *inVecTo;
   return 0;
@@ -203,12 +222,13 @@ static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
   FT_Vector *control[1];
+  int error = 0;
 
   control[0] = inVecControl;
-  __glcdeCasteljau(inVecTo, control, inUserData, 2);
-
+  error = __glcdeCasteljau(inVecTo, control, inUserData, 2);
   data->pen = *inVecTo;
-  return 0;
+
+  return error;
 }
 
 static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
@@ -216,29 +236,30 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
   FT_Vector *control[2];
+  int error = 0;
 
   control[0] = inVecControl1;
   control[1] = inVecControl2;
-  __glcdeCasteljau(inVecTo, control, inUserData, 3);
-
+  error = __glcdeCasteljau(inVecTo, control, inUserData, 3);
   data->pen = *inVecTo;
-  return 0;
+
+  return error;
 }
 
-static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
+/*static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
 				 GLfloat weight[4], void** outData,
 				 void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLdouble *vertex = &data->vertex[data->numVertex][0];
+  GLdouble(*vertexArray)[3] = (GLdouble(*)[3])data->vertex1->data;
 
-  vertex[0] = coords[0];
-  vertex[1] = coords[1];
-  vertex[2] = coords[2];
-  data->numVertex++;
+  if (!__glcArrayAppend(data->vertex1, coords)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
-  *outData = vertex;
-}
+  *outData = vertexArray[data->vertex1->length-1];
+}*/
 
 static void __glcCallbackError(GLenum inErrorCode)
 {
@@ -252,9 +273,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   FT_Outline_Funcs interface;
   FT_ListNode node = NULL;
   __glcDisplayListKey *dlKey = NULL;
-
   __glcRendererData rendererData;
-  GLUtesselator *tess = gluNewTess();
 
   outline = &inFace->glyph->outline;
   interface.shift = 0;
@@ -264,42 +283,59 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   interface.conic_to = __glcConicTo;
   interface.cubic_to = __glcCubicTo;
 
-  rendererData.tess = tess;
-  rendererData.numVertex = 0;
-
   /* grid_coordinate is given in 26.6 fixed point integer hence we
      divide the scale by 2^6 */
   rendererData.scale_x = 1./64./GLC_POINT_SIZE;
   rendererData.scale_y = 1./64./GLC_POINT_SIZE;
 
-  /* Compute the tolerance for the deCasteljau algorithm */
-  rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFace->units_per_EM;
+  /* Compute the tolerance for the de Casteljau algorithm */
+  rendererData.tolerance = 0.0005 * GLC_POINT_SIZE * inFace->units_per_EM
+				* rendererData.scale_x * rendererData.scale_y;
 
-  /* FIXME : may be we should use a bigger array ? */
-  rendererData.vertex = (GLdouble (*)[3])__glcMalloc(GLC_MAX_VERTEX
-						     * sizeof(GLfloat) * 3);
-  if (!rendererData.vertex) {
-    gluDeleteTess(tess);
+  rendererData.vertexArray = __glcArrayCreate(3 * sizeof(GLdouble));
+  if (!rendererData.vertexArray) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
-  gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, !inFill);
+  rendererData.controlPoints = __glcArrayCreate(2 * sizeof(GLdouble));
+  if (!rendererData.controlPoints) {
+    __glcArrayDestroy(rendererData.vertexArray);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
-  gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
-  gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-  gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
-  gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
-		  (void (*) ())__glcCombineCallback);
-  gluTessCallback(tess, GLU_TESS_END, glEnd);
+  rendererData.endContour = __glcArrayCreate(sizeof(int));
+  if (!rendererData.endContour) {
+    __glcArrayDestroy(rendererData.vertexArray);
+    __glcArrayDestroy(rendererData.controlPoints);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
-  gluTessNormal(tess, 0., 0., 1.);
+  if (FT_Outline_Decompose(outline, &interface, &rendererData)) {
+    __glcArrayDestroy(rendererData.vertexArray);
+    __glcArrayDestroy(rendererData.controlPoints);
+    __glcArrayDestroy(rendererData.endContour);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  if (!__glcArrayAppend(rendererData.endContour, &rendererData.vertexArray->length)) {
+    __glcArrayDestroy(rendererData.vertexArray);
+    __glcArrayDestroy(rendererData.controlPoints);
+    __glcArrayDestroy(rendererData.endContour);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 
   if (inState->glObjects) {
     dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
     if (!dlKey) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcArrayDestroy(rendererData.vertexArray);
+      __glcArrayDestroy(rendererData.controlPoints);
+      __glcArrayDestroy(rendererData.endContour);
       return;
     }
 
@@ -318,11 +354,51 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glNewList(dlKey->list, GL_COMPILE);
   }
 
-  gluTessBeginPolygon(tess, &rendererData);
-  gluTessBeginContour(tess);
-  FT_Outline_Decompose(outline, &interface, &rendererData);
-  gluTessEndContour(tess);
-  gluTessEndPolygon(tess);
+  if (inFill) {
+    GLUtesselator *tess = gluNewTess();
+    int i = 0, j = 0;
+    int* endContour = (int*)rendererData.endContour->data;
+    GLdouble (*vertexArray)[3] = (GLdouble(*)[3])rendererData.vertexArray->data;
+
+    gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
+    gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, GL_FALSE);
+
+    gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
+    gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
+    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
+/*    gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
+		    (void (*) ())__glcCombineCallback);*/
+    gluTessCallback(tess, GLU_TESS_END, glEnd);
+
+    gluTessNormal(tess, 0., 0., 1.);
+
+    gluTessBeginPolygon(tess, &rendererData);
+
+    for (i = 0; i < rendererData.endContour->length-1; i++) {
+      gluTessBeginContour(tess);
+      for (j = endContour[i]; j < endContour[i+1]; j++)
+	gluTessVertex(tess, vertexArray[j], vertexArray[j]);
+      gluTessEndContour(tess);
+    }
+
+    gluTessEndPolygon(tess);
+
+    gluDeleteTess(tess);
+  }
+  else {
+    int i = 0;
+    int* endContour = (int*)rendererData.endContour->data;
+
+    glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glNormal3f(0., 0., 1.);
+    glVertexPointer(3, GL_DOUBLE, 0, rendererData.vertexArray->data);
+
+    for (i = 0; i < rendererData.endContour->length-1; i++)
+      glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);
+
+    glPopClientAttrib();
+  }
 
   glTranslatef(inFace->glyph->advance.x * rendererData.scale_x,
 	       inFace->glyph->advance.y * rendererData.scale_y, 0.);
@@ -332,7 +408,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glCallList(dlKey->list);
   }
 
-  gluDeleteTess(tess);
-
-  __glcFree(rendererData.vertex);
+  __glcArrayDestroy(rendererData.vertexArray);
+  __glcArrayDestroy(rendererData.controlPoints);
+  __glcArrayDestroy(rendererData.endContour);
 }
