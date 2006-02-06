@@ -148,8 +148,8 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	}
 
 	/* controlPoint[] must be updated there because data->controlPoints->data may have
-	* been modified by a realloc() in __glcArrayInsert()
-	*/
+	 * been modified by a realloc() in __glcArrayInsert()
+	 */
 	controlPoint = ((GLdouble(*)[2]) data->controlPoints->data) + arc * inOrder;
 
 	for (j = 0; j < inOrder - i - 1; j++) {
@@ -174,11 +174,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
    * call to the de Casteljau routine
    */
   data->controlPoints->length = 0;
-  /* The last control point doesn't need to be stored since it is equal to the first
-   * control point of the next line/quadric/conic. If it was stored nevertheless
-   * then it would be duplicated and that would be pointless.
-   */
-  data->vertexArray->length--;
+
   return 0;
 }
 
@@ -251,14 +247,14 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 				 void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLdouble(*vertexArray)[3] = (GLdouble(*)[3])data->vertex1->data;
+  GLdouble(*vertexArray)[3] = (GLdouble(*)[3])data->vertexArray->data;
 
-  if (!__glcArrayAppend(data->vertex1, coords)) {
+  if (!__glcArrayAppend(data->vertexArray, coords)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  *outData = vertexArray[data->vertex1->length-1];
+  *outData = vertexArray[data->vertexArray->length-1];
 }*/
 
 static void __glcCallbackError(GLenum inErrorCode)
