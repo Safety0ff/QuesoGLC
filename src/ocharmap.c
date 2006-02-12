@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -69,17 +69,17 @@ static GLboolean __glcCharMapInsertCode(__glcCharMap* This, GLint inCode,
   FT_ULong (*map)[3] = NULL;
 
   assert(This->map);
-  assert(This->map->data);
+  assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])This->map->data;
+  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
   /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < This->map->length; i++) {
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
     if (map[i][0] >= inCode)
       break;
   }
 
-  if ((i == This->map->length) || (map[i][0] != inCode)) {
+  if ((i == GLC_ARRAY_LENGTH(This->map)) || (map[i][0] != inCode)) {
     FT_ULong data[3] = {0, 0, 0};
 
     data[0] = inCode;
@@ -184,13 +184,13 @@ void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
   FT_ULong (*map)[3] = NULL;
 
   assert(This->map);
-  assert(This->map->data);
+  assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])This->map->data;
+  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
   /* Look for the character mapped by inCode in the charmap */
   /* FIXME : use a dichotomic algo. instead */
-  for (i = 0; i < This->map->length; i++) {
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
     if (map[i][0] == (FT_ULong)inCode) {
       /* Remove the character mapped by inCode */
       __glcArrayRemove(This->map, i);
@@ -237,14 +237,14 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
   FT_ULong (*map)[3] = NULL;
 
   assert(This->map);
-  assert(This->map->data);
+  assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])This->map->data;
+  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
   /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < This->map->length; i++) {
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
     if (map[i][0] == (FT_ULong)inCode) {
       inCode = map[i][2];
       break;
@@ -280,13 +280,13 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
   FT_ULong (*map)[3] = NULL;
 
   assert(This->map);
-  assert(This->map->data);
+  assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])This->map->data;
+  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
   /* Retrieve which is the glyph that inCode is mapped to */
   /* TODO : use a dichotomic algo. instead */
-  for (i = 0; i < This->map->length; i++) {
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
     if ((FT_ULong)inCode == map[i][0])
       return map[i][1];
   }
@@ -310,14 +310,14 @@ GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
   FT_ULong (*map)[3] = NULL;
 
   assert(This->map);
-  assert(This->map->data);
+  assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])This->map->data;
+  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
   /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < This->map->length; i++) {
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
     if (map[i][0] == (FT_ULong)inCode) {
       inCode = map[i][2];
       break;

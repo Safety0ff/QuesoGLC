@@ -21,6 +21,9 @@
 #ifndef __glc_oarray_h
 #define __glc_oarray_h
 
+#define GLC_ARRAY_DATA(array) (array)->data
+#define GLC_ARRAY_LENGTH(array) (array)->length
+
 typedef struct {
   char* data;
   int allocated;
