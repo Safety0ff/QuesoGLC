@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -38,35 +38,35 @@
  * system.
  *
  * If GLC cannot find a font that maps the character code in the list
- * \b GLC_CURRENT_FONT_LIST, it attemps to produce an alternate rendering. If the
- * value of the boolean variable \b GLC_AUTO_FONT is set to \b GL_TRUE, GLC searches
- * for a font that has the character that maps the character code. If the search
- * succeeds, the font's ID is appended to \b GLC_CURRENT_FONT_LIST and the character
- * is rendered.
+ * \b GLC_CURRENT_FONT_LIST, it attemps to produce an alternate rendering. If
+ * the value of the boolean variable \b GLC_AUTO_FONT is set to \b GL_TRUE, GLC
+ * searches for a font that has the character that maps the character code. If
+ * the search succeeds, the font's ID is appended to \b GLC_CURRENT_FONT_LIST
+ * and the character is rendered.
  *
  * If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for
  * the character code cannot be found in any of those fonts, GLC goes through
  * these steps :
  * -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero,
- * GLC finds a font that maps the replacement code, and renders the character that
- * the replacement code is mapped to.
+ * GLC finds a font that maps the replacement code, and renders the character
+ * that the replacement code is mapped to.
  * -# If the variable \b GLC_REPLACEMENT_CODE is zero, or if the replacement
  * code does not result in a match, GLC checks whether a callback function is
  * defined. If a callback function is defined for \b GLC_OP_glcUnmappedCode, GLC
- * calls the function. The callback function provides the character code to the user
- * and allows loading of the appropriate font. After the callback returns, GLC tries
- * to render the character code again.
+ * calls the function. The callback function provides the character code to the
+ * user and allows loading of the appropriate font. After the callback returns,
+ * GLC tries to render the character code again.
  * -# Otherwise, the command attemps to render the character sequence
  * <em>\\\<hexcode\></em>, where \\ is the character REVERSE SOLIDUS (U+5C),
  * \< is the character LESS-THAN SIGN (U+3C), \> is the character GREATER-THAN
- * SIGN (U+3E), and \e hexcode is the character code represented as a sequence of
- * hexadecimal digits. The sequence has no leading zeros, and alphabetic
+ * SIGN (U+3E), and \e hexcode is the character code represented as a sequence
+ * of hexadecimal digits. The sequence has no leading zeros, and alphabetic
  * digits are in upper case. The GLC measurement commands treat the sequence
  * as a single character.
  *
  * The rendering commands raise \b GLC_PARAMETER_ERROR if the callback function
- * defined for \b GLC_OP_glcUnmappedCode is called and the current string type is
- * \b GLC_UTF8_QSO.
+ * defined for \b GLC_OP_glcUnmappedCode is called and the current string type
+ * is \b GLC_UTF8_QSO.
  *
  * \note Some rendering commands create and/or use display lists and/or
  * textures. The IDs of those display lists and textures are stored in the
@@ -89,6 +89,7 @@
 #else
 #include <GL/glu.h>
 #endif
+#include <math.h>
 
 #include "internal.h"
 #include FT_OUTLINE_H
@@ -97,13 +98,17 @@
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
 static void __glcRenderCharBitmap(__glcFont* inFont,
-				  __glcContextState* inState)
+				  __glcContextState* inState,   FT_UInt glyphIndex)
 {
   FT_Matrix matrix;
   FT_Face face = __glcFaceDescOpen(inFont->faceDesc, inState);
   FT_Outline outline;
   FT_BBox boundBox;
   FT_Bitmap pixmap;
+  GLfloat *transform = inState->bitmapMatrix;
+  GLfloat determinant = 0., norm = 0.;
+  GLfloat scale_x = 0., scale_y = 0.;
+  int i = 0;
 
   if (!face) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -112,11 +117,43 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
 
   outline = face->glyph->outline;
 
+  /* Compute the norm of the transformation matrix */
+  for (i = 0; i < 4; i++) {
+    if (abs(transform[i]) > norm)
+      norm = abs(transform[i]);
+  }
+
+  determinant = transform[0] * transform[3] - transform[1] * transform[2];
+
+  /* If the transformation is degenerated, nothing needs to be rendered */
+  if (abs(determinant) < norm * 1E-6) {
+    __glcFaceDescClose(inFont->faceDesc);
+    return;
+  }
+
+  scale_x = sqrt(transform[0]*transform[0]+transform[1]*transform[1]);
+  scale_y = sqrt(transform[2]*transform[2]+transform[3]*transform[3]);
+
+  if (FT_Set_Char_Size(face, (FT_F26Dot6)(scale_x * 64.), (FT_F26Dot6)(scale_y * 64.),
+		       inState->resolution, inState->resolution)) {
+    __glcFaceDescClose(inFont->faceDesc);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  /* Get and load the glyph which unicode code is identified by inCode */
+  if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP |
+		    FT_LOAD_IGNORE_TRANSFORM)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(inFont->faceDesc);
+    return;
+  }
+
   /* compute glyph dimensions */
-  matrix.xx = (FT_Fixed)(inState->bitmapMatrix[0] * 65536. / GLC_POINT_SIZE);
-  matrix.xy = (FT_Fixed)(inState->bitmapMatrix[2] * 65536. / GLC_POINT_SIZE);
-  matrix.yx = (FT_Fixed)(inState->bitmapMatrix[1] * 65536. / GLC_POINT_SIZE);
-  matrix.yy = (FT_Fixed)(inState->bitmapMatrix[3] * 65536. / GLC_POINT_SIZE);
+  matrix.xx = (FT_Fixed)(transform[0] * 65536. / scale_x);
+  matrix.xy = (FT_Fixed)(transform[2] * 65536. / scale_y);
+  matrix.yx = (FT_Fixed)(transform[1] * 65536. / scale_x);
+  matrix.yy = (FT_Fixed)(transform[3] * 65536. / scale_y);
 
   /* Get the bounding box of the glyph */
   FT_Outline_Transform(&outline, &matrix);
@@ -170,6 +207,14 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
 	   pixmap.buffer);
 
   __glcFree(pixmap.buffer);
+
+  if (FT_Set_Char_Size(face, GLC_POINT_SIZE << 6, GLC_POINT_SIZE << 6,
+		       inState->resolution, inState->resolution)) {
+    __glcFaceDescClose(inFont->faceDesc);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
   __glcFaceDescClose(inFont->faceDesc);
 }
 
@@ -472,14 +517,14 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
     __glcFaceDescClose(font->faceDesc);
     return;
   }
-  
+
   /* Call the appropriate function depending on the rendering mode. It first
    * checks if a display list that draws the desired glyph has already been
    * defined
    */
   switch(inState->renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(font, inState);
+    __glcRenderCharBitmap(font, inState, glyphIndex);
     break;
   case GLC_TEXTURE:
     if (!__glcFindDisplayList(font, inCode, 2))
