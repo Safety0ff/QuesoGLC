@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -110,7 +110,7 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
     return NULL;
   }
 
-  if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP | FT_LOAD_NO_SCALE |
+  if (FT_Load_Glyph(face, glyphIndex, FT_LOAD_NO_BITMAP |
 		    FT_LOAD_IGNORE_TRANSFORM)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -122,19 +122,19 @@ static GLfloat* __glcGetCharMetric(GLint inCode, GLCenum inMetric,
   case GLC_BASELINE:
     outVec[0] = 0.;
     outVec[1] = 0.;
-    outVec[2] = (GLfloat) face->glyph->advance.x / face->units_per_EM;
-    outVec[3] = (GLfloat) face->glyph->advance.y / face->units_per_EM;
+    outVec[2] = (GLfloat) face->glyph->advance.x / GLC_POINT_SIZE / 64.;
+    outVec[3] = (GLfloat) face->glyph->advance.y / GLC_POINT_SIZE / 64.;
     if (inState->renderStyle == GLC_BITMAP)
       __glcTransformVector(&outVec[2], inState);
     break;
   case GLC_BOUNDS:
     FT_Glyph_Get_CBox(glyph, ft_glyph_bbox_unscaled, &boundBox);
-    outVec[0] = (GLfloat) boundBox.xMin / face->units_per_EM;
-    outVec[1] = (GLfloat) boundBox.yMin / face->units_per_EM;
-    outVec[2] = (GLfloat) boundBox.xMax / face->units_per_EM;
+    outVec[0] = (GLfloat) boundBox.xMin / GLC_POINT_SIZE / 64.;
+    outVec[1] = (GLfloat) boundBox.yMin / GLC_POINT_SIZE / 64.;
+    outVec[2] = (GLfloat) boundBox.xMax / GLC_POINT_SIZE / 64.;
     outVec[3] = outVec[1];
     outVec[4] = outVec[2];
-    outVec[5] = (GLfloat) boundBox.yMax / face->units_per_EM;
+    outVec[5] = (GLfloat) boundBox.yMax / GLC_POINT_SIZE / 64.;
     outVec[6] = outVec[0];
     outVec[7] = outVec[5];
     if (inState->renderStyle == GLC_BITMAP) {
@@ -399,6 +399,7 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 				GLfloat *outVec)
 {
   __glcContextState *state = NULL;
+  GLfloat (*measurementBuffer)[12] = NULL;
 
   /* Check the parameters */
   switch(inMetric) {
@@ -417,6 +418,8 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
     return NULL;
   }
 
+  measurementBuffer = (GLfloat(*)[12])GLC_ARRAY_DATA(state->measurementBuffer);
+
   /* Verify that inIndex is in legal bounds */
   if ((inIndex < 0) || (inIndex >= state->measuredCharCount)) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -425,11 +428,11 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 
   switch(inMetric) {
   case GLC_BASELINE:
-    memcpy(outVec, &state->measurementCharBuffer[0][inIndex],
+    memcpy(outVec, &measurementBuffer[0][inIndex],
            4*sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
-    memcpy(outVec, &state->measurementCharBuffer[4][inIndex],
+    memcpy(outVec, &measurementBuffer[4][inIndex],
 	   8*sizeof(GLfloat));
     return outVec;
   }
@@ -497,25 +500,11 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
 				const FcChar8* inString)
 {
   GLint i = 0;
-  GLfloat baselineMetric[4] = {0., 0., 0., 0.};
-  GLfloat boundsMetric[8] = {0., 0., 0., 0., 0., 0., 0., 0.};
+  GLfloat metrics[12] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+  GLfloat* baselineMetric = metrics;
+  GLfloat* boundsMetric = metrics + 4;
   const FcChar8* ptr = NULL;
   const GLint storeRenderStyle = state->renderStyle;
-
-  /* Verify that measurementCharBuffer is big enough to contain the string
-   * metrics. Grow its size if necessary.
-   */
-  if ((!state->measurementCharBuffer)
-      || (state->measurementCharLength < inCount)) {
-    state->measurementCharBuffer =
-      (GLfloat (*)[12])__glcRealloc(state->measurementCharBuffer,
-				    sizeof(GLfloat) * 12 * inCount);
-    if (!state->measurementCharBuffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return 0;
-    }
-    state->measurementCharLength = inCount;
-  }
 
   if (state->renderStyle == GLC_BITMAP) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
@@ -547,12 +536,8 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
     __glcProcessCharMetric(state, code, GLC_BOUNDS, boundsMetric);
 
     /* If characters are to be measured then store the results */
-    if (inMeasureChars) {
-      memcpy(&state->measurementCharBuffer[0][i], baselineMetric,
-	     4*sizeof(GLfloat));
-      memcpy(&state->measurementCharBuffer[4][i], boundsMetric,
-	     8*sizeof(GLfloat));
-    }
+    if (inMeasureChars)
+      __glcArrayAppend(state->measurementBuffer, metrics);
 
     /* Initialize the left-most coordinate of the bounding box */
     if (!i) {
@@ -589,6 +574,8 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
   state->measurementStringBuffer[8] -= (baselineMetric[2] - boundsMetric[4]);
 
   if (storeRenderStyle == GLC_BITMAP) {
+    GLfloat (*measurementBuffer)[12] = (GLfloat(*)[12])GLC_ARRAY_DATA(state->measurementBuffer);
+
     state->renderStyle = storeRenderStyle;
     for (i = 0; i < 6; i++)
       __glcTransformVector(&state->measurementStringBuffer[2*i], state);
@@ -596,7 +583,7 @@ static GLint __glcMeasureCountedString(__glcContextState *state,
       int j = 0;
       for (i = 0; i < inCount; i++) {
 	for (j = 0; j < 6; j++)
-	  __glcTransformVector(&state->measurementCharBuffer[2*j][i], state);
+	  __glcTransformVector(&measurementBuffer[2*j][i], state);
       }
     }
   }
