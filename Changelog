@@ -1,8 +1,27 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Scaling of glyphs for the GLC_BITMAP style is now detected thus allowing to
+  pass the correct character size to FreeType (instead of the fixed arbitrary
+  size GLC_POINT_SIZE) when the character is rendered. This optimizes the grid-
+  fitting of the glyph and provides slightly enhanced character rendering at
+  small sizes.
+- Transformation matrices that lead to degenerate cases for the GLC_BITMAP style
+  are now correctly handled.
+- The 'data' and 'length' members of __glcArray are now accessed through macros
+  (GLC_ARRAY_DATA and GLC_ARRAY_LENGTH) instead of explicit pointer
+  dereferencement thus providing some kind of encapsulation for the __glcArray
+  object.
+- Arrays that store the vertices and control points during the rendering of
+  GLC_LINE and GLC_TRIANGLE styles are now handled by the context state. Hence
+  they are not created and deleted each time a glyph is rendered thus saving
+  memory allocation/deallocation.
+- The buffer that stores the measured characters is now an array of variable
+  size (__glcArray)
+- Fixed a bug in measurement commands where bounding boxes and baselines did not
+  take the GLC_RESOLUTION value into account.
 - Revamped the implementation of de Casteljau's algorithm : hard-coded limits of
-  the arrays has been removed.
+  arrays have been removed.
 - Charmaps now use arrays of variable size (see oarray.[ch])
 
 Changes made from the "0.2" release to the "0.3" release:
