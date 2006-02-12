@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -50,7 +50,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   if (FT_New_Library(&__glcCommonArea.memoryManager, &This->library)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
-    return NULL;    
+    return NULL;
   }
 
   FT_Add_Default_Modules(This->library);
@@ -86,8 +86,14 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
   This->bitmapMatrix[3] = 1.;
-  This->measurementCharBuffer = NULL;
-  This->measurementCharLength = 0;
+  This->measurementBuffer = __glcArrayCreate(12 * sizeof(GLfloat));
+  if (!This->measurementBuffer) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FT_Done_Library(This->library);
+    FcStrSetDestroy(This->catalogList);
+    __glcFree(This);
+    return NULL;
+  }
   This->measuredCharCount = 0;
   This->renderStyle = GLC_BITMAP;
   This->replacementCode = 0;
@@ -96,6 +102,36 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->buffer = NULL;
   This->bufferSize = 0;
   This->lastFontID = 1;
+  This->vertexArray = __glcArrayCreate(3 * sizeof(GLdouble));
+  if (!This->vertexArray) {
+    __glcArrayDestroy(This->measurementBuffer);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FT_Done_Library(This->library);
+    FcStrSetDestroy(This->catalogList);
+    __glcFree(This);
+    return NULL;
+  }
+  This->controlPoints = __glcArrayCreate(2 * sizeof(GLdouble));
+  if (!This->vertexArray) {
+    __glcArrayDestroy(This->vertexArray);
+    __glcArrayDestroy(This->measurementBuffer);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FT_Done_Library(This->library);
+    FcStrSetDestroy(This->catalogList);
+    __glcFree(This);
+    return NULL;
+  }
+  This->endContour = __glcArrayCreate(sizeof(int));
+  if (!This->endContour) {
+    __glcArrayDestroy(This->controlPoints);
+    __glcArrayDestroy(This->vertexArray);
+    __glcArrayDestroy(This->measurementBuffer);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FT_Done_Library(This->library);
+    FcStrSetDestroy(This->catalogList);
+    __glcFree(This);
+    return NULL;
+  }
 
   return This;
 }
@@ -160,8 +196,17 @@ void __glcCtxDestroy(__glcContextState *This)
   if (This->bufferSize)
     __glcFree(This->buffer);
 
-  if (This->measurementCharBuffer)
-    __glcFree(This->measurementCharBuffer);
+  if (This->measurementBuffer)
+    __glcArrayDestroy(This->measurementBuffer);
+
+  if (This->vertexArray)
+    __glcArrayDestroy(This->vertexArray);
+
+  if (This->controlPoints)
+    __glcArrayDestroy(This->controlPoints);
+
+  if (This->endContour)
+    __glcArrayDestroy(This->endContour);
 
   FT_Done_Library(This->library);
   __glcFree(This);
@@ -246,7 +291,7 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
     if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName)
 	== FcResultTypeMismatch)
       continue;
-    
+
     /* Is this a fixed font ? */
     if (FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed)
 	== FcResultTypeMismatch)
@@ -260,12 +305,12 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
       FcChar32 base = 0;
       FcChar32 next = 0;
       FcChar32 map[FC_CHARSET_MAP_SIZE];
-      
+
       base = FcCharSetFirstPage(charSet, map, &next);
       if (base == FC_CHARSET_DONE)
         continue;
     }
-    
+
     /* get the index of the font in font file */
     if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index)
 	== FcResultTypeMismatch)
@@ -315,7 +360,7 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 
     for (node = master->faceList.head; node; node = node->next) {
       __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)node;
-      
+
       if (!strcmp((const char*)faceDesc->styleName, (const char*)styleName))
 	break;
     }

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,7 @@
 #include "GL/glc.h"
 #include "constant.h"
 #include "omaster.h"
+#include "oarray.h"
 
 typedef struct {
   FT_ListNodeRec node;
@@ -56,11 +57,13 @@ typedef struct {
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
   GLint stringType;		/* GLC_STRING_TYPE */
-  GLfloat (*measurementCharBuffer)[12];
-  GLint measurementCharLength;
+  __glcArray* measurementBuffer;
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
   GLint lastFontID;
+  __glcArray* vertexArray;	/* Array of vertices */
+  __glcArray* controlPoints;	/* Array of control points */
+  __glcArray* endContour;	/* Array of contour limits */
 } __glcContextState;
 
 typedef struct {
