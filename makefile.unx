@@ -1,11 +1,12 @@
 C_FILES = context.c font.c global.c master.c measure.c render.c scalable.c \
 	  transform.c misc.c omaster.c ofont.c ocontext.c ocharmap.c \
-	  ofacedesc.c oarray.c database.c
+	  ofacedesc.c oarray.c database.c except.c
 
 C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS_WITHOUT_GLUT = tests/testmaster tests/testfont tests/testcontex \
-	tests/test1 tests/test2 tests/test3 tests/test4 tests/test5 tests/test6
+	tests/test1 tests/test2 tests/test3 tests/test4 tests/test5 \
+	tests/test6 tests/testexcept
 TEST_OBJECTS_WITH_GLUT = tests/testrender
 EXAMPLE_OBJECTS = examples/unicode examples/tutorial examples/glclogo \
 	examples/tutorial2
