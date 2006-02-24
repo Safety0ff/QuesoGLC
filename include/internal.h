@@ -37,6 +37,7 @@
 #include "oarray.h"
 
 #define GLC_OUT_OF_RANGE_LEN 11
+#define GLC_EPSILON 1E-6
 
 typedef struct {
   FT_ListNodeRec node;
