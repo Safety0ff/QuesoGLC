@@ -1,6 +1,10 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- The criterion that is used by the de Casteljau algorithm is now computed in
+  pixel distance rather than in object space distance whenever no display list
+  is building. This leads to a more optimal number of vertices which depends on
+  the actual size of the glyph on the viewport.
 - Scaling of glyphs for the GLC_BITMAP style is now detected thus allowing to
   pass the correct character size to FreeType (instead of the fixed arbitrary
   size GLC_POINT_SIZE) when the character is rendered. This optimizes the grid-
@@ -20,9 +24,16 @@ Changes made from the "0.3" release to the "0.4" release:
   size (__glcArray)
 - Fixed a bug in measurement commands where bounding boxes and baselines did not
   take the GLC_RESOLUTION value into account.
+- The de Casteljau algorithm now uses the chordal distance of the control points
+  of the spline rather than the chordal distance of the midpoint of the spline
+  to determine if the curve needs to be broken or not, thus leading to a better
+  handling of antisymmetric cubic curves (such as S-shaped curves). This is also
+  a more severe criterion : some spline curves may now be broken into more
+  segment curves than before.
 - Revamped the implementation of de Casteljau's algorithm : hard-coded limits of
-  arrays have been removed.
-- Charmaps now use arrays of variable size (see oarray.[ch])
+  arrays have been removed. Data are now handled by arrays of variable size
+  (__glcArray).
+- Charmaps now use arrays of variable size (__glcArray)
 
 Changes made from the "0.2" release to the "0.3" release:
 -----------------------------------------------------------
@@ -103,7 +114,7 @@ Changes made from the "0.1" release to the "0.2" release:
 -----------------------------------------------------------
 
 - Textures in GLC_TEXTURE mode are now of variable size instead of fixed size
-  (previously 64x64).It both optimized the texture memory and removed the
+  (previously 64x64).It both optimizes the texture memory and removes the
   garbage that could appear when rendering some fonts.
 - Added UTF-8 support
 - QuesoGLC does not open anymore the font files at font creation. Instead, font
