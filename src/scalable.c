@@ -25,6 +25,7 @@
 #else
 #include <GL/glu.h>
 #endif
+#include <math.h>
 
 #include "internal.h"
 #include FT_OUTLINE_H
@@ -38,7 +39,36 @@ typedef struct {
   __glcArray* endContour;	/* Array of contour limits */
   GLdouble scale_x;		/* Scale to convert grid point coordinates.. */
   GLdouble scale_y;		/* ..into pixel coordinates */
+  GLdouble transformMatrix[16];	/* Transformation matrix from the object space
+				   to the viewport */
+  GLdouble viewport[4];		/* Viewport transformation */
 }__glcRendererData;
+
+static void __glcComputePixelCoordinates(GLdouble* inCoord,
+					 __glcRendererData* inData)
+{
+  GLdouble x = 0., y = 0., w = 0.;
+  GLdouble norm = 0.;
+
+  x = inCoord[0] * inData->transformMatrix[0]
+    + inCoord[1] * inData->transformMatrix[4]
+    + inData->transformMatrix[12];
+  y = inCoord[0] * inData->transformMatrix[1]
+    + inCoord[1] * inData->transformMatrix[5]
+    + inData->transformMatrix[13];
+  norm = sqrt(x * x + y * y);
+  w = inCoord[0] * inData->transformMatrix[3]
+    + inCoord[1] * inData->transformMatrix[7]
+    + inData->transformMatrix[15];
+  /* If w is very small compared to x and y this probably mean that the
+   * transformation matrix is ill-conditioned (i.e. its determinant is
+   * numerically null)
+   */
+  if (w < norm * GLC_EPSILON)
+    w = norm * GLC_EPSILON; /* Ugly hack to handle the singularity of w */
+  inCoord[2] = inData->viewport[0] * x / w + inData->viewport[1];
+  inCoord[3] = inData->viewport[2] * y / w + inData->viewport[3];
+}
 
 /* __glcdeCasteljau : 
  *	renders bezier curves using the de Casteljau subdivision algorithm
@@ -61,80 +91,89 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 			    void *inUserData, GLint inOrder)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLdouble(*controlPoint)[2] = NULL;
-  GLdouble cp[3] = {0., 0., 0.};
+  GLdouble(*controlPoint)[4] = NULL;
+  GLdouble cp[4] = {0., 0., 0., 0.};
   GLint i = 0, nArc = 1, arc = 0, rank = 0;
 
   /* Append the control points to the vertex array */
   cp[0] = (GLdouble) data->pen.x * data->scale_x;
   cp[1] = (GLdouble) data->pen.y * data->scale_y;
+  __glcComputePixelCoordinates(cp, data);
   if (!__glcArrayAppend(data->controlPoints, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
 
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
+  cp[2] = 0.;
   if (!__glcArrayAppend(data->vertexArray, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
 
   for (i = 1; i < inOrder; i++) {
     cp[0] = (GLdouble) inControl[i - 1]->x * data->scale_x;
     cp[1] = (GLdouble) inControl[i - 1]->y * data->scale_y;
+    __glcComputePixelCoordinates(cp, data);
     if (!__glcArrayAppend(data->controlPoints, cp)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      GLC_ARRAY_LENGTH(data->controlPoints) = 0;
       return 1;
     }
   }
   cp[0] = (GLdouble) inVecTo->x * data->scale_x;
   cp[1] = (GLdouble) inVecTo->y * data->scale_y;
+  __glcComputePixelCoordinates(cp, data);
   if (!__glcArrayAppend(data->controlPoints, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
 
   /* controlPoint[] must be computed there because data->controlPoints->data
    * may have been modified by a realloc() in __glcArrayInsert()
    */
-  controlPoint = (GLdouble(*)[2])GLC_ARRAY_DATA(data->controlPoints);
+  controlPoint = (GLdouble(*)[4])GLC_ARRAY_DATA(data->controlPoints);
 
-  while(1) {
+  while(arc != nArc) {
     GLdouble projx = 0., projy = 0.;
     GLdouble s = 0., distance = 0., dmax = 0.;
-    GLdouble ax = 0., ay = 0., abx = 0., aby = 0.;
+    GLdouble ax = 0., ay = 0.;
+    GLdouble abx = 0., aby = 0.;
     GLint j = 0;
 
     dmax = 0.;
-    ax = controlPoint[0][0];
-    ay = controlPoint[0][1];
-    abx = controlPoint[inOrder][0] - ax;
-    aby = controlPoint[inOrder][1] - ay;
+    ax = controlPoint[0][2];
+    ay = controlPoint[0][3];
+    abx = controlPoint[inOrder][2] - ax;
+    aby = controlPoint[inOrder][3] - ay;
 
     /* For each control point, compute its chordal distance that is its
      * distance from the line between the first and the last control points
      */
     for (i = 1; i < inOrder; i++) {
-      cp[0] = controlPoint[i][0];
-      cp[1] = controlPoint[i][1];
+      GLdouble cpx = 0., cpy = 0.;
+
+      cpx = controlPoint[i][2];
+      cpy = controlPoint[i][3];
 
       /* Compute the chordal distance */
-      s = ((cp[0] - ax) * abx + (cp[1] - ay) * aby)
+      s = ((cpx - ax) * abx + (cpy - ay) * aby)
 	/ (abx * abx + aby * aby);
       projx = ax + s * abx;
       projy = ay + s * aby;
 
-      distance = (projx - cp[0]) * (projx - cp[0])
-	+ (projy - cp[1]) * (projy - cp[1]);
+      distance = (projx - cpx) * (projx - cpx)
+	+ (projy - cpy) * (projy - cpy);
       dmax = distance > dmax ? distance : dmax;
     }
 
     if (dmax < data->tolerance) {
       arc++; /* Process the next arc */
-      if (arc == nArc)
-	break; /* Every arc has been processed : exit */
-      controlPoint = ((GLdouble(*)[2])GLC_ARRAY_DATA(data->controlPoints))
+      controlPoint = ((GLdouble(*)[4])GLC_ARRAY_DATA(data->controlPoints))
 	+ arc * inOrder;
       /* Update the place where new vertices will be inserted in the vertex
        * array
@@ -143,13 +182,15 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     }
     else {
       /* Split an arc into two smaller arcs (this is the actual de Casteljau
-       * algorithm
+       * algorithm)
        */
       for (i = 0; i < inOrder; i++) {
 	cp[0] = 0.5*(controlPoint[i][0]+controlPoint[i+1][0]);
 	cp[1] = 0.5*(controlPoint[i][1]+controlPoint[i+1][1]);
+	__glcComputePixelCoordinates(cp, data);
 	if (!__glcArrayInsert(data->controlPoints, arc*inOrder+i+1, cp)) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	  return 1;
 	}
 
@@ -157,7 +198,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	 * data->controlPoints->data may have been modified by a realloc() in
 	 * __glcArrayInsert()
 	 */
-	controlPoint = ((GLdouble(*)[2])GLC_ARRAY_DATA(data->controlPoints))
+	controlPoint = ((GLdouble(*)[4])GLC_ARRAY_DATA(data->controlPoints))
 	  + arc * inOrder;
 
 	for (j = 0; j < inOrder - i - 1; j++) {
@@ -165,14 +206,17 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 					+controlPoint[i+j+3][0]);
 	  controlPoint[i+j+2][1] = 0.5*(controlPoint[i+j+2][1]
 					+controlPoint[i+j+3][1]);
+	  __glcComputePixelCoordinates(controlPoint[i+j+2], data);
 	}
       }
 
       /* The point in cp[] is a point located on the Bezier curve : it must be
        * added to the vertex array
        */
+      cp[2] = 0.;
       if (!__glcArrayInsert(data->vertexArray, rank+1, cp)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
+	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
 
@@ -197,7 +241,8 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
    * the first point will be stored by the next call to lineto/conicto/cubicto.
    */
 
-  if (!__glcArrayAppend(data->endContour, &GLC_ARRAY_LENGTH(data->vertexArray))) {
+  if (!__glcArrayAppend(data->endContour,
+			&GLC_ARRAY_LENGTH(data->vertexArray))) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 1;
   }
@@ -280,6 +325,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   FT_ListNode node = NULL;
   __glcDisplayListKey *dlKey = NULL;
   __glcRendererData rendererData;
+  GLdouble projectionMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+				   0., 0., 0., 0., 1.};
+  GLdouble modelviewMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+				  0., 0., 0., 0., 1.};
+  GLint listIndex = 0;
+  int i = 0, j = 0;
 
   outline = &inFace->glyph->outline;
   interface.shift = 0;
@@ -294,14 +345,55 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   rendererData.scale_x = 1./64./GLC_POINT_SIZE;
   rendererData.scale_y = 1./64./GLC_POINT_SIZE;
 
-  /* Compute the tolerance for the de Casteljau algorithm */
-  rendererData.tolerance = 0.0005 * GLC_POINT_SIZE * inFace->units_per_EM
-    * rendererData.scale_x * rendererData.scale_y;
-
   rendererData.vertexArray = inState->vertexArray;
   rendererData.controlPoints = inState->controlPoints;
   rendererData.endContour = inState->endContour;
 
+  /* If no display list is planned to be built then compute distances in pixels
+   * otherwise use the object space.
+   */
+  glGetIntegerv(GL_LIST_INDEX, &listIndex);
+
+  if ((!inState->glObjects) && (!listIndex)) {
+    GLint viewport[4];
+
+    glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
+    glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    rendererData.viewport[0] = viewport[2] * 0.5;
+    rendererData.viewport[1] = viewport[0] + viewport[2] * 0.5;
+    rendererData.viewport[2] = viewport[3] * 0.5;
+    rendererData.viewport[3] = viewport[1] + viewport[3] * 0.5;
+    rendererData.tolerance = .5; /* Half pixel tolerance */
+  }
+  else {
+    /* Distances are computed in object space, so is the tolerance of the
+     * de Casteljau algorithm.
+     */
+    rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFace->units_per_EM
+      * rendererData.scale_x * rendererData.scale_y;
+    rendererData.viewport[0] = 1.;
+    rendererData.viewport[1] = 0.;
+    rendererData.viewport[2] = 1.;
+    rendererData.viewport[3] = 0.;
+  }
+
+
+  /* Compute the matrix that transforms object space coordinates to viewport
+   * coordinates. If we plan to use object space coordinates, this matrix is
+   * set to identity.
+   */
+  for (i = 0; i < 4 ; i++) {
+    for (j = 0; j < 4; j++) {
+      rendererData.transformMatrix[i*4+j] =
+	projectionMatrix[i*4+0]*modelviewMatrix[0*4+j]+
+	projectionMatrix[i*4+1]*modelviewMatrix[1*4+j]+
+	projectionMatrix[i*4+2]*modelviewMatrix[2*4+j]+
+	projectionMatrix[i*4+3]*modelviewMatrix[3*4+j];
+    }
+  }
+
+  /* Parse the outline of the glyph */
   if (FT_Outline_Decompose(outline, &interface, &rendererData)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
