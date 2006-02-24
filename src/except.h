@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -23,14 +23,14 @@
 
 #include <setjmp.h>
 
-#define GLC_NO_EXC 0
-#define GLC_MEMORY_EXC 1
-
 #ifdef __cpluplus
 extern "C" {
 #endif
 
 typedef unsigned int __glcException;
+
+#define GLC_NO_EXC (__glcException)0
+#define GLC_MEMORY_EXC (__glcException)1
 
 jmp_buf* __glcExceptionCreateContext(void);
 void __glcExceptionReleaseContext(void);
@@ -43,7 +43,7 @@ __glcException __glcExceptionCatch(void);
 #define TRY \
 do { \
   jmp_buf* __glcEnv = __glcExceptionCreateContext(); \
-  if (setjmp(*__glcEnv) == 0) {
+  if (__glcEnv && (setjmp(*__glcEnv) == 0)) {
 
 #define CATCH(__e__) \
     __glcExceptionUnwind(0); \
@@ -72,6 +72,13 @@ do { \
   __glcEnv = __glcExceptionThrow(__e__); \
   longjmp(*__glcEnv, 1); \
 } while (0);
+
+#define RETURN(__value__) \
+do { \
+  __glcExceptionUnwind(0); \
+  __glcExceptionReleaseContext(); \
+  return __value__; \
+} while(0);
 
 #ifdef __cplusplus
 }

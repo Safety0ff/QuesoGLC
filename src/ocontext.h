@@ -31,6 +31,7 @@
 #include "constant.h"
 #include "omaster.h"
 #include "oarray.h"
+#include "except.h"
 
 typedef struct {
   FT_ListNodeRec node;
@@ -70,7 +71,8 @@ typedef struct {
   __glcContextState* currentContext;
   GLCenum errorState;
   GLint lockState;
-  FT_ListRec exceptContextStack;
+  FT_ListRec exceptionStack;
+  __glcException failedTry;
 } threadArea;
 
 typedef struct {

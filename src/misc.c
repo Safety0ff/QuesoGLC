@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -51,10 +51,10 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
     GLuint occurence = 0;
     char *s = (char *)inString;
     char *sep = (char *)inSeparator;
-    
+
     if (!inIndex)
 	return (GLCchar *)inString;
-    
+
     /* TODO use Unicode instead of ASCII */
     for (i=0; i<=strlen(s); i++) {
 	if (s[i] == *sep)
@@ -64,8 +64,8 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
 	    break;
 	}
     }
-    
-    
+
+
     return (GLCchar *)&s[i];
 }
 
@@ -385,7 +385,7 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
-      
+
       utf8 = inString;
       ucs4 = (FcChar32*)string;
       while(*utf8)
@@ -513,7 +513,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 	return NULL;
       }
 
-      
+
       utf8 = inString;
       ucs4 = (FcChar32*)string;
       while(*utf8)
@@ -778,7 +778,7 @@ GLint __glcGetMinMappedCode(FcCharSet *charSet)
   FcChar32 next = 0;
   FcChar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
-  
+
   base = FcCharSetFirstPage(charSet, map, &next);
   assert(base != FC_CHARSET_DONE);
 
@@ -801,7 +801,7 @@ GLint __glcGetMaxMappedCode(FcCharSet *charSet)
   FcChar32 prev_base = 0;
   FcChar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
-  
+
   base = FcCharSetFirstPage(charSet, map, &next);
   assert(base != FC_CHARSET_DONE);
 
@@ -845,8 +845,9 @@ threadArea* __glcGetThreadArea(void)
     area->currentContext = NULL;
     area->errorState = GLC_NONE;
     area->lockState = 0;
-    area->exceptContextStack.head = NULL;
-    area->exceptContextStack.tail = NULL;
+    area->exceptionStack.head = NULL;
+    area->exceptionStack.tail = NULL;
+    area->failedTry = GLC_NO_EXC;
     pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
   }
 
