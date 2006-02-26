@@ -111,7 +111,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
-  This->controlPoints = __glcArrayCreate(4 * sizeof(GLdouble));
+  This->controlPoints = __glcArrayCreate(7 * sizeof(GLdouble));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);

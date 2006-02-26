@@ -43,7 +43,7 @@ typedef struct {
   FT_ListNodeRec node;
   __glcFaceDescriptor* faceDesc;
   GLint code;
-  GLint renderMode;
+  GLCenum renderMode;
   GLuint list;
 } __glcDisplayListKey;
 
@@ -55,7 +55,7 @@ typedef struct {
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont,
 				    __glcContextState* inState, GLint inCode,
-				    GLboolean inFill, FT_Face inFace);
+				    GLCenum inRenderMode, FT_Face inFace);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);

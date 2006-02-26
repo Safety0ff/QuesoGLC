@@ -32,16 +32,17 @@
 #include FT_LIST_H
 
 typedef struct {
-  FT_Vector pen;		/* Current coordinates */
-  GLdouble tolerance;		/* Chordal tolerance */
-  __glcArray* vertexArray;	/* Array of vertices */
-  __glcArray* controlPoints;	/* Array of control points */
-  __glcArray* endContour;	/* Array of contour limits */
-  GLdouble scale_x;		/* Scale to convert grid point coordinates.. */
-  GLdouble scale_y;		/* ..into pixel coordinates */
-  GLdouble transformMatrix[16];	/* Transformation matrix from the object space
-				   to the viewport */
-  GLdouble viewport[4];		/* Viewport transformation */
+  FT_Vector pen;			/* Current coordinates */
+  GLdouble tolerance;			/* Chordal tolerance */
+  __glcArray* vertexArray;		/* Array of vertices */
+  __glcArray* controlPoints;		/* Array of control points */
+  __glcArray* endContour;		/* Array of contour limits */
+  GLdouble scale_x;			/* Scale to convert grid point coordinates.. */
+  GLdouble scale_y;			/* ..into pixel coordinates */
+  GLdouble transformMatrix[16];		/* Transformation matrix from the object space
+					   to the viewport */
+  GLdouble viewport[4];			/* Viewport transformation */
+  GLboolean displayListIsBuilding;	/* Is a display list planned to be built ? */
 }__glcRendererData;
 
 static void __glcComputePixelCoordinates(GLdouble* inCoord,
@@ -56,18 +57,23 @@ static void __glcComputePixelCoordinates(GLdouble* inCoord,
   y = inCoord[0] * inData->transformMatrix[1]
     + inCoord[1] * inData->transformMatrix[5]
     + inData->transformMatrix[13];
-  norm = sqrt(x * x + y * y);
   w = inCoord[0] * inData->transformMatrix[3]
     + inCoord[1] * inData->transformMatrix[7]
     + inData->transformMatrix[15];
+
   /* If w is very small compared to x and y this probably mean that the
    * transformation matrix is ill-conditioned (i.e. its determinant is
    * numerically null)
    */
+  norm = sqrt(x * x + y * y);
   if (w < norm * GLC_EPSILON)
     w = norm * GLC_EPSILON; /* Ugly hack to handle the singularity of w */
-  inCoord[2] = inData->viewport[0] * x / w + inData->viewport[1];
-  inCoord[3] = inData->viewport[2] * y / w + inData->viewport[3];
+
+  inCoord[2] = x * inData->viewport[0];
+  inCoord[3] = y * inData->viewport[2];
+  inCoord[4] = w;
+  inCoord[5] = inCoord[2] / w;
+  inCoord[6] = inCoord[3] / w;
 }
 
 /* __glcdeCasteljau : 
@@ -91,9 +97,10 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 			    void *inUserData, GLint inOrder)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLdouble(*controlPoint)[4] = NULL;
-  GLdouble cp[4] = {0., 0., 0., 0.};
+  GLdouble(*controlPoint)[7] = NULL;
+  GLdouble cp[7] = {0., 0., 0., 0., 0., 0., 0.};
   GLint i = 0, nArc = 1, arc = 0, rank = 0;
+  GLdouble xMin = 0., xMax = 0., yMin =0., yMax = 0.;
 
   /* Append the control points to the vertex array */
   cp[0] = (GLdouble) data->pen.x * data->scale_x;
@@ -105,6 +112,11 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     return 1;
   }
 
+  xMin = cp[5];
+  xMax = cp[5];
+  yMin = cp[6];
+  yMax = cp[6];
+
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
   cp[2] = 0.;
@@ -115,65 +127,93 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   }
 
   for (i = 1; i < inOrder; i++) {
-    cp[0] = (GLdouble) inControl[i - 1]->x * data->scale_x;
-    cp[1] = (GLdouble) inControl[i - 1]->y * data->scale_y;
+    cp[0] = (GLdouble) inControl[i-1]->x * data->scale_x;
+    cp[1] = (GLdouble) inControl[i-1]->y * data->scale_y;
     __glcComputePixelCoordinates(cp, data);
     if (!__glcArrayAppend(data->controlPoints, cp)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(data->controlPoints) = 0;
+      GLC_ARRAY_LENGTH(data->vertexArray) = rank;
       return 1;
     }
+    xMin = (cp[5] < xMin ? cp[5] : xMin);
+    xMax = (cp[5] > xMax ? cp[5] : xMax);
+    yMin = (cp[6] < yMin ? cp[6] : yMin);
+    yMax = (cp[6] > yMax ? cp[6] : yMax);
   }
+
   cp[0] = (GLdouble) inVecTo->x * data->scale_x;
   cp[1] = (GLdouble) inVecTo->y * data->scale_y;
   __glcComputePixelCoordinates(cp, data);
   if (!__glcArrayAppend(data->controlPoints, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
+    GLC_ARRAY_LENGTH(data->vertexArray) = rank;
     return 1;
   }
+  xMin = (cp[5] < xMin ? cp[5] : xMin);
+  xMax = (cp[5] > xMax ? cp[5] : xMax);
+  yMin = (cp[6] < yMin ? cp[6] : yMin);
+  yMax = (cp[6] > yMax ? cp[6] : yMax);
 
   /* controlPoint[] must be computed there because data->controlPoints->data
    * may have been modified by a realloc() in __glcArrayInsert()
    */
-  controlPoint = (GLdouble(*)[4])GLC_ARRAY_DATA(data->controlPoints);
+  controlPoint = (GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints);
+
+  if (!data->displayListIsBuilding) {
+    /* If the bounding box of the bezier curve lies outside the viewport then
+     * the bezier curve is replaced by a piecewise linear curve that joins the
+     * control points
+     */
+    if ((xMin > data->viewport[0]) || (xMax < -data->viewport[0])
+        || (yMin > data->viewport[2]) || (yMax < -data->viewport[2])) {
+      for (i = 1; i < inOrder; i++) {
+	controlPoint[i][2] = 0.;
+	if (!__glcArrayAppend(data->vertexArray, controlPoint[i])) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
+	  GLC_ARRAY_LENGTH(data->vertexArray) = rank;
+	  return 1;
+	}
+      }
+      GLC_ARRAY_LENGTH(data->controlPoints) = 0;
+      return 0;
+    }
+  }
 
   while(arc != nArc) {
-    GLdouble projx = 0., projy = 0.;
-    GLdouble s = 0., distance = 0., dmax = 0.;
-    GLdouble ax = 0., ay = 0.;
-    GLdouble abx = 0., aby = 0.;
     GLint j = 0;
+    GLdouble dmax = 0.;
+    GLdouble ax = controlPoint[0][5];
+    GLdouble ay = controlPoint[0][6];
+    GLdouble abx = controlPoint[inOrder][5] - ax;
+    GLdouble aby = controlPoint[inOrder][6] - ay;
 
-    dmax = 0.;
-    ax = controlPoint[0][2];
-    ay = controlPoint[0][3];
-    abx = controlPoint[inOrder][2] - ax;
-    aby = controlPoint[inOrder][3] - ay;
+    /* Normalize AB */
+    GLdouble normab = sqrt(abx * abx + aby * aby);
+    abx /= normab;
+    aby /= normab;
 
     /* For each control point, compute its chordal distance that is its
      * distance from the line between the first and the last control points
      */
     for (i = 1; i < inOrder; i++) {
-      GLdouble cpx = 0., cpy = 0.;
-
-      cpx = controlPoint[i][2];
-      cpy = controlPoint[i][3];
+      GLdouble cpx = controlPoint[i][5] - ax;
+      GLdouble cpy = controlPoint[i][6] - ay;
+      GLdouble s = cpx * abx + cpy * aby;
+      GLdouble projx = s * abx - cpx;
+      GLdouble projy = s * aby - cpy;
 
       /* Compute the chordal distance */
-      s = ((cpx - ax) * abx + (cpy - ay) * aby)
-	/ (abx * abx + aby * aby);
-      projx = ax + s * abx;
-      projy = ay + s * aby;
+      GLdouble distance = projx * projx + projy * projy;
 
-      distance = (projx - cpx) * (projx - cpx)
-	+ (projy - cpy) * (projy - cpy);
       dmax = distance > dmax ? distance : dmax;
     }
 
     if (dmax < data->tolerance) {
       arc++; /* Process the next arc */
-      controlPoint = ((GLdouble(*)[4])GLC_ARRAY_DATA(data->controlPoints))
+      controlPoint = ((GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints))
 	+ arc * inOrder;
       /* Update the place where new vertices will be inserted in the vertex
        * array
@@ -185,9 +225,16 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
        * algorithm)
        */
       for (i = 0; i < inOrder; i++) {
-	cp[0] = 0.5*(controlPoint[i][0]+controlPoint[i+1][0]);
-	cp[1] = 0.5*(controlPoint[i][1]+controlPoint[i+1][1]);
-	__glcComputePixelCoordinates(cp, data);
+	GLdouble *p1 = controlPoint[i];
+	GLdouble *p2 = controlPoint[i+1];
+
+	cp[0] = 0.5*(p1[0]+p2[0]);
+	cp[1] = 0.5*(p1[1]+p2[1]);
+	cp[2] = 0.5*(p1[2]+p2[2]);
+	cp[3] = 0.5*(p1[3]+p2[3]);
+	cp[4] = 0.5*(p1[4]+p2[4]);
+	cp[5] = cp[2] / cp[4];
+	cp[6] = cp[3] / cp[4];
 	if (!__glcArrayInsert(data->controlPoints, arc*inOrder+i+1, cp)) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -198,15 +245,19 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	 * data->controlPoints->data may have been modified by a realloc() in
 	 * __glcArrayInsert()
 	 */
-	controlPoint = ((GLdouble(*)[4])GLC_ARRAY_DATA(data->controlPoints))
+	controlPoint = ((GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints))
 	  + arc * inOrder;
 
 	for (j = 0; j < inOrder - i - 1; j++) {
-	  controlPoint[i+j+2][0] = 0.5*(controlPoint[i+j+2][0]
-					+controlPoint[i+j+3][0]);
-	  controlPoint[i+j+2][1] = 0.5*(controlPoint[i+j+2][1]
-					+controlPoint[i+j+3][1]);
-	  __glcComputePixelCoordinates(controlPoint[i+j+2], data);
+	  p1 = controlPoint[i+j+2];
+	  p2 = controlPoint[i+j+3];
+	  p1[0] = 0.5*(p1[0]+p2[0]);
+	  p1[1] = 0.5*(p1[1]+p2[1]);
+	  p1[2] = 0.5*(p1[2]+p2[2]);
+	  p1[3] = 0.5*(p1[3]+p2[3]);
+	  p1[4] = 0.5*(p1[4]+p2[4]);
+	  p1[5] = p1[2] / p1[4];
+	  p1[6] = p1[3] / p1[4];
 	}
       }
 
@@ -318,7 +369,7 @@ static void __glcCallbackError(GLenum inErrorCode)
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
-			     GLint inCode, GLboolean inFill, FT_Face inFace)
+			     GLint inCode, GLCenum inRenderMode, FT_Face inFace)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
@@ -364,7 +415,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.viewport[1] = viewport[0] + viewport[2] * 0.5;
     rendererData.viewport[2] = viewport[3] * 0.5;
     rendererData.viewport[3] = viewport[1] + viewport[3] * 0.5;
-    rendererData.tolerance = .5; /* Half pixel tolerance */
+    rendererData.tolerance = .25; /* Half pixel tolerance */
+    rendererData.displayListIsBuilding = GL_FALSE;
   }
   else {
     /* Distances are computed in object space, so is the tolerance of the
@@ -376,6 +428,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.viewport[1] = 0.;
     rendererData.viewport[2] = 1.;
     rendererData.viewport[3] = 0.;
+    rendererData.displayListIsBuilding = GL_TRUE;
   }
 
 
@@ -386,22 +439,26 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   for (i = 0; i < 4 ; i++) {
     for (j = 0; j < 4; j++) {
       rendererData.transformMatrix[i*4+j] =
-	projectionMatrix[i*4+0]*modelviewMatrix[0*4+j]+
-	projectionMatrix[i*4+1]*modelviewMatrix[1*4+j]+
-	projectionMatrix[i*4+2]*modelviewMatrix[2*4+j]+
-	projectionMatrix[i*4+3]*modelviewMatrix[3*4+j];
+	modelviewMatrix[i*4+0]*projectionMatrix[0*4+j]+
+	modelviewMatrix[i*4+1]*projectionMatrix[1*4+j]+
+	modelviewMatrix[i*4+2]*projectionMatrix[2*4+j]+
+	modelviewMatrix[i*4+3]*projectionMatrix[3*4+j];
     }
   }
 
   /* Parse the outline of the glyph */
   if (FT_Outline_Decompose(outline, &interface, &rendererData)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
+    GLC_ARRAY_LENGTH(inState->endContour) = 0;
     return;
   }
 
   if (!__glcArrayAppend(rendererData.endContour,
 			&GLC_ARRAY_LENGTH(rendererData.vertexArray))) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
+    GLC_ARRAY_LENGTH(inState->endContour) = 0;
     return;
   }
 
@@ -409,13 +466,15 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
     if (!dlKey) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
+      GLC_ARRAY_LENGTH(inState->endContour) = 0;
       return;
     }
 
     dlKey->list = glGenLists(1);
     dlKey->faceDesc = inFont->faceDesc;
     dlKey->code = inCode;
-    dlKey->renderMode = inFill ? 4 : 3;
+    dlKey->renderMode = inRenderMode;
 
     /* Get (or create) a new entry that contains the display list and store
      * the key in it
@@ -427,7 +486,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glNewList(dlKey->list, GL_COMPILE);
   }
 
-  if (inFill) {
+  if (inRenderMode == GLC_TRIANGLE) {
     GLUtesselator *tess = gluNewTess();
     int i = 0, j = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);

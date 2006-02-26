@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002,2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -64,18 +64,16 @@ void __glcArrayDestroy(__glcArray* This)
 
 static __glcArray* __glcArrayUpdateSize(__glcArray* This)
 {
-  if (This->length == This->allocated) {
-    char* data = NULL;
+  char* data = NULL;
 
-    data = (char*)__glcRealloc(This->data,
+  data = (char*)__glcRealloc(This->data,
 	(This->allocated + GLC_ARRAY_BLOCK_SIZE) * This->elementSize);
-    if (!data) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return NULL;
-    }
-    This->data = data;
-    This->allocated += GLC_ARRAY_BLOCK_SIZE;
+  if (!data) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
   }
+  This->data = data;
+  This->allocated += GLC_ARRAY_BLOCK_SIZE;
 
   return This;
 }
@@ -84,8 +82,10 @@ static __glcArray* __glcArrayUpdateSize(__glcArray* This)
 
 __glcArray* __glcArrayAppend(__glcArray* This, void* inValue)
 {
-  if (!__glcArrayUpdateSize(This))
-    return NULL;
+  if (This->length == This->allocated) {
+    if (!__glcArrayUpdateSize(This))
+      return NULL;
+  }
 
   memcpy(This->data + This->length*This->elementSize, inValue,
 	 This->elementSize);
@@ -98,12 +98,14 @@ __glcArray* __glcArrayAppend(__glcArray* This, void* inValue)
 
 __glcArray* __glcArrayInsert(__glcArray* This, int inRank, void* inValue)
 {
-  if (!__glcArrayUpdateSize(This))
-    return NULL;
+  if (This->length == This->allocated) {
+    if (!__glcArrayUpdateSize(This))
+      return NULL;
+  }
 
   if (This->length > inRank)
     memmove(This->data + (inRank+1) * This->elementSize,
-    	    This->data + inRank * This->elementSize,
+	   This->data + inRank * This->elementSize,
 	   (This->length - inRank) * This->elementSize);
 
   memcpy(This->data + inRank*This->elementSize, inValue, This->elementSize);

@@ -126,7 +126,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   determinant = transform[0] * transform[3] - transform[1] * transform[2];
 
   /* If the transformation is degenerated, nothing needs to be rendered */
-  if (abs(determinant) < norm * 1E-6) {
+  if (abs(determinant) < norm * GLC_EPSILON) {
     __glcFaceDescClose(inFont->faceDesc);
     return;
   }
@@ -379,7 +379,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     dlKey->list = glGenLists(1);
     dlKey->faceDesc = inFont->faceDesc;
     dlKey->code = inCode;
-    dlKey->renderMode = 2;
+    dlKey->renderMode = GLC_TEXTURE;
 
     /* Get (or create) a new entry that contains the display list and store
      * the key in it
@@ -389,16 +389,16 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     FT_List_Add(&inFont->parent->displayList, node);
 
     /* Create the display list */
-    glNewList(dlKey->list, GL_COMPILE);
+    glNewList(dlKey->list, GL_COMPILE_AND_EXECUTE);
   }
 
   glPushAttrib(GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-  /* Repeat glBindTexture() so that the display list included it */
+  /* Repeat glBindTexture() so that the display list includes it */
   glBindTexture(GL_TEXTURE_2D, texture);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
   /* Compute the size of the glyph */
   width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64.);
@@ -420,7 +420,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 	     boundBox.yMax / 64. / GLC_POINT_SIZE);
   glEnd();
 
-  /* Stores the glyph advance in the display list */
+  /* Store the glyph advance in the display list */
   glTranslatef(face->glyph->advance.x / 64. / GLC_POINT_SIZE, 
 	       face->glyph->advance.y / 64. / GLC_POINT_SIZE, 0.);
 
@@ -429,7 +429,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   if (inState->glObjects) {
     /* Finish display list creation */
     glEndList();
-    glCallList(dlKey->list);
   }
   else
     glDeleteTextures(1, &texture);
@@ -456,7 +455,7 @@ static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
  * GL_FALSE otherwise.
  */
 static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
-				      GLint renderMode)
+				      GLCenum renderMode)
 {
   __glcDisplayListKey dlKey;
 
@@ -527,15 +526,13 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
     __glcRenderCharBitmap(font, inState, glyphIndex);
     break;
   case GLC_TEXTURE:
-    if (!__glcFindDisplayList(font, inCode, 2))
+    if (!__glcFindDisplayList(font, inCode, GLC_TEXTURE))
       __glcRenderCharTexture(font, inState, inCode);
     break;
   case GLC_LINE:
   case GLC_TRIANGLE:
-    if (!__glcFindDisplayList(font, inCode,
-			      (inState->renderStyle == GLC_TRIANGLE) ? 4 : 3))
-      __glcRenderCharScalable(font, inState, inCode, 
-			      (inState->renderStyle == GLC_TRIANGLE), face);
+    if (!__glcFindDisplayList(font, inCode, inState->renderStyle))
+      __glcRenderCharScalable(font, inState, inCode, inState->renderStyle, face);
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
