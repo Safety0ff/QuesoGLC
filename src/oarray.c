@@ -124,3 +124,25 @@ void __glcArrayRemove(__glcArray* This, int inRank)
 	    (This->length - inRank - 1) * This->elementSize);
   This->length--;
 }
+
+
+
+char* __glcArrayInsertCell(__glcArray* This, int inRank)
+{
+  char* newCell = NULL;
+
+  if (This->length == This->allocated) {
+    if (!__glcArrayUpdateSize(This))
+      return NULL;
+  }
+
+  newCell = This->data + inRank * This->elementSize;
+
+  if (This->length > inRank)
+    memmove(newCell + This->elementSize, newCell,
+	   (This->length - inRank) * This->elementSize);
+
+  This->length++;
+
+  return newCell;
+}

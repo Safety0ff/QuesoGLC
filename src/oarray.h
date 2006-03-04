@@ -36,4 +36,5 @@ void __glcArrayDestroy(__glcArray* This);
 __glcArray* __glcArrayAppend(__glcArray* This, void* inValue);
 __glcArray* __glcArrayInsert(__glcArray* This, int inRank, void* inValue);
 void __glcArrayRemove(__glcArray* This, int inRank);
+char* __glcArrayInsertCell(__glcArray* This, int inRank);
 #endif
