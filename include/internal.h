@@ -57,7 +57,8 @@ extern void __glcRenderCharScalable(__glcFont* inFont,
 				    __glcContextState* inState, GLint inCode,
 				    GLCenum inRenderMode, FT_Face inFace,
 				    GLboolean inDisplayListIsBuilding,
-				    GLdouble* inTransformMatrix);
+				    GLdouble* inTransformMatrix,
+				    GLdouble scale_x, GLdouble scale_y);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);
@@ -135,8 +136,8 @@ GLint __glcGetMinMappedCode(FcCharSet *charSet);
 /* Get the maximum mapped code of a character set */
 GLint __glcGetMaxMappedCode(FcCharSet *charSet);
 
-/* Get the name of the character at offset inIndex from the first element of the
- * character set inCharSet
+/* Get the name of the character at offset inIndex from the first element of
+ * the character set inCharSet
  */
 GLCchar* __glcGetCharNameByIndex(FcCharSet* inCharSet, GLint inIndex,
 				 __glcContextState* inState);

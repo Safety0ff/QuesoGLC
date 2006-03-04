@@ -48,6 +48,7 @@ typedef struct {
   GLboolean autoFont;		/* GLC_AUTO_FONT */
   GLboolean glObjects;		/* GLC_GLOBJECTS */
   GLboolean mipmap;		/* GLC_MIPMAP */
+  GLboolean hinting;		/* GLC_HINTING_QSO */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
@@ -80,7 +81,8 @@ typedef struct {
   GLint versionMinor;		/* GLC_VERSION_MINOR */
 
   FT_ListRec stateList;
-  pthread_mutex_t mutex;	/* For concurrent accesses to the common area */
+  pthread_mutex_t mutex;	/* For concurrent accesses to the common
+				   area */
 
   pthread_key_t threadKey;
 

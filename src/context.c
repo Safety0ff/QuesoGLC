@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -171,6 +171,7 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   case GLC_AUTO_FONT:
   case GLC_GL_OBJECTS:
   case GLC_MIPMAP:
+  case GLC_HINTING_QSO: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -195,6 +196,8 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   case GLC_MIPMAP:
     state->mipmap = value;
     break;
+  case GLC_HINTING_QSO:
+    state->hinting = value;
   }
 }
 
@@ -217,6 +220,11 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
  *    </tr>
  *    <tr>
  *      <td><b>GLC_MIPMAP</b></td> <td>0x0012</td> <td><b>GL_TRUE</b></td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_HINTING_QSO</b></td>
+ *      <td>0x8005</td>
+ *      <td><b>GL_FALSE</b></td>
  *    </tr>
  *  </table>
  *  </center>
@@ -525,9 +533,9 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
       for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
 	   texNode && inIndex; texNode = texNode->next, inIndex--);
       if (texNode) {
-	/* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
-	 * void* pointer so that we do not need to allocate memory just to store
-	 * a single integer value
+	/* Hack in order to be able to store a 32 bits texture ID in a 32/64
+	 * bits void* pointer so that we do not need to allocate memory just to
+	 * store a single integer value
 	 */
         union {
 	  void* ptr;
@@ -618,7 +626,7 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
-  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name";
+  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name GLC_QSO_hinting";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   char __glcRelease[4] = " . ";
 
@@ -936,6 +944,7 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
   case GLC_AUTO_FONT:
   case GLC_GL_OBJECTS:
   case GLC_MIPMAP:
+  case GLC_HINTING_QSO: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -957,6 +966,8 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
     return state->glObjects;
   case GLC_MIPMAP:
     return state->mipmap;
+  case GLC_HINTING_QSO:
+    return state->hinting;
   }
 
   return GL_FALSE;

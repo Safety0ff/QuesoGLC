@@ -1,6 +1,10 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Added the enumerant GLC_HINTING_QSO to the glEnable()/glDisable() functions
+  to allow the user to activate hinting when glyphs are rendered at small pixel
+  sizes. By default, hinting is disabled because it creates visual artifacts
+  when the glyphs are animated.
 - In order to accelerate the rendering of characters, glyphs which bounding box
   lies outside the viewport are now skipped.
 - In GLC_TEXTURE mode, no mipmap is built anymore if the glyph is rendered in

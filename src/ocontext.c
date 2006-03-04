@@ -80,6 +80,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->dataPointer = NULL;
   This->autoFont = GL_TRUE;
   This->glObjects = GL_TRUE;
+  This->hinting = GL_FALSE;
   This->mipmap = GL_TRUE;
   This->resolution = 0.;
   This->bitmapMatrix[0] = 1.;

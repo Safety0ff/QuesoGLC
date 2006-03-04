@@ -37,13 +37,14 @@ typedef struct {
   __glcArray* vertexArray;		/* Array of vertices */
   __glcArray* controlPoints;		/* Array of control points */
   __glcArray* endContour;		/* Array of contour limits */
-  GLdouble scale_x;			/* Scale to convert grid point coordinates.. */
-  GLdouble scale_y;			/* ..into pixel coordinates */
-  GLdouble* transformMatrix;		/* Transformation matrix from the object space
-					   to the viewport */
+  GLdouble scale_x;			/* Scale to convert grid point.. */
+  GLdouble scale_y;			/* ..coordinates into pixels */
+  GLdouble* transformMatrix;		/* Transformation matrix from the
+					   object space to the viewport */
   GLdouble halfWidth;
   GLdouble halfHeight;
-  GLboolean displayListIsBuilding;	/* Is a display list planned to be built ? */
+  GLboolean displayListIsBuilding;	/* Is a display list planned to be
+					   built ? */
 }__glcRendererData;
 
 static void __glcComputePixelCoordinates(GLdouble* inCoord,
@@ -67,8 +68,10 @@ static void __glcComputePixelCoordinates(GLdouble* inCoord,
    * numerically null)
    */
   norm = x * x + y * y;
-  if (w * w < norm * GLC_EPSILON * GLC_EPSILON)
-    w = sqrt(norm) * GLC_EPSILON; /* Ugly hack to handle the singularity of w */
+  if (w * w < norm * GLC_EPSILON * GLC_EPSILON) {
+    /* Ugly hack to handle the singularity of w */
+    w = sqrt(norm) * GLC_EPSILON;
+  }
 
   inCoord[2] = x;
   inCoord[3] = y;
@@ -230,7 +233,8 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
       for (i = 0; i < inOrder; i++) {
 	GLdouble *p1, *p2;
 
-	cp1 = (GLdouble*)__glcArrayInsertCell(data->controlPoints, arc*inOrder+i+1);
+	cp1 = (GLdouble*)__glcArrayInsertCell(data->controlPoints,
+					       arc*inOrder+i+1);
 	if (!cp1) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -377,8 +381,10 @@ static void __glcCallbackError(GLenum inErrorCode)
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
-			     GLint inCode, GLCenum inRenderMode, FT_Face inFace,
-			     GLboolean inDisplayListIsBuilding, GLdouble* inTransformMatrix)
+			     GLint inCode, GLCenum inRenderMode,
+			     FT_Face inFace, GLboolean inDisplayListIsBuilding,
+			     GLdouble* inTransformMatrix, GLdouble scale_x,
+			     GLdouble scale_y)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
@@ -398,8 +404,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
   /* grid_coordinate is given in 26.6 fixed point integer hence we
      divide the scale by 2^6 */
-  rendererData.scale_x = 1./64./GLC_POINT_SIZE;
-  rendererData.scale_y = 1./64./GLC_POINT_SIZE;
+  rendererData.scale_x = 1./64./scale_x;
+  rendererData.scale_y = 1./64./scale_y;
 
   rendererData.vertexArray = inState->vertexArray;
   rendererData.controlPoints = inState->controlPoints;
@@ -429,8 +435,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     /* Distances are computed in object space, so is the tolerance of the
      * de Casteljau algorithm.
      */
-    rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFace->units_per_EM
-      * rendererData.scale_x * rendererData.scale_y;
+    rendererData.tolerance = 0.005 * sqrt(scale_x*scale_x + scale_y*scale_y)
+      * inFace->units_per_EM * rendererData.scale_x * rendererData.scale_y;
     rendererData.halfWidth = 0.5;
     rendererData.halfHeight = 0.5;
     rendererData.transformMatrix = identityMatrix;
@@ -489,8 +495,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
     gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
-/*    gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
-		    (void (*) ())__glcCombineCallback);*/
+    /* gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
+       (void (*) ())__glcCombineCallback);*/
     gluTessCallback(tess, GLU_TESS_END, glEnd);
 
     gluTessNormal(tess, 0., 0., 1.);

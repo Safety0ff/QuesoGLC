@@ -176,6 +176,9 @@ extern GLint glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint inIndex);
 #define GLC_QSO_utf8				  1
 #define GLC_UTF8_QSO                              0x8004
 
+#define GLC_QSO_hinting				  1
+#define GLC_HINTING_QSO                           0x8005
+
 #if defined (__cplusplus)
     }
 #endif
