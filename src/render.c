@@ -232,7 +232,8 @@ static int __glcNextPowerOf2(int value)
  * 'inCode' must be given in UCS-4 format
  */
 static void __glcRenderCharTexture(__glcFont* inFont,
-				   __glcContextState* inState, GLint inCode)
+				   __glcContextState* inState, GLint inCode,
+				   GLboolean inDisplayListIsBuilding)
 {
   FT_Face face = __glcFaceDescOpen(inFont->faceDesc, inState);
   FT_Outline outline;
@@ -343,7 +344,10 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  if (inState->mipmap) {
+  /* A mipmap is built only if a display list is currently building
+   * otherwise it adds uneeded computations
+   */
+  if (inState->mipmap && inDisplayListIsBuilding) {
     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_ALPHA8, pixmap.width,
 		      pixmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE,
 		      pixmap.buffer);
@@ -362,7 +366,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-  
+
   glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
   glBindTexture(GL_TEXTURE_2D, boundTexture);
 
@@ -430,8 +434,10 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     /* Finish display list creation */
     glEndList();
   }
-  else
-    glDeleteTextures(1, &texture);
+  else {
+    if (!inDisplayListIsBuilding)
+      glDeleteTextures(1, &texture);
+  }
 
   __glcFree(pixmap.buffer);
   __glcFaceDescClose(inFont->faceDesc);
@@ -486,6 +492,9 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
   FT_UInt glyphIndex = 0;
   FT_ListNode node = NULL;
   FT_Face face = NULL;
+  GLdouble transformMatrix[16];
+  GLint listIndex = 0;
+  GLboolean displayListIsBuilding = GL_FALSE;
 
   for (node = inState->fontList.head; node; node = node->next) {
     font = (__glcFont*)node->data;
@@ -517,6 +526,64 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
     return;
   }
 
+  glGetIntegerv(GL_LIST_INDEX, &listIndex);
+  displayListIsBuilding = listIndex || inState->glObjects;
+
+  if (inState->renderStyle != GLC_BITMAP) {
+    GLdouble projectionMatrix[16];
+    GLdouble modelviewMatrix[16];
+    int i = 0, j = 0;
+
+    glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
+    glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
+
+    /* Compute the matrix that transforms object space coordinates to viewport
+     * coordinates. If we plan to use object space coordinates, this matrix is
+     * set to identity.
+     */
+    for (i = 0; i < 4 ; i++) {
+      for (j = 0; j < 4; j++) {
+	transformMatrix[i*4+j] =
+		modelviewMatrix[i*4+0]*projectionMatrix[0*4+j]+
+		modelviewMatrix[i*4+1]*projectionMatrix[1*4+j]+
+		modelviewMatrix[i*4+2]*projectionMatrix[2*4+j]+
+		modelviewMatrix[i*4+3]*projectionMatrix[3*4+j];
+      }
+    }
+
+    if (!displayListIsBuilding) {
+      FT_Outline outline;
+      FT_Vector* vector = NULL;
+      GLdouble xMin = 1E20, yMin = 1E20, zMin = 1E20;
+      GLdouble xMax = -1E20, yMax = -1E20, zMax = -1E20;
+
+      /* Compute the bounding box of the control points of the glyph in the observer coordinates */
+      outline = face->glyph->outline;
+      if (!outline.n_points)
+	return;
+
+      for (vector = outline.points; vector < outline.points + outline.n_points; vector++) {
+	GLdouble vx = vector->x / 64. / GLC_POINT_SIZE;
+	GLdouble vy = vector->y / 64. / GLC_POINT_SIZE;
+	GLdouble w = vx * transformMatrix[3] + vy * transformMatrix[7] + transformMatrix[15];
+	GLdouble x = (vx * transformMatrix[0] + vy * transformMatrix[4] + transformMatrix[12]) / w;
+	GLdouble y = (vx * transformMatrix[1] + vy * transformMatrix[5] + transformMatrix[13]) / w;
+	GLdouble z = (vx * transformMatrix[2] + vy * transformMatrix[6] + transformMatrix[14]) / w;
+
+	xMin = (x < xMin ? x : xMin);
+	xMax = (x > xMax ? x : xMax);
+	yMin = (y < yMin ? y : yMin);
+	yMax = (y > yMax ? y : yMax);
+	zMin = (z < zMin ? z : zMin);
+	zMax = (z > zMax ? z : zMax);
+      }
+
+      /* If the bounding box of the glyph lies out of viewport then skip the glyph */
+      if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.) || (zMin > 1.) || (zMax < -1.))
+	return;
+    }
+  }
+
   /* Call the appropriate function depending on the rendering mode. It first
    * checks if a display list that draws the desired glyph has already been
    * defined
@@ -527,12 +594,13 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
     break;
   case GLC_TEXTURE:
     if (!__glcFindDisplayList(font, inCode, GLC_TEXTURE))
-      __glcRenderCharTexture(font, inState, inCode);
+      __glcRenderCharTexture(font, inState, inCode, displayListIsBuilding);
     break;
   case GLC_LINE:
   case GLC_TRIANGLE:
     if (!__glcFindDisplayList(font, inCode, inState->renderStyle))
-      __glcRenderCharScalable(font, inState, inCode, inState->renderStyle, face);
+      __glcRenderCharScalable(font, inState, inCode, inState->renderStyle, face,
+			      displayListIsBuilding, transformMatrix);
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
