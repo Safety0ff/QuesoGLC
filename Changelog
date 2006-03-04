@@ -1,9 +1,18 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- In order to accelerate the rendering of characters, glyphs which bounding box
+  lies outside the viewport are now skipped.
+- In GLC_TEXTURE mode, no mipmap is built anymore if the glyph is rendered in
+  immediate mode (that is if GLC_GL_OBJECTS is disabled and the user is not
+  building a display list).
+- Fixed a bug in glcRenderChar() where the texture used in GLC_TEXTURE mode was
+  deleted after the glyph was rendered if GLC_GL_OBJECTS was disabled. This
+  could lead to unexpected results if the user tried to encapsulate the
+  glcRenderChar() call in a glcNewList/glcEndList pair.
 - In order to accelerate the rendering of glyphs in GLC_LINE and GLC_TRIANGLE
   modes, outline curves that lie outside the viewport are replaced by a
-  piecewise linear curve that joins the control points
+  piecewise linear curve that joins the control points.
 - The criterion that is used by the de Casteljau algorithm is now computed in
   pixel distance rather than in object space distance whenever no display list
   is building. This leads to a more optimal number of vertices which depends on
