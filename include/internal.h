@@ -55,7 +55,9 @@ typedef struct {
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont,
 				    __glcContextState* inState, GLint inCode,
-				    GLCenum inRenderMode, FT_Face inFace);
+				    GLCenum inRenderMode, FT_Face inFace,
+				    GLboolean inDisplayListIsBuilding,
+				    GLdouble* inTransformMatrix);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);
