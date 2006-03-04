@@ -39,9 +39,10 @@ typedef struct {
   __glcArray* endContour;		/* Array of contour limits */
   GLdouble scale_x;			/* Scale to convert grid point coordinates.. */
   GLdouble scale_y;			/* ..into pixel coordinates */
-  GLdouble transformMatrix[16];		/* Transformation matrix from the object space
+  GLdouble* transformMatrix;		/* Transformation matrix from the object space
 					   to the viewport */
-  GLdouble viewport[4];			/* Viewport transformation */
+  GLdouble halfWidth;
+  GLdouble halfHeight;
   GLboolean displayListIsBuilding;	/* Is a display list planned to be built ? */
 }__glcRendererData;
 
@@ -65,15 +66,15 @@ static void __glcComputePixelCoordinates(GLdouble* inCoord,
    * transformation matrix is ill-conditioned (i.e. its determinant is
    * numerically null)
    */
-  norm = sqrt(x * x + y * y);
-  if (w < norm * GLC_EPSILON)
-    w = norm * GLC_EPSILON; /* Ugly hack to handle the singularity of w */
+  norm = x * x + y * y;
+  if (w * w < norm * GLC_EPSILON * GLC_EPSILON)
+    w = sqrt(norm) * GLC_EPSILON; /* Ugly hack to handle the singularity of w */
 
-  inCoord[2] = x * inData->viewport[0];
-  inCoord[3] = y * inData->viewport[2];
+  inCoord[2] = x;
+  inCoord[3] = y;
   inCoord[4] = w;
-  inCoord[5] = inCoord[2] / w;
-  inCoord[6] = inCoord[3] / w;
+  inCoord[5] = x / w;
+  inCoord[6] = y / w;
 }
 
 /* __glcdeCasteljau : 
@@ -166,8 +167,8 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
      * the bezier curve is replaced by a piecewise linear curve that joins the
      * control points
      */
-    if ((xMin > data->viewport[0]) || (xMax < -data->viewport[0])
-        || (yMin > data->viewport[2]) || (yMax < -data->viewport[2])) {
+    if ((xMin > data->halfWidth) || (xMax < -data->halfWidth)
+        || (yMin > data->halfHeight) || (yMax < -data->halfHeight)) {
       for (i = 1; i < inOrder; i++) {
 	controlPoint[i][2] = 0.;
 	if (!__glcArrayAppend(data->vertexArray, controlPoint[i])) {
@@ -224,18 +225,13 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
       /* Split an arc into two smaller arcs (this is the actual de Casteljau
        * algorithm)
        */
-      for (i = 0; i < inOrder; i++) {
-	GLdouble *p1 = controlPoint[i];
-	GLdouble *p2 = controlPoint[i+1];
+      GLdouble *cp1 = NULL;
 
-	cp[0] = 0.5*(p1[0]+p2[0]);
-	cp[1] = 0.5*(p1[1]+p2[1]);
-	cp[2] = 0.5*(p1[2]+p2[2]);
-	cp[3] = 0.5*(p1[3]+p2[3]);
-	cp[4] = 0.5*(p1[4]+p2[4]);
-	cp[5] = cp[2] / cp[4];
-	cp[6] = cp[3] / cp[4];
-	if (!__glcArrayInsert(data->controlPoints, arc*inOrder+i+1, cp)) {
+      for (i = 0; i < inOrder; i++) {
+	GLdouble *p1, *p2;
+
+	cp1 = (GLdouble*)__glcArrayInsertCell(data->controlPoints, arc*inOrder+i+1);
+	if (!cp1) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	  return 1;
@@ -247,6 +243,17 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	 */
 	controlPoint = ((GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints))
 	  + arc * inOrder;
+
+	p1 = controlPoint[i];
+	p2 = controlPoint[i+1];
+
+	cp1[0] = 0.5*(p1[0]+p2[0]);
+	cp1[1] = 0.5*(p1[1]+p2[1]);
+	cp1[2] = 0.5*(p1[2]+p2[2]);
+	cp1[3] = 0.5*(p1[3]+p2[3]);
+	cp1[4] = 0.5*(p1[4]+p2[4]);
+	cp1[5] = cp1[2] / cp1[4];
+	cp1[6] = cp1[3] / cp1[4];
 
 	for (j = 0; j < inOrder - i - 1; j++) {
 	  p1 = controlPoint[i+j+2];
@@ -261,15 +268,15 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	}
       }
 
-      /* The point in cp[] is a point located on the Bezier curve : it must be
+      /* The point in cp1[] is a point located on the Bezier curve : it must be
        * added to the vertex array
        */
-      cp[2] = 0.;
-      if (!__glcArrayInsert(data->vertexArray, rank+1, cp)) {
+      if (!__glcArrayInsert(data->vertexArray, rank+1, cp1)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
+      ((GLdouble(*)[3])GLC_ARRAY_DATA(data->vertexArray))[rank+1][2] = 0.;
 
       nArc++; /* A new arc has been defined */
     }
@@ -365,23 +372,21 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 
 static void __glcCallbackError(GLenum inErrorCode)
 {
+  /*printf("%s\n", gluErrorString(inErrorCode));*/
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
-			     GLint inCode, GLCenum inRenderMode, FT_Face inFace)
+			     GLint inCode, GLCenum inRenderMode, FT_Face inFace,
+			     GLboolean inDisplayListIsBuilding, GLdouble* inTransformMatrix)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
   FT_ListNode node = NULL;
   __glcDisplayListKey *dlKey = NULL;
   __glcRendererData rendererData;
-  GLdouble projectionMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
-				   0., 0., 0., 0., 1.};
-  GLdouble modelviewMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
-				  0., 0., 0., 0., 1.};
-  GLint listIndex = 0;
-  int i = 0, j = 0;
+  GLdouble identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+				 0., 0., 0., 0., 1.};
 
   outline = &inFace->glyph->outline;
   interface.shift = 0;
@@ -400,23 +405,25 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   rendererData.controlPoints = inState->controlPoints;
   rendererData.endContour = inState->endContour;
 
+  rendererData.displayListIsBuilding = inDisplayListIsBuilding;
+
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
    */
-  glGetIntegerv(GL_LIST_INDEX, &listIndex);
-
-  if ((!inState->glObjects) && (!listIndex)) {
+  if (!inDisplayListIsBuilding) {
     GLint viewport[4];
 
-    glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
-    glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
     glGetIntegerv(GL_VIEWPORT, viewport);
-    rendererData.viewport[0] = viewport[2] * 0.5;
-    rendererData.viewport[1] = viewport[0] + viewport[2] * 0.5;
-    rendererData.viewport[2] = viewport[3] * 0.5;
-    rendererData.viewport[3] = viewport[1] + viewport[3] * 0.5;
+    rendererData.halfWidth = viewport[2] * 0.5;
+    rendererData.halfHeight = viewport[3] * 0.5;
+    rendererData.transformMatrix = inTransformMatrix;
+    rendererData.transformMatrix[0] *= rendererData.halfWidth;
+    rendererData.transformMatrix[4] *= rendererData.halfWidth;
+    rendererData.transformMatrix[12] *= rendererData.halfWidth;
+    rendererData.transformMatrix[1] *= rendererData.halfHeight;
+    rendererData.transformMatrix[5] *= rendererData.halfHeight;
+    rendererData.transformMatrix[13] *= rendererData.halfHeight;
     rendererData.tolerance = .25; /* Half pixel tolerance */
-    rendererData.displayListIsBuilding = GL_FALSE;
   }
   else {
     /* Distances are computed in object space, so is the tolerance of the
@@ -424,26 +431,9 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
      */
     rendererData.tolerance = 0.005 * GLC_POINT_SIZE * inFace->units_per_EM
       * rendererData.scale_x * rendererData.scale_y;
-    rendererData.viewport[0] = 1.;
-    rendererData.viewport[1] = 0.;
-    rendererData.viewport[2] = 1.;
-    rendererData.viewport[3] = 0.;
-    rendererData.displayListIsBuilding = GL_TRUE;
-  }
-
-
-  /* Compute the matrix that transforms object space coordinates to viewport
-   * coordinates. If we plan to use object space coordinates, this matrix is
-   * set to identity.
-   */
-  for (i = 0; i < 4 ; i++) {
-    for (j = 0; j < 4; j++) {
-      rendererData.transformMatrix[i*4+j] =
-	modelviewMatrix[i*4+0]*projectionMatrix[0*4+j]+
-	modelviewMatrix[i*4+1]*projectionMatrix[1*4+j]+
-	modelviewMatrix[i*4+2]*projectionMatrix[2*4+j]+
-	modelviewMatrix[i*4+3]*projectionMatrix[3*4+j];
-    }
+    rendererData.halfWidth = 0.5;
+    rendererData.halfHeight = 0.5;
+    rendererData.transformMatrix = identityMatrix;
   }
 
   /* Parse the outline of the glyph */
@@ -483,7 +473,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     node->data = dlKey;
     FT_List_Add(&inFont->parent->displayList, node);
 
-    glNewList(dlKey->list, GL_COMPILE);
+    glNewList(dlKey->list, GL_COMPILE_AND_EXECUTE);
   }
 
   if (inRenderMode == GLC_TRIANGLE) {
@@ -536,10 +526,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   glTranslatef(inFace->glyph->advance.x * rendererData.scale_x,
 	       inFace->glyph->advance.y * rendererData.scale_y, 0.);
 
-  if (inState->glObjects) {
+  if (inState->glObjects)
     glEndList();
-    glCallList(dlKey->list);
-  }
 
   GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inState->endContour) = 0;
