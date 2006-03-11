@@ -894,7 +894,7 @@ GLint glcGeti(GLCenum inAttrib)
 	 node = node->next, count++);
     return count;
   case GLC_MEASURED_CHAR_COUNT:
-    return state->measuredCharCount;
+    return GLC_ARRAY_LENGTH(state->measurementBuffer);
   case GLC_RENDER_STYLE:
     return state->renderStyle;
   case GLC_REPLACEMENT_CODE:

@@ -54,7 +54,6 @@ typedef struct {
   FT_ListRec fontList;		/* GLC_FONT_LIST */
   FT_ListRec masterList;
   FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
-  GLint measuredCharCount;	/* GLC_MEASURED_CHAR_COUNT */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
   GLint stringType;		/* GLC_STRING_TYPE */

@@ -95,7 +95,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
-  This->measuredCharCount = 0;
   This->renderStyle = GLC_BITMAP;
   This->replacementCode = 0;
   This->stringType = GLC_UCS1;
