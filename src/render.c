@@ -89,7 +89,6 @@
 #else
 #include <GL/glu.h>
 #endif
-#include <math.h>
 
 #include "internal.h"
 #include FT_OUTLINE_H
@@ -97,66 +96,15 @@
 
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
-static void __glcRenderCharBitmap(__glcFont* inFont,
-				  __glcContextState* inState,
-				  FT_UInt glyphIndex)
+static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
+				  __glcContextState* inState, GLfloat scale_x,
+				  GLfloat scale_y)
 {
   FT_Matrix matrix;
-  FT_Face face = __glcFaceDescOpen(inFont->faceDesc, inState);
   FT_Outline outline;
   FT_BBox boundBox;
   FT_Bitmap pixmap;
   GLfloat *transform = inState->bitmapMatrix;
-  GLfloat determinant = 0., norm = 0.;
-  GLfloat scale_x = 0., scale_y = 0.;
-  int i = 0;
-  FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
-
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  outline = face->glyph->outline;
-
-  /* Compute the norm of the transformation matrix */
-  for (i = 0; i < 4; i++) {
-    if (fabsf(transform[i]) > norm)
-      norm = fabsf(transform[i]);
-  }
-
-  determinant = transform[0] * transform[3] - transform[1] * transform[2];
-
-  /* If the transformation is degenerated, nothing needs to be rendered */
-  if (fabsf(determinant) < norm * GLC_EPSILON) {
-    __glcFaceDescClose(inFont->faceDesc);
-    return;
-  }
-
-  if (inState->hinting) {
-    scale_x = sqrt(transform[0]*transform[0]+transform[1]*transform[1]);
-    scale_y = sqrt(transform[2]*transform[2]+transform[3]*transform[3]);
-  }
-  else {
-    scale_x = GLC_POINT_SIZE;
-    scale_y = GLC_POINT_SIZE;
-    loadFlags |= FT_LOAD_NO_HINTING;
-  }
-
-  if (FT_Set_Char_Size(face, (FT_F26Dot6)(scale_x * 64.),
-		       (FT_F26Dot6)(scale_y * 64.), inState->resolution,
-		       inState->resolution)) {
-    __glcFaceDescClose(inFont->faceDesc);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* Get and load the glyph which unicode code is identified by inCode */
-  if (FT_Load_Glyph(face, glyphIndex, loadFlags)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(inFont->faceDesc);
-    return;
-  }
 
   /* compute glyph dimensions */
   matrix.xx = (FT_Fixed)(transform[0] * 65536. / scale_x);
@@ -165,6 +113,7 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   matrix.yy = (FT_Fixed)(transform[3] * 65536. / scale_y);
 
   /* Get the bounding box of the glyph */
+  outline = inGlyph->outline;
   FT_Outline_Transform(&outline, &matrix);
   FT_Outline_Get_CBox(&outline, &boundBox);
 
@@ -184,7 +133,6 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
   if (!pixmap.buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -202,21 +150,19 @@ static void __glcRenderCharBitmap(__glcFont* inFont,
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
     __glcFree(pixmap.buffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
   /* Do the actual GL rendering */
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin >> 6, -boundBox.yMin >> 6,
-	   face->glyph->advance.x / 64. * matrix.xx / 65536.
-	   + face->glyph->advance.y / 64. * matrix.xy / 65536.,
-	   face->glyph->advance.x / 64. * matrix.yx / 65536.
-	   + face->glyph->advance.y / 64. * matrix.yy / 65536.,
+	   inGlyph->advance.x / 64. * matrix.xx / 65536.
+	   + inGlyph->advance.y / 64. * matrix.xy / 65536.,
+	   inGlyph->advance.x / 64. * matrix.yx / 65536.
+	   + inGlyph->advance.y / 64. * matrix.yy / 65536.,
 	   pixmap.buffer);
 
   __glcFree(pixmap.buffer);
-  __glcFaceDescClose(inFont->faceDesc);
 }
 
 
@@ -237,7 +183,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 				   GLboolean inDisplayListIsBuilding,
 				   GLfloat scale_x, GLfloat scale_y)
 {
-  FT_Face face = __glcFaceDescOpen(inFont->faceDesc, inState);
+  FT_Face face = inFont->faceDesc->face;
   FT_Outline outline;
   FT_BBox boundBox;
   FT_Bitmap pixmap;
@@ -249,10 +195,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   GLint boundTexture = 0;
   GLint unpackAlignment = 0;
 
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  assert(face);
 
   outline = face->glyph->outline;
 
@@ -276,7 +219,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 			   &format);
   if (!format) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -286,7 +228,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
   if (!pixmap.buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -304,7 +245,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
     __glcFree(pixmap.buffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(inFont->faceDesc);
     return;
   }
 
@@ -335,7 +275,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
       __glcRaiseError(GLC_RESOURCE_ERROR);
       glDeleteTextures(1, &texture);
       __glcFree(pixmap.buffer);
-      __glcFaceDescClose(inFont->faceDesc);
       return;
     }
   }
@@ -377,7 +316,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     if (!dlKey) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFree(pixmap.buffer);
-      __glcFaceDescClose(inFont->faceDesc);
       return;
     }
 
@@ -442,7 +380,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   }
 
   __glcFree(pixmap.buffer);
-  __glcFaceDescClose(inFont->faceDesc);
 }
 
 static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
@@ -484,245 +421,68 @@ static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
   return GL_FALSE;
 }
 
-static void __glcMakeIdentity(GLdouble* m)
-{
-    m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
-    m[1+4*0] = 0; m[1+4*1] = 1; m[1+4*2] = 0; m[1+4*3] = 0;
-    m[2+4*0] = 0; m[2+4*1] = 0; m[2+4*2] = 1; m[2+4*3] = 0;
-    m[3+4*0] = 0; m[3+4*1] = 0; m[3+4*2] = 0; m[3+4*3] = 1;
-}
-
-static GLboolean __glcInvertMatrix(GLdouble* inMatrix, GLdouble* outMatrix)
-{
-  int i, j, k, swap;
-  double t;
-  GLdouble temp[4][4];
-
-  for (i=0; i<4; i++) {
-    for (j=0; j<4; j++) {
-      temp[i][j] = inMatrix[i*4+j];
-    }
-  }
-  __glcMakeIdentity(outMatrix);
-
-  for (i = 0; i < 4; i++) {
-    /* Look for largest element in column */
-    swap = i;
-    for (j = i + 1; j < 4; j++) {
-      if (fabs(temp[j][i]) > fabs(temp[i][i])) {
-	swap = j;
-      }
-    }
-
-    if (swap != i) {
-      /* Swap rows */
-      for (k = 0; k < 4; k++) {
-	t = temp[i][k];
-	temp[i][k] = temp[swap][k];
-	temp[swap][k] = t;
-
-	t = outMatrix[i*4+k];
-	outMatrix[i*4+k] = outMatrix[swap*4+k];
-	outMatrix[swap*4+k] = t;
-      }
-    }
-
-    if (fabs(temp[i][i]) < GLC_EPSILON) {
-      /* No non-zero pivot. The matrix is singular, which shouldn't
-       * happen. This means the user gave us a bad matrix.
-       */
-      return GL_FALSE;
-    }
-
-    t = temp[i][i];
-    for (k = 0; k < 4; k++) {
-      temp[i][k] /= t;
-      outMatrix[i*4+k] /= t;
-    }
-    for (j = 0; j < 4; j++) {
-      if (j != i) {
-	t = temp[j][i];
-	for (k = 0; k < 4; k++) {
-	  temp[j][k] -= temp[i][k]*t;
-	  outMatrix[j*4+k] -= outMatrix[i*4+k]*t;
-	}
-      }
-    }
-  }
-  return GL_TRUE;
-}
-
-static void __glcMultMatrices(GLdouble* inMatrix1, GLdouble* inMatrix2,
-			      GLdouble* outMatrix)
-{
-  int i, j;
-
-  for (i = 0; i < 4; i++) {
-    for (j = 0; j < 4; j++) {
-      outMatrix[i*4+j] = 
-	inMatrix1[i*4+0]*inMatrix2[0*4+j] +
-	inMatrix1[i*4+1]*inMatrix2[1*4+j] +
-	inMatrix1[i*4+2]*inMatrix2[2*4+j] +
-	inMatrix1[i*4+3]*inMatrix2[3*4+j];
-    }
-  }
-}
-
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
-static void __glcRenderChar(GLint inCode, GLint inFont,
-			    __glcContextState* inState)
+static void* __glcRenderChar(GLint inCode, GLint inFont,
+			    __glcContextState* inState, void* inData,
+			    GLboolean inMultipleChars)
 {
-  __glcFont* font = NULL;
-  FT_UInt glyphIndex = 0;
-  FT_ListNode node = NULL;
-  FT_Face face = NULL;
   GLdouble transformMatrix[16];
-  GLint listIndex = 0;
   GLboolean displayListIsBuilding = GL_FALSE;
-  GLdouble scale_x = 0.;
-  GLdouble scale_y = 0.;
-  FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
+  GLdouble scale_x = GLC_POINT_SIZE;
+  GLdouble scale_y = GLC_POINT_SIZE;
+  __glcFont* font = __glcLoadGlyph(inState, inFont, inCode, transformMatrix,
+				 &scale_x, &scale_y, &displayListIsBuilding);
 
-  for (node = inState->fontList.head; node; node = node->next) {
-    font = (__glcFont*)node->data;
-    assert(font);
-    if (font->id == inFont) break;
-  }
-
-  if (!node)
-    return;
-
-  face = __glcFaceDescOpen(font->faceDesc, inState);
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* Get and load the glyph which unicode code is identified by inCode */
-  glyphIndex = __glcCharMapGlyphIndex(font->charMap, face, inCode);
-  if (!glyphIndex) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    __glcFaceDescClose(font->faceDesc);
-    return;
-  }
-
-  glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  displayListIsBuilding = listIndex || inState->glObjects;
+  if (!font)
+    return NULL;
 
   if (inState->renderStyle != GLC_BITMAP) {
-    GLdouble projectionMatrix[16];
-    GLdouble modelviewMatrix[16];
-    int i = 0;
-    GLint viewport[4];
+    if (!displayListIsBuilding) {
+      FT_Outline outline;
+      FT_Vector* vector = NULL;
+      GLdouble xMin = 1E20, yMin = 1E20, zMin = 1E20;
+      GLdouble xMax = -1E20, yMax = -1E20, zMax = -1E20;
 
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
-    glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
-
-    /* Compute the matrix that transforms object space coordinates to viewport
-     * coordinates. If we plan to use object space coordinates, this matrix is
-     * set to identity.
-     */
-    __glcMultMatrices(modelviewMatrix, projectionMatrix, transformMatrix);
-
-    if ((!displayListIsBuilding) && inState->hinting) {
-      GLdouble rs[16], m[16];
-      GLdouble sx = sqrt(transformMatrix[0] * transformMatrix[0]
-			+transformMatrix[1] * transformMatrix[1]
-			+transformMatrix[2] * transformMatrix[2]);
-      GLdouble sy = sqrt(transformMatrix[4] * transformMatrix[4]
-			+transformMatrix[5] * transformMatrix[5]
-			+transformMatrix[6] * transformMatrix[6]);
-      GLdouble sz = sqrt(transformMatrix[8] * transformMatrix[8]
-			+transformMatrix[9] * transformMatrix[9]
-			+transformMatrix[10] * transformMatrix[10]);
-      GLdouble x = 0., y = 0.;
-
-      bzero(rs, 16 * sizeof(GLdouble));
-      rs[15] = 1.;
-      for (i = 0; i < 3; i++) {
-	rs[0+4*i] = transformMatrix[0+4*i] / sx;
-	rs[1+4*i] = transformMatrix[1+4*i] / sy;
-	rs[2+4*i] = transformMatrix[2+4*i] / sz;
-      }
-      if (!__glcInvertMatrix(rs, rs)) {
+      /* Compute the bounding box of the control points of the glyph in the
+       * observer coordinates
+       */
+      outline = font->faceDesc->face->glyph->outline;
+      if (!outline.n_points) {
 	__glcFaceDescClose(font->faceDesc);
-	return;
+	return NULL;
       }
-      __glcMultMatrices(rs, transformMatrix, m);
-      x = ((m[0] + m[12])/(m[3] + m[15]) - m[12]/m[15]) * viewport[2] * 0.5;
-      y = ((m[1] + m[13])/(m[3] + m[15]) - m[13]/m[15]) * viewport[3] * 0.5;
-      scale_x = sqrt(x*x+y*y);
-      x = ((m[4] + m[12])/(m[7] + m[15]) - m[12]/m[15]) * viewport[2] * 0.5;
-      y = ((m[5] + m[13])/(m[7] + m[15]) - m[13]/m[15]) * viewport[3] * 0.5;
-      scale_y = sqrt(x*x+y*y);
-    }
-    else {
-      scale_x = GLC_POINT_SIZE;
-      scale_y = GLC_POINT_SIZE;
-      loadFlags |= FT_LOAD_NO_HINTING;
-    }
-  }
 
-  if (FT_Set_Char_Size(face, (FT_F26Dot6)(scale_x * 64.),
-		       (FT_F26Dot6)(scale_y * 64.), inState->resolution,
-		       inState->resolution)) {
-    __glcFaceDescClose(font->faceDesc);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+      for (vector = outline.points; vector < outline.points + outline.n_points;
+	   vector++) {
+	GLdouble vx = vector->x / 64. / scale_x;
+	GLdouble vy = vector->y / 64. / scale_y;
+	GLdouble w = vx * transformMatrix[3] + vy * transformMatrix[7]
+		     + transformMatrix[15];
+	GLdouble x = (vx * transformMatrix[0] + vy * transformMatrix[4]
+		      + transformMatrix[12]) / w;
+	GLdouble y = (vx * transformMatrix[1] + vy * transformMatrix[5]
+		      + transformMatrix[13]) / w;
+	GLdouble z = (vx * transformMatrix[2] + vy * transformMatrix[6]
+		      + transformMatrix[14]) / w;
 
-  if (FT_Load_Glyph(face, glyphIndex, loadFlags)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(font->faceDesc);
-    return;
-  }
+	xMin = (x < xMin ? x : xMin);
+	xMax = (x > xMax ? x : xMax);
+	yMin = (y < yMin ? y : yMin);
+	yMax = (y > yMax ? y : yMax);
+	zMin = (z < zMin ? z : zMin);
+	zMax = (z > zMax ? z : zMax);
+      }
 
-  if ((inState->renderStyle != GLC_BITMAP) && (!displayListIsBuilding)) {
-    FT_Outline outline;
-    FT_Vector* vector = NULL;
-    GLdouble xMin = 1E20, yMin = 1E20, zMin = 1E20;
-    GLdouble xMax = -1E20, yMax = -1E20, zMax = -1E20;
-
-    /* Compute the bounding box of the control points of the glyph in the
-     * observer coordinates
-     */
-    outline = face->glyph->outline;
-    if (!outline.n_points) {
-      __glcFaceDescClose(font->faceDesc);
-      return;
-    }
-
-    for (vector = outline.points; vector < outline.points + outline.n_points;
-	 vector++) {
-      GLdouble vx = vector->x / 64. / scale_x;
-      GLdouble vy = vector->y / 64. / scale_y;
-      GLdouble w = vx * transformMatrix[3] + vy * transformMatrix[7]
-	+ transformMatrix[15];
-      GLdouble x = (vx * transformMatrix[0] + vy * transformMatrix[4]
-		    + transformMatrix[12]) / w;
-      GLdouble y = (vx * transformMatrix[1] + vy * transformMatrix[5]
-		    + transformMatrix[13]) / w;
-      GLdouble z = (vx * transformMatrix[2] + vy * transformMatrix[6]
-		    + transformMatrix[14]) / w;
-
-      xMin = (x < xMin ? x : xMin);
-      xMax = (x > xMax ? x : xMax);
-      yMin = (y < yMin ? y : yMin);
-      yMax = (y > yMax ? y : yMax);
-      zMin = (z < zMin ? z : zMin);
-      zMax = (z > zMax ? z : zMax);
-    }
-
-    /* If the bounding box of the glyph lies out of viewport then skip the
-     * glyph
-     */
-    if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
-	|| (zMin > 1.) || (zMax < -1.)) {
-      __glcFaceDescClose(font->faceDesc);
-      return;
+      /* If the bounding box of the glyph lies out of viewport then skip the
+       * glyph
+       */
+      if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
+	  || (zMin > 1.) || (zMax < -1.)) {
+	__glcFaceDescClose(font->faceDesc);
+	return NULL;
+      }
     }
   }
 
@@ -732,7 +492,8 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
    */
   switch(inState->renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(font, inState, glyphIndex);
+    __glcRenderCharBitmap(font->faceDesc->face->glyph, inState,
+			  (GLfloat)scale_x, (GLfloat)scale_y);
     break;
   case GLC_TEXTURE:
     if (!__glcFindDisplayList(font, inCode, GLC_TEXTURE))
@@ -743,7 +504,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
   case GLC_TRIANGLE:
     if (!__glcFindDisplayList(font, inCode, inState->renderStyle))
       __glcRenderCharScalable(font, inState, inCode, inState->renderStyle,
-			      face, displayListIsBuilding, transformMatrix,
+			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y);
     break;
   default:
@@ -751,74 +512,7 @@ static void __glcRenderChar(GLint inCode, GLint inFont,
   }
 
   __glcFaceDescClose(font->faceDesc);
-}
-
-/* Process the character in order to find a font that maps the code and to
- * render the corresponding glyph. Replacement code and '<hexcode>' format
- * are issued if necessary.
- * 'inCode' must be given in UCS-4 format
- */
-static void __glcProcessChar(__glcContextState *inState, GLint inCode)
-{  
-  GLint repCode = 0;
-  GLint font = 0;
-  
-  /* Get a font that maps inCode */
-  font = __glcCtxGetFont(inState, inCode);
-  if (font >= 0) {
-    /* A font has been found */
-    __glcRenderChar(inCode, font, inState);
-    return;
-  }
-
-  /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
-   * produce an alternate rendering.
-   */
-
-  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and __glcCtxGetFont()
-   * finds a font that maps the replacement code, we now render the character
-   * that the replacement code is mapped to
-   */
-  repCode = inState->replacementCode;
-  font = __glcCtxGetFont(inState, repCode);
-  if (repCode && font) {
-    __glcRenderChar(repCode, font, inState);
-    return;
-  }
-  else {
-    /* If we get there, we failed to render both the character that inCode maps
-     * to and the replacement code. Now, we will try to render the character
-     * sequence "\<hexcode>", where '\' is the character REVERSE SOLIDUS 
-     * (U+5C), '<' is the character LESS-THAN SIGN (U+3C), '>' is the character
-     * GREATER-THAN SIGN (U+3E), and 'hexcode' is inCode represented as a
-     * sequence of hexadecimal digits. The sequence has no leading zeros, and
-     * alphabetic digits are in upper case. The GLC measurement commands treat
-     * the sequence as a single character.
-     */
-    char buf[10];
-    GLint i = 0;
-    GLint n = 0;
-
-    /* Check if a font maps to '\', '<' and '>'. */
-    if (!__glcCtxGetFont(inState, '\\') || !__glcCtxGetFont(inState, '<')
-	|| !__glcCtxGetFont(inState, '>'))
-      return;
-
-    /* Check if a font maps hexadecimal digits */
-    sprintf(buf,"%X", (int)inCode);
-    n = strlen(buf);
-    for (i = 0; i < n; i++) {
-      if (!__glcCtxGetFont(inState, buf[i]))
-	return;
-    }
-
-    /* Render the '\<hexcode>' sequence */
-    __glcRenderChar('\\', __glcCtxGetFont(inState, '\\'), inState);
-    __glcRenderChar('<', __glcCtxGetFont(inState, '<'), inState);
-    for (i = 0; i < n; i++)
-      __glcRenderChar(buf[i], __glcCtxGetFont(inState, buf[i]), inState);
-    __glcRenderChar('>', __glcCtxGetFont(inState, '>'), inState);
-  }
+  return NULL;
 }
 
 /** \ingroup render
@@ -853,9 +547,9 @@ void glcRenderChar(GLint inCode)
   if (code < 0)
     return;
 
-  __glcProcessChar(state, code);
+  __glcProcessChar(state, code, __glcRenderChar, NULL);
 }
-  
+
 /** \ingroup render
  *  This command is identical to the command glcRenderChar(), except that it
  *  renders a string of characters. The string comprises the first \e inCount
@@ -910,7 +604,7 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
       break;
     }
     ptr += len;
-    __glcProcessChar(state, code);
+    __glcProcessChar(state, code, __glcRenderChar, NULL);
   }
 
   __glcFree(UinString);
@@ -956,7 +650,7 @@ void glcRenderString(const GLCchar *inString)
       break;
     }
     ptr += len;
-    __glcProcessChar(state, code);
+    __glcProcessChar(state, code, __glcRenderChar, NULL);
   } while (*ptr);
 
   __glcFree(UinString);
@@ -1047,7 +741,7 @@ void glcReplacementCode(GLint inCode)
   code = __glcConvertGLintToUcs4(state, inCode);
   if (code < 0)
     return;
-  
+
   /* Stores the replacement code */
   state->replacementCode = code;
   return;
@@ -1066,7 +760,6 @@ void glcReplacementCode(GLint inCode)
 void glcResolution(GLfloat inVal)
 {
   __glcContextState *state = __glcGetCurrent();
-  FT_ListNode node = NULL;
 
   /* Check if the current thread owns a current state */
   if (!state) {
@@ -1076,13 +769,6 @@ void glcResolution(GLfloat inVal)
 
   /* Stores the resolution */
   state->resolution = inVal;
-
-  /* Modify the resolution of every font of the GLC_CURRENT_FONT_LIST */
-  for (node = state->currentFontList.head; node; node = node->next) {
-    assert(node->data);
-    __glcFaceDescSetCharSize(((__glcFont*)node->data)->faceDesc,
-			     (FT_UInt)inVal);
-  }
 
   return;
 }

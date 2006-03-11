@@ -53,10 +53,15 @@ typedef struct {
   GLCchar* name;
 } __glcDataCodeFromName;
 
+typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inFont,
+				      __glcContextState* inState,
+				      void* inProcessCharData,
+				      GLboolean inMultipleChars);
+
 /* Character renderers */
 extern void __glcRenderCharScalable(__glcFont* inFont,
 				    __glcContextState* inState, GLint inCode,
-				    GLCenum inRenderMode, FT_Face inFace,
+				    GLCenum inRenderMode,
 				    GLboolean inDisplayListIsBuilding,
 				    GLdouble* inTransformMatrix,
 				    GLdouble scale_x, GLdouble scale_y);
@@ -152,4 +157,21 @@ void __glcRaiseError(GLCenum inError);
 /* Return the current context state */
 __glcContextState* __glcGetCurrent(void);
 
+/* Process the character in order to find a font that maps the code and to
+ * render the corresponding glyph. Replacement code and '<hexcode>' format
+ * are issued if necessary.
+ * 'inCode' must be given in UCS-4 format
+ */
+void* __glcProcessChar(__glcContextState *inState, GLint inCode,
+		       __glcProcessCharFunc inProcessCharFunc,
+		       void* inProcessCharData);
+
+/* Load the glyph that correspond to the Unicode codepoint inCode and determine
+ * an optimal size for that glyph to be rendered on the screen if no display list
+ * is planned to be built.
+ */
+__glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode,
+			  GLdouble* outTransformMatrix, GLdouble* outScaleX,
+			  GLdouble* outScaleY,
+			  GLboolean* outDisplayListIsBuilding);
 #endif /* __glc_internal_h */

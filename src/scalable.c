@@ -382,7 +382,7 @@ static void __glcCallbackError(GLenum inErrorCode)
 
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 			     GLint inCode, GLCenum inRenderMode,
-			     FT_Face inFace, GLboolean inDisplayListIsBuilding,
+			     GLboolean inDisplayListIsBuilding,
 			     GLdouble* inTransformMatrix, GLdouble scale_x,
 			     GLdouble scale_y)
 {
@@ -393,8 +393,9 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   __glcRendererData rendererData;
   GLdouble identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
 				 0., 0., 0., 0., 1.};
+  FT_Face face = inFont->faceDesc->face;
 
-  outline = &inFace->glyph->outline;
+  outline = &face->glyph->outline;
   interface.shift = 0;
   interface.delta = 0;
   interface.move_to = __glcMoveTo;
@@ -436,7 +437,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
      * de Casteljau algorithm.
      */
     rendererData.tolerance = 0.005 * sqrt(scale_x*scale_x + scale_y*scale_y)
-      * inFace->units_per_EM * rendererData.scale_x * rendererData.scale_y;
+      * face->units_per_EM * rendererData.scale_x * rendererData.scale_y;
     rendererData.halfWidth = 0.5;
     rendererData.halfHeight = 0.5;
     rendererData.transformMatrix = identityMatrix;
@@ -529,8 +530,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glPopClientAttrib();
   }
 
-  glTranslatef(inFace->glyph->advance.x * rendererData.scale_x,
-	       inFace->glyph->advance.y * rendererData.scale_y, 0.);
+  glTranslatef(face->glyph->advance.x * rendererData.scale_x,
+	       face->glyph->advance.y * rendererData.scale_y, 0.);
 
   if (inState->glObjects)
     glEndList();

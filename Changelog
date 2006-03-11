@@ -1,6 +1,8 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Unified the behaviour of the rendering and measuring routines so that the
+  later now take into account the state of GLC_HINTING_QSO.
 - Removed the file 'constant.h'
 - Added the enumerant GLC_HINTING_QSO to the glEnable()/glDisable() functions
   to allow the user to activate hinting when glyphs are rendered at small pixel
