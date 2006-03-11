@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,6 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include "GL/glc.h"
-#include "constant.h"
 #include "omaster.h"
 #include "ocontext.h"
 #include "ocharmap.h"

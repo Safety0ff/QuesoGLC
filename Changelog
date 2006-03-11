@@ -1,6 +1,7 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Removed the file 'constant.h'
 - Added the enumerant GLC_HINTING_QSO to the glEnable()/glDisable() functions
   to allow the user to activate hinting when glyphs are rendered at small pixel
   sizes. By default, hinting is disabled because it creates visual artifacts
