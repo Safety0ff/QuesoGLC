@@ -105,14 +105,6 @@ FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
     }
 
     This->faceRefCount = 1;
-    
-    /* Define the size of the rendered glyphs (based on screen resolution) */
-    if (__glcFaceDescSetCharSize(This, (FT_UInt)inState->resolution)) {
-      FT_Done_Face(This->face);
-      This->face = NULL;
-      This->faceRefCount = 0;
-      return NULL;
-    }
   }
   else
     This->faceRefCount++;
@@ -134,21 +126,4 @@ void __glcFaceDescClose(__glcFaceDescriptor* This)
     FT_Done_Face(This->face);
     This->face = NULL;
   }
-}
-
-
-
-/* Define the size of the rendered glyphs (based on screen resolution) */
-FT_Error __glcFaceDescSetCharSize(__glcFaceDescriptor* This, FT_UInt inSize)
-{
-  FT_Error err;
-
-  assert(This->faceRefCount > 0);
-  
-  err = FT_Set_Char_Size(This->face, GLC_POINT_SIZE << 6, 0, inSize, inSize);
-
-  if (err)
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-
-  return err;
 }

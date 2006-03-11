@@ -42,5 +42,4 @@ void __glcFaceDescDestroy(__glcFaceDescriptor* This);
 FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
 			  __glcContextState* inState);
 void __glcFaceDescClose(__glcFaceDescriptor* This);
-FT_Error __glcFaceDescSetCharSize(__glcFaceDescriptor* This, FT_UInt inSize);
 #endif /* __glc_ofacedesc_h */
