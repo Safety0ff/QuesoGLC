@@ -31,43 +31,45 @@
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
+#define GLC_MAX_ITER	50
+
 typedef struct {
   FT_Vector pen;			/* Current coordinates */
-  GLdouble tolerance;			/* Chordal tolerance */
+  GLfloat tolerance;			/* Chordal tolerance */
   __glcArray* vertexArray;		/* Array of vertices */
   __glcArray* controlPoints;		/* Array of control points */
   __glcArray* endContour;		/* Array of contour limits */
-  GLdouble scale_x;			/* Scale to convert grid point.. */
-  GLdouble scale_y;			/* ..coordinates into pixels */
-  GLdouble* transformMatrix;		/* Transformation matrix from the
+  GLfloat scale_x;			/* Scale to convert grid point.. */
+  GLfloat scale_y;			/* ..coordinates into pixels */
+  GLfloat* transformMatrix;		/* Transformation matrix from the
 					   object space to the viewport */
-  GLdouble halfWidth;
-  GLdouble halfHeight;
+  GLfloat halfWidth;
+  GLfloat halfHeight;
   GLboolean displayListIsBuilding;	/* Is a display list planned to be
 					   built ? */
 }__glcRendererData;
 
-static void __glcComputePixelCoordinates(GLdouble* inCoord,
+static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
 					 __glcRendererData* inData)
 {
-  GLdouble x = 0., y = 0., w = 0.;
-  GLdouble norm = 0.;
+  GLfloat x = inCoord[0] * inData->transformMatrix[0]
+	     + inCoord[1] * inData->transformMatrix[4]
+	     + inData->transformMatrix[12];
+  GLfloat y = inCoord[0] * inData->transformMatrix[1]
+	     + inCoord[1] * inData->transformMatrix[5]
+	     + inData->transformMatrix[13];
+  GLfloat z = inCoord[0] * inData->transformMatrix[2]
+	     + inCoord[1] * inData->transformMatrix[6]
+	     + inData->transformMatrix[14];
+  GLfloat w = inCoord[0] * inData->transformMatrix[3]
+	     + inCoord[1] * inData->transformMatrix[7]
+	     + inData->transformMatrix[15];
+  GLfloat norm = x * x + y * y + z * z;
 
-  x = inCoord[0] * inData->transformMatrix[0]
-    + inCoord[1] * inData->transformMatrix[4]
-    + inData->transformMatrix[12];
-  y = inCoord[0] * inData->transformMatrix[1]
-    + inCoord[1] * inData->transformMatrix[5]
-    + inData->transformMatrix[13];
-  w = inCoord[0] * inData->transformMatrix[3]
-    + inCoord[1] * inData->transformMatrix[7]
-    + inData->transformMatrix[15];
-
-  /* If w is very small compared to x and y this probably mean that the
+  /* If w is very small compared to x, y and z this probably mean that the
    * transformation matrix is ill-conditioned (i.e. its determinant is
    * numerically null)
    */
-  norm = x * x + y * y;
   if (w * w < norm * GLC_EPSILON * GLC_EPSILON) {
     /* Ugly hack to handle the singularity of w */
     w = sqrt(norm) * GLC_EPSILON;
@@ -78,6 +80,8 @@ static void __glcComputePixelCoordinates(GLdouble* inCoord,
   inCoord[4] = w;
   inCoord[5] = x / w;
   inCoord[6] = y / w;
+
+  return z / w;
 }
 
 /* __glcdeCasteljau : 
@@ -101,15 +105,17 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 			    void *inUserData, GLint inOrder)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLdouble(*controlPoint)[7] = NULL;
-  GLdouble cp[7] = {0., 0., 0., 0., 0., 0., 0.};
+  GLfloat(*controlPoint)[7] = NULL;
+  GLfloat cp[7] = {0., 0., 0., 0., 0., 0., 0.};
   GLint i = 0, nArc = 1, arc = 0, rank = 0;
-  GLdouble xMin = 0., xMax = 0., yMin =0., yMax = 0.;
+  GLfloat xMin = 0., xMax = 0., yMin =0., yMax = 0., zMin = 0., zMax = 0.;
+  GLfloat z = 0.;
+  int iter = 0;
 
   /* Append the control points to the vertex array */
-  cp[0] = (GLdouble) data->pen.x * data->scale_x;
-  cp[1] = (GLdouble) data->pen.y * data->scale_y;
-  __glcComputePixelCoordinates(cp, data);
+  cp[0] = (GLfloat) data->pen.x * data->scale_x;
+  cp[1] = (GLfloat) data->pen.y * data->scale_y;
+  z = __glcComputePixelCoordinates(cp, data);
   if (!__glcArrayAppend(data->controlPoints, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -120,6 +126,8 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   xMax = cp[5];
   yMin = cp[6];
   yMax = cp[6];
+  zMin = z;
+  zMax = z;
 
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
@@ -130,9 +138,9 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   }
 
   for (i = 1; i < inOrder; i++) {
-    cp[0] = (GLdouble) inControl[i-1]->x * data->scale_x;
-    cp[1] = (GLdouble) inControl[i-1]->y * data->scale_y;
-    __glcComputePixelCoordinates(cp, data);
+    cp[0] = (GLfloat) inControl[i-1]->x * data->scale_x;
+    cp[1] = (GLfloat) inControl[i-1]->y * data->scale_y;
+    z = __glcComputePixelCoordinates(cp, data);
     if (!__glcArrayAppend(data->controlPoints, cp)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -143,11 +151,13 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     xMax = (cp[5] > xMax ? cp[5] : xMax);
     yMin = (cp[6] < yMin ? cp[6] : yMin);
     yMax = (cp[6] > yMax ? cp[6] : yMax);
+    zMin = (z < zMin ? z : zMin);
+    zMax = (z > zMax ? z : zMax);
   }
 
-  cp[0] = (GLdouble) inVecTo->x * data->scale_x;
-  cp[1] = (GLdouble) inVecTo->y * data->scale_y;
-  __glcComputePixelCoordinates(cp, data);
+  cp[0] = (GLfloat) inVecTo->x * data->scale_x;
+  cp[1] = (GLfloat) inVecTo->y * data->scale_y;
+  z = __glcComputePixelCoordinates(cp, data);
   if (!__glcArrayAppend(data->controlPoints, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -158,11 +168,13 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   xMax = (cp[5] > xMax ? cp[5] : xMax);
   yMin = (cp[6] < yMin ? cp[6] : yMin);
   yMax = (cp[6] > yMax ? cp[6] : yMax);
+  zMin = (z < zMin ? z : zMin);
+  zMax = (z > zMax ? z : zMax);
 
   /* controlPoint[] must be computed there because data->controlPoints->data
    * may have been modified by a realloc() in __glcArrayInsert()
    */
-  controlPoint = (GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints);
+  controlPoint = (GLfloat(*)[7])GLC_ARRAY_DATA(data->controlPoints);
 
   if (!data->displayListIsBuilding) {
     /* If the bounding box of the bezier curve lies outside the viewport then
@@ -170,7 +182,8 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
      * control points
      */
     if ((xMin > data->halfWidth) || (xMax < -data->halfWidth)
-        || (yMin > data->halfHeight) || (yMax < -data->halfHeight)) {
+        || (yMin > data->halfHeight) || (yMax < -data->halfHeight)
+	|| (zMin > 1.) || (zMax < -1.)) {
       for (i = 1; i < inOrder; i++) {
 	if (!__glcArrayAppend(data->vertexArray, controlPoint[i])) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -184,16 +197,16 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     }
   }
 
-  while(arc != nArc) {
+  for (iter = 0; (iter < GLC_MAX_ITER) && (arc != nArc); iter++) {
     GLint j = 0;
-    GLdouble dmax = 0.;
-    GLdouble ax = controlPoint[0][5];
-    GLdouble ay = controlPoint[0][6];
-    GLdouble abx = controlPoint[inOrder][5] - ax;
-    GLdouble aby = controlPoint[inOrder][6] - ay;
+    GLfloat dmax = 0.;
+    GLfloat ax = controlPoint[0][5];
+    GLfloat ay = controlPoint[0][6];
+    GLfloat abx = controlPoint[inOrder][5] - ax;
+    GLfloat aby = controlPoint[inOrder][6] - ay;
 
     /* Normalize AB */
-    GLdouble normab = sqrt(abx * abx + aby * aby);
+    GLfloat normab = sqrt(abx * abx + aby * aby);
     abx /= normab;
     aby /= normab;
 
@@ -201,21 +214,21 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
      * distance from the line between the first and the last control points
      */
     for (i = 1; i < inOrder; i++) {
-      GLdouble cpx = controlPoint[i][5] - ax;
-      GLdouble cpy = controlPoint[i][6] - ay;
-      GLdouble s = cpx * abx + cpy * aby;
-      GLdouble projx = s * abx - cpx;
-      GLdouble projy = s * aby - cpy;
+      GLfloat cpx = controlPoint[i][5] - ax;
+      GLfloat cpy = controlPoint[i][6] - ay;
+      GLfloat s = cpx * abx + cpy * aby;
+      GLfloat projx = s * abx - cpx;
+      GLfloat projy = s * aby - cpy;
 
       /* Compute the chordal distance */
-      GLdouble distance = projx * projx + projy * projy;
+      GLfloat distance = projx * projx + projy * projy;
 
       dmax = distance > dmax ? distance : dmax;
     }
 
     if (dmax < data->tolerance) {
       arc++; /* Process the next arc */
-      controlPoint = ((GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints))
+      controlPoint = ((GLfloat(*)[7])GLC_ARRAY_DATA(data->controlPoints))
 	+ arc * inOrder;
       /* Update the place where new vertices will be inserted in the vertex
        * array
@@ -226,12 +239,12 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
       /* Split an arc into two smaller arcs (this is the actual de Casteljau
        * algorithm)
        */
-      GLdouble *cp1 = NULL;
+      GLfloat *cp1 = NULL;
 
       for (i = 0; i < inOrder; i++) {
-	GLdouble *p1, *p2;
+	GLfloat *p1, *p2;
 
-	cp1 = (GLdouble*)__glcArrayInsertCell(data->controlPoints,
+	cp1 = (GLfloat*)__glcArrayInsertCell(data->controlPoints,
 					       arc*inOrder+i+1);
 	if (!cp1) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -243,7 +256,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	 * data->controlPoints->data may have been modified by a realloc() in
 	 * __glcArrayInsert()
 	 */
-	controlPoint = ((GLdouble(*)[7])GLC_ARRAY_DATA(data->controlPoints))
+	controlPoint = ((GLfloat(*)[7])GLC_ARRAY_DATA(data->controlPoints))
 	  + arc * inOrder;
 
 	p1 = controlPoint[i];
@@ -313,10 +326,10 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLdouble vertex[2];
+  GLfloat vertex[2];
 
-  vertex[0] = (GLdouble) data->pen.x * data->scale_x;
-  vertex[1] = (GLdouble) data->pen.y * data->scale_y;
+  vertex[0] = (GLfloat) data->pen.x * data->scale_x;
+  vertex[1] = (GLfloat) data->pen.y * data->scale_y;
   if (!__glcArrayAppend(data->vertexArray, vertex)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 1;
@@ -360,9 +373,12 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 				 void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLdouble(*vertexArray)[2] = (GLdouble(*)[2])GLC_ARRAY_DATA(data->vertexArray);
+  GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
+  GLfloat vertex[2];
 
-  if (!__glcArrayAppend(data->vertexArray, coords)) {
+  vertex[0] = (GLfloat)coords[0];
+  vertex[1] = (GLfloat)coords[1];
+  if (!__glcArrayAppend(data->vertexArray, vertex)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
@@ -379,15 +395,15 @@ static void __glcCallbackError(GLenum inErrorCode)
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 			     GLint inCode, GLCenum inRenderMode,
 			     GLboolean inDisplayListIsBuilding,
-			     GLdouble* inTransformMatrix, GLdouble scale_x,
-			     GLdouble scale_y)
+			     GLfloat* inTransformMatrix, GLfloat scale_x,
+			     GLfloat scale_y)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
   FT_ListNode node = NULL;
   __glcDisplayListKey *dlKey = NULL;
   __glcRendererData rendererData;
-  GLdouble identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+  GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
 				 0., 0., 0., 0., 1.};
   FT_Face face = inFont->faceDesc->face;
 
@@ -483,8 +499,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     GLUtesselator *tess = gluNewTess();
     int i = 0, j = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
-    GLdouble (*vertexArray)[2] =
-      (GLdouble(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
+    GLfloat (*vertexArray)[2] =
+      (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
     GLdouble coords[3] = {0., 0., 0.};
 
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
@@ -492,7 +508,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex2dv);
+    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex2fv);
     /* gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
        (void (*) ())__glcCombineCallback);*/
     gluTessCallback(tess, GLU_TESS_END, glEnd);
@@ -504,8 +520,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
       gluTessBeginContour(tess);
       for (j = endContour[i]; j < endContour[i+1]; j++) {
-	coords[0] = vertexArray[j][0];
-	coords[1] = vertexArray[j][1];
+	coords[0] = (GLdouble)vertexArray[j][0];
+	coords[1] = (GLdouble)vertexArray[j][1];
 	gluTessVertex(tess, coords, vertexArray[j]);
       }
       gluTessEndContour(tess);
@@ -522,7 +538,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
     glEnableClientState(GL_VERTEX_ARRAY);
     glNormal3f(0., 0., 1.);
-    glVertexPointer(2, GL_DOUBLE, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
+    glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
       glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);
