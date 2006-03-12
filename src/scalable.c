@@ -123,7 +123,6 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
-  cp[2] = 0.;
   if (!__glcArrayAppend(data->vertexArray, cp)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -173,7 +172,6 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     if ((xMin > data->halfWidth) || (xMax < -data->halfWidth)
         || (yMin > data->halfHeight) || (yMax < -data->halfHeight)) {
       for (i = 1; i < inOrder; i++) {
-	controlPoint[i][2] = 0.;
 	if (!__glcArrayAppend(data->vertexArray, controlPoint[i])) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
@@ -280,7 +278,6 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
-      ((GLdouble(*)[3])GLC_ARRAY_DATA(data->vertexArray))[rank+1][2] = 0.;
 
       nArc++; /* A new arc has been defined */
     }
@@ -316,11 +313,10 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
-  GLdouble vertex[3];
+  GLdouble vertex[2];
 
   vertex[0] = (GLdouble) data->pen.x * data->scale_x;
   vertex[1] = (GLdouble) data->pen.y * data->scale_y;
-  vertex[2] = 0.;
   if (!__glcArrayAppend(data->vertexArray, vertex)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 1;
@@ -364,7 +360,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 				 void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLdouble(*vertexArray)[3] = (GLdouble(*)[3])data->vertexArray->data;
+  GLdouble(*vertexArray)[2] = (GLdouble(*)[2])GLC_ARRAY_DATA(data->vertexArray);
 
   if (!__glcArrayAppend(data->vertexArray, coords)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -487,15 +483,16 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     GLUtesselator *tess = gluNewTess();
     int i = 0, j = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
-    GLdouble (*vertexArray)[3] =
-      (GLdouble(*)[3])GLC_ARRAY_DATA(rendererData.vertexArray);
+    GLdouble (*vertexArray)[2] =
+      (GLdouble(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
+    GLdouble coords[3] = {0., 0., 0.};
 
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
     gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, GL_FALSE);
 
     gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex3dv);
+    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex2dv);
     /* gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
        (void (*) ())__glcCombineCallback);*/
     gluTessCallback(tess, GLU_TESS_END, glEnd);
@@ -506,8 +503,11 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
       gluTessBeginContour(tess);
-      for (j = endContour[i]; j < endContour[i+1]; j++)
-	gluTessVertex(tess, vertexArray[j], vertexArray[j]);
+      for (j = endContour[i]; j < endContour[i+1]; j++) {
+	coords[0] = vertexArray[j][0];
+	coords[1] = vertexArray[j][1];
+	gluTessVertex(tess, coords, vertexArray[j]);
+      }
       gluTessEndContour(tess);
     }
 
@@ -522,7 +522,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
     glEnableClientState(GL_VERTEX_ARRAY);
     glNormal3f(0., 0., 1.);
-    glVertexPointer(3, GL_DOUBLE, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
+    glVertexPointer(2, GL_DOUBLE, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
       glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);

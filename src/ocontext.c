@@ -102,7 +102,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->buffer = NULL;
   This->bufferSize = 0;
   This->lastFontID = 1;
-  This->vertexArray = __glcArrayCreate(3 * sizeof(GLdouble));
+  This->vertexArray = __glcArrayCreate(2 * sizeof(GLdouble));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->measurementBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
