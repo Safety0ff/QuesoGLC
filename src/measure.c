@@ -88,9 +88,9 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
   GLboolean displayListIsBuilding = GL_FALSE;
-  GLdouble scale_x = GLC_POINT_SIZE;
-  GLdouble scale_y = GLC_POINT_SIZE;
-  GLdouble transformMatrix[16];
+  GLfloat scale_x = GLC_POINT_SIZE;
+  GLfloat scale_y = GLC_POINT_SIZE;
+  GLfloat transformMatrix[16];
   FT_Face face = NULL;
   __glcFont* font = __glcLoadGlyph(inState, inFont, inCode, transformMatrix,
 				 &scale_x, &scale_y, &displayListIsBuilding);

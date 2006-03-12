@@ -63,8 +63,8 @@ extern void __glcRenderCharScalable(__glcFont* inFont,
 				    __glcContextState* inState, GLint inCode,
 				    GLCenum inRenderMode,
 				    GLboolean inDisplayListIsBuilding,
-				    GLdouble* inTransformMatrix,
-				    GLdouble scale_x, GLdouble scale_y);
+				    GLfloat* inTransformMatrix,
+				    GLfloat scale_x, GLfloat scale_y);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);
@@ -171,7 +171,7 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
  * is planned to be built.
  */
 __glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode,
-			  GLdouble* outTransformMatrix, GLdouble* outScaleX,
-			  GLdouble* outScaleY,
+			  GLfloat* outTransformMatrix, GLfloat* outScaleX,
+			  GLfloat* outScaleY,
 			  GLboolean* outDisplayListIsBuilding);
 #endif /* __glc_internal_h */

@@ -1019,7 +1019,7 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
 
 
 
-static void __glcMakeIdentity(GLdouble* m)
+static void __glcMakeIdentity(GLfloat* m)
 {
     m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
     m[1+4*0] = 0; m[1+4*1] = 1; m[1+4*2] = 0; m[1+4*3] = 0;
@@ -1029,11 +1029,11 @@ static void __glcMakeIdentity(GLdouble* m)
 
 
 
-static GLboolean __glcInvertMatrix(GLdouble* inMatrix, GLdouble* outMatrix)
+static GLboolean __glcInvertMatrix(GLfloat* inMatrix, GLfloat* outMatrix)
 {
   int i, j, k, swap;
-  double t;
-  GLdouble temp[4][4];
+  GLfloat t;
+  GLfloat temp[4][4];
 
   for (i=0; i<4; i++) {
     for (j=0; j<4; j++) {
@@ -1091,8 +1091,8 @@ static GLboolean __glcInvertMatrix(GLdouble* inMatrix, GLdouble* outMatrix)
 
 
 
-static void __glcMultMatrices(GLdouble* inMatrix1, GLdouble* inMatrix2,
-			      GLdouble* outMatrix)
+static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
+			      GLfloat* outMatrix)
 {
   int i, j;
 
@@ -1114,8 +1114,8 @@ static void __glcMultMatrices(GLdouble* inMatrix1, GLdouble* inMatrix2,
  * is planned to be built.
  */
 __glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode,
-			  GLdouble* outTransformMatrix, GLdouble* outScaleX,
-			  GLdouble* outScaleY,
+			  GLfloat* outTransformMatrix, GLfloat* outScaleX,
+			  GLfloat* outScaleY,
 			  GLboolean* outDisplayListIsBuilding)
 {
   FT_Face face = NULL;
@@ -1153,13 +1153,13 @@ __glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode
   *outDisplayListIsBuilding = listIndex || inState->glObjects;
 
   if (inState->renderStyle != GLC_BITMAP) {
-    GLdouble projectionMatrix[16];
-    GLdouble modelviewMatrix[16];
+    GLfloat projectionMatrix[16];
+    GLfloat modelviewMatrix[16];
     GLint viewport[4];
 
     glGetIntegerv(GL_VIEWPORT, viewport);
-    glGetDoublev(GL_MODELVIEW_MATRIX, modelviewMatrix);
-    glGetDoublev(GL_PROJECTION_MATRIX, projectionMatrix);
+    glGetFloatv(GL_MODELVIEW_MATRIX, modelviewMatrix);
+    glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
     /* Compute the matrix that transforms object space coordinates to viewport
      * coordinates. If we plan to use object space coordinates, this matrix is
@@ -1168,19 +1168,19 @@ __glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode
     __glcMultMatrices(modelviewMatrix, projectionMatrix, outTransformMatrix);
 
     if ((!outDisplayListIsBuilding) && inState->hinting) {
-      GLdouble rs[16], m[16];
-      GLdouble sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
+      GLfloat rs[16], m[16];
+      GLfloat sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
 			+outTransformMatrix[1] * outTransformMatrix[1]
 			+outTransformMatrix[2] * outTransformMatrix[2]);
-      GLdouble sy = sqrt(outTransformMatrix[4] * outTransformMatrix[4]
+      GLfloat sy = sqrt(outTransformMatrix[4] * outTransformMatrix[4]
 			+outTransformMatrix[5] * outTransformMatrix[5]
 			+outTransformMatrix[6] * outTransformMatrix[6]);
-      GLdouble sz = sqrt(outTransformMatrix[8] * outTransformMatrix[8]
+      GLfloat sz = sqrt(outTransformMatrix[8] * outTransformMatrix[8]
 			+outTransformMatrix[9] * outTransformMatrix[9]
 			+outTransformMatrix[10] * outTransformMatrix[10]);
-      GLdouble x = 0., y = 0.;
+      GLfloat x = 0., y = 0.;
 
-      bzero(rs, 16 * sizeof(GLdouble));
+      bzero(rs, 16 * sizeof(GLfloat));
       rs[15] = 1.;
       for (i = 0; i < 3; i++) {
 	rs[0+4*i] = outTransformMatrix[0+4*i] / sx;

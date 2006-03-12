@@ -428,10 +428,10 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 			    __glcContextState* inState, void* inData,
 			    GLboolean inMultipleChars)
 {
-  GLdouble transformMatrix[16];
+  GLfloat transformMatrix[16];
   GLboolean displayListIsBuilding = GL_FALSE;
-  GLdouble scale_x = GLC_POINT_SIZE;
-  GLdouble scale_y = GLC_POINT_SIZE;
+  GLfloat scale_x = GLC_POINT_SIZE;
+  GLfloat scale_y = GLC_POINT_SIZE;
   __glcFont* font = __glcLoadGlyph(inState, inFont, inCode, transformMatrix,
 				 &scale_x, &scale_y, &displayListIsBuilding);
 
@@ -442,8 +442,8 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
     if (!displayListIsBuilding) {
       FT_Outline outline;
       FT_Vector* vector = NULL;
-      GLdouble xMin = 1E20, yMin = 1E20, zMin = 1E20;
-      GLdouble xMax = -1E20, yMax = -1E20, zMax = -1E20;
+      GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
+      GLfloat xMax = -1E20, yMax = -1E20, zMax = -1E20;
       FT_Face face = font->faceDesc->face;
 
       /* Compute the bounding box of the control points of the glyph in the
@@ -459,15 +459,15 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 
       for (vector = outline.points; vector < outline.points + outline.n_points;
 	   vector++) {
-	GLdouble vx = vector->x / 64. / scale_x;
-	GLdouble vy = vector->y / 64. / scale_y;
-	GLdouble w = vx * transformMatrix[3] + vy * transformMatrix[7]
+	GLfloat vx = vector->x / 64. / scale_x;
+	GLfloat vy = vector->y / 64. / scale_y;
+	GLfloat w = vx * transformMatrix[3] + vy * transformMatrix[7]
 		     + transformMatrix[15];
-	GLdouble x = (vx * transformMatrix[0] + vy * transformMatrix[4]
+	GLfloat x = (vx * transformMatrix[0] + vy * transformMatrix[4]
 		      + transformMatrix[12]) / w;
-	GLdouble y = (vx * transformMatrix[1] + vy * transformMatrix[5]
+	GLfloat y = (vx * transformMatrix[1] + vy * transformMatrix[5]
 		      + transformMatrix[13]) / w;
-	GLdouble z = (vx * transformMatrix[2] + vy * transformMatrix[6]
+	GLfloat z = (vx * transformMatrix[2] + vy * transformMatrix[6]
 		      + transformMatrix[14]) / w;
 
 	xMin = (x < xMin ? x : xMin);

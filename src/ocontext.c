@@ -102,7 +102,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->buffer = NULL;
   This->bufferSize = 0;
   This->lastFontID = 1;
-  This->vertexArray = __glcArrayCreate(2 * sizeof(GLdouble));
+  This->vertexArray = __glcArrayCreate(2 * sizeof(GLfloat));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->measurementBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -111,7 +111,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
-  This->controlPoints = __glcArrayCreate(7 * sizeof(GLdouble));
+  This->controlPoints = __glcArrayCreate(7 * sizeof(GLfloat));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
