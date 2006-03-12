@@ -444,12 +444,15 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
       FT_Vector* vector = NULL;
       GLdouble xMin = 1E20, yMin = 1E20, zMin = 1E20;
       GLdouble xMax = -1E20, yMax = -1E20, zMax = -1E20;
+      FT_Face face = font->faceDesc->face;
 
       /* Compute the bounding box of the control points of the glyph in the
        * observer coordinates
        */
-      outline = font->faceDesc->face->glyph->outline;
+      outline = face->glyph->outline;
       if (!outline.n_points) {
+	glTranslatef(face->glyph->advance.x / 64. / scale_x, 
+		     face->glyph->advance.y / 64. / scale_y, 0.);
 	__glcFaceDescClose(font->faceDesc);
 	return NULL;
       }
@@ -480,6 +483,8 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
        */
       if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
 	  || (zMin > 1.) || (zMax < -1.)) {
+	glTranslatef(face->glyph->advance.x / 64. / scale_x, 
+		     face->glyph->advance.y / 64. / scale_y, 0.);
 	__glcFaceDescClose(font->faceDesc);
 	return NULL;
       }
