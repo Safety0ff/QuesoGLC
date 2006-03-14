@@ -1,6 +1,9 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Textures mipmaps in GLC_TEXTURE style are now built directly by QuesoGLC
+  instead of GLU. It should provide better rendering quality at small pixel
+  sizes
 - The z coordinate of bounding boxes is now also used to determine if a Bezier
   curve lies outside the viewport
 - Calculations now use GLfloat instead of GLdouble

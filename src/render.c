@@ -102,7 +102,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 {
   FT_Matrix matrix;
   FT_Outline outline;
-  FT_BBox boundBox;
+  FT_BBox boundingBox;
   FT_Bitmap pixmap;
   GLfloat *transform = inState->bitmapMatrix;
 
@@ -115,16 +115,16 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   /* Get the bounding box of the glyph */
   outline = inGlyph->outline;
   FT_Outline_Transform(&outline, &matrix);
-  FT_Outline_Get_CBox(&outline, &boundBox);
+  FT_Outline_Get_CBox(&outline, &boundingBox);
 
   /* Compute the sizes of the pixmap where the glyph will be drawn */
-  boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
-  boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
-  boundBox.xMax = (boundBox.xMax + 63) & -64;	/* ceiling(xMax) */
-  boundBox.yMax = (boundBox.yMax + 63) & -64;	/* ceiling(yMax) */
+  boundingBox.xMin = boundingBox.xMin & -64;	/* floor(xMin) */
+  boundingBox.yMin = boundingBox.yMin & -64;	/* floor(yMin) */
+  boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
+  boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-  pixmap.width = (boundBox.xMax - boundBox.xMin) >> 6;
-  pixmap.rows = (boundBox.yMax - boundBox.yMin) >> 6;
+  pixmap.width = (boundingBox.xMax - boundingBox.xMin) >> 6;
+  pixmap.rows = (boundingBox.yMax - boundingBox.yMin) >> 6;
   pixmap.pitch = ((pixmap.width + 4) >> 3) + 1;	/* 1 bit / pixel */
   pixmap.width = pixmap.pitch << 3;
 
@@ -143,8 +143,8 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   pixmap.pitch = - pixmap.pitch;
 
   /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64),
-		       -((boundBox.yMin + 32) & -64));
+  FT_Outline_Translate(&outline, -((boundingBox.xMin + 32) & -64),
+		       -((boundingBox.yMin + 32) & -64));
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
@@ -155,7 +155,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 
   /* Do the actual GL rendering */
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glBitmap(pixmap.width, pixmap.rows, -boundBox.xMin >> 6, -boundBox.yMin >> 6,
+  glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6, -boundingBox.yMin >> 6,
 	   inGlyph->advance.x / 64. * matrix.xx / 65536.
 	   + inGlyph->advance.y / 64. * matrix.xy / 65536.,
 	   inGlyph->advance.x / 64. * matrix.yx / 65536.
@@ -185,31 +185,31 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 {
   FT_Face face = inFont->faceDesc->face;
   FT_Outline outline;
-  FT_BBox boundBox;
+  FT_BBox boundingBox;
   FT_Bitmap pixmap;
   GLuint texture = 0;
   GLfloat width = 0, height = 0;
   GLint format = 0;
   __glcDisplayListKey *dlKey = NULL;
-  FT_ListNode node = NULL;
   GLint boundTexture = 0;
   GLint unpackAlignment = 0;
+  GLint level = 0;
 
   assert(face);
 
   outline = face->glyph->outline;
 
   /* Get the bounding box of the glyph */
-  FT_Outline_Get_CBox(&outline, &boundBox);
+  FT_Outline_Get_CBox(&outline, &boundingBox);
 
   /* Compute the size of the pixmap where the glyph will be rendered */
-  boundBox.xMin = boundBox.xMin & -64;	/* floor(xMin) */
-  boundBox.yMin = boundBox.yMin & -64;	/* floor(yMin) */
-  boundBox.xMax = (boundBox.xMax + 63) & -64;	/* ceiling(xMax) */
-  boundBox.yMax = (boundBox.yMax + 63) & -64;	/* ceiling(yMax) */
+  boundingBox.xMin = boundingBox.xMin & -64;	/* floor(xMin) */
+  boundingBox.yMin = boundingBox.yMin & -64;	/* floor(yMin) */
+  boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
+  boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-  pixmap.width = __glcNextPowerOf2((boundBox.xMax - boundBox.xMin) >> 6);
-  pixmap.rows = __glcNextPowerOf2((boundBox.yMax - boundBox.yMin) >> 6);
+  pixmap.width = __glcNextPowerOf2((boundingBox.xMax - boundingBox.xMin) >> 6);
+  pixmap.rows = __glcNextPowerOf2((boundingBox.yMax - boundingBox.yMin) >> 6);
   pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
 
   /* Check if a new texture can be created */
@@ -231,53 +231,11 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     return;
   }
 
-  /* fill the pixmap buffer with the background color */
-  memset(pixmap.buffer, 0, pixmap.rows * pixmap.pitch);
-
   /* Flip the picture */
   pixmap.pitch = - pixmap.pitch;
 
-  /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -((boundBox.xMin + 32) & -64),
-		       -((boundBox.yMin + 32) & -64));
-
-  /* render the glyph */
-  if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
-    __glcFree(pixmap.buffer);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
   /* Create a texture object and make it current */
   glGenTextures(1, &texture);
-
-  /* Add the new texture to the texture list */
-  if (inState->glObjects) {
-    FT_ListNode node = NULL;
-
-    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-    if (node) {
-      /* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
-       * void* pointer so that we do not need to allocate memory just to store
-       * a single integer value
-       */
-      union {
-	void* ptr;
-	GLuint ui;
-      } voidToGLuint;
-
-      voidToGLuint.ui = texture;
-
-      node->data = voidToGLuint.ptr;
-      FT_List_Add(&inFont->parent->textureObjectList, node);
-    }
-    else {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      glDeleteTextures(1, &texture);
-      __glcFree(pixmap.buffer);
-      return;
-    }
-  }
 
   /* Create the texture */
   glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
@@ -285,24 +243,62 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  /* A mipmap is built only if a display list is currently building
-   * otherwise it adds uneeded computations
-   */
-  if (inState->mipmap && inDisplayListIsBuilding) {
-    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_ALPHA8, pixmap.width,
-		      pixmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE,
-		      pixmap.buffer);
+  while ((pixmap.width > 2) && (pixmap.rows > 2)) {
+    FT_Vector* vector = NULL;
 
+    /* fill the pixmap buffer with the background color */
+    memset(pixmap.buffer, 0, - pixmap.rows * pixmap.pitch);
+
+    /* translate the outline to match (0,0) with the glyph's lower left corner */
+    FT_Outline_Translate(&outline, -((boundingBox.xMin >> level) & -64),
+			 -((boundingBox.yMin >> level) & -64));
+
+    /* render the glyph */
+    if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
+      glBindTexture(GL_TEXTURE_2D, boundTexture);
+      glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
+      glDeleteTextures(1, &texture);
+      __glcFree(pixmap.buffer);
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, level, GL_ALPHA8, pixmap.width,
+		 pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
+
+    /* A mipmap is built only if a display list is currently building
+     * otherwise it adds useless computations
+     */
+    if ((!inState->mipmap) || (!inDisplayListIsBuilding))
+      break;
+
+    /* translate the outline to match (0,0) with the glyph's lower left corner */
+    FT_Outline_Translate(&outline, ((boundingBox.xMin >> level) & -64),
+			 ((boundingBox.yMin >> level) & -64));
+
+    level++;
+    pixmap.width >>= 1;
+    pixmap.rows >>= 1;
+    pixmap.pitch >>= 1;
+
+    for (vector = outline.points; vector < outline.points + outline.n_points; vector++) {
+      vector->x >>= 1;
+      vector->y >>= 1;
+    }
+
+  }
+
+  if (inState->mipmap && inDisplayListIsBuilding) {
+    pixmap.width <<= level;
+    pixmap.rows <<= level;
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		    GL_LINEAR_MIPMAP_LINEAR);
   }
-  else {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA8, pixmap.width,
-		 pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE,
-		 pixmap.buffer);
-
+  else
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  }
+
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -311,13 +307,36 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
   glBindTexture(GL_TEXTURE_2D, boundTexture);
 
+  /* Add the new texture to the texture list and the new display list
+   * to the list of display lists
+   */
   if (inState->glObjects) {
+    FT_ListNode node = NULL;
+    /* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
+     * void* pointer so that we do not need to allocate memory just to store
+     * a single integer value
+     */
+    union {
+      void* ptr;
+      GLuint ui;
+    } voidToGLuint;
+
+
     dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
-    if (!dlKey) {
+    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+    if ((!node) || (!dlKey)) {
+      if (!node) __glcFree(node);
+      if (!dlKey) __glcFree(dlKey);
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      glDeleteTextures(1, &texture);
       __glcFree(pixmap.buffer);
       return;
     }
+
+    voidToGLuint.ui = texture;
+
+    node->data = voidToGLuint.ptr;
+    FT_List_Add(&inFont->parent->textureObjectList, node);
 
     /* Initialize the key */
     dlKey->list = glGenLists(1);
@@ -342,30 +361,30 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   /* Repeat glBindTexture() so that the display list includes it */
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
   /* Compute the size of the glyph */
-  width = (GLfloat)((boundBox.xMax - boundBox.xMin) / 64.);
-  height = (GLfloat)((boundBox.yMax - boundBox.yMin) / 64.);
+  width = (GLfloat)((boundingBox.xMax - boundingBox.xMin) / 64.);
+  height = (GLfloat)((boundingBox.yMax - boundingBox.yMin) / 64.);
 
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glTexCoord2f(0., 0.);
-  glVertex2f(boundBox.xMin / 64. / scale_x, 
-	     boundBox.yMin / 64. / scale_y);
+  glVertex2f(boundingBox.xMin / 64. / scale_x, 
+	     boundingBox.yMin / 64. / scale_y);
   glTexCoord2f(width / pixmap.width, 0.);
-  glVertex2f(boundBox.xMax / 64. / scale_x,
-	     boundBox.yMin / 64. / scale_y);
+  glVertex2f(boundingBox.xMax / 64. / scale_x,
+	     boundingBox.yMin / 64. / scale_y);
   glTexCoord2f(width / pixmap.width, height / pixmap.rows);
-  glVertex2f(boundBox.xMax / 64. / scale_x,
-	     boundBox.yMax / 64. / scale_y);
+  glVertex2f(boundingBox.xMax / 64. / scale_x,
+	     boundingBox.yMax / 64. / scale_y);
   glTexCoord2f(0., height / pixmap.rows);
-  glVertex2f(boundBox.xMin / 64. / scale_x,
-	     boundBox.yMax / 64. / scale_y);
+  glVertex2f(boundingBox.xMin / 64. / scale_x,
+	     boundingBox.yMax / 64. / scale_y);
   glEnd();
 
   /* Store the glyph advance in the display list */
-  glTranslatef(face->glyph->advance.x / 64. / scale_x, 
+  glTranslatef(face->glyph->advance.x / 64. / scale_x,
 	       face->glyph->advance.y / 64. / scale_y, 0.);
 
   glPopAttrib();
@@ -433,61 +452,59 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
   __glcFont* font = __glcLoadGlyph(inState, inFont, inCode, transformMatrix,
-				 &scale_x, &scale_y, &displayListIsBuilding);
+					   &scale_x, &scale_y, &displayListIsBuilding);
 
   if (!font)
     return NULL;
 
-  if (inState->renderStyle != GLC_BITMAP) {
-    if (!displayListIsBuilding) {
-      FT_Outline outline;
-      FT_Vector* vector = NULL;
-      GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
-      GLfloat xMax = -1E20, yMax = -1E20, zMax = -1E20;
-      FT_Face face = font->faceDesc->face;
+  if ((inState->renderStyle != GLC_BITMAP) && (!displayListIsBuilding)) {
+    FT_Outline outline;
+    FT_Vector* vector = NULL;
+    GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
+    GLfloat xMax = -1E20, yMax = -1E20, zMax = -1E20;
+    FT_Face face = font->faceDesc->face;
 
-      /* Compute the bounding box of the control points of the glyph in the
-       * observer coordinates
-       */
-      outline = face->glyph->outline;
-      if (!outline.n_points) {
-	glTranslatef(face->glyph->advance.x / 64. / scale_x, 
-		     face->glyph->advance.y / 64. / scale_y, 0.);
-	__glcFaceDescClose(font->faceDesc);
-	return NULL;
-      }
+    /* Compute the bounding box of the control points of the glyph in the
+     * observer coordinates
+     */
+    outline = face->glyph->outline;
+    if (!outline.n_points) {
+      glTranslatef(face->glyph->advance.x / 64. / scale_x, 
+		   face->glyph->advance.y / 64. / scale_y, 0.);
+      __glcFaceDescClose(font->faceDesc);
+      return NULL;
+    }
 
-      for (vector = outline.points; vector < outline.points + outline.n_points;
-	   vector++) {
-	GLfloat vx = vector->x / 64. / scale_x;
-	GLfloat vy = vector->y / 64. / scale_y;
-	GLfloat w = vx * transformMatrix[3] + vy * transformMatrix[7]
-		     + transformMatrix[15];
-	GLfloat x = (vx * transformMatrix[0] + vy * transformMatrix[4]
-		      + transformMatrix[12]) / w;
-	GLfloat y = (vx * transformMatrix[1] + vy * transformMatrix[5]
-		      + transformMatrix[13]) / w;
-	GLfloat z = (vx * transformMatrix[2] + vy * transformMatrix[6]
-		      + transformMatrix[14]) / w;
+    for (vector = outline.points; vector < outline.points + outline.n_points;
+	 vector++) {
+      GLfloat vx = vector->x / 64. / scale_x;
+      GLfloat vy = vector->y / 64. / scale_y;
+      GLfloat w = vx * transformMatrix[3] + vy * transformMatrix[7]
+		  + transformMatrix[15];
+      GLfloat x = (vx * transformMatrix[0] + vy * transformMatrix[4]
+		   + transformMatrix[12]) / w;
+      GLfloat y = (vx * transformMatrix[1] + vy * transformMatrix[5]
+		   + transformMatrix[13]) / w;
+      GLfloat z = (vx * transformMatrix[2] + vy * transformMatrix[6]
+		   + transformMatrix[14]) / w;
 
-	xMin = (x < xMin ? x : xMin);
-	xMax = (x > xMax ? x : xMax);
-	yMin = (y < yMin ? y : yMin);
-	yMax = (y > yMax ? y : yMax);
-	zMin = (z < zMin ? z : zMin);
-	zMax = (z > zMax ? z : zMax);
-      }
+      xMin = (x < xMin ? x : xMin);
+      xMax = (x > xMax ? x : xMax);
+      yMin = (y < yMin ? y : yMin);
+      yMax = (y > yMax ? y : yMax);
+      zMin = (z < zMin ? z : zMin);
+      zMax = (z > zMax ? z : zMax);
+    }
 
-      /* If the bounding box of the glyph lies out of viewport then skip the
-       * glyph
-       */
-      if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
-	  || (zMin > 1.) || (zMax < -1.)) {
-	glTranslatef(face->glyph->advance.x / 64. / scale_x, 
-		     face->glyph->advance.y / 64. / scale_y, 0.);
-	__glcFaceDescClose(font->faceDesc);
-	return NULL;
-      }
+    /* If the bounding box of the glyph lies out of viewport then skip the
+     * glyph
+     */
+    if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
+	|| (zMin > 1.) || (zMax < -1.)) {
+      glTranslatef(face->glyph->advance.x / 64. / scale_x, 
+		   face->glyph->advance.y / 64. / scale_y, 0.);
+      __glcFaceDescClose(font->faceDesc);
+      return NULL;
     }
   }
 
