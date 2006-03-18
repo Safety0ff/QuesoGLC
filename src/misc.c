@@ -405,7 +405,6 @@ GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
   return string;
 }
 
-
 /* Convert 'inString' from the UTF-8 format and return a copy of the
  * converted string in the context buffer.
  */
@@ -534,48 +533,6 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
   }
   return string;
 }
-
-
-
-/* This function is called to destroy texture objects */
-void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
-				  void *inUser)
-{
-  /* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
-   * void* pointer so that we do not need to allocate memory just to store
-   * a single integer value
-   */
-  union {
-    void* ptr;
-    GLuint ui;
-  } voidToGLuint;
-
-  voidToGLuint.ptr = inData;
-
-  glDeleteTextures(1, &voidToGLuint.ui);
-}
-
-
-
-/* This function is called to destroy display lists */
-void __glcDisplayListDestructor(FT_Memory inMemory, void *inData,
-				  void *inUser)
-{
-  /* Hack in order to be able to store a 32 bits display list ID in a 32/64
-   * bits void* pointer so that we do not need to allocate memory just to store
-   * a single integer value
-   */
-  union {
-    void* ptr;
-    GLuint ui;
-  } voidToGLuint;
-
-  voidToGLuint.ptr = inData;
-
-  glDeleteLists(voidToGLuint.ui, 1);
-}
-
-
 
 /* This function counts the number of bits that are set in c1 
  * Copied from Keith Packard's fontconfig
