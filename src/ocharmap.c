@@ -65,35 +65,40 @@ void __glcCharMapDestroy(__glcCharMap* This)
 static GLboolean __glcCharMapInsertCode(__glcCharMap* This, GLint inCode,
 					GLint inMappedCode, GLint inGlyph)
 {
-  GLint i = 0;
   FT_ULong (*map)[3] = NULL;
+  FT_ULong* data = NULL;
+  int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
   map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
-  /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
-    if (map[i][0] >= inCode)
-      break;
+  end = GLC_ARRAY_LENGTH(This->map) - 1;
+
+  while (start <= end) {
+    middle = (start + end) >> 1;
+    if (map[middle][0] == inCode) {
+      map[middle][1] = inGlyph;
+      map[middle][2] = inMappedCode;
+      return GL_TRUE;
+    }
+    else if (map[middle][0] > inCode)
+      end = middle - 1;
+    else
+      start = middle + 1;
   }
 
-  if ((i == GLC_ARRAY_LENGTH(This->map)) || (map[i][0] != inCode)) {
-    FT_ULong data[3] = {0, 0, 0};
+  if ((end >= 0) && (map[middle][0] < inCode))
+    middle++;
 
-    data[0] = inCode;
-    data[1] = inGlyph;
-    data[2] = inMappedCode;
+  data = (FT_ULong*)__glcArrayInsertCell(This->map, middle);
+  if (!data)
+    return GL_FALSE;
 
-    if (!__glcArrayInsert(This->map, i, data))
-      return GL_FALSE;
-
-    return GL_TRUE;
-  }
-
-  map[i][1] = inGlyph;
-  map[i][2] = inMappedCode;
+  data[0] = inCode;
+  data[1] = inGlyph;
+  data[2] = inMappedCode;
   return GL_TRUE;
 }
 
@@ -112,7 +117,7 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
-  
+
   /* Convert the character name identified by inCharName into UTF-8 format. The
    * result is stored into 'buffer'. */
   buffer = __glcConvertToUtf8(inCharName, inState->stringType);
@@ -180,22 +185,27 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
 
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
 {
-  GLint i = 0;
   FT_ULong (*map)[3] = NULL;
+  int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
   map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
+  end = GLC_ARRAY_LENGTH(This->map) - 1;
+
   /* Look for the character mapped by inCode in the charmap */
-  /* FIXME : use a dichotomic algo. instead */
-  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
-    if (map[i][0] == (FT_ULong)inCode) {
-      /* Remove the character mapped by inCode */
-      __glcArrayRemove(This->map, i);
+  while (start <= end) {
+    middle = (start + end) >> 1;
+    if (map[middle][0] == inCode) {
+      __glcArrayRemove(This->map, middle);
       break;
     }
+    else if (map[middle][0] > inCode)
+      end = middle - 1;
+    else
+      start = middle + 1;
   }
 
   if (FcCharSetHasChar(This->charSet, inCode)) {
@@ -233,8 +243,8 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 {
   GLCchar *buffer = NULL;
   FcChar8* name = NULL;
-  GLint i = 0;
   FT_ULong (*map)[3] = NULL;
+  int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
@@ -243,12 +253,19 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
-  /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
-    if (map[i][0] == (FT_ULong)inCode) {
-      inCode = map[i][2];
+  end = GLC_ARRAY_LENGTH(This->map) - 1;
+
+  /* Look for the character mapped by inCode in the charmap */
+  while (start <= end) {
+    middle = (start + end) >> 1;
+    if (map[middle][0] == inCode) {
+      inCode = map[middle][2];
       break;
     }
+    else if (map[middle][0] > inCode)
+      end = middle - 1;
+    else
+      start = middle + 1;
   }
 
   /* Check if the character identified by inCode exists in the font */
@@ -275,9 +292,9 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 
 FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
 {
-  GLint i = 0;
   FT_UInt glyph = 0;
   FT_ULong (*map)[3] = NULL;
+  int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
@@ -285,10 +302,17 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
   map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
 
   /* Retrieve which is the glyph that inCode is mapped to */
-  /* TODO : use a dichotomic algo. instead */
-  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
-    if ((FT_ULong)inCode == map[i][0])
-      return map[i][1];
+  end = GLC_ARRAY_LENGTH(This->map) - 1;
+
+  /* Look for the character mapped by inCode in the charmap */
+  while (start <= end) {
+    middle = (start + end) >> 1;
+    if (map[middle][0] == inCode)
+      return map[middle][1];
+    else if (map[middle][0] > inCode)
+      end = middle - 1;
+    else
+      start = middle + 1;
   }
 
   assert(FcCharSetHasChar(This->charSet, inCode));
@@ -306,8 +330,8 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
 
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
 {
-  int i = 0;
   FT_ULong (*map)[3] = NULL;
+  int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
@@ -316,12 +340,19 @@ GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
-  /* FIXME : use a dichotomic algo instead */
-  for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++) {
-    if (map[i][0] == (FT_ULong)inCode) {
-      inCode = map[i][2];
+  end = GLC_ARRAY_LENGTH(This->map) - 1;
+
+  /* Look for the character mapped by inCode in the charmap */
+  while (start <= end) {
+    middle = (start + end) >> 1;
+    if (map[middle][0] == inCode) {
+      inCode = map[middle][2];
       break;
     }
+    else if (map[middle][0] > inCode)
+      end = middle - 1;
+    else
+      start = middle + 1;
   }
 
   /* Check if the character identified by inCode exists in the font */
