@@ -1,6 +1,8 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Fixed a bug in glcDeleteFont() where the face was not closed before the font
+  was deleted.
 - Display lists are now managed at the charmap level instead of being handled by
   the masters. This allows a better management and optimizes the GPU memory
   management by deleting display lists and textures as soon as the corresponding

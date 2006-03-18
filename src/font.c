@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -34,6 +34,19 @@
  *  Palatino Bold).
  *
  *  A font is an instantiation of a master.
+ *
+ *  GLC maintains two lists of fonts : \b GLC_FONT_LIST and
+ *  \b GLC_CURRENT_FONT_LIST. The former contains every font that have been
+ *  created with the commands glcNewFontFromFamily() and glcNewFontFromMaster()
+ *  and the later contains the fonts that GLC can use when it renders a
+ *  character (notice however that if \b GLC_AUTO_FONT is enabled, GLC may
+ *  automatically add new fonts from \b GLC_FONT_LIST to the
+ *  \b GLC_CURRENT_FONT_LIST ). Finally, it must be stressed that the order in
+ *  which the fonts are stored in the \b GLC_CURRENT_FONT_LIST matters : the
+ *  first font of the list should be considered as the main font with which
+ *  strings are rendered while other fonts of this list should be seen as
+ *  fallback fonts which are fonts that are used when the first font of
+ *  \b GLC_CURRENT_FONT_LIST does not map the character to render.
  *
  *  Most of the commands in this category have a parameter \e inFont. Unless
  *  otherwise specified, these commands raise \b GLC_PARAMETER_ERROR if
@@ -148,6 +161,7 @@ static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
   /* If the font has been found, remove it from the list */
   if (node) {
     FT_List_Remove(&state->currentFontList, node);
+    __glcFaceDescClose(font->faceDesc);
     __glcFree(node);
   }
   __glcFontDestroy(font);
@@ -232,14 +246,14 @@ void glcFont(GLint inFont)
   if (inFont) {
     FT_ListNode node = NULL;
     __glcFont *font = __glcVerifyFontParameters(inFont);
-    
+
     /* Verify that the thread has a current context and that the font
      * identified by 'inFont' exists.
      */
     if (!font) {
-       /* No need to raise an error since __glcVerifyFontParameters() already
-        * did it
-	*/
+      /* No need to raise an error since __glcVerifyFontParameters() already
+       * did it
+       */
       return;
     }
 
@@ -251,8 +265,8 @@ void glcFont(GLint inFont)
     }
     else {
       if (!__glcFaceDescOpen(font->faceDesc, state)) {
-        __glcRaiseError(GLC_RESOURCE_ERROR);
-        return;
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
       }
 
       /* Append the font identified by inFont to GLC_CURRENT_FONT_LIST */
@@ -871,7 +885,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
  *  \param inMaster The master from which to create the new font
  *  \return The ID of the new font if the command succceeds, \c 0 otherwise.
  *  \sa glcGetListi() with argument \b GLC_FONT_LIST
- *  \sa glcGeti() with argument GLC_FONT_COUNT
+ *  \sa glcGeti() with argument \b GLC_FONT_COUNT
  *  \sa glcIsFont()
  *  \sa glcGenFontID()
  *  \sa glcNewFontFromFamily()
@@ -915,7 +929,7 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
  *                  attribute has to match.
  *  \return The ID of the new font if the command succeeds, \c 0 otherwise.
  *  \sa glcGetListi() with argument \b GLC_FONT_LIST
- *  \sa glcGeti() with argument GLC_FONT_COUNT
+ *  \sa glcGeti() with argument \b GLC_FONT_COUNT
  *  \sa glcIsFont()
  *  \sa glcGenFontID()
  *  \sa glcNewFontFromMaster()
