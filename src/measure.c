@@ -92,8 +92,11 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
   GLfloat scale_y = GLC_POINT_SIZE;
   GLfloat transformMatrix[16];
   FT_Face face = NULL;
-  __glcFont* font = __glcLoadGlyph(inState, inFont, inCode, transformMatrix,
-				 &scale_x, &scale_y, &displayListIsBuilding);
+  __glcCharMapEntry* charMapEntry = NULL;
+  __glcFont* font = __glcLoadAndScaleGlyph(inState, inFont, inCode,
+					   transformMatrix, &scale_x, &scale_y,
+					   &displayListIsBuilding,
+					   &charMapEntry);
 
   if (!font)
     return NULL;

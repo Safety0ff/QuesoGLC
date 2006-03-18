@@ -1,6 +1,11 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Display lists are now managed at the charmap level instead of being handled by
+  the masters. This allows a better management and optimizes the GPU memory
+  management by deleting display lists and textures as soon as the corresponding
+  glyph is removed.
+- Charmaps now use binary search instead of linear search
 - Textures mipmaps in GLC_TEXTURE style are now built directly by QuesoGLC
   instead of GLU. It should provide better rendering quality at small pixel
   sizes

@@ -38,8 +38,6 @@ typedef struct {
   FcChar8* version;	        /* GLC_VERSION */
   GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
   GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
-  FT_ListRec displayList;	/* GLC_LIST_OBJECT_LIST */
-  FT_ListRec textureObjectList;	/* GLC_TEXTURE_OBJECT_LIST */
 } __glcMaster;
 
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,

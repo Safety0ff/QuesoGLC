@@ -143,8 +143,8 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   pixmap.pitch = - pixmap.pitch;
 
   /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -((boundingBox.xMin + 32) & -64),
-		       -((boundingBox.yMin + 32) & -64));
+  FT_Outline_Translate(&outline, -(boundingBox.xMin & -64),
+		       -(boundingBox.yMin & -64));
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
@@ -155,7 +155,8 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 
   /* Do the actual GL rendering */
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6, -boundingBox.yMin >> 6,
+  glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
+	   -boundingBox.yMin >> 6,
 	   inGlyph->advance.x / 64. * matrix.xx / 65536.
 	   + inGlyph->advance.y / 64. * matrix.xy / 65536.,
 	   inGlyph->advance.x / 64. * matrix.yx / 65536.
@@ -181,7 +182,8 @@ static int __glcNextPowerOf2(int value)
 static void __glcRenderCharTexture(__glcFont* inFont,
 				   __glcContextState* inState, GLint inCode,
 				   GLboolean inDisplayListIsBuilding,
-				   GLfloat scale_x, GLfloat scale_y)
+				   GLfloat scale_x, GLfloat scale_y,
+				   __glcCharMapEntry* inCharMapEntry)
 {
   FT_Face face = inFont->faceDesc->face;
   FT_Outline outline;
@@ -190,7 +192,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   GLuint texture = 0;
   GLfloat width = 0, height = 0;
   GLint format = 0;
-  __glcDisplayListKey *dlKey = NULL;
   GLint boundTexture = 0;
   GLint unpackAlignment = 0;
   GLint level = 0;
@@ -208,8 +209,10 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
   boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-  pixmap.width = __glcNextPowerOf2((boundingBox.xMax - boundingBox.xMin) >> 6);
-  pixmap.rows = __glcNextPowerOf2((boundingBox.yMax - boundingBox.yMin) >> 6);
+  pixmap.width = __glcNextPowerOf2(((boundingBox.xMax - boundingBox.xMin) >> 6)
+				   + 1);
+  pixmap.rows = __glcNextPowerOf2(((boundingBox.yMax - boundingBox.yMin) >> 6)
+				  + 1);
   pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
 
   /* Check if a new texture can be created */
@@ -249,7 +252,9 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     /* fill the pixmap buffer with the background color */
     memset(pixmap.buffer, 0, - pixmap.rows * pixmap.pitch);
 
-    /* translate the outline to match (0,0) with the glyph's lower left corner */
+    /* translate the outline to match (0,0) with the glyph's lower left
+     * corner
+     */
     FT_Outline_Translate(&outline, -((boundingBox.xMin >> level) & -64),
 			 -((boundingBox.yMin >> level) & -64));
 
@@ -272,7 +277,9 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     if ((!inState->mipmap) || (!inDisplayListIsBuilding))
       break;
 
-    /* translate the outline to match (0,0) with the glyph's lower left corner */
+    /* translate the outline to match (0,0) with the glyph's lower left
+     * corner
+     */
     FT_Outline_Translate(&outline, ((boundingBox.xMin >> level) & -64),
 			 ((boundingBox.yMin >> level) & -64));
 
@@ -281,7 +288,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     pixmap.rows >>= 1;
     pixmap.pitch >>= 1;
 
-    for (vector = outline.points; vector < outline.points + outline.n_points; vector++) {
+    for (vector = outline.points; vector < outline.points + outline.n_points;
+	 vector++) {
       vector->x >>= 1;
       vector->y >>= 1;
     }
@@ -311,48 +319,17 @@ static void __glcRenderCharTexture(__glcFont* inFont,
    * to the list of display lists
    */
   if (inState->glObjects) {
-    FT_ListNode node = NULL;
-    /* Hack in order to be able to store a 32 bits texture ID in a 32/64 bits
-     * void* pointer so that we do not need to allocate memory just to store
-     * a single integer value
-     */
-    union {
-      void* ptr;
-      GLuint ui;
-    } voidToGLuint;
-
-
-    dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
-    node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-    if ((!node) || (!dlKey)) {
-      if (!node) __glcFree(node);
-      if (!dlKey) __glcFree(dlKey);
+    inCharMapEntry->textureObject = texture;
+    inCharMapEntry->displayList[0] = glGenLists(1);
+    if (!inCharMapEntry->displayList[0]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       glDeleteTextures(1, &texture);
       __glcFree(pixmap.buffer);
       return;
     }
 
-    voidToGLuint.ui = texture;
-
-    node->data = voidToGLuint.ptr;
-    FT_List_Add(&inFont->parent->textureObjectList, node);
-
-    /* Initialize the key */
-    dlKey->list = glGenLists(1);
-    dlKey->faceDesc = inFont->faceDesc;
-    dlKey->code = inCode;
-    dlKey->renderMode = GLC_TEXTURE;
-
-    /* Get (or create) a new entry that contains the display list and store
-     * the key in it
-     */
-    node = (FT_ListNode)dlKey;
-    node->data = dlKey;
-    FT_List_Add(&inFont->parent->displayList, node);
-
     /* Create the display list */
-    glNewList(dlKey->list, GL_COMPILE_AND_EXECUTE);
+    glNewList(inCharMapEntry->displayList[0], GL_COMPILE_AND_EXECUTE);
   }
 
   glPushAttrib(GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
@@ -401,45 +378,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   __glcFree(pixmap.buffer);
 }
 
-static FT_Error __glcDisplayListIterator(FT_ListNode node, void *user)
-{
-  __glcDisplayListKey *dlKey = (__glcDisplayListKey*)user;
-  __glcDisplayListKey *nodeKey = (__glcDisplayListKey*)node;
-
-  if ((dlKey->faceDesc == nodeKey->faceDesc) && (dlKey->code == nodeKey->code)
-      && (dlKey->renderMode == nodeKey->renderMode))
-    dlKey->list = nodeKey->list;
-
-  return 0;
-}
-
-/* This internal function look in the linked list of display lists for a
- * display list that draws the desired glyph in the desired rendering mode
- * using the desired font. Returns GL_TRUE if a display list exists, returns
- * GL_FALSE otherwise.
- */
-static GLboolean __glcFindDisplayList(__glcFont *inFont, GLint inCode,
-				      GLCenum renderMode)
-{
-  __glcDisplayListKey dlKey;
-
-  /* Initialize the key */
-  dlKey.faceDesc = inFont->faceDesc;
-  dlKey.code = inCode;
-  dlKey.renderMode = renderMode;
-  dlKey.list = 0;
-  /* Look for the key in the display list linked list */
-  FT_List_Iterate(&inFont->parent->displayList,
-		  __glcDisplayListIterator, &dlKey);
-  /* If a display list has been found then display it */
-  if (dlKey.list) {
-    glCallList(dlKey.list);
-    return GL_TRUE;
-  }
-
-  return GL_FALSE;
-}
-
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
@@ -451,8 +389,11 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
   GLboolean displayListIsBuilding = GL_FALSE;
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
-  __glcFont* font = __glcLoadGlyph(inState, inFont, inCode, transformMatrix,
-					   &scale_x, &scale_y, &displayListIsBuilding);
+  __glcCharMapEntry* charMapEntry = NULL;
+  __glcFont* font = __glcLoadAndScaleGlyph(inState, inFont, inCode,
+					   transformMatrix, &scale_x, &scale_y,
+					   &displayListIsBuilding,
+					   &charMapEntry);
 
   if (!font)
     return NULL;
@@ -518,16 +459,27 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 			  (GLfloat)scale_x, (GLfloat)scale_y);
     break;
   case GLC_TEXTURE:
-    if (!__glcFindDisplayList(font, inCode, GLC_TEXTURE))
+    if (charMapEntry->displayList[0])
+      glCallList(charMapEntry->displayList[0]);
+    else
       __glcRenderCharTexture(font, inState, inCode, displayListIsBuilding,
-			     (GLfloat)scale_x, (GLfloat)scale_y);
+			     (GLfloat)scale_x, (GLfloat)scale_y, charMapEntry);
     break;
   case GLC_LINE:
-  case GLC_TRIANGLE:
-    if (!__glcFindDisplayList(font, inCode, inState->renderStyle))
-      __glcRenderCharScalable(font, inState, inCode, inState->renderStyle,
+    if (charMapEntry->displayList[1])
+      glCallList(charMapEntry->displayList[1]);
+    else
+      __glcRenderCharScalable(font, inState, inCode, GLC_LINE,
 			      displayListIsBuilding, transformMatrix,
-			      scale_x, scale_y);
+			      scale_x, scale_y, charMapEntry);
+    break;
+  case GLC_TRIANGLE:
+    if (charMapEntry->displayList[2])
+      glCallList(charMapEntry->displayList[2]);
+    else
+      __glcRenderCharScalable(font, inState, inCode, GLC_TRIANGLE,
+			      displayListIsBuilding, transformMatrix,
+			      scale_x, scale_y, charMapEntry);
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);

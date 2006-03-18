@@ -143,6 +143,7 @@ void glcDataPointer(GLvoid *inPointer)
 void glcDeleteGLObjects(void)
 {
   __glcContextState *state = NULL;
+  FT_ListNode node = NULL;
 
   /* Check if the thread has a current context */
   state = __glcGetCurrent();
@@ -151,7 +152,13 @@ void glcDeleteGLObjects(void)
     return;
   }
 
-  __glcDeleteGLObjects(state);
+  for(node = state->fontList.head; node; node = node->next) {
+    __glcCharMap* charMap = ((__glcFont*)node->data)->charMap;
+    int i = 0;
+
+    for (i = 0; i < GLC_ARRAY_LENGTH(charMap->map); i++)
+      __glcCharMapDestroyGLObjects(charMap, i);
+  }
 }
 
 
@@ -511,39 +518,40 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     }
   case GLC_LIST_OBJECT_LIST:
     /* In order to get the display list name, we have to perform a search
-     * through the list of display lists of every master. Actually we do not
-     * even know which glyph of which font of which master the requested index
-     * of a display list represents...
+     * through the list of display lists of every font.
      */
-    for(node = state->masterList.head; node; node = node->next) {
-      FT_ListNode dlNode = NULL;
+    for(node = state->fontList.head; node; node = node->next) {
+      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
+      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
+      int i = 0, j = 0;
 
-      for (dlNode = ((__glcMaster*)node->data)->displayList.head;
-	   dlNode && inIndex; dlNode = dlNode->next, inIndex--);
-      if (dlNode)
-	return ((__glcDisplayListKey*)dlNode)->list;
+      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
+	for (j = 0; j < 3; j++) {
+	  GLuint displayList = entry[i].displayList[j];
+
+	  if (displayList) {
+	    if (!inIndex)
+	      return displayList;
+	    inIndex--;
+	  }
+	}
+      }
     }
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
     /* See also comments of GLC_LIST_OBJECT_LIST above */
-    for(node = state->masterList.head; node; node = node->next) {
-      FT_ListNode texNode = NULL;
+    for(node = state->fontList.head; node; node = node->next) {
+      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
+      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
+      int i = 0;
 
-      for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
-	   texNode && inIndex; texNode = texNode->next, inIndex--);
-      if (texNode) {
-	/* Hack in order to be able to store a 32 bits texture ID in a 32/64
-	 * bits void* pointer so that we do not need to allocate memory just to
-	 * store a single integer value
-	 */
-        union {
-	  void* ptr;
-	  GLint i;
-	} voidToGLint;
-	
-	voidToGLint.ptr = texNode->data;
-	return voidToGLint.i;
+      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
+	if (entry[i].displayList[0]) {
+	  if (!inIndex)
+	    return entry[i].textureObject;
+	  inIndex--;
+	}
       }
     }
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -626,7 +634,8 @@ GLvoid * glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* glcGetc(GLCenum inAttrib)
 {
-  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name GLC_QSO_hinting";
+  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
+    " GLC_QSO_hinting";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   char __glcRelease[4] = " . ";
 
@@ -882,11 +891,17 @@ GLint glcGeti(GLCenum inAttrib)
 	 node = node->next, count++);
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    for (count = 0, node = state->masterList.head; node; node = node->next) {
-      FT_ListNode dlNode = NULL;
+    for(node = state->fontList.head; node; node = node->next) {
+      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
+      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
+      int i = 0, j = 0;
 
-      for (dlNode = ((__glcMaster*)node->data)->displayList.head; dlNode;
-	   dlNode = dlNode->next, count++);
+      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
+	for (j = 0; j < 3; j++) {
+	  if (entry[i].displayList[j])
+	    count++;
+	}
+      }
     }
     return count;
   case GLC_MASTER_COUNT:
@@ -906,11 +921,15 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_STRING_TYPE:
     return state->stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    for(count = 0, node = state->masterList.head; node; node = node->next) {
-      FT_ListNode texNode = NULL;
+    for(node = state->fontList.head; node; node = node->next) {
+      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
+      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
+      int i = 0;
 
-      for (texNode = ((__glcMaster*)node->data)->textureObjectList.head;
-	   texNode; texNode = texNode->next, count++);
+      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
+	  if (entry[i].displayList[0])
+	    count++;
+      }
     }
     return count;
   case GLC_VERSION_MAJOR:

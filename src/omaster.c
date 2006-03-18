@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   This->faceList.tail = NULL;
 
   /* FIXME : if a master has been deleted by glcRemoveCatalog then its location
-   * may be free and should be used instead of using the last location
+   * may be freed and should be used instead of using the last location
    */
   This->family = (FcChar8*)strdup((const char*)familyName);
   if (!This->family)
@@ -67,11 +67,6 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   This->minMappedCode = 0x7fffffff;
   This->maxMappedCode = 0;
   This->id = inID;
-
-  This->displayList.head = NULL;
-  This->displayList.tail = NULL;
-  This->textureObjectList.head = NULL;
-  This->textureObjectList.tail = NULL;
 
   return This;
 
@@ -97,11 +92,6 @@ void __glcMasterDestroy(__glcMaster *This)
 {
   FT_ListNode node = NULL;
   FT_ListNode next = NULL;
-
-  FT_List_Finalize(&This->displayList, __glcDisplayListDestructor,
-		   &__glcCommonArea.memoryManager, NULL);
-  FT_List_Finalize(&This->textureObjectList, __glcTextureObjectDestructor,
-		   &__glcCommonArea.memoryManager, NULL);
 
   /* Don't use FT_List_Finalize here, since __glcFaceDescDestroy also destroys
    * the node itself.

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,15 @@
 #include "oarray.h"
 
 typedef struct {
+  FT_ULong codepoint;
+  FT_ULong mappedCode;
+  FT_ULong glyphIndex;
+  /* GL objects management */
+  GLuint textureObject;
+  GLuint displayList[3];
+} __glcCharMapEntry;
+
+typedef struct {
   __glcFaceDescriptor* faceDesc;
   FcCharSet* charSet;
   __glcArray* map;
@@ -43,7 +52,7 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 				 __glcContextState* inState);
-FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace,
+__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This, FT_Face inFace,
 			       GLint inCode);
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
@@ -51,4 +60,5 @@ GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 GLint __glcCharMapGetCount(__glcCharMap* This);
 GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This);
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This);
+void __glcCharMapDestroyGLObjects(__glcCharMap* This, int inRank);
 #endif

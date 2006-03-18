@@ -41,14 +41,6 @@
 #define GLC_POINT_SIZE		128
 
 typedef struct {
-  FT_ListNodeRec node;
-  __glcFaceDescriptor* faceDesc;
-  GLint code;
-  GLCenum renderMode;
-  GLuint list;
-} __glcDisplayListKey;
-
-typedef struct {
   GLint code;
   GLCchar* name;
 } __glcDataCodeFromName;
@@ -64,7 +56,8 @@ extern void __glcRenderCharScalable(__glcFont* inFont,
 				    GLCenum inRenderMode,
 				    GLboolean inDisplayListIsBuilding,
 				    GLfloat* inTransformMatrix,
-				    GLfloat scale_x, GLfloat scale_y);
+				    GLfloat scale_x, GLfloat scale_y,
+				    __glcCharMapEntry* inCharMapEntry);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);
@@ -74,9 +67,6 @@ extern void* __glcRealloc(void* ptr, size_t size);
 /* Find a token in a list of tokens separated by 'separator' */
 extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
 				   const GLCchar* inSeparator);
-
-/* Deletes GL objects defined in context state */
-extern void __glcDeleteGLObjects(__glcContextState *inState);
 
 extern const __glcDataCodeFromName __glcCodeFromNameArray[];
 extern const GLint __glcNameFromCodeArray[];
@@ -109,14 +99,6 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 
 /* Count the number of bits that are set in c1  */
 extern FcChar32 __glcCharSetPopCount(FcChar32 c1);
-
-/* This function is called to destroy texture objects */
-extern void __glcTextureObjectDestructor(FT_Memory inMemory, void *inData,
-					 void *inUser);
-
-/* This function is called to destroy display lists */
-extern void __glcDisplayListDestructor(FT_Memory inMemory, void *inData,
-				       void *inUser);
 
 /* Convert a UCS-4 character code into the current string type. The result is
  * stored in a GLint. This function is needed since the GLC specs store
@@ -167,11 +149,12 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
 		       void* inProcessCharData);
 
 /* Load the glyph that correspond to the Unicode codepoint inCode and determine
- * an optimal size for that glyph to be rendered on the screen if no display list
- * is planned to be built.
+ * an optimal size for that glyph to be rendered on the screen if no display
+ * list is planned to be built.
  */
-__glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode,
-			  GLfloat* outTransformMatrix, GLfloat* outScaleX,
-			  GLfloat* outScaleY,
-			  GLboolean* outDisplayListIsBuilding);
+__glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
+				  GLint inCode, GLfloat* outTransformMatrix,
+				  GLfloat* outScaleX, GLfloat* outScaleY,
+				  GLboolean* outDisplayListIsBuilding,
+				  __glcCharMapEntry** outCharMapEntry);
 #endif /* __glc_internal_h */

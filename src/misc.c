@@ -752,27 +752,6 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 
 
 
-/* This functions destroys the display lists and the texture objects that
- * are associated with a context identified by inState. The corresponding
- * linked lists are also deleted.
- */
-void __glcDeleteGLObjects(__glcContextState *inState)
-{
-  FT_ListNode node = NULL;
-  __glcMaster* master = NULL;
-
-  /* Delete display lists and texture objects */
-  for(node = inState->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
-    FT_List_Finalize(&master->displayList, __glcDisplayListDestructor,
-                     &__glcCommonArea.memoryManager, NULL);
-    FT_List_Finalize(&master->textureObjectList, __glcTextureObjectDestructor,
-		     &__glcCommonArea.memoryManager, NULL);
-  }
-}
-
-
-
 /* Get the minimum mapped code of a character set */
 GLint __glcGetMinMappedCode(FcCharSet *charSet)
 {
@@ -1110,13 +1089,14 @@ static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 
 
 /* Load the glyph that correspond to the Unicode codepoint inCode and determine
- * an optimal size for that glyph to be rendered on the screen if no display list
- * is planned to be built.
+ * an optimal size for that glyph to be rendered on the screen if no display
+ * list is planned to be built.
  */
-__glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode,
-			  GLfloat* outTransformMatrix, GLfloat* outScaleX,
-			  GLfloat* outScaleY,
-			  GLboolean* outDisplayListIsBuilding)
+__glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
+				  GLint inCode, GLfloat* outTransformMatrix,
+				  GLfloat* outScaleX, GLfloat* outScaleY,
+				  GLboolean* outDisplayListIsBuilding,
+				  __glcCharMapEntry** outCharMapEntry)
 {
   FT_Face face = NULL;
   __glcFont* font = NULL;
@@ -1142,7 +1122,14 @@ __glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode
   }
 
   /* Get and load the glyph which Unicode codepoint is identified by inCode */
-  glyphIndex = __glcCharMapGlyphIndex(font->charMap, face, inCode);
+  *outCharMapEntry = __glcCharMapGetEntry(font->charMap, face, inCode);
+  if (!(*outCharMapEntry)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    __glcFaceDescClose(font->faceDesc);
+    return NULL;
+  }
+
+  glyphIndex = (*outCharMapEntry)->glyphIndex;
   if (!glyphIndex) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     __glcFaceDescClose(font->faceDesc);
@@ -1180,7 +1167,7 @@ __glcFont* __glcLoadGlyph(__glcContextState* inState, GLint inFont, GLint inCode
 			+outTransformMatrix[10] * outTransformMatrix[10]);
       GLfloat x = 0., y = 0.;
 
-      bzero(rs, 16 * sizeof(GLfloat));
+      memset(rs, 0, 16 * sizeof(GLfloat));
       rs[15] = 1.;
       for (i = 0; i < 3; i++) {
 	rs[0+4*i] = outTransformMatrix[0+4*i] / sx;

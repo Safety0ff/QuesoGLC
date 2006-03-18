@@ -43,7 +43,7 @@ __glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc)
     __glcFree(This);
     return NULL;
   }
-  This->map = __glcArrayCreate(3 * sizeof(FT_ULong));
+  This->map = __glcArrayCreate(sizeof(__glcCharMapEntry));
 
   return This;
 }
@@ -52,8 +52,14 @@ __glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc)
 
 void __glcCharMapDestroy(__glcCharMap* This)
 {
-  if (This->map)
+  if (This->map) {
+    int i = 0;
+
+    for (i = 0; i < GLC_ARRAY_LENGTH(This->map); i++)
+      __glcCharMapDestroyGLObjects(This, i);
+
     __glcArrayDestroy(This->map);
+  }
 
   FcCharSetDestroy(This->charSet);
 
@@ -62,44 +68,48 @@ void __glcCharMapDestroy(__glcCharMap* This)
 
 
 
-static GLboolean __glcCharMapInsertCode(__glcCharMap* This, GLint inCode,
-					GLint inMappedCode, GLint inGlyph)
+static __glcCharMapEntry* __glcCharMapInsertCode(__glcCharMap* This,
+						 GLint inCode,
+						 GLint inMappedCode,
+						 GLint inGlyph)
 {
-  FT_ULong (*map)[3] = NULL;
-  FT_ULong* data = NULL;
+  __glcCharMapEntry* entry = NULL;
+  __glcCharMapEntry* newEntry = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
+  entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (map[middle][0] == inCode) {
-      map[middle][1] = inGlyph;
-      map[middle][2] = inMappedCode;
-      return GL_TRUE;
+    if (entry[middle].codepoint == inCode) {
+      entry[middle].glyphIndex = inGlyph;
+      entry[middle].mappedCode = inMappedCode;
+      return &entry[middle];
     }
-    else if (map[middle][0] > inCode)
+    else if (entry[middle].codepoint > inCode)
       end = middle - 1;
     else
       start = middle + 1;
   }
 
-  if ((end >= 0) && (map[middle][0] < inCode))
+  if ((end >= 0) && (entry[middle].codepoint < inCode))
     middle++;
 
-  data = (FT_ULong*)__glcArrayInsertCell(This->map, middle);
-  if (!data)
-    return GL_FALSE;
+  newEntry = (__glcCharMapEntry*)__glcArrayInsertCell(This->map, middle);
+  if (!newEntry)
+    return NULL;
 
-  data[0] = inCode;
-  data[1] = inGlyph;
-  data[2] = inMappedCode;
-  return GL_TRUE;
+  newEntry->codepoint = inCode;
+  newEntry->glyphIndex = inGlyph;
+  newEntry->mappedCode = inMappedCode;
+  newEntry->textureObject = 0;
+  memset(newEntry->displayList, 0, 3 * sizeof(GLuint));
+  return newEntry;
 }
 
 
@@ -185,24 +195,25 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
 
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
 {
-  FT_ULong (*map)[3] = NULL;
+  __glcCharMapEntry* entry = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
+  entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
   /* Look for the character mapped by inCode in the charmap */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (map[middle][0] == inCode) {
+    if (entry[middle].codepoint == inCode) {
+      __glcCharMapDestroyGLObjects(This, middle);
       __glcArrayRemove(This->map, middle);
       break;
     }
-    else if (map[middle][0] > inCode)
+    else if (entry[middle].codepoint > inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -243,13 +254,13 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 {
   GLCchar *buffer = NULL;
   FcChar8* name = NULL;
-  FT_ULong (*map)[3] = NULL;
+  __glcCharMapEntry* entry = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
+  entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(This->map);
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
@@ -258,11 +269,11 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
   /* Look for the character mapped by inCode in the charmap */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (map[middle][0] == inCode) {
-      inCode = map[middle][2];
+    if (entry[middle].codepoint == inCode) {
+      inCode = entry[middle].mappedCode;
       break;
     }
-    else if (map[middle][0] > inCode)
+    else if (entry[middle].codepoint > inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -290,16 +301,17 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 
 
 
-FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
+__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This, FT_Face inFace,
+					GLint inCode)
 {
   FT_UInt glyph = 0;
-  FT_ULong (*map)[3] = NULL;
+  __glcCharMapEntry* entry = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
+  entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(This->map);
 
   /* Retrieve which is the glyph that inCode is mapped to */
   end = GLC_ARRAY_LENGTH(This->map) - 1;
@@ -307,9 +319,9 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
   /* Look for the character mapped by inCode in the charmap */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (map[middle][0] == inCode)
-      return map[middle][1];
-    else if (map[middle][0] > inCode)
+    if (entry[middle].codepoint == inCode)
+      return &entry[middle];
+    else if (entry[middle].codepoint > inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -320,23 +332,20 @@ FT_UInt __glcCharMapGlyphIndex(__glcCharMap* This, FT_Face inFace, GLint inCode)
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = FcFreeTypeCharIndex(inFace, inCode);
 
-  if (!__glcCharMapInsertCode(This, inCode, inCode, glyph))
-    return 0;
-  else
-    return glyph;
+  return __glcCharMapInsertCode(This, inCode, inCode, glyph);
 }
 
 
 
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
 {
-  FT_ULong (*map)[3] = NULL;
+  __glcCharMapEntry* entry = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
-  map = (FT_ULong (*)[3])GLC_ARRAY_DATA(This->map);
+  entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(This->map);
 
   /* Look for the character which the character identifed by inCode is
    * mapped by */
@@ -345,11 +354,11 @@ GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
   /* Look for the character mapped by inCode in the charmap */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (map[middle][0] == inCode) {
-      inCode = map[middle][2];
+    if (entry[middle].codepoint == inCode) {
+      inCode = entry[middle].mappedCode;
       break;
     }
-    else if (map[middle][0] > inCode)
+    else if (entry[middle].codepoint > inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -386,4 +395,25 @@ GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This)
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This)
 {
   return __glcGetMinMappedCode(This->faceDesc->charSet);
+}
+
+/* This functions destroys the display lists and the texture objects that
+ * are associated with a charmap entry identified by inCharMapEntry.
+ */
+void __glcCharMapDestroyGLObjects(__glcCharMap* This, int inRank)
+{
+  __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(This->map);
+
+  if (entry[inRank].displayList[0]) {
+    glDeleteTextures(1, &entry[inRank].textureObject);
+    glDeleteLists(entry[inRank].displayList[0], 1);
+  }
+
+  if (entry[inRank].displayList[1])
+    glDeleteLists(entry[inRank].displayList[1], 1);
+
+  if (entry[inRank].displayList[2])
+    glDeleteLists(entry[inRank].displayList[2], 1);
+
+  memset(entry[inRank].displayList, 0, 3 * sizeof(GLuint));
 }

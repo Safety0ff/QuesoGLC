@@ -396,12 +396,11 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 			     GLint inCode, GLCenum inRenderMode,
 			     GLboolean inDisplayListIsBuilding,
 			     GLfloat* inTransformMatrix, GLfloat scale_x,
-			     GLfloat scale_y)
+			     GLfloat scale_y,
+			     __glcCharMapEntry* inCharMapEntry)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
-  FT_ListNode node = NULL;
-  __glcDisplayListKey *dlKey = NULL;
   __glcRendererData rendererData;
   GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
 				 0., 0., 0., 0., 1.};
@@ -472,27 +471,17 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   }
 
   if (inState->glObjects) {
-    dlKey = (__glcDisplayListKey *)__glcMalloc(sizeof(__glcDisplayListKey));
-    if (!dlKey) {
+    int index = (inRenderMode == GLC_LINE) ? 1 : 2;
+
+    inCharMapEntry->displayList[index] = glGenLists(1);
+    if (!inCharMapEntry->displayList[index]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
       GLC_ARRAY_LENGTH(inState->endContour) = 0;
       return;
     }
 
-    dlKey->list = glGenLists(1);
-    dlKey->faceDesc = inFont->faceDesc;
-    dlKey->code = inCode;
-    dlKey->renderMode = inRenderMode;
-
-    /* Get (or create) a new entry that contains the display list and store
-     * the key in it
-     */
-    node = (FT_ListNode)dlKey;
-    node->data = dlKey;
-    FT_List_Add(&inFont->parent->displayList, node);
-
-    glNewList(dlKey->list, GL_COMPILE_AND_EXECUTE);
+    glNewList(inCharMapEntry->displayList[index], GL_COMPILE_AND_EXECUTE);
   }
 
   if (inRenderMode == GLC_TRIANGLE) {

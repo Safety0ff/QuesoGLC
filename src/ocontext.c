@@ -184,11 +184,6 @@ void __glcCtxDestroy(__glcContextState *This)
   /* Destroy the list of catalogs */
   FcStrSetDestroy(This->catalogList);
 
-  /* Must be called before the masters are destroyed since
-   * the display lists are stored in the masters.
-   */
-  __glcDeleteGLObjects(This);
-
   /* destroy remaining masters */
   FT_List_Finalize(&This->masterList, __glcMasterDestructor,
 		   &__glcCommonArea.memoryManager, NULL);
