@@ -6,7 +6,7 @@ C_SOURCE = $(addprefix src/,$(C_FILES))
 LIB_OBJECTS = $(addprefix obj/, $(C_FILES:.c=.o))
 TEST_OBJECTS_WITHOUT_GLUT = tests/testmaster tests/testfont tests/testcontex \
 	tests/test1 tests/test2 tests/test3 tests/test4 tests/test5 \
-	tests/test6 tests/testexcept
+	tests/test6 tests/test7 tests/testexcept
 TEST_OBJECTS_WITH_GLUT = tests/testrender
 EXAMPLE_OBJECTS = examples/unicode examples/tutorial examples/glclogo \
 	examples/tutorial2

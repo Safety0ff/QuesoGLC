@@ -1,6 +1,8 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Thomas Zimmermann fixed the string measurement commands that did not return
+  results that were consistent with those returned by glcCharMetric().
 - Fixed a bug in glcDeleteFont() where the face was not closed before the font
   was deleted.
 - Display lists are now managed at the charmap level instead of being handled by

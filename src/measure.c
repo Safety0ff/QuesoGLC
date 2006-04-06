@@ -376,8 +376,8 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  GLfloat overallBaseline[4];
  *  GLfloat overallBoundingBox[8];
  *
- *  GLfloat charBaslines[4][5];
- *  GLfloat charBoundingBoxes[8][5];
+ *  GLfloat charBaslines[5][4];
+ *  GLfloat charBoundingBoxes[5][8];
  *
  *  GLint i;
  *
@@ -441,11 +441,11 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 
   switch(inMetric) {
   case GLC_BASELINE:
-    memcpy(outVec, &measurementBuffer[0][inIndex],
+    memcpy(outVec, &measurementBuffer[inIndex][0],
            4*sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
-    memcpy(outVec, &measurementBuffer[4][inIndex],
+    memcpy(outVec, &measurementBuffer[inIndex][4],
 	   8*sizeof(GLfloat));
     return outVec;
   }
@@ -590,7 +590,7 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
 
       for (i = 0; i < inCount; i++) {
 	for (j = 0; j < 6; j++)
-	  __glcTransformVector(&measurementBuffer[2*j][i],
+	  __glcTransformVector(&measurementBuffer[i][2*j],
 			       inState->bitmapMatrix);
       }
     }
