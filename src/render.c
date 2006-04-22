@@ -94,6 +94,8 @@
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
+
+
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
 static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
@@ -167,6 +169,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 }
 
 
+
 static int __glcNextPowerOf2(int value)
 {
   int power = 0;
@@ -175,6 +178,8 @@ static int __glcNextPowerOf2(int value)
 
   return power;
 }
+
+
 
 /* Internal function that renders glyph in textures :
  * 'inCode' must be given in UCS-4 format
@@ -378,6 +383,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   __glcFree(pixmap.buffer);
 }
 
+
+
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
@@ -386,17 +393,26 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 			    GLboolean inMultipleChars)
 {
   GLfloat transformMatrix[16];
-  GLboolean displayListIsBuilding = GL_FALSE;
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
   __glcCharMapEntry* charMapEntry = NULL;
-  __glcFont* font = __glcLoadAndScaleGlyph(inState, inFont, inCode,
-					   transformMatrix, &scale_x, &scale_y,
-					   &displayListIsBuilding,
-					   &charMapEntry);
+  GLboolean displayListIsBuilding = __glcGetScale(inState, transformMatrix,
+						  &scale_x, &scale_y);
+  __glcFont* font = __glcVerifyFontParameters(inFont);
 
-  if (!font)
+  if ((!font) || (scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
+
+  /* Get and load the glyph which Unicode codepoint is identified by inCode */
+  charMapEntry = __glcCharMapGetEntry(font->charMap, font->faceDesc, inState,
+				      inCode);
+  if (!charMapEntry) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  __glcFaceDescLoadGlyph(font->faceDesc, inState, scale_x, scale_y,
+			 charMapEntry->glyphIndex);
 
   if ((inState->renderStyle != GLC_BITMAP) && (!displayListIsBuilding)) {
     FT_Outline outline;
@@ -489,6 +505,8 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
   return NULL;
 }
 
+
+
 /** \ingroup render
  *  This command renders the character that \e inCode is mapped to.
  *
@@ -523,6 +541,8 @@ void glcRenderChar(GLint inCode)
 
   __glcProcessChar(state, code, __glcRenderChar, NULL);
 }
+
+
 
 /** \ingroup render
  *  This command is identical to the command glcRenderChar(), except that it
@@ -584,6 +604,8 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
   __glcFree(UinString);
 }
 
+
+
 /** \ingroup render
  *  This command is identical to the command glcRenderCountedString(), except
  *  that \e inString is zero terminated, not counted.
@@ -629,6 +651,8 @@ void glcRenderString(const GLCchar *inString)
 
   __glcFree(UinString);
 }
+
+
 
 /** \ingroup render
  *  This command assigns the value \e inStyle to the variable
@@ -685,6 +709,8 @@ void glcRenderStyle(GLCenum inStyle)
   return;
 }
 
+
+
 /** \ingroup render
  *  This command assigns the value \e inCode to the variable
  *  \b GLC_REPLACEMENT_CODE. The replacement code is the code which is used
@@ -720,6 +746,8 @@ void glcReplacementCode(GLint inCode)
   state->replacementCode = code;
   return;
 }
+
+
 
 /** \ingroup render
  *  This command assigns the value \e inVal to the variable \b GLC_RESOLUTION.

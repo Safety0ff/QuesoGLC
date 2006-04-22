@@ -1045,49 +1045,19 @@ static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 
 
 
-/* Load the glyph that correspond to the Unicode codepoint inCode and determine
- * an optimal size for that glyph to be rendered on the screen if no display
- * list is planned to be built.
+/* Compute an optimal size for that glyph to be rendered on the screen if no
+ * display list is planned to be built.
  */
-__glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
-				  GLint inCode, GLfloat* outTransformMatrix,
-				  GLfloat* outScaleX, GLfloat* outScaleY,
-				  GLboolean* outDisplayListIsBuilding,
-				  __glcCharMapEntry** outCharMapEntry)
+GLboolean __glcGetScale(__glcContextState* inState,
+			GLfloat* outTransformMatrix, GLfloat* outScaleX,
+			GLfloat* outScaleY)
 {
-  FT_Face face = NULL;
-  __glcFont* font = NULL;
-  FT_UInt glyphIndex = 0;
-  FT_ListNode node = NULL;
   GLint listIndex = 0;
+  GLboolean displayListIsBuilding = GL_FALSE;
   int i = 0;
-  FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
-
-  for (node = inState->fontList.head; node; node = node->next) {
-    font = (__glcFont*)node->data;
-    assert(font);
-    if (font->id == inFont) break;
-  }
-
-  if (!node)
-    return NULL;
-
-  /* Get and load the glyph which Unicode codepoint is identified by inCode */
-  *outCharMapEntry = __glcCharMapGetEntry(font->charMap, font->faceDesc,
-					  inState, inCode);
-  if (!(*outCharMapEntry)) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return NULL;
-  }
-
-  glyphIndex = (*outCharMapEntry)->glyphIndex;
-  if (!glyphIndex) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return NULL;
-  }
 
   glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  *outDisplayListIsBuilding = listIndex || inState->glObjects;
+  displayListIsBuilding = listIndex || inState->glObjects;
 
   if (inState->renderStyle != GLC_BITMAP) {
     GLfloat projectionMatrix[16];
@@ -1104,7 +1074,7 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
      */
     __glcMultMatrices(modelviewMatrix, projectionMatrix, outTransformMatrix);
 
-    if ((!outDisplayListIsBuilding) && inState->hinting) {
+    if ((!displayListIsBuilding) && inState->hinting) {
       GLfloat rs[16], m[16];
       GLfloat sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
 			+outTransformMatrix[1] * outTransformMatrix[1]
@@ -1124,8 +1094,11 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
 	rs[1+4*i] = outTransformMatrix[1+4*i] / sy;
 	rs[2+4*i] = outTransformMatrix[2+4*i] / sz;
       }
-      if (!__glcInvertMatrix(rs, rs))
-	return NULL;
+      if (!__glcInvertMatrix(rs, rs)) {
+	*outScaleX = 0.f;
+	*outScaleY = 0.f;
+	return displayListIsBuilding;
+      }
 
       __glcMultMatrices(rs, outTransformMatrix, m);
       x = ((m[0] + m[12])/(m[3] + m[15]) - m[12]/m[15]) * viewport[2] * 0.5;
@@ -1138,7 +1111,6 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
     else {
       *outScaleX = GLC_POINT_SIZE;
       *outScaleY = GLC_POINT_SIZE;
-      loadFlags |= FT_LOAD_NO_HINTING;
     }
   }
   else {
@@ -1154,8 +1126,11 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
     determinant = transform[0] * transform[3] - transform[1] * transform[2];
 
     /* If the transformation is degenerated, nothing needs to be rendered */
-    if (fabsf(determinant) < norm * GLC_EPSILON)
-      return NULL;
+    if (fabsf(determinant) < norm * GLC_EPSILON) {
+      *outScaleX = 0.f;
+      *outScaleY = 0.f;
+      return displayListIsBuilding;
+    }
 
     if (inState->hinting) {
       *outScaleX = sqrt(transform[0]*transform[0]+transform[1]*transform[1]);
@@ -1164,30 +1139,8 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
     else {
       *outScaleX = GLC_POINT_SIZE;
       *outScaleY = GLC_POINT_SIZE;
-      loadFlags |= FT_LOAD_NO_HINTING;
     }
   }
 
-  face = __glcFaceDescOpen(font->faceDesc, inState);
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  if (FT_Set_Char_Size(face, (FT_F26Dot6)(*outScaleX * 64.),
-		       (FT_F26Dot6)(*outScaleY * 64.),
-		       (FT_UInt)inState->resolution,
-		       (FT_UInt)inState->resolution)) {
-    __glcFaceDescClose(font->faceDesc);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  if (FT_Load_Glyph(face, glyphIndex, loadFlags)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(font->faceDesc);
-    return NULL;
-  }
-
-  return font;
+  return displayListIsBuilding;
 }

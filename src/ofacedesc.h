@@ -44,4 +44,7 @@ FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
 void __glcFaceDescClose(__glcFaceDescriptor* This);
 FT_UInt __glcFaceDescGetGlyphIndex(__glcFaceDescriptor* This, GLint inCode,
 				   __glcContextState* inState);
+FT_Face __glcFaceDescLoadGlyph(__glcFaceDescriptor* This,
+			       __glcContextState* inState, GLfloat inScaleX,
+			       GLfloat inScaleY, FT_ULong inGlyphIndex);
 #endif /* __glc_ofacedesc_h */

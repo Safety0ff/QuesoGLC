@@ -87,21 +87,25 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
   GLint i = 0;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
-  GLboolean displayListIsBuilding = GL_FALSE;
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
   GLfloat transformMatrix[16];
   FT_Face face = NULL;
   __glcCharMapEntry* charMapEntry = NULL;
-  __glcFont* font = __glcLoadAndScaleGlyph(inState, inFont, inCode,
-					   transformMatrix, &scale_x, &scale_y,
-					   &displayListIsBuilding,
-					   &charMapEntry);
+  __glcFont* font = __glcVerifyFontParameters(inFont);
 
-  if (!font)
+  __glcGetScale(inState, transformMatrix, &scale_x, &scale_y);
+
+  if ((!font) || (scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
 
-  face = font->faceDesc->face;
+  /* Get and load the glyph which Unicode codepoint is identified by inCode */
+  charMapEntry = __glcCharMapGetEntry(font->charMap, font->faceDesc, inState,
+				      inCode);
+  if (!charMapEntry) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
 
   if (inMultipleChars && (inState->renderStyle == GLC_BITMAP)) {
     GLfloat* matrix = inState->bitmapMatrix;
@@ -142,6 +146,9 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
       outVec[3] = 0.;
 /*    }
   }*/
+
+  face = __glcFaceDescLoadGlyph(font->faceDesc, inState, scale_x, scale_y,
+				charMapEntry->glyphIndex);
 
   FT_Get_Glyph(face->glyph, &glyph);
 
@@ -255,6 +262,10 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
  *  mapped characters at the same origin. This contrast with
  *  glcGetStringCharMetric(), which measures characters as part of a string,
  *  that is, influenced by kerning, ligatures, and so on.
+ *
+ *  This command evaluates the metrics of every fonts in the
+ *  \b GLC_CURRENT_FONT_LIST. Fonts that are not listed in
+ *  \b GLC_CURRENT_FONT_LIST are ignored.
  *
  *  The command stores in \e outVec the value of the metric identified by
  *  \e inMetric. If the command does not raise an error, its return value

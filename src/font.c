@@ -65,7 +65,7 @@
  * This internal function does both checks and returns the pointer to the
  * __glcFont object that is identified by 'inFont'.
  */
-static __glcFont* __glcVerifyFontParameters(GLint inFont)
+__glcFont* __glcVerifyFontParameters(GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
   FT_ListNode node = NULL;

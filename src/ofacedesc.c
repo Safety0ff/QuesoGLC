@@ -155,3 +155,39 @@ FT_UInt __glcFaceDescGetGlyphIndex(__glcFaceDescriptor* This, GLint inCode,
   __glcFaceDescClose(This);
   return glyph;
 }
+
+
+
+FT_Face __glcFaceDescLoadGlyph(__glcFaceDescriptor* This,
+			       __glcContextState* inState, GLfloat inScaleX,
+			       GLfloat inScaleY, FT_ULong inGlyphIndex)
+{
+  FT_Face face = NULL;
+  FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
+
+  if (!inState->hinting)
+    loadFlags |= FT_LOAD_NO_HINTING;
+
+  face = __glcFaceDescOpen(This, inState);
+  if (!face) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  if (FT_Set_Char_Size(face, (FT_F26Dot6)(inScaleX * 64.),
+		       (FT_F26Dot6)(inScaleY * 64.),
+		       (FT_UInt)inState->resolution,
+		       (FT_UInt)inState->resolution)) {
+    __glcFaceDescClose(This);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  if (FT_Load_Glyph(face, inGlyphIndex, loadFlags)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescClose(This);
+    return NULL;
+  }
+
+  return face;
+}
