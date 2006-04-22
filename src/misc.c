@@ -1179,8 +1179,9 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
   }
 
   if (FT_Set_Char_Size(face, (FT_F26Dot6)(*outScaleX * 64.),
-			 (FT_F26Dot6)(*outScaleY * 64.), inState->resolution,
-			 inState->resolution)) {
+		       (FT_F26Dot6)(*outScaleY * 64.),
+		       (FT_UInt)inState->resolution,
+		       (FT_UInt)inState->resolution)) {
     __glcFaceDescClose(font->faceDesc);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
