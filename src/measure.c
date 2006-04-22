@@ -299,7 +299,8 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     GLfloat temp = 0.f;
     __glcFont* font = (__glcFont*)node->data;
     FT_Face face = __glcFaceDescOpen(font->faceDesc, state);
-    GLfloat scale = state->resolution / 72. / face->units_per_EM;
+    GLfloat scale = (state->resolution < GLC_EPSILON ? 72. : state->resolution)
+      / 72. / face->units_per_EM;
 
     temp = (GLfloat)face->max_advance_width * scale;
     advance_x = temp > advance_x ? temp : advance_x;
