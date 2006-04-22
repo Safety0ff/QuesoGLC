@@ -35,6 +35,10 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   if (!This)
     return NULL;
 
+  This->node.prev = NULL;
+  This->node.next = NULL;
+  This->node.data = NULL;
+
   This->vendor = NULL;
   This->family = NULL;
   This->masterFormat = NULL;
@@ -64,8 +68,6 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 
   This->fullNameSGI = NULL;
   This->version = NULL;
-  This->minMappedCode = 0x7fffffff;
-  This->maxMappedCode = 0;
   This->id = inID;
 
   return This;

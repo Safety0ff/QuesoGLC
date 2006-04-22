@@ -634,7 +634,7 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 
   if (!font)
     return GLC_NONE;
-  
+
   switch(inAttrib) {
   case GLC_FACE_LIST:
     return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
@@ -685,7 +685,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
     code = __glcConvertGLintToUcs4(state, inCode);
     if (code < 0)
       return GLC_NONE;
-  
+
     return __glcCharMapGetCharName(font->charMap, code, state);
   }
   else
@@ -896,12 +896,12 @@ GLint glcNewFontFromMaster(GLint inFont, GLint inMaster)
   __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = __glcVerifyMasterParameters(inMaster);
 
-  /* Verify that the thread has a current context and that the master identified
-   * by 'inMaster' exists.
+  /* Verify that the thread has a current context and that the master
+   * identified by 'inMaster' exists.
    */
   if (!master)
     return 0;
-  
+
   /* Check if inFont is in legal bounds */
   if (inFont < 1) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -960,17 +960,17 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
   }
-  
+
   /* Search for a master which string attribute GLC_FAMILY is inFamily */
   for (node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
+    master = (__glcMaster*)node;
 
     if (!strcmp((const char*)UinFamily, (const char*)master->family))
       break;
   }
 
   __glcFree(UinFamily);
-  
+
   if (node)
     /* A master has been found, create a new font and add it to the list
      * GLC_FONT_LIST */

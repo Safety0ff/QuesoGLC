@@ -28,6 +28,8 @@
 
 
 typedef struct {
+  FT_ListNodeRec node;
+
   GLint id;
   FT_ListRec faceList;	        /* GLC_FACE_LIST */
   FcCharSet* charList;          /* GLC_CHAR_LIST */
@@ -36,8 +38,6 @@ typedef struct {
   FcChar8* masterFormat;	/* GLC_MASTER_FORMAT */
   FcChar8* vendor;		/* GLC_VENDOR */
   FcChar8* version;	        /* GLC_VERSION */
-  GLuint maxMappedCode;	        /* GLC_MAX_MAPPED_CODE */
-  GLuint minMappedCode;	        /* GLC_MIN_MAPPED_CODE */
 } __glcMaster;
 
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,

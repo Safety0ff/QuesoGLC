@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -74,7 +74,7 @@ __glcMaster* __glcVerifyMasterParameters(GLint inMaster)
 
   /* Verify if the master identifier is in legal bounds */
   for (node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node->data;
+    master = (__glcMaster*)node;
     if (master->id == inMaster) break;
   }
 
@@ -154,8 +154,8 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     return GLC_NONE;
   }
 
-  /* Verify that the thread has a current context and that the master identified
-   * by 'inMaster' exists.
+  /* Verify that the thread has a current context and that the master
+   * identified by 'inMaster' exists.
    */
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
@@ -227,8 +227,8 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
     return GLC_NONE;
   }
 
-  /* Verify that the thread has a current context and that the master identified
-   * by 'inMaster' exists.
+  /* Verify that the thread has a current context and that the master
+   * identified by 'inMaster' exists.
    */
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
@@ -408,8 +408,8 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  /* Verify that the thread has a current context and that the master identified
-   * by 'inMaster' exists.
+  /* Verify that the thread has a current context and that the master
+   * identified by 'inMaster' exists.
    */
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
@@ -487,8 +487,8 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
  *  </table>
  *  </center>
  *  \n If the requested master attribute is \b GLC_IS_FIXED_PITCH then the
- *  command returns \b GL_TRUE if and only if each face of the master identified
- *  by \e inMaster has a fixed pitch.
+ *  command returns \b GL_TRUE if and only if each face of the master
+ *  identified by \e inMaster has a fixed pitch.
  *  \param inMaster The master for which an attribute value is needed.
  *  \param inAttrib The attribute for which the value is needed.
  *  \return The value of the attribute \e inAttrib of the master identified
@@ -516,8 +516,8 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  /* Verify that the thread has a current context and that the master identified
-   * by 'inMaster' exists.
+  /* Verify that the thread has a current context and that the master
+   * identified by 'inMaster' exists.
    */
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
@@ -538,9 +538,9 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     }
     return GL_TRUE;
   case GLC_MAX_MAPPED_CODE:
-    return master->maxMappedCode;
+    return __glcGetMaxMappedCode(master->charList);
   case GLC_MIN_MAPPED_CODE:
-    return master->minMappedCode;
+    return __glcGetMinMappedCode(master->charList);
   }
 
   return 0;
