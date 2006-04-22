@@ -40,20 +40,22 @@ typedef struct {
 } __glcCharMapEntry;
 
 typedef struct {
-  __glcFaceDescriptor* faceDesc;
   FcCharSet* charSet;
   __glcArray* map;
 } __glcCharMap;
 
-__glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc);
+__glcCharMap* __glcCharMapCreate(FcCharSet* inFaceDesc);
 void __glcCharMapDestroy(__glcCharMap* This);
-void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
-		    const GLCchar* inCharName, __glcContextState* inState);
+void __glcCharMapAddChar(__glcCharMap* This, __glcFaceDescriptor* inFaceDesc,
+			 GLint inCode, const GLCchar* inCharName,
+			 __glcContextState* inState);
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 				 __glcContextState* inState);
-__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This, FT_Face inFace,
-			       GLint inCode);
+__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This,
+					__glcFaceDescriptor* inFaceDesc,
+					__glcContextState* inState,
+					GLint inCode);
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 					__glcContextState* inState);

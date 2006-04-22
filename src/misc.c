@@ -1072,24 +1072,17 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
   if (!node)
     return NULL;
 
-  face = __glcFaceDescOpen(font->faceDesc, inState);
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
   /* Get and load the glyph which Unicode codepoint is identified by inCode */
-  *outCharMapEntry = __glcCharMapGetEntry(font->charMap, face, inCode);
+  *outCharMapEntry = __glcCharMapGetEntry(font->charMap, font->faceDesc,
+					  inState, inCode);
   if (!(*outCharMapEntry)) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    __glcFaceDescClose(font->faceDesc);
     return NULL;
   }
 
   glyphIndex = (*outCharMapEntry)->glyphIndex;
   if (!glyphIndex) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    __glcFaceDescClose(font->faceDesc);
     return NULL;
   }
 
@@ -1131,10 +1124,9 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
 	rs[1+4*i] = outTransformMatrix[1+4*i] / sy;
 	rs[2+4*i] = outTransformMatrix[2+4*i] / sz;
       }
-      if (!__glcInvertMatrix(rs, rs)) {
-	__glcFaceDescClose(font->faceDesc);
+      if (!__glcInvertMatrix(rs, rs))
 	return NULL;
-      }
+
       __glcMultMatrices(rs, outTransformMatrix, m);
       x = ((m[0] + m[12])/(m[3] + m[15]) - m[12]/m[15]) * viewport[2] * 0.5;
       y = ((m[1] + m[13])/(m[3] + m[15]) - m[13]/m[15]) * viewport[3] * 0.5;
@@ -1162,10 +1154,8 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
     determinant = transform[0] * transform[3] - transform[1] * transform[2];
 
     /* If the transformation is degenerated, nothing needs to be rendered */
-    if (fabsf(determinant) < norm * GLC_EPSILON) {
-      __glcFaceDescClose(font->faceDesc);
+    if (fabsf(determinant) < norm * GLC_EPSILON)
       return NULL;
-    }
 
     if (inState->hinting) {
       *outScaleX = sqrt(transform[0]*transform[0]+transform[1]*transform[1]);
@@ -1176,6 +1166,12 @@ __glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
       *outScaleY = GLC_POINT_SIZE;
       loadFlags |= FT_LOAD_NO_HINTING;
     }
+  }
+
+  face = __glcFaceDescOpen(font->faceDesc, inState);
+  if (!face) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
   }
 
   if (FT_Set_Char_Size(face, (FT_F26Dot6)(*outScaleX * 64.),

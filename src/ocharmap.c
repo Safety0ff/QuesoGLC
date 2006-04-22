@@ -19,14 +19,13 @@
 /* $Id$ */
 
 #include <fontconfig/fontconfig.h>
-#include <fontconfig/fcfreetype.h>
 
 #include "ocharmap.h"
 #include "internal.h"
 
 
 
-__glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc)
+__glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet)
 {
   __glcCharMap* This = NULL;
 
@@ -36,8 +35,7 @@ __glcCharMap* __glcCharMapCreate(__glcFaceDescriptor* inFaceDesc)
     return NULL;
   }
 
-  This->faceDesc = inFaceDesc;
-  This->charSet = FcCharSetCopy(inFaceDesc->charSet);
+  This->charSet = FcCharSetCopy(inCharSet);
   if (!This->charSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
@@ -114,26 +112,20 @@ static __glcCharMapEntry* __glcCharMapInsertCode(__glcCharMap* This,
 
 
 
-void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
-			 const GLCchar* inCharName, __glcContextState* inState)
+void __glcCharMapAddChar(__glcCharMap* This, __glcFaceDescriptor* inFaceDesc,
+			 GLint inCode, const GLCchar* inCharName,
+			 __glcContextState* inState)
 {
   FT_ULong mappedCode  = 0;
   GLCchar* buffer = NULL;
   FT_UInt glyph = 0;
-  FT_Face face = __glcFaceDescOpen(This->faceDesc, inState);
   FcCharSet* charSet = NULL;
-
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
 
   /* Convert the character name identified by inCharName into UTF-8 format. The
    * result is stored into 'buffer'. */
   buffer = __glcConvertToUtf8(inCharName, inState->stringType);
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescClose(This->faceDesc);
     return;
   }
 
@@ -141,23 +133,15 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
   mappedCode = __glcCodeFromName(buffer);
   if (mappedCode == -1) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    __glcFaceDescClose(This->faceDesc);
     __glcFree(buffer);
     return;
   }
 
-  /* Verify that the character exists in the face */
-  if (!FcCharSetHasChar(This->faceDesc->charSet, mappedCode)) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    __glcFree(buffer);
-    __glcFaceDescClose(This->faceDesc);
-    return;
-  }
-
-  glyph = FcFreeTypeCharIndex(face, mappedCode);
-
+  glyph = __glcFaceDescGetGlyphIndex(inFaceDesc, mappedCode, inState);
   __glcFree(buffer);
-  __glcFaceDescClose(This->faceDesc);
+  if (glyph == 0xffffffff)
+    return;
+
 
   /* We must verify that inCode is not in charSet yet, otherwise
    * FcCharSetAddChar() returns an error not because Fontconfig can not add
@@ -301,7 +285,9 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 
 
 
-__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This, FT_Face inFace,
+__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This,
+					__glcFaceDescriptor* inFaceDesc,
+					__glcContextState* inState,
 					GLint inCode)
 {
   FT_UInt glyph = 0;
@@ -327,10 +313,10 @@ __glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This, FT_Face inFace,
       start = middle + 1;
   }
 
-  assert(FcCharSetHasChar(This->charSet, inCode));
-
   /* Get and load the glyph which unicode code is identified by inCode */
-  glyph = FcFreeTypeCharIndex(inFace, inCode);
+  glyph = __glcFaceDescGetGlyphIndex(inFaceDesc, inCode, inState);
+  if (glyph == 0xffffffff)
+    return NULL;
 
   return __glcCharMapInsertCode(This, inCode, inCode, glyph);
 }
@@ -373,28 +359,28 @@ GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
 GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 					__glcContextState* inState)
 {
-  return __glcGetCharNameByIndex(This->faceDesc->charSet, inIndex, inState);
+  return __glcGetCharNameByIndex(This->charSet, inIndex, inState);
 }
 
 
 
 GLint __glcCharMapGetCount(__glcCharMap* This)
 {
-  return FcCharSetCount(This->faceDesc->charSet);
+  return FcCharSetCount(This->charSet);
 }
 
 
 
 GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This)
 {
-  return __glcGetMaxMappedCode(This->faceDesc->charSet);
+  return __glcGetMaxMappedCode(This->charSet);
 }
 
 
 
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This)
 {
-  return __glcGetMinMappedCode(This->faceDesc->charSet);
+  return __glcGetMinMappedCode(This->charSet);
 }
 
 /* This functions destroys the display lists and the texture objects that

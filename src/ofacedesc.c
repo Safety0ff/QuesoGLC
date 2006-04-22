@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,9 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
+#include <fontconfig/fontconfig.h>
+#include <fontconfig/fcfreetype.h>
 
 #include "internal.h"
 
@@ -126,4 +129,29 @@ void __glcFaceDescClose(__glcFaceDescriptor* This)
     FT_Done_Face(This->face);
     This->face = NULL;
   }
+}
+
+
+
+FT_UInt __glcFaceDescGetGlyphIndex(__glcFaceDescriptor* This, GLint inCode,
+				   __glcContextState* inState)
+{
+  FT_Face face = __glcFaceDescOpen(This, inState);
+  FT_UInt glyph = 0;
+
+  if (!face) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0xffffffff;
+  }
+
+  /* Verify that the character exists in the face */
+  if (!FcCharSetHasChar(This->charSet, inCode)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return 0xffffffff;
+  }
+
+  glyph = FcFreeTypeCharIndex(face, inCode);
+
+  __glcFaceDescClose(This);
+  return glyph;
 }

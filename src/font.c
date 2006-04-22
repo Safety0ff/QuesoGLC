@@ -340,7 +340,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
 
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
   if (FT_List_Find(&inState->currentFontList, font)) {
-    __glcCharMap* newCharMap = __glcCharMapCreate(faceDesc);
+    __glcCharMap* newCharMap = __glcCharMapCreate(faceDesc->charSet);
 
     if (!newCharMap) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -522,7 +522,8 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
   if (!inCharName)
     __glcCharMapRemoveChar(font->charMap, code);
   else
-    __glcCharMapAddChar(font->charMap, code, inCharName, state);
+    __glcCharMapAddChar(font->charMap, font->faceDesc, code, inCharName,
+			state);
 }
 
 
