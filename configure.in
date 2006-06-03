@@ -1,118 +1,66 @@
-AC_INIT(include/internal.h)
-AC_PREREQ(2.12)
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT(src/global.c)
+AM_INIT_AUTOMAKE(QuesoGLC, 0.4)
 AC_CONFIG_HEADER(include/qglc_config.h:include/qglc_config.hin)
 
+MAJOR=0
+MINOR=4
+REVISION=0
+
+CFLAGS=
+
+AC_ARG_ENABLE(debug-mode, [  --enable-debug-mode[=ARG] build debug library [default=no] ])
+AM_CONDITIONAL(DEBUGMODE, test "$enable_debug_mode" = yes)
+
+# Checks for programs.
 AC_PROG_CC
-
-dnl Enable shared library building
-
-AH_TEMPLATE([QUESOGLC_STATIC_LIBRARY], [Define if we are building a static library])
-AC_ARG_ENABLE(
-	shared,
-	[  --enable-shared[=x]     build shared library [default=no]],
-	test "X$enableval"!="Xno" && glc_build_shared=yes,
-	AC_DEFINE(QUESOGLC_STATIC_LIBRARY)
-	LIBRARY="\$(LIB_NAME).a"
-	CFLAGS4SHARED=
-	LIBS4SHARED=
-)
-
-dnl Enable pthread support
-
-AC_ARG_ENABLE(
-	pthreads,
-	[  --enable-pthreads[=x]   enable POSIX threads support [default=yes]],
-	test "X$enableval" != "Xno" && glc_enable_pthreads=yes,
-	glc_enable_pthreads=yes
-)
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_LIBTOOL
 
 dnl Test for location of X headers and libraries
 
-AC_PATH_X
+AC_PATH_XTRA
 if test -n "$x_includes"; then
-	CPPFLAGS="-I$x_includes $CPPFLAGS"
+	CPPFLAGS="-I$x_includes"
 fi
 if test -n "$x_libraries"; then
-	LDFLAGS="-L$x_libraries $LDFLAGS"
+	LDFLAGS="-L$x_libraries"
 fi
-LIBS="-lX11 -lXext -lXmu -lXi"
+LIBS="$X_PRE_LIBS $X_LIBS $X_EXTRA_LIBS"
 
-dnl Locate pthread library
-
-AH_TEMPLATE([QUESOGLC_USE_THREAD], [Define if pthreads are to be used])
-if test -n "$glc_enable_pthreads"; then
-	AC_CHECK_HEADER(pthread.h, , fail=y)
-	AC_CHECK_LIB(pthread, pthread_create, LIBS4SHARED="-lpthread $LIBS4SHARED", fail=y)
-	if test -n "$fail"; then
-		AC_MSG_ERROR([Unable to locate required pthread headers/library])
-	else
-		AC_DEFINE(QUESOGLC_USE_THREAD)
-	fi
-fi
-
-dnl Locate FreeType headers and library
-
+# Checks for libraries.
+AC_CHECK_LIB(pthread, pthread_create, [], [AC_MSG_ERROR([Unable to locate the required pthread library])])
+AC_CHECK_LIB(GL, glBegin, [], [AC_MSG_ERROR([Unable to locate the required GL library])])
+AC_CHECK_LIB(GLU, gluNewTess, [], [AC_MSG_ERROR([Unable to locate the required GLU library])])
 CPPFLAGS="`freetype-config --cflags` $CPPFLAGS"
-AC_CHECK_HEADER(ft2build.h, , fail=y)
-AC_CHECK_LIB(freetype, FT_Init_FreeType, LIBS4SHARED="`freetype-config --libs` $LIBS4SHARED", fail=y)
-if test -n "$fail"; then
-	AC_MSG_ERROR([Unable to locate required FreeType 2.0 headers/libraries])
-fi
- 
-dnl Locate Fontconfig headers and library
+AC_CHECK_LIB(freetype, FT_Init_FreeType, [LIBS="`freetype-config --libs` $LIBS"], [AC_MSG_ERROR([Unable to locate the required FreeType library])])
+AC_CHECK_LIB(fontconfig, FcInit, [], [AC_MSG_ERROR([Unable to locate the required fontconfig library])])
+AC_CHECK_LIB(glut, glutInit, [AC_CHECK_HEADERS(GL/glut.h, [EXAMPLES="examples";TESTS_WITH_GLUT="testrender"])])
 
-AC_CHECK_HEADER(fontconfig/fontconfig.h, , fail=y)
-AC_CHECK_LIB(fontconfig, FcInit, LIBS4SHARED="-lfontconfig $LIBS4SHARED", fail=y)
-if test -n "$fail"; then
-	AC_MSG_ERROR([Unable to locate required Fontconfig headers/libraries])
-fi
- 
-dnl Locate GL headers and libraries
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([stdlib.h string.h unistd.h pthread.h GL/gl.h GL/glu.h ft2build.h fontconfig/fontconfig.h], [], [AC_MSG_ERROR([Unable to locate a required header])])
 
-AC_CHECK_HEADER(GL/gl.h, , fail=y)
-AC_CHECK_LIB(GL, glBlendFunc, LIBS="-lGL $LIBS", fail=y)
-if test -n "$fail"; then
-	AC_MSG_ERROR([Unable to locate required OpenGL headers/libraries])
-fi
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_SIZE_T
 
-dnl Locate GLU headers and libraries
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_REALLOC
+AC_FUNC_STAT
+AC_CHECK_FUNCS([atexit memmove memset sqrt strdup])
 
-AC_CHECK_HEADER(GL/glu.h, , fail_glu=y)
-AC_CHECK_LIB(GLU, gluSphere, LIBS="-lGLU $LIBS", fail=y)
-if test -n "$fail"; then
-	AC_MSG_ERROR([Unable to locate required GLU headers/libraries])
-else
-	LIBS4SHARED="-lGLU $LIBS4SHARED"
-fi
+AC_CONFIG_FILES([Makefile lib/Makefile tests/Makefile examples/Makefile])
 
-dnl Locate GLUT headers and libraries
-
-AC_CHECK_HEADER(GL/glut.h, , fail_glut=y)
-AC_CHECK_LIB(glut, glutInit, LIBS="-lglut $LIBS", fail_glut=y)
-if test -n "$fail_glut"; then
-	EXAMPLES="\$(TEST_OBJECTS_WITHOUT_GLUT)"
-else
-	EXAMPLES="\$(TEST_OBJECTS_WITHOUT_GLUT) \$(TEST_OBJECTS_WITH_GLUT) \$(EXAMPLE_OBJECTS)"
-fi
-
-if test -n "$glc_build_shared"; then
-	LIBRARY="\$(LIB_NAME).so.\$(VERSION)"
-	CFLAGS4SHARED="-fPIC"
-else
-	LIBS="$LIBS4SHARED $LIBS"
-fi
-
-AC_SUBST(LIBS)
-AC_SUBST(CPPFLAGS)
-AC_SUBST(CC)
-AC_SUBST(libdir)
-AC_SUBST(prefix)
-AC_SUBST(LIBRARY)
-AC_SUBST(LIBS4SHARED)
-AC_SUBST(CFLAGS4SHARED)
+AC_SUBST(MAJOR)
+AC_SUBST(MINOR)
+AC_SUBST(REVISION)
 AC_SUBST(EXAMPLES)
-
-AC_OUTPUT(makefile:makefile.unx,
-  [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h])
-echo '#Execute "make depend"' > makefile.dep
-make depend
+AC_SUBST(TESTS_WITH_GLUT)
+AC_OUTPUT
