@@ -2,3 +2,7 @@ glclogo
 tutorial
 unicode
 tutorial2
+.deps
+.libs
+Makefile
+Makefile.in
