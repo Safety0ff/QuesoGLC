@@ -234,10 +234,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   if (!master)
     return GLC_NONE;
 
-  /* Get the character code converted to the UCS-4 format.
-   * See comments at the definition of __glcConvertGLintToUcs4() for known
-   * limitations
-   */
+  /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(state, inCode);
   if (code < 0)
     return NULL;

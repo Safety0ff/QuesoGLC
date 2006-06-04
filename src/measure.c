@@ -233,10 +233,7 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
     return NULL;
   }
 
-  /* Get the character code converted to the UCS-4 format.
-   * See comments at the definition of __glcConvertGLintToUcs4() for known
-   * limitations
-   */
+  /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(state, inCode);
   if (code < 0)
     return NULL;

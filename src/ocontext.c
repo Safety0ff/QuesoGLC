@@ -659,8 +659,7 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
 
   inState->isInCallbackFunc = GL_TRUE;
   /* Call the callback function with the character converted to the current
-   * string type. See comments at the definition of __glcConvertUcs4ToGLint()
-   * for known limitations
+   * string type.
    */
   result = (*callbackFunc)(aCode);
   inState->isInCallbackFunc = GL_FALSE;

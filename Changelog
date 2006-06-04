@@ -1,6 +1,10 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Removed the stupid limit that generated GLC_PARAMETER_ERROR whenever some
+  functions were called when the string type was GLC_UTF8_QSO (see below).
+  Indeed a Unicode codepoint can be no higher than 0x10ffff and can thus be
+  stored in a 32 bits integer in UTF-8 format.
 - Uses GNU extensions of gcc where possible to implement the constructor and the
   destructor of the library (instead of _init and _fini)
 - Fixed the crashes due to the removal of the combine callback of the GLU

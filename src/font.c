@@ -511,10 +511,7 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
   if (!font)
     return;
 
-  /* Get the character code converted to the UCS-4 format.
-   * See comments at the definition of __glcConvertGLintToUcs4() for known
-   * limitations
-   */
+  /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(state, inCode);
   if (code < 0)
     return;
@@ -679,10 +676,7 @@ const GLCchar* glcGetFontMap(GLint inFont, GLint inCode)
   GLint code = 0;
 
   if (font) {
-    /* Get the character code converted to the UCS-4 format.
-     * See comments at the definition of __glcConvertGLintToUcs4() for known
-     * limitations
-     */
+    /* Get the character code converted to the UCS-4 format */
     code = __glcConvertGLintToUcs4(state, inCode);
     if (code < 0)
       return GLC_NONE;

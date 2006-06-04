@@ -667,16 +667,25 @@ GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
     if (inCode <= 255)
       break;
   case GLC_UTF8_QSO:
-    /* Things can go wrong if GLC_UTF8_QSO is the expected string type :
-     * the length of some character code in UTF-8 format can exceed the size
-     * of the GLint type. Hence whenever the string type is GLC_UTF8_QSO, this
-     * function issues a GLC_PARAMETER_ERROR.
-     * This is a limitation of the GLC API as it is defined in the specs
-     * version 0.2. The most obvious workaround is to use the UCS-4/UTF-32
-     * format...
+    /* A Unicode codepoint can be no higher than 0x10ffff
+     * (see Unicode specs)
      */
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return -1;
+    if (inCode > 0x10ffff) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return -1;
+    }
+    else {
+      /* Codepoints lower or equal to 0x10ffff can be encoded on 4 bytes in
+       * UTF-8 format
+       */
+      FcChar8 buffer[FC_UTF8_MAX_LEN];
+#ifdef DEBUGMODE
+      int len = FcUcs4ToUtf8((FcChar32)inCode, buffer);
+#endif
+      assert(len <= sizeof(GLint));
+
+      return *((GLint*)buffer);
+    }
   }
 
   return inCode;
@@ -692,16 +701,13 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 
   /* If the current string type is GLC_UTF8_QSO then converts to GLC_UCS4 */
   if (inState->stringType == GLC_UTF8_QSO) {
-    /* Things can go wrong if GLC_UTF8_QSO is the expected string type :
-     * the length of some character code in UTF-8 format can exceed the size
-     * of the GLint type. Hence whenever the string type is GLC_UTF8_QSO, this
-     * function issues a GLC_PARAMETER_ERROR.
-     * This is a limitation of the GLC API as it is defined in the specs
-     * version 0.2. The most obvious workaround is to use the UCS-4/UTF-32
-     * format...
+    /* Convert the codepoint in UCS4 format and check if it is ill-formed or
+     * not
      */
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return -1;
+    if (FcUtf8ToUcs4((FcChar8*)&inCode, (FcChar32*)&code, sizeof(GLint)) < 0) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return -1;
+    }
   }
 
   return code;
