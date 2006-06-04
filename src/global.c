@@ -111,7 +111,11 @@ static void __glcUnlock(void)
 #ifdef QUESOGLC_STATIC_LIBRARY
 static void __glcExitLibrary(void)
 #else
+#ifdef __GNUC__
+__attribute__((destructor)) void fini(void)
+#else
 void _fini(void)
+#endif
 #endif
 {
   FT_ListNode node = NULL;
@@ -183,7 +187,11 @@ static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
 #ifdef QUESOGLC_STATIC_LIBRARY
 static void __glcInitLibrary(void)
 #else
+#ifdef __GNUC__
+__attribute__((constructor)) void init(void)
+#else
 void _init(void)
+#endif
 #endif
 {
   /* Initialize fontconfig */
