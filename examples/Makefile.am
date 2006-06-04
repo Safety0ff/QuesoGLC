@@ -1,4 +1,4 @@
-noinst_PROGRAMS = glclogo tutorial tutorial2 unicode
+noinst_PROGRAMS = glclogo tutorial tutorial2 unicode glcdemo
 
 if DEBUGMODE
 AM_CPPFLAGS = -g -DDEBUGMODE
@@ -17,3 +17,6 @@ tutorial2_LDADD = $(top_builddir)/lib/libGLC.la -lglut
 
 unicode_SOURCES = unicode.c $(top_builddir)/include/GL/glc.h
 unicode_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+
+glcdemo_SOURCES = glcdemo.c $(top_builddir)/include/GL/glc.h
+glcdemo_LDADD = $(top_builddir)/lib/libGLC.la -lglut
