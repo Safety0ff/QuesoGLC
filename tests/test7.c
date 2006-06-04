@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 /* Check that glcGetCharMetric() and glcGetStringCharMetric() return consistant
  * values.
@@ -16,7 +21,7 @@ static char* string = "Hello";
     return -1; \
   }
 
-int main(void) {
+int main(int argc, char **argv) {
   GLint ctx;
   GLCenum err;
   GLint length = 0;
@@ -24,6 +29,11 @@ int main(void) {
   GLfloat baseline1[4], baseline2[4];
   GLfloat boundingBox1[8], boundingBox2[8];
   GLfloat v1, v2, norm, area;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test7");
 
   ctx = glcGenContext();
   CheckError();

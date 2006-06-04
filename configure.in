@@ -39,7 +39,7 @@ AC_CHECK_LIB(GLU, gluNewTess, [], [AC_MSG_ERROR([Unable to locate the required G
 CPPFLAGS="`freetype-config --cflags` $CPPFLAGS"
 AC_CHECK_LIB(freetype, FT_Init_FreeType, [LIBS="`freetype-config --libs` $LIBS"], [AC_MSG_ERROR([Unable to locate the required FreeType library])])
 AC_CHECK_LIB(fontconfig, FcInit, [], [AC_MSG_ERROR([Unable to locate the required fontconfig library])])
-AC_CHECK_LIB(glut, glutInit, [AC_CHECK_HEADERS(GL/glut.h, [EXAMPLES="examples";TESTS_WITH_GLUT="testrender"])])
+AC_CHECK_LIB(glut, glutInit, [AC_CHECK_HEADERS(GL/glut.h, [EXAMPLES="examples";TESTS_WITH_GLUT="testrender test7"])])
 
 # Checks for header files.
 AC_HEADER_STDC

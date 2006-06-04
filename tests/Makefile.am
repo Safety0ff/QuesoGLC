@@ -1,6 +1,6 @@
-noinst_PROGRAMS = test1 test2 test3 test4 test5 test6 test7 \
+noinst_PROGRAMS = test1 test2 test3 test4 test5 test6 \
 	testcontex testfont testmaster @TESTS_WITH_GLUT@
-EXTRA_PROGRAMS = testrender
+EXTRA_PROGRAMS = testrender test7
 TESTS = test1 test2 test3 test4 test5 test6 test7 testcontex testfont \
 	testmaster
 
@@ -29,7 +29,7 @@ test6_SOURCES = test6.c $(top_builddir)/include/GL/glc.h
 test6_LDADD = $(top_builddir)/lib/libGLC.la
 
 test7_SOURCES = test7.c $(top_builddir)/include/GL/glc.h
-test7_LDADD = $(top_builddir)/lib/libGLC.la
+test7_LDADD = $(top_builddir)/lib/libGLC.la -lglut
 
 testcontex_SOURCES = testcontex.c $(top_builddir)/include/GL/glc.h
 testcontex_LDADD = $(top_builddir)/lib/libGLC.la
