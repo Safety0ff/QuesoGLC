@@ -118,6 +118,11 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode);
  */
 __glcMaster* __glcVerifyMasterParameters(GLint inMaster);
 
+/* Verify that the thread has a current context and that the font identified
+ * by 'inFont' exists.
+ */
+__glcFont* __glcVerifyFontParameters(GLint inFont);
+
 /* Get the minimum mapped code of a character set */
 GLint __glcGetMinMappedCode(FcCharSet *charSet);
 
@@ -148,13 +153,9 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
 		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData);
 
-/* Load the glyph that correspond to the Unicode codepoint inCode and determine
- * an optimal size for that glyph to be rendered on the screen if no display
+/* Compute an optimal size for that glyph to be rendered on the screen if no display
  * list is planned to be built.
  */
-__glcFont* __glcLoadAndScaleGlyph(__glcContextState* inState, GLint inFont,
-				  GLint inCode, GLfloat* outTransformMatrix,
-				  GLfloat* outScaleX, GLfloat* outScaleY,
-				  GLboolean* outDisplayListIsBuilding,
-				  __glcCharMapEntry** outCharMapEntry);
+GLboolean __glcGetScale(__glcContextState* inState, GLfloat* outTransformMatrix,
+			GLfloat* outScaleX, GLfloat* outScaleY);
 #endif /* __glc_internal_h */
