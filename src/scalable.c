@@ -368,13 +368,17 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
   return error;
 }
 
-/*static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
+static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
 				 GLfloat weight[4], void** outData,
 				 void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
   GLfloat vertex[2];
+  /* Evil hack for 32/64 bits compatibility */
+  union {
+    void* ptr;
+    int i;
+  } intInPtr;
 
   vertex[0] = (GLfloat)coords[0];
   vertex[1] = (GLfloat)coords[1];
@@ -383,12 +387,26 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
     return;
   }
 
-  *outData = vertexArray[data->vertexArray->length-1];
-}*/
+  intInPtr.i = GLC_ARRAY_LENGTH(data->vertexArray)-1;
+  *outData = intInPtr.ptr;
+}
+
+static void __glcVertexCallback(void* vertex_data, void* inUserData)
+{
+  __glcRendererData *data = (__glcRendererData*)inUserData;
+  GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
+  /* Evil hack for 32/64 bits compatibility */
+  union {
+    void* ptr;
+    int i;
+  } intInPtr;
+
+  intInPtr.ptr = vertex_data;
+  glVertex2fv(vertexArray[intInPtr.i]);
+}
 
 static void __glcCallbackError(GLenum inErrorCode)
 {
-  /*printf("%s\n", gluErrorString(inErrorCode));*/
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
@@ -441,7 +459,11 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.transformMatrix[1] *= rendererData.halfHeight;
     rendererData.transformMatrix[5] *= rendererData.halfHeight;
     rendererData.transformMatrix[13] *= rendererData.halfHeight;
+#if 0
     rendererData.tolerance = .25; /* Half pixel tolerance */
+#else
+    rendererData.tolerance = 1.; /* Pixel tolerance */
+#endif
   }
   else {
     /* Distances are computed in object space, so is the tolerance of the
@@ -497,9 +519,9 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX, (void (*) ())glVertex2fv);
-    /* gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
-       (void (*) ())__glcCombineCallback);*/
+    gluTessCallback(tess, GLU_TESS_VERTEX_DATA, (void (*) ())__glcVertexCallback);
+    gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
+       (void (*) ())__glcCombineCallback);
     gluTessCallback(tess, GLU_TESS_END, glEnd);
 
     gluTessNormal(tess, 0., 0., 1.);
@@ -507,11 +529,18 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     gluTessBeginPolygon(tess, &rendererData);
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
+      /* Evil hack for 32/64 bits compatibility */
+      union {
+	void* ptr;
+	int i;
+      } intInPtr;
+
       gluTessBeginContour(tess);
       for (j = endContour[i]; j < endContour[i+1]; j++) {
 	coords[0] = (GLdouble)vertexArray[j][0];
 	coords[1] = (GLdouble)vertexArray[j][1];
-	gluTessVertex(tess, coords, vertexArray[j]);
+	intInPtr.i = j;
+	gluTessVertex(tess, coords, intInPtr.ptr);
       }
       gluTessEndContour(tess);
     }
