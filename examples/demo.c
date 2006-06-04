@@ -44,52 +44,16 @@ static float curquat[4], lastquat[4];
 static int moving = 0;
 static int beginx, beginy;
 static int scaling;
-static GLuint dlist;
-static GLboolean have_dlist = GL_FALSE;
-static GLboolean with_dlist = GL_TRUE;
+static GLboolean with_dlist;
 static int menu, menuPolygon, menuRender;
 static GLenum polygonMode = GL_FILL;
 static GLint renderStyle = GLC_TRIANGLE;
+static int frame = 0, msec = 0;
 
 /* Forward declarations. */
 static void check_glc_error(char* routine_name);
 static void draw_letters(float scale);
 static void access_font();
-
-void
-draw_logo(float scale)
-{
-   /* Draws the unofficial OpenGL logo using GLC, the OpenGL */
-   /* character rendering library.                           */
-
-
-   access_font();
-
-   if (have_dlist == GL_FALSE) {
-
-      /* Compile the graphics into a display list. */
-      dlist = glGenLists(1);
-      if (!glIsList(dlist)) {
-         fprintf(stderr, "glGenLists() failed.\n");
-      }
-      else {
-
-         glNewList(dlist, GL_COMPILE); {
-
-            draw_letters(scale);
-
-         } glEndList();
-
-         have_dlist = GL_TRUE;
-      }
-   }
-
-   /* Draw everything by calling the display list. */
-   if (glIsList(dlist)) {
-      glCallList(dlist);
-   }
-
-}
 
 static void 
 draw_letters(float scale)
@@ -158,7 +122,6 @@ access_font()
    /* glcRenderString() calls will draw the characters in the  */
    /* specified font/face.                                     */
 
-   static GLboolean have_context = GL_FALSE;
    GLint glc_context;
 
    GLint master_count;
@@ -172,79 +135,77 @@ access_font()
    GLint result;
    unsigned int i, j;
 
-   if (have_context == GL_FALSE) {
+   /* Only get a context once.                                           */
+   /* When using SGI's implementation of GLC, don't call glcGetError()   */
+   /* after  this  glcGenContext()  call  because  it  always  returns   */
+   /* GLC_STATE_ERROR. That's probably a bug in SGI's GLC. This behavior */
+   /* doesn't occur in QuesoGLC.                                         */ 
+   /* So, in order to let glclogo run with both implementations, just    */
+   /* validate the context. If it's OK, then go for it.                  */
+   glc_context = glcGenContext();
+   if (!glcIsContext(glc_context)) {
+      fprintf(stderr, "Error - glcGenContext() failed.  Exiting.\n");
+      exit(-1);
+   }
+   else {
 
-      /* Only get a context once.                                           */
-      /* When using SGI's implementation of GLC, don't call glcGetError()   */
-      /* after  this  glcGenContext()  call  because  it  always  returns   */
-      /* GLC_STATE_ERROR. That's probably a bug in SGI's GLC. This behavior */
-      /* doesn't occur in QuesoGLC.                                         */ 
-      /* So, in order to let glclogo run with both implementations, just    */
-      /* validate the context. If it's OK, then go for it.                  */
-      glc_context = glcGenContext();
-      if (!glcIsContext(glc_context)) {
-         fprintf(stderr, "Error - glcGenContext() failed.  Exiting.\n");
+      /* Context is valid.  Make it the current context. */
+      glcContext(glc_context);
+      check_glc_error("glcContext()");
+
+      /* Get a unique font ID. */
+      glc_font_id = glcGenFontID();
+
+      /* Choose a master and a face. */
+      master_count = glcGeti(GLC_MASTER_COUNT);
+      master = 0; 
+      for (i = 0; i < master_count; i++) {
+         if (!strcmp((const char*)glcGetMasterc(i, GLC_FAMILY), 
+                     master_name)) {
+            face_count = glcGetMasteri(i, GLC_FACE_COUNT);
+            for (j = 0; j < face_count; j++) {
+               if (!strcmp((const char*)glcGetMasterListc(i, GLC_FACE_LIST, j), face_name)) {
+                  master = i;
+               }
+            }
+         }
+      }
+
+      /* Access the font family. */
+      result = glcNewFontFromFamily(glc_font_id, 
+                                    glcGetMasterc(master, GLC_FAMILY));
+      check_glc_error("glcNewFontFromFamily()");
+      if (result != glc_font_id) {
+         fprintf(stderr, "Error - glcNewFontFromFamily() failed.  Exiting.\n");
          exit(-1);
       }
       else {
 
-         /* Context is valid.  Make it the current context. */
-         glcContext(glc_context);
-         check_glc_error("glcContext()");
-         have_context = GL_TRUE;
+         /* Use the font. */
+         glcFont(glc_font_id);
+         check_glc_error("glcFont()");
 
-         /* Get a unique font ID. */
-         glc_font_id = glcGenFontID();
-
-         /* Choose a master and a face. */
-         master_count = glcGeti(GLC_MASTER_COUNT);
-         master = 0; 
-         for (i = 0; i < master_count; i++) {
-            if (!strcmp((const char*)glcGetMasterc(i, GLC_FAMILY), 
-                        master_name)) {
-               face_count = glcGetMasteri(i, GLC_FACE_COUNT);
-               for (j = 0; j < face_count; j++) {
-                  if (!strcmp((const char*)glcGetMasterListc(i, GLC_FACE_LIST, j), face_name)) {
-                     master = i;
-                  }
-               }
-            }
-         }
-
-         /* Access the font family. */
-         result = glcNewFontFromFamily(glc_font_id, 
-                                       glcGetMasterc(master, GLC_FAMILY));
-         check_glc_error("glcNewFontFromFamily()");
-         if (result != glc_font_id) {
-            fprintf(stderr, "Error - glcNewFontFromFamily() failed.  Exiting.\n");
-            exit(-1);
-         }
-         else {
-
-            /* Use the font. */
-            glcFont(glc_font_id);
-            check_glc_error("glcFont()");
-
-            /* Use the face. */
-            glcFontFace(glc_font_id, face_name);
-            check_glc_error("glcFontFace()");
+         /* Use the face. */
+         glcFontFace(glc_font_id, face_name);
+         check_glc_error("glcFontFace()");
 
 #if 0
-            /* This only speeds up immediate mode rendering.              */
-            /* Don't do this when compiling your own display list because */
-            /* the polygons will go into the GLC internal display lists   */
-            /* rather than the display list you are trying to construct.  */
-            glcEnable(GLC_GL_OBJECTS);
-            check_glc_error("glcEnable(GLC_GL_OBJECTS)");
+         /* This only speeds up immediate mode rendering.              */
+         /* Don't do this when compiling your own display list because */
+         /* the polygons will go into the GLC internal display lists   */
+         /* rather than the display list you are trying to construct.  */
+         glcEnable(GLC_GL_OBJECTS);
+         check_glc_error("glcEnable(GLC_GL_OBJECTS)");
+         with_dlist = GL_TRUE;
 #else
-            glcDisable(GLC_GL_OBJECTS);
-            check_glc_error("glcDisable(GLC_GL_OBJECTS)");
+         glcDisable(GLC_GL_OBJECTS);
+         check_glc_error("glcDisable(GLC_GL_OBJECTS)");
+         with_dlist = GL_FALSE;
 #endif
 
-            /* Draw as polygons for smooth rotation & zoom. */
-            glcRenderStyle(GLC_TRIANGLE);
-            check_glc_error("glcRenderStyle(GLC_TRIANGLE)");
-         }
+         /* Draw as polygons for smooth rotation & zoom. */
+         glcRenderStyle(GLC_TRIANGLE);
+         check_glc_error("glcRenderStyle(GLC_TRIANGLE)");
       }
    }
 }
@@ -284,7 +245,7 @@ check_glc_error(char* routine_name)
 }
 
 static void
-do_ortho(GLboolean use_jitter, GLdouble jx, GLdouble jy)
+do_persp(GLboolean use_jitter, GLdouble jx, GLdouble jy)
 {
    GLdouble dx, dy;
    int w;
@@ -422,6 +383,7 @@ my_display(void)
    int passes = 8;
    int i;
 #endif
+   int duration;
 
 #ifdef BLACK_LETTERS_WHITE_BACKGROUND
    glClearColor(1.0, 1.0, 1.0, 0.0);
@@ -434,24 +396,26 @@ my_display(void)
 
    for (i=0; i<passes; i++) {
       glClear(GL_COLOR_BUFFER_BIT);
-      do_ortho(GL_TRUE, j8[i].x, j8[i].y);
-      draw_logo(scale);
+      do_persp(GL_TRUE, j8[i].x, j8[i].y);
+      draw_letters(scale);
       glAccum(GL_ACCUM, 1.0/(GLfloat)passes);
    }
    glAccum(GL_RETURN, 1.0);
    glFlush();
 #else
    glClear(GL_COLOR_BUFFER_BIT);
-   do_ortho(GL_FALSE, 0.0, 0.0);
-   if (with_dlist)
-      draw_logo(scale);
-   else {
-      access_font();
-      draw_letters(scale);
-   }
+   do_persp(GL_FALSE, 0.0, 0.0);
+   draw_letters(scale);
 #endif
 
    glutSwapBuffers();
+   frame++;
+   duration = glutGet(GLUT_ELAPSED_TIME) - msec;
+   if (duration > 5000) {
+      msec += duration;
+      printf("%f fps\n", (float)frame*1000./(float)duration);
+      frame = 0;
+   }
 }
 
 void my_menu(int);
@@ -544,9 +508,8 @@ my_menu_render(int value)
    glutDestroyMenu(menuRender);
    create_menu();
    glcRenderStyle(renderStyle);
-   if (with_dlist)
-     glDeleteLists(dlist, 1);
-   have_dlist = GL_FALSE;
+   if (!with_dlist)
+     glcDeleteGLObjects();
    glutPostRedisplay();
 }
 
@@ -562,9 +525,12 @@ my_menu(int value)
    glutDestroyMenu(menuPolygon);
    glutDestroyMenu(menuRender);
    create_menu();
-   if (!with_dlist)
-     glDeleteLists(dlist, 1);
-   have_dlist = GL_FALSE;
+   if (!with_dlist) {
+     glcDeleteGLObjects();
+     glcDisable(GLC_GL_OBJECTS);
+   }
+   else
+     glcEnable(GLC_GL_OBJECTS);
    glutPostRedisplay();
 }
 
@@ -596,6 +562,9 @@ main(int argc, char **argv)
    glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 
    create_menu();
+   access_font();
+
+   msec = glutGet(GLUT_ELAPSED_TIME);
 
    glutMainLoop();
 
