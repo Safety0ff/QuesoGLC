@@ -6,3 +6,5 @@ tutorial2
 .libs
 Makefile
 Makefile.in
+glcdemo
+demo
