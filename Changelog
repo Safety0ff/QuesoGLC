@@ -1,6 +1,9 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Pablo Barbachano provided a patch to allow QuesoGLC to use FreeType 2.2.x
+  (const-ness added to some parameters of the callbak functions of
+  FT_Outline_Decompose)
 - Removed the stupid limit that generated GLC_PARAMETER_ERROR whenever some
   functions were called when the string type was GLC_UTF8_QSO (see below).
   Indeed a Unicode codepoint can be no higher than 0x10ffff and can thus be

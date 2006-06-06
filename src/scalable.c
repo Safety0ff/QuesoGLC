@@ -101,8 +101,14 @@ static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
  * sub-optimal lines, but it provides a fast method for choosing the
  * subdivision point. This guess can be refined by lengthening the lines.
  */ 
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcdeCasteljau(const FT_Vector *inVecTo,
+			    const FT_Vector **inControl, void *inUserData,
+			    GLint inOrder)
+#else
 static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
 			    void *inUserData, GLint inOrder)
+#endif
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
   GLfloat(*controlPoint)[7] = NULL;
@@ -304,7 +310,11 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   return 0;
 }
 
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcMoveTo(const FT_Vector *inVecTo, void* inUserData)
+#else
 static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
+#endif
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
 
@@ -323,7 +333,11 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
   return 0;
 }
 
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcLineTo(const FT_Vector *inVecTo, void* inUserData)
+#else
 static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
+#endif
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
   GLfloat vertex[2];
@@ -339,8 +353,13 @@ static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
   return 0;
 }
 
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcConicTo(const FT_Vector *inVecControl,
+			const FT_Vector *inVecTo, void* inUserData)
+#else
 static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
 			void* inUserData)
+#endif
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
   FT_Vector *control[1];
@@ -353,8 +372,14 @@ static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
   return error;
 }
 
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcCubicTo(const FT_Vector *inVecControl1,
+			const FT_Vector *inVecControl2,
+			const FT_Vector *inVecTo, void* inUserData)
+#else
 static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 			FT_Vector *inVecTo, void* inUserData)
+#endif
 {
   __glcRendererData *data = (__glcRendererData *) inUserData;
   FT_Vector *control[2];
@@ -519,9 +544,10 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX_DATA, (void (*) ())__glcVertexCallback);
+    gluTessCallback(tess, GLU_TESS_VERTEX_DATA,
+		    (void (*) ())__glcVertexCallback);
     gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
-       (void (*) ())__glcCombineCallback);
+		    (void (*) ())__glcCombineCallback);
     gluTessCallback(tess, GLU_TESS_END, glEnd);
 
     gluTessNormal(tess, 0., 0., 1.);
