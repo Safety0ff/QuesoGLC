@@ -7,8 +7,8 @@
 #define QUESOGLC_MAJOR 0
 #define QUESOGLC_MINOR 2
 
-static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name";
-static GLCchar* __glcRelease = (GLCchar*) "0.3";
+static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name GLC_QSO_hinting";
+static GLCchar* __glcRelease = (GLCchar*) "0.4";
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
 static GLCchar* __glcExtensionsUCS2 = NULL;

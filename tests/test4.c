@@ -1,8 +1,9 @@
 #include "GL/glc.h"
 #include <stdio.h>
 
-/* This test checks that for routines that are not "global commands", GLC issues GLC_STATE_ERROR if no
- * context has been made current to the issuing thread.
+/* This test checks that for routines that are not "global commands", GLC
+ * issues GLC_STATE_ERROR if no context has been made current to the issuing
+ * thread.
  */
 
 #define TestErrorCode(func) \
