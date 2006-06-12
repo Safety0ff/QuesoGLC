@@ -48,7 +48,9 @@
 #include FT_LIST_H
 #include FT_TYPE1_TABLES_H
 #include FT_BDF_H
+#ifdef FT_WINFONTS_H
 #include FT_WINFONTS_H
+#endif
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
 
@@ -274,7 +276,9 @@ static GLboolean __glcGetMasterInfoJustInTime(__glcMaster* inMaster,
   static FcChar8 unknown[] = "Unknown";
   static FcChar8 masterFormat1[] = "Type 1";
   static FcChar8 masterFormat2[] = "BDF";
+#ifdef FT_WINFONTS_H
   static FcChar8 masterFormat3[] = "Windows FNT";
+#endif
   static FcChar8 masterFormat4[] = "TrueType/OpenType";
 
   __glcFaceDescriptor* faceDesc =
@@ -283,7 +287,9 @@ static GLboolean __glcGetMasterInfoJustInTime(__glcMaster* inMaster,
   PS_FontInfoRec afont_info;
   const char* acharset_encoding = NULL;
   const char* acharset_registry = NULL;
+#ifdef FT_WINFONTS_H
   FT_WinFNT_HeaderRec aheader;
+#endif
   FT_UInt count = 0;
 
   assert(faceDesc);
@@ -309,12 +315,14 @@ static GLboolean __glcGetMasterInfoJustInTime(__glcMaster* inMaster,
     inMaster->fullNameSGI = unknown;
     inMaster->version = unknown;
   }
+#ifdef FT_WINFONTS_H
   /* Is it Windows FNT ? */
   else if (!FT_Get_WinFNT_Header(faceDesc->face, &aheader)) {
     inMaster->masterFormat = masterFormat3;
     inMaster->fullNameSGI = unknown;
     inMaster->version = unknown;
   }
+#endif
   /* Is it TrueType/OpenType ? */
   else if ((count = FT_Get_Sfnt_Name_Count(faceDesc->face))) {
     #if 0

@@ -1,6 +1,14 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Brandon Casey changed the GL_TEXTURE_ENV_MODE to GL_MODULATE instead of
+  GL_REPLACE in order to allow the user to change the transparency of the text
+  by setting the alpha component with glColor4*()
+- Brandon Casey fixed the GLC_BITMAP and GLC_TEXTURE rendering styles so that
+  the complete set of GL_UNPACK parameters are set before the picture is
+  uploaded in order not to depend on the user setting of those parameters
+- Brandon Casey provided a patch to allow QuesoGLC to compile with FreeType libs
+  older than 2.1.8 (winfonts were not supported before 2.1.8)
 - Pablo Barbachano provided a patch to allow QuesoGLC to use FreeType 2.2.x
   (const-ness added to some parameters of the callbak functions of
   FT_Outline_Decompose)

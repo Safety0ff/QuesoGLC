@@ -156,7 +156,12 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   }
 
   /* Do the actual GL rendering */
+  glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+  glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
   glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
 	   -boundingBox.yMin >> 6,
 	   inGlyph->advance.x / 64. * matrix.xx / 65536.
@@ -164,6 +169,8 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 	   inGlyph->advance.x / 64. * matrix.yx / 65536.
 	   + inGlyph->advance.y / 64. * matrix.yy / 65536.,
 	   pixmap.buffer);
+
+  glPopClientAttrib();
 
   __glcFree(pixmap.buffer);
 }
@@ -198,7 +205,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   GLfloat width = 0, height = 0;
   GLint format = 0;
   GLint boundTexture = 0;
-  GLint unpackAlignment = 0;
   GLint level = 0;
 
   assert(face);
@@ -246,9 +252,13 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glGenTextures(1, &texture);
 
   /* Create the texture */
-  glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+  glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+  glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
   glBindTexture(GL_TEXTURE_2D, texture);
 
   while ((pixmap.width > 2) && (pixmap.rows > 2)) {
@@ -266,7 +276,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
       glBindTexture(GL_TEXTURE_2D, boundTexture);
-      glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
+      glPopClientAttrib();
       glDeleteTextures(1, &texture);
       __glcFree(pixmap.buffer);
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -317,8 +327,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-  glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
   glBindTexture(GL_TEXTURE_2D, boundTexture);
+  glPopClientAttrib();
 
   /* Add the new texture to the texture list and the new display list
    * to the list of display lists
@@ -343,7 +353,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   /* Repeat glBindTexture() so that the display list includes it */
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
   /* Compute the size of the glyph */
   width = (GLfloat)((boundingBox.xMax - boundingBox.xMin) / 64.);
