@@ -202,9 +202,6 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  *  <em>LATIN CAPITAL LETTER A</em>.
  *
  *  If the master does not map \e inCode, the command returns \b GLC_NONE.
- *
- *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
- *  \b GLC_UTF8_QSO.
  *  \note While you cannot change the map of a master, you can change the map
  *  of a font using glcFontMap().
  *  \param inMaster The integer ID of the master from which to select the
@@ -583,6 +580,10 @@ void glcAppendCatalog(const GLCchar* inCatalog)
 {
   __glcContextState *state = NULL;
 
+  /* If inCatalog is NULL then there is no point in continuing */
+  if (!inCatalog)
+    return;
+
   /* Verify that the thread owns a context */
   state = __glcGetCurrent();
   if (!state) {
@@ -606,6 +607,10 @@ void glcAppendCatalog(const GLCchar* inCatalog)
 void glcPrependCatalog(const GLCchar* inCatalog)
 {
   __glcContextState *state = NULL;
+
+  /* If inCatalog is NULL then there is no point in continuing */
+  if (!inCatalog)
+    return;
 
   /* Verify that the thread owns a context */
   state = __glcGetCurrent();
