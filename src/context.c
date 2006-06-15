@@ -736,6 +736,7 @@ GLfloat glcGetf(GLCenum inAttrib)
  *  </tr>
  *  </table>
  *  </center>
+ *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inAttrib The parameter value to be returned
  *  \param outVec Specifies where to store the return value
  *  \return The current value of the floating point vector variable
@@ -750,6 +751,12 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 
   /* Check the parameters */
   if (inAttrib != GLC_BITMAP_MATRIX) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  /* Check that outVec is not NULL */
+  if (!outVec) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
@@ -825,9 +832,6 @@ GLfloat* glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *  </tr>
  *  </table>
  *  </center>
- *
- *  The command raises \b GLC_PARAMETER_ERROR if \e inAttrib is equal to
- *  \b GLC_REPLACEMENT_CODE and the current string type is \b GLC_UTF8_QSO.
  *  \param inAttrib Attribute for which an integer variable is requested.
  *  \return The value or values of the integer variable.
  *  \sa glcGetc()
