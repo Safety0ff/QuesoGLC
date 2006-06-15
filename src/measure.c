@@ -198,8 +198,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
  *  metric identified by \e inMetric. If the command does not raise an error,
  *  its return value is \e outVec.
  *
- *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
- *  \b GLC_UTF8_QSO.
+ *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inCode The character to measure.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                   \b GLC_BOUNDS.
@@ -222,6 +221,12 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
   case GLC_BOUNDS:
     break;
   default:
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  /* Check that outVec is not NULL */
+  if (!outVec) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
@@ -267,6 +272,8 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
  *  The command stores in \e outVec the value of the metric identified by
  *  \e inMetric. If the command does not raise an error, its return value
  *  is \e outVec.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                  \b GLC_BOUNDS.
  *  \param outVec A vector in which to store value of \e inMetric for all
@@ -289,6 +296,12 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   case GLC_BOUNDS:
     break;
   default:
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  /* Check that outVec is not NULL */
+  if (!outVec) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
@@ -374,8 +387,8 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than zero
  *  or is greater than or equal to the value of the variable
- *  \b GLC_MEASURED_CHAR_COUNT. If the command does not raise an error, its
- *  return value is outVec.
+ *  \b GLC_MEASURED_CHAR_COUNT or \e outVec is NULL. If the command does not
+ *  raise an error, its return value is outVec.
  *  \par Example:
  *  The following example first calls glcMeasureString() to store the string
  *  "hello" in the measurement buffer. It then retrieves both the baseline and
@@ -432,6 +445,12 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
     return NULL;
   }
 
+  /* Check that outVec is not NULL */
+  if (!outVec) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
   /* Verify if the current thread owns a context state */
   state = __glcGetCurrent();
   if (!state) {
@@ -470,6 +489,8 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
  *  store a string from the GLC measurement buffer, call
  *  glcMeasureCountedString() or glcMeasureString().
  *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is \b GLC_NONE
+ *
  *  If the command does not raise an error, its return value is \e outVec.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *         \b GLC_BOUNDS.
@@ -492,6 +513,12 @@ GLfloat* glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
   case GLC_BOUNDS:
     break;
   default:
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return NULL;
+  }
+
+  /* Check that outVec is not NULL */
+  if (!outVec) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
@@ -658,6 +685,10 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
     return 0;
   }
 
+  /* If inString is NULL then there is no point in continuing */
+  if (!inString)
+    return 0;
+
   UinString = __glcConvertCountedStringToUtf8(inCount, inString,
 					      state->stringType);
   if (!UinString) {
@@ -707,6 +738,10 @@ GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
+
+  /* If inString is NULL then there is no point in continuing */
+  if (!inString)
+    return 0;
 
   UinString = __glcConvertToUtf8(inString, state->stringType);
   if (!UinString) {

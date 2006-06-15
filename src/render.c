@@ -519,9 +519,6 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 
 /** \ingroup render
  *  This command renders the character that \e inCode is mapped to.
- *
- *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
- *  \b GLC_UTF8_QSO.
  *  \param inCode The character to render
  *  \sa glcRenderString()
  *  \sa glcRenderCountedString()
@@ -584,6 +581,10 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
     return;
   }
 
+  /* If inString is NULL then there is no point in continuing */
+  if (!inString)
+    return;
+
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
@@ -633,6 +634,10 @@ void glcRenderString(const GLCchar *inString)
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
+
+  /* If inString is NULL then there is no point in continuing */
+  if (!inString)
+    return;
 
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
@@ -723,9 +728,6 @@ void glcRenderStyle(GLCenum inStyle)
  *  \b GLC_REPLACEMENT_CODE. The replacement code is the code which is used
  *  whenever glcRenderChar() can not find a font that owns a character which
  *  the parameter \e inCode of glcRenderChar() maps to.
- *
- *  The command raises \b GLC_PARAMETER_ERROR if the current string stype is
- *  \b GLC_UTF8_QSO.
  *  \param inCode An integer to assign to \b GLC_REPLACEMENT_CODE.
  *  \sa glcGeti() with argument \b GLC_REPLACEMENT_CODE
  *  \sa glcRenderChar()

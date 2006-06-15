@@ -44,6 +44,8 @@
 
 #define GLC_PI 3.1415926535
 
+
+
 /** \ingroup transform
  *  This command assigns the value [1 0 0 1] to the floating point vector
  *  variable \b GLC_BITMAP_MATRIX.
@@ -70,9 +72,13 @@ void glcLoadIdentity(void)
     state->bitmapMatrix[3] = 1.;
 }
 
+
+
 /** \ingroup transform
  *  This command assigns the value [inMatrix[0] inMatrix[1] inMatrix[2]
  *  inMatrix[3]] to the floating point vector variable \b GLC_BITMAP_MATRIX.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inMatrix is NULL.
  *  \param inMatrix The value to assign to \b GLC_BITMAP_MATRIX
  *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
  *  \sa glcLoadIdentity()
@@ -84,6 +90,12 @@ void glcLoadMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
 
+  /* Check that inMatrix is not NULL */
+  if (!inMatrix) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
     /* Check if the current thread owns a context state */
     state = __glcGetCurrent();
     if (!state) {
@@ -94,9 +106,13 @@ void glcLoadMatrix(const GLfloat *inMatrix)
     memcpy(state->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
 }
 
+
+
 /** \ingroup transform
  *  This command multiply the floating point vector variable
  *  \b GLC_BITMAP_MATRIX by the incoming matrix \e inMatrix.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inMatrix is NULL.
  *  \param inMatrix A pointer to a 2x2 matrix stored in column-major order
  *                  as 4 consecutives values.
  *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
@@ -110,6 +126,12 @@ void glcMultMatrix(const GLfloat *inMatrix)
     __glcContextState *state = NULL;
     GLfloat tempMatrix[4];
 
+  /* Check that inMatrix is not NULL */
+  if (!inMatrix) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
     /* Check if the current thread owns a context state */
     state = __glcGetCurrent();
     if (!state) {
@@ -118,7 +140,7 @@ void glcMultMatrix(const GLfloat *inMatrix)
     }
 
     memcpy(tempMatrix, state->bitmapMatrix, 4 * sizeof(GLfloat));
-    
+
     state->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0]
       + tempMatrix[2] * inMatrix[1];
     state->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0]
@@ -128,6 +150,8 @@ void glcMultMatrix(const GLfloat *inMatrix)
     state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2]
       + tempMatrix[3] * inMatrix[3];
 }
+
+
 
 /** \ingroup transform
  *  This command assigns the value [a b c d] to the floating point vector
@@ -153,9 +177,11 @@ void glcRotate(GLfloat inAngle)
     tempMatrix[1] = sine;
     tempMatrix[2] = -sine;
     tempMatrix[3] = cosine;
-    
+
     glcMultMatrix(tempMatrix);
 }
+
+
 
 /** \ingroup transform
  *  This command produces a general scaling along the \b x and \b y
@@ -179,6 +205,6 @@ void glcScale(GLfloat inX, GLfloat inY)
     tempMatrix[1] = 0.;
     tempMatrix[2] = 0.;
     tempMatrix[3] = inY;
-    
+
     glcMultMatrix(tempMatrix);
 }
