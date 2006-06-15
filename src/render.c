@@ -160,6 +160,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
@@ -256,6 +257,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
@@ -650,7 +652,7 @@ void glcRenderString(const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  do {
+  while (*ptr) {
     int len = 0;
     len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
     if (len < 0) {
@@ -659,7 +661,7 @@ void glcRenderString(const GLCchar *inString)
     }
     ptr += len;
     __glcProcessChar(state, code, __glcRenderChar, NULL);
-  } while (*ptr);
+  }
 
   __glcFree(UinString);
 }
