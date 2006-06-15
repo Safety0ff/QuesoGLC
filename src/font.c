@@ -404,6 +404,10 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
   FcChar8* UinFace = NULL;
   __glcFont* font = NULL;
 
+  /* If inFace is NULL then there is no point in continuing */
+  if (!inFace)
+    return GL_FALSE;
+
   /* Check if the current thread owns a context state */
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
@@ -494,7 +498,7 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inCharName is not
  *  \b GLC_NONE or an element of the font string's list attribute
- *  \b GLC_CHAR_LIST or the current string type is \b GLC_UTF8_QSO.
+ *  \b GLC_CHAR_LIST.
  *  \param inFont The ID of the font
  *  \param inCode The integer ID of a character
  *  \param inCharName The string name of a character
@@ -659,7 +663,7 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
  *  If \e inCode cannot be mapped in the font, the command returns \b GLC_NONE.
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inFont is not an element of
- *  the list \b GLC_FONT_LIST or the current string type is \b GLC_UTF8_QSO.
+ *  the list \b GLC_FONT_LIST
  *  \note Changing the map of a font is possible but changing the map of a
  *        master is not.
  *  \param inFont The integer ID of the font from which to select the character
@@ -936,6 +940,10 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   FT_ListNode node = NULL;
   __glcMaster* master = NULL;
   FcChar8* UinFamily = NULL;
+
+  /* If inFamily is NULL then there is no point in continuing */
+  if (!inFamily)
+    return 0;
 
   /* Check if inFont is in legal bounds */
   if (inFont < 1) {
