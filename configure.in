@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.57)
 AC_INIT(src/global.c)
 AM_INIT_AUTOMAKE(QuesoGLC, 0.4)
 AC_CONFIG_HEADER(include/qglc_config.h:include/qglc_config.hin)
