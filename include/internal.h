@@ -97,9 +97,6 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 					 const GLCchar* inString,
 					 const GLint inStringType);
 
-/* Count the number of bits that are set in c1  */
-extern FcChar32 __glcCharSetPopCount(FcChar32 c1);
-
 /* Convert a UCS-4 character code into the current string type. The result is
  * stored in a GLint. This function is needed since the GLC specs store
  * individual character codes in GLint which may cause problems for the UTF-8
@@ -122,18 +119,6 @@ __glcMaster* __glcVerifyMasterParameters(GLint inMaster);
  * by 'inFont' exists.
  */
 __glcFont* __glcVerifyFontParameters(GLint inFont);
-
-/* Get the minimum mapped code of a character set */
-GLint __glcGetMinMappedCode(FcCharSet *charSet);
-
-/* Get the maximum mapped code of a character set */
-GLint __glcGetMaxMappedCode(FcCharSet *charSet);
-
-/* Get the name of the character at offset inIndex from the first element of
- * the character set inCharSet
- */
-GLCchar* __glcGetCharNameByIndex(FcCharSet* inCharSet, GLint inIndex,
-				 __glcContextState* inState);
 
 /* Return a struct which contains thread specific info */
 threadArea* __glcGetThreadArea(void);

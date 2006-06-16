@@ -35,13 +35,24 @@ __glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet)
     return NULL;
   }
 
-  This->charSet = FcCharSetCopy(inCharSet);
+  if (inCharSet)
+    This->charSet = FcCharSetCopy(inCharSet);
+  else
+    This->charSet = FcCharSetCreate();
+
   if (!This->charSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
     return NULL;
   }
+
   This->map = __glcArrayCreate(sizeof(__glcCharMapEntry));
+  if (!This->map) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcCharSetDestroy(This->charSet);
+    __glcFree(This);
+    return NULL;
+  }
 
   return This;
 }
@@ -356,10 +367,66 @@ GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
 
 
 
+/* This function counts the number of bits that are set in c1 
+ * Copied from Keith Packard's fontconfig
+ */
+static FcChar32 __glcCharSetPopCount(FcChar32 c1)
+{
+  /* hackmem 169 */
+  FcChar32    c2 = (c1 >> 1) & 033333333333;
+  c2 = c1 - c2 - ((c2 >> 1) & 033333333333);
+  return (((c2 + (c2 >> 3)) & 030707070707) % 077);
+}
+
+
+
 GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 					__glcContextState* inState)
 {
-  return __glcGetCharNameByIndex(This->charSet, inIndex, inState);
+  int i = 0;
+  int j = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  FcChar32 next = 0;
+  FcChar32 base = FcCharSetFirstPage(This->charSet, map, &next);
+  FcChar32 count = 0;
+  FcChar32 value = 0;
+
+  do {
+    for (i = 0; i < FC_CHARSET_MAP_SIZE; i++) {
+      value = __glcCharSetPopCount(map[i]);
+
+      if (count + value >= inIndex + 1) {
+	for (j = 0; j < 32; j++) {
+	  if ((map[i] >> j) & 1) count++;
+	  if (count == inIndex + 1) {
+	    FcChar8* name = __glcNameFromCode(base + (i << 5) + j);
+	    GLCchar* buffer = NULL;
+
+	    if (!name) {
+	      __glcRaiseError(GLC_PARAMETER_ERROR);
+	      return GLC_NONE;
+	    }
+
+	    /* Performs the conversion */
+	    buffer = __glcConvertFromUtf8ToBuffer(inState, name,
+						  inState->stringType);
+	    if (!buffer) {
+	      __glcRaiseError(GLC_RESOURCE_ERROR);
+	      return GLC_NONE;
+	    }
+
+	    return buffer;
+	  }
+	}
+      }
+      count += value;
+    }
+    base = FcCharSetNextPage(This->charSet, map, &next);
+  } while (base != FC_CHARSET_DONE);
+
+  /* The character has not been found */
+  __glcRaiseError(GLC_PARAMETER_ERROR);
+  return GLC_NONE;
 }
 
 
@@ -371,16 +438,52 @@ GLint __glcCharMapGetCount(__glcCharMap* This)
 
 
 
+/* Get the maximum mapped code of a character set */
 GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This)
 {
-  return __glcGetMaxMappedCode(This->charSet);
+  FcChar32 base = 0;
+  FcChar32 next = 0;
+  FcChar32 prev_base = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  int i = 0, j = 0;
+
+  base = FcCharSetFirstPage(This->charSet, map, &next);
+  assert(base != FC_CHARSET_DONE);
+
+  do {
+    prev_base = base;
+    base = FcCharSetNextPage(This->charSet, map, &next);
+  } while (base != FC_CHARSET_DONE);
+
+  for (i = FC_CHARSET_MAP_SIZE - 1; i >= 0; i--)
+    if (map[i]) break;
+  assert(i >= 0); /* If the map contains no char then
+		   * something went wrong... */
+  for (j = 31; j >= 0; j--)
+    if ((map[i] >> j) & 1) break;
+  return prev_base + (i << 5) + j;
 }
 
 
 
+/* Get the minimum mapped code of a character set */
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This)
 {
-  return __glcGetMinMappedCode(This->charSet);
+  FcChar32 base = 0;
+  FcChar32 next = 0;
+  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  int i = 0, j = 0;
+
+  base = FcCharSetFirstPage(This->charSet, map, &next);
+  assert(base != FC_CHARSET_DONE);
+
+  for (i = 0; i < FC_CHARSET_MAP_SIZE; i++)
+    if (map[i]) break;
+  assert(i < FC_CHARSET_MAP_SIZE); /* If the map contains no char then
+				    * something went wrong... */
+  for (j = 0; j < 32; j++)
+    if ((map[i] >> j) & 1) break;
+  return base + (i << 5) + j;
 }
 
 /* This functions destroys the display lists and the texture objects that
@@ -402,4 +505,21 @@ void __glcCharMapDestroyGLObjects(__glcCharMap* This, int inRank)
     glDeleteLists(entry[inRank].displayList[2], 1);
 
   memset(entry[inRank].displayList, 0, 3 * sizeof(GLuint));
+}
+
+GLboolean __glcCharMapUnion(__glcCharMap* This, FcCharSet* inCharSet)
+{
+  FcCharSet* result = NULL;
+
+  /* Add the character set to the charmap */
+  result = FcCharSetUnion(This->charSet, inCharSet);
+  if (!result) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+
+  FcCharSetDestroy(This->charSet);
+  This->charSet = result;
+
+  return GL_TRUE;
 }

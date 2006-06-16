@@ -62,7 +62,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   else
     This->vendor = (FcChar8*)unknown;
 
-  This->charList = FcCharSetCreate();
+  This->charList = __glcCharMapCreate(NULL);
   if (!This->charList)
     goto error;
 
@@ -74,7 +74,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 
  error:
   if (This->charList)
-    FcCharSetDestroy(This->charList);
+    __glcCharMapDestroy(This->charList);
   if (This->vendor) {
     __glcFree(This->vendor);
   }
@@ -105,7 +105,7 @@ void __glcMasterDestroy(__glcMaster *This)
     node = next;
   }
 
-  FcCharSetDestroy(This->charList);
+  __glcCharMapDestroy(This->charList);
   if (This->family)
     __glcFree(This->family);
   if (This->vendor != (FcChar8*)unknown)

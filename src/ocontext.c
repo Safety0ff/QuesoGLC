@@ -203,26 +203,6 @@ void __glcCtxDestroy(__glcContextState *This)
 
 
 
-/* This function updates the GLC_CHAR_LIST list when a new face identified by
- * 'face' is added to the master pointed by inMaster
- */
-static void __glcUpdateCharList(__glcMaster* inMaster, FcCharSet *charSet)
-{
-  FcCharSet* result = NULL;
-
-  /* Add the character set to the GLC_CHAR_LIST of inMaster */
-  result = FcCharSetUnion(inMaster->charList, charSet);
-  if (!result) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  FcCharSetDestroy(inMaster->charList);
-  inMaster->charList = result;
-}
-
-
-
 /* This function parses the font set and add the font files to the masters
  * of the context 'This'. Masters are created if necessary.
  */
@@ -342,7 +322,8 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
        * master : Append (or prepend) the new face and its file name to
        * the master.
        */
-      __glcUpdateCharList(master, charSet);
+      if (!__glcCharMapUnion(master->charList, charSet))
+	return;
 
       faceDesc = __glcFaceDescCreate(styleName, charSet,
 				     (fixed != FC_PROPORTIONAL), fileName,
@@ -593,14 +574,17 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
       /* Remove characters of the font from the char list.
        * (Actually rebuild the master charset)
        */
-      FcCharSetDestroy(master->charList);
-      master->charList = FcCharSetCreate();
+      __glcCharMapDestroy(master->charList);
+      master->charList = __glcCharMapCreate(NULL);
 
       for (faceNode = master->faceList.head; faceNode;
 	   faceNode = faceNode->next) {
 	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
 
-	__glcUpdateCharList(master, faceDesc->charSet);
+	/* TODO: handle the case of failure of __glcCharMapUnion and to
+	 * be able to restore the master in a coherent state
+	 */
+	__glcCharMapUnion(master->charList, faceDesc->charSet);
       }
     }
   }
@@ -714,7 +698,7 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
       __glcMaster* master = (__glcMaster*)node;
       FT_ListNode faceNode = NULL;
 
-      if (!FcCharSetHasChar(master->charList, (FcChar32)inCode))
+      if (!__glcCharMapHasChar(master->charList, (FcChar32)inCode))
         continue;
 
       /* We search for a font file that supports the requested inCode glyph */

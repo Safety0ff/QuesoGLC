@@ -26,18 +26,19 @@
 #include FT_FREETYPE_H
 #include "GL/glc.h"
 
+#include "ocharmap.h"
 
 typedef struct {
   FT_ListNodeRec node;
 
   GLint id;
-  FT_ListRec faceList;	        /* GLC_FACE_LIST */
-  FcCharSet* charList;          /* GLC_CHAR_LIST */
+  FT_ListRec faceList;		/* GLC_FACE_LIST */
+  __glcCharMap* charList;	/* GLC_CHAR_LIST */
   FcChar8* family;		/* GLC_FAMILY */
   FcChar8* fullNameSGI;		/* GLC_FULL_NAME_SGI */
   FcChar8* masterFormat;	/* GLC_MASTER_FORMAT */
   FcChar8* vendor;		/* GLC_VENDOR */
-  FcChar8* version;	        /* GLC_VERSION */
+  FcChar8* version;		/* GLC_VERSION */
 } __glcMaster;
 
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,

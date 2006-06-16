@@ -28,7 +28,6 @@
 #endif
 
 #include "GL/glc.h"
-#include "omaster.h"
 #include "oarray.h"
 #include "except.h"
 

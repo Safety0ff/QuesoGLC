@@ -1,6 +1,8 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- The master object (defined in omaster.h) now uses __glcCharMap instead of
+  FcCharSet.
 - Brandon Casey fixed the rendering commands so that the character sequence
   \<0> is not issued when glcRenderString is called with a zero length string
   (i.e. a string that only contains the null terminator) 

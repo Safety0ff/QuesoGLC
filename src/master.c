@@ -165,7 +165,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
   switch(inAttrib) {
   case GLC_CHAR_LIST:
-    return __glcGetCharNameByIndex(master->charList, inIndex, state);
+    return __glcCharMapGetCharNameByIndex(master->charList, inIndex, state);
   case GLC_FACE_LIST:
     /* Get the face name */
     for (node = master->faceList.head; inIndex && node; node = node->next,
@@ -238,7 +238,7 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
   if (code < 0)
     return NULL;
 
-  if (!FcCharSetHasChar(master->charList, (FcChar32)code))
+  if (!__glcCharMapHasChar(master->charList, (FcChar32)code))
     return GLC_NONE;
 
   /* The database gives the Unicode name in UCS1 encoding. We should now
@@ -528,7 +528,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   /* returns the requested attribute */
   switch(inAttrib) {
   case GLC_CHAR_COUNT:
-    return FcCharSetCount(master->charList);
+    return __glcCharMapGetCount(master->charList);
   case GLC_FACE_COUNT:
     for (node = master->faceList.head; node; node = node->next, count++);
     return count;
@@ -540,9 +540,9 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     }
     return GL_TRUE;
   case GLC_MAX_MAPPED_CODE:
-    return __glcGetMaxMappedCode(master->charList);
+    return __glcCharMapGetMaxMappedCode(master->charList);
   case GLC_MIN_MAPPED_CODE:
-    return __glcGetMinMappedCode(master->charList);
+    return __glcCharMapGetMinMappedCode(master->charList);
   }
 
   return 0;

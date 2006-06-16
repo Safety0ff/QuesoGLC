@@ -63,4 +63,5 @@ GLint __glcCharMapGetCount(__glcCharMap* This);
 GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This);
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This);
 void __glcCharMapDestroyGLObjects(__glcCharMap* This, int inRank);
+GLboolean __glcCharMapUnion(__glcCharMap* This, FcCharSet* inCharSet);
 #endif
