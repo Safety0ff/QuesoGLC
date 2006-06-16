@@ -601,7 +601,7 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
     yMax = metrics[9] + outVec[3];
 
     outVec[4] = xMin < outVec[4] ? xMin : outVec[4];
-    outVec[5] = yMin < outVec[5] ? xMin : outVec[5];
+    outVec[5] = yMin < outVec[5] ? yMin : outVec[5];
     outVec[6] = xMax > outVec[6] ? xMax : outVec[6];
     outVec[9] = yMax > outVec[9] ? yMax : outVec[9];
 

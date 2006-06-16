@@ -4,9 +4,8 @@ Changes made from the "0.3" release to the "0.4" release:
 - Brandon Casey fixed the rendering commands so that the character sequence
   \<0> is not issued when glcRenderString is called with a zero length string
   (i.e. a string that only contains the null terminator) 
-- Brandon Casey fixed the measurement commands so that the measurement of the
-  character sequence \<hexcode> give now correct values for the minimum y
-  coordinate
+- Brandon Casey fixed the measurement commands so that they give correct values
+  for the minimum y coordinate
 - Functions of QuesoGLC now handle correctly NULL pointers given as arguments
 - Brandon Casey changed the GL_TEXTURE_ENV_MODE to GL_MODULATE instead of
   GL_REPLACE in order to allow the user to change the transparency of the text
