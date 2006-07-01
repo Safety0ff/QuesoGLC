@@ -123,36 +123,11 @@ static __glcCharMapEntry* __glcCharMapInsertCode(__glcCharMap* This,
 
 
 
-void __glcCharMapAddChar(__glcCharMap* This, __glcFaceDescriptor* inFaceDesc,
-			 GLint inCode, const GLCchar* inCharName,
+void __glcCharMapAddChar(__glcCharMap* This, FT_UInt inGlyph,
+			 GLint inCode, FT_ULong inMappedCode,
 			 __glcContextState* inState)
 {
-  FT_ULong mappedCode  = 0;
-  GLCchar* buffer = NULL;
-  FT_UInt glyph = 0;
   FcCharSet* charSet = NULL;
-
-  /* Convert the character name identified by inCharName into UTF-8 format. The
-   * result is stored into 'buffer'. */
-  buffer = __glcConvertToUtf8(inCharName, inState->stringType);
-  if (!buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* Retrieve the Unicode code from its name */
-  mappedCode = __glcCodeFromName(buffer);
-  if (mappedCode == -1) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    __glcFree(buffer);
-    return;
-  }
-
-  glyph = __glcFaceDescGetGlyphIndex(inFaceDesc, mappedCode, inState);
-  __glcFree(buffer);
-  if (glyph == 0xffffffff)
-    return;
-
 
   /* We must verify that inCode is not in charSet yet, otherwise
    * FcCharSetAddChar() returns an error not because Fontconfig can not add
@@ -174,7 +149,7 @@ void __glcCharMapAddChar(__glcCharMap* This, __glcFaceDescriptor* inFaceDesc,
     }
   }
 
-  if (!__glcCharMapInsertCode(This, inCode, mappedCode, glyph)) {
+  if (!__glcCharMapInsertCode(This, inCode, inMappedCode, inGlyph)) {
     if (charSet)
       FcCharSetDestroy(charSet);
     return;
@@ -297,11 +272,10 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 
 
 __glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This,
-					__glcFaceDescriptor* inFaceDesc,
+					FT_UInt inGlyph,
 					__glcContextState* inState,
 					GLint inCode)
 {
-  FT_UInt glyph = 0;
   __glcCharMapEntry* entry = NULL;
   int start = 0, middle = 0, end = 0;
 
@@ -324,12 +298,7 @@ __glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This,
       start = middle + 1;
   }
 
-  /* Get and load the glyph which unicode code is identified by inCode */
-  glyph = __glcFaceDescGetGlyphIndex(inFaceDesc, inCode, inState);
-  if (glyph == 0xffffffff)
-    return NULL;
-
-  return __glcCharMapInsertCode(This, inCode, inCode, glyph);
+  return __glcCharMapInsertCode(This, inCode, inCode, inGlyph);
 }
 
 

@@ -522,9 +522,34 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 
   if (!inCharName)
     __glcCharMapRemoveChar(font->charMap, code);
-  else
-    __glcCharMapAddChar(font->charMap, font->faceDesc, code, inCharName,
-			state);
+  else {
+    GLCchar* buffer = NULL;
+    FT_ULong mappedCode  = 0;
+    FT_UInt glyph = 0;
+
+    /* Convert the character name identified by inCharName into UTF-8 format. The
+     * result is stored into 'buffer'. */
+    buffer = __glcConvertToUtf8(inCharName, state->stringType);
+    if (!buffer) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
+
+    /* Retrieve the Unicode code from its name */
+    mappedCode = __glcCodeFromName(buffer);
+    if (mappedCode == -1) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      __glcFree(buffer);
+      return;
+    }
+
+    glyph = __glcFaceDescGetGlyphIndex(font->faceDesc, mappedCode, state);
+    __glcFree(buffer);
+    if (glyph == 0xffffffff)
+      return;
+
+    __glcCharMapAddChar(font->charMap, glyph, code, mappedCode, state);
+  }
 }
 
 

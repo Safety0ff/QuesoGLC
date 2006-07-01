@@ -83,6 +83,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
 {
   GLfloat* outVec = (GLfloat*)inData;
   FT_Glyph glyph = NULL;
+  FT_UInt glyphCode = 0;
   FT_BBox boundBox;
   GLint i = 0;
   GLfloat xMin = 0., xMax = 0.;
@@ -99,8 +100,13 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
   if ((!font) || (scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
 
+  /* Get and load the glyph which unicode code is identified by inCode */
+  glyphCode = __glcFaceDescGetGlyphIndex(font->faceDesc, inCode, inState);
+  if (glyphCode == 0xffffffff)
+    return NULL;
+
   /* Get and load the glyph which Unicode codepoint is identified by inCode */
-  charMapEntry = __glcCharMapGetEntry(font->charMap, font->faceDesc, inState,
+  charMapEntry = __glcCharMapGetEntry(font->charMap, glyphCode, inState,
 				      inCode);
   if (!charMapEntry) {
     __glcRaiseError(GLC_PARAMETER_ERROR);

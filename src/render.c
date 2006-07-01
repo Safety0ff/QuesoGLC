@@ -404,6 +404,7 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 			    __glcContextState* inState, void* inData,
 			    GLboolean inMultipleChars)
 {
+  FT_UInt glyph = 0;
   GLfloat transformMatrix[16];
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
@@ -415,8 +416,13 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
   if ((!font) || (scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
 
+  /* Get and load the glyph which unicode code is identified by inCode */
+  glyph = __glcFaceDescGetGlyphIndex(font->faceDesc, inCode, inState);
+  if (glyph == 0xffffffff)
+    return NULL;
+
   /* Get and load the glyph which Unicode codepoint is identified by inCode */
-  charMapEntry = __glcCharMapGetEntry(font->charMap, font->faceDesc, inState,
+  charMapEntry = __glcCharMapGetEntry(font->charMap, glyph, inState,
 				      inCode);
   if (!charMapEntry) {
     __glcRaiseError(GLC_PARAMETER_ERROR);

@@ -27,7 +27,6 @@
 
 #include "GL/glc.h"
 #include "ocontext.h"
-#include "ofacedesc.h"
 #include "oarray.h"
 
 typedef struct {
@@ -46,14 +45,14 @@ typedef struct {
 
 __glcCharMap* __glcCharMapCreate(FcCharSet* inFaceDesc);
 void __glcCharMapDestroy(__glcCharMap* This);
-void __glcCharMapAddChar(__glcCharMap* This, __glcFaceDescriptor* inFaceDesc,
-			 GLint inCode, const GLCchar* inCharName,
+void __glcCharMapAddChar(__glcCharMap* This, FT_UInt inGlyph,
+			 GLint inCode, FT_ULong inMappedCode,
 			 __glcContextState* inState);
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 				 __glcContextState* inState);
 __glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This,
-					__glcFaceDescriptor* inFaceDesc,
+					FT_UInt inGlyph,
 					__glcContextState* inState,
 					GLint inCode);
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
