@@ -214,50 +214,20 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  */
 const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 {
+  __glcMaster *master = __glcVerifyMasterParameters(inMaster);
   __glcContextState *state = __glcGetCurrent();
-  __glcMaster *master = NULL;
-  GLCchar *buffer = NULL;
-  FcChar8* name = NULL;
   GLint code = 0;
 
-  /* Check if inCode is in legal bounds */
-  if (inCode < 0) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+  if (master) {
+    /* Get the character code converted to the UCS-4 format */
+    code = __glcConvertGLintToUcs4(state, inCode);
+    if (code < 0)
+      return GLC_NONE;
+
+    return __glcCharMapGetCharName(master->charList, code, state);
   }
-
-  /* Verify that the thread has a current context and that the master
-   * identified by 'inMaster' exists.
-   */
-  master = __glcVerifyMasterParameters(inMaster);
-  if (!master)
+  else
     return GLC_NONE;
-
-  /* Get the character code converted to the UCS-4 format */
-  code = __glcConvertGLintToUcs4(state, inCode);
-  if (code < 0)
-    return NULL;
-
-  if (!__glcCharMapHasChar(master->charList, (FcChar32)code))
-    return GLC_NONE;
-
-  /* The database gives the Unicode name in UCS1 encoding. We should now
-   * change its encoding if needed.
-   */
-  name = __glcNameFromCode(code);
-  if (!name) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-  }
-
-  /* Performs the conversion */
-  buffer = __glcConvertFromUtf8ToBuffer(state, name, state->stringType);
-  if (!buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
-  }
-
-  return buffer;
 }
 
 
