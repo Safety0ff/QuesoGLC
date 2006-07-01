@@ -688,6 +688,11 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 {
   GLint code = inCode;
 
+  if (inCode < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return -1;
+  }
+
   /* If the current string type is GLC_UTF8_QSO then converts to GLC_UCS4 */
   if (inState->stringType == GLC_UTF8_QSO) {
     /* Convert the codepoint in UCS4 format and check if it is ill-formed or
