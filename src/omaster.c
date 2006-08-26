@@ -25,6 +25,16 @@
 
 static const char unknown[] = "Unknown";
 
+/** \file
+ * defines the object __glcFont which manage the fonts
+ */
+
+/* Constructor of the object : it allocates memory and initializes the member
+ * of the new object.
+ * The user must give the family name and the vendor name of the fonts. 'inID'
+ * contains the ID of the new master and 'inStringType' the string type of the
+ * current context.
+ */
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const FcChar8* inVendorName,
 			       GLint inID, GLint inStringType)
@@ -87,11 +97,14 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
   return NULL;
 }
 
-/* FIXME :
- * Check that linked lists are empty before the pointer is freed
- */
+
+
+/* Destructor of the object */
 void __glcMasterDestroy(__glcMaster *This)
 {
+  /* FIXME :
+   * Check that linked lists are empty before the pointer is freed
+   */
   FT_ListNode node = NULL;
   FT_ListNode next = NULL;
 
