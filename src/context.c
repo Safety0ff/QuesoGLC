@@ -29,21 +29,23 @@
  *
  * GLC refers to the current context state whenever it executes a command.
  * Most of its state is directly available to the user : in order to control
- * the result of the GLC commands, he or she may want to get or modify the
+ * the result of the GLC commands, the user may want to get or modify the
  * state of the current context. This is precisely the purpose of the context
  * state commands.
  *
  * \note Some GLC commands create, use or delete display lists and/or textures.
  * The IDs of those display lists and textures are stored in the current GLC
  * context but the display lists and the textures themselves are managed by
- * the current GL context. In order not to impact the performance of error-free
- * programs, QuesoGLC does not check if the current GL context is the same
- * than the one where the display lists and the textures were actually created.
- * If the current GL context has changed meanwhile, the result of commands that
- * refer to the corresponding display lists or textures is undefined.
+ * the current \b GL context. In order not to impact the performance of
+ * error-free programs, QuesoGLC does not check if the current GL context is
+ * the same as the context where the display lists and the textures are
+ * actually stored. If the current GL context has changed meanwhile, the result
+ * of commands that refer to the corresponding display lists or textures is
+ * undefined.
  */
 
 #include "internal.h"
+#include "oglyph.h"
 
 
 
@@ -101,13 +103,12 @@ void glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 
 /** \ingroup context
  *  This command assigns the value \e inPointer to the variable
- *  \b GLC_DATA_POINTER. It is used for access to client data from a callback
- *  function.
+ *  \b GLC_DATA_POINTER. It is used for an access to client data from the
+ *  callback function assigned to the variable \b GLC_OP_glcUnmappedCode
  *
- *  \e glcDataPointer provides a way to store in a GLC context a pointer to
- *  arbitrary application data. A GLC callback function can subsequently use
- *  the command glcGetPointer() to obtain access to these data in a thread-safe
- *  manner.
+ *  \e glcDataPointer provides a way to store, in the GLC context, a pointer to
+ *  any data. A GLC callback function can subsequently use the command
+ *  glcGetPointer() to obtain access to those data in a thread-safe manner.
  *  \param inPointer The pointer to assign to \b GLC_DATA_POINTER
  *  \sa glcGetPointer()
  *  \sa glcCallbackFunc()
@@ -130,14 +131,14 @@ void glcDataPointer(GLvoid *inPointer)
 
 /** \ingroup context
  *  This command causes GLC to issue a sequence of GL commands to delete all
- *  of the GL objects that it owns.
+ *  of the GL objects it owns.
  *
  *  GLC uses the command \c glDeleteLists to delete all of the GL objects named
  *  in \b GLC_LIST_OBJECT_LIST and uses the command \c glDeleteTextures to
  *  delete all of the GL objects named in \b GLC_TEXTURE_OBJECT_LIST. When an
  *  execution of glcDeleteGLObjects finishes, both of these lists are empty.
  *  \note \c glcDeleteGLObjects deletes only the objects that the current
- *   context owns, not all objects in all contexts.
+ *  GLC context owns, not all objects in all contexts.
  *  \sa glcGetListi()
  */
 void glcDeleteGLObjects(void)
@@ -152,12 +153,13 @@ void glcDeleteGLObjects(void)
     return;
   }
 
-  for(node = state->fontList.head; node; node = node->next) {
-    __glcCharMap* charMap = ((__glcFont*)node->data)->charMap;
-    int i = 0;
-
-    for (i = 0; i < GLC_ARRAY_LENGTH(charMap->map); i++)
-      __glcCharMapDestroyGLObjects(charMap, i);
+  /* The GL objects are managed by the __glcFaceDescriptor object. Hence we
+   * parse the __glcFaceDescriptor stored in each __glcMaster.
+   */
+  for(node = state->masterList.head; node; node = node->next) {
+    FT_ListNode faceNode = ((__glcMaster*)node)->faceList.head;
+    for (; faceNode; faceNode = faceNode->next)
+      __glcFaceDescDestroyGLObjects((__glcFaceDescriptor*)faceNode);
   }
 }
 
@@ -256,9 +258,13 @@ void glcDisable(GLCenum inAttrib)
  *  - \b GLC_GL_OBJECTS : if enabled, GLC stores characters rendering commands
  *    in GL display lists and textures (if any) in GL texture objects.
  *  - \b GLC_MIPMAP : if enabled, texture objects used by GLC are mipmapped
- *    using GLU's \c gluBuild2DMipmaps.
+ *  - \b GLC_HINTING_QSO : if enabled, GLC uses the auto-hinting procedures
+ *    that are available for most scalable fonts. It gives better results for
+ *    characters that are rendered at small sizes. Hinting may however generate
+ *    visual artifacts such as shaking outlines if the character is animated.
+ *    This attribute should be disabled in such cases.
  *
- *  \param inAttrib A symbolic constant indicating a GLC capability.
+ *  \param inAttrib A symbolic constant indicating a GLC attribute.
  *  \sa glcDisable()
  *  \sa glcIsEnabled()
  */
@@ -270,11 +276,10 @@ void glcEnable(GLCenum inAttrib)
 
 
 /** \ingroup context
- *  This command returns the value of the callback function variable
- *  identified by \e inOpcode. Currently, \e inOpcode can only have the
- *  value \b GLC_OP_glcUnmappedCode. Its initial value and the type
- *  signature are defined in the table shown in glcCallbackFunc()'s
- *  definition.
+ *  This command returns the value of the callback function variable identified
+ *  by \e inOpcode. Currently, \e inOpcode can only have the value
+ *  \b GLC_OP_glcUnmappedCode. Its initial value and the type signature are
+ *  defined in the table shown in glcCallbackFunc()'s definition.
  *  \param inOpcode The callback function to be retrieved
  *  \return The value of the callback function variable
  *  \sa glcCallbackFunc()
@@ -380,7 +385,7 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
     return GLC_NONE;
   }
 
-  /* Two remarks have to be made concerning the following code :
+  /* Three remarks have to be made concerning the following code :
    * 1. We do not return a pointer that points to the actual location of the
    *    string in order to prevent the user to modify it. Instead QuesoGLC
    *    returns a pointer that points to a copy of the requested data.
@@ -389,10 +394,12 @@ const GLCchar* glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    the user gave us the file names in the current coding of his/her OS and
    *    that this coding will not change during the program execution even when
    *    glcStringType() is called.
+   * 3. There are few chances that this code is executed in a critical loop
+   *    then there is no need to care about optimization.
    */
 
   /* Grmmff, is the use of strlen() adequate here ? 
-   * What if catalog is encoded in UCS2 format ?
+   * What if 'catalog' is encoded in UCS2 format ?
    */
   length = strlen((const char*) catalog) + 1;
 
@@ -518,21 +525,30 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     }
   case GLC_LIST_OBJECT_LIST:
     /* In order to get the display list name, we have to perform a search
-     * through the list of display lists of every font.
+     * through the list of display lists of every face descriptor.
      */
-    for(node = state->fontList.head; node; node = node->next) {
-      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
-      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
-      int i = 0, j = 0;
+    for (node = state->masterList.head; node; node = node->next) {
+      __glcMaster* master = (__glcMaster*)node;
+      FT_ListNode faceNode = NULL;
 
-      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
-	for (j = 0; j < 3; j++) {
-	  GLuint displayList = entry[i].displayList[j];
+      for (faceNode = master->faceList.head; faceNode;
+	   faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
+	FT_ListNode glyphNode = NULL;
 
-	  if (displayList) {
-	    if (!inIndex)
-	      return displayList;
-	    inIndex--;
+	for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	     glyphNode = glyphNode->next) {
+	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
+	  int i = 0;
+
+	  for (i = 0; i < 3; i++) {
+	    GLuint displayList = glyph->displayList[i];
+
+	    if (displayList) {
+	      if (!inIndex)
+		return displayList;
+	      inIndex--;
+	    }
 	  }
 	}
       }
@@ -541,16 +557,24 @@ GLint glcGetListi(GLCenum inAttrib, GLint inIndex)
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
     /* See also comments of GLC_LIST_OBJECT_LIST above */
-    for(node = state->fontList.head; node; node = node->next) {
-      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
-      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
-      int i = 0;
+    for (node = state->masterList.head; node; node = node->next) {
+      __glcMaster* master = (__glcMaster*)node;
+      FT_ListNode faceNode = NULL;
 
-      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
-	if (entry[i].displayList[0]) {
-	  if (!inIndex)
-	    return entry[i].textureObject;
-	  inIndex--;
+      for (faceNode = master->faceList.head; faceNode;
+	   faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
+	FT_ListNode glyphNode = NULL;
+
+	for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	     glyphNode = glyphNode->next) {
+	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
+
+	  if (glyph->displayList[0]) {
+	    if (!inIndex)
+	      return glyph->textureObject;
+	    inIndex--;
+	  }
 	}
       }
     }
@@ -895,15 +919,25 @@ GLint glcGeti(GLCenum inAttrib)
 	 node = node->next, count++);
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    for(node = state->fontList.head; node; node = node->next) {
-      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
-      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
-      int i = 0, j = 0;
+    for (node = state->masterList.head; node; node = node->next) {
+      __glcMaster* master = (__glcMaster*)node;
+      FT_ListNode faceNode = NULL;
 
-      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
-	for (j = 0; j < 3; j++) {
-	  if (entry[i].displayList[j])
-	    count++;
+      for (faceNode = master->faceList.head; faceNode;
+	   faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
+	FT_ListNode glyphNode = NULL;
+
+	for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	     glyphNode = glyphNode->next) {
+	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
+	  int i = 0;
+
+	  for (i = 0; i < 3; i++) {
+	    if (glyph->displayList[i]) {
+	      count++;
+	    }
+	  }
 	}
       }
     }
@@ -922,14 +956,22 @@ GLint glcGeti(GLCenum inAttrib)
   case GLC_STRING_TYPE:
     return state->stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    for(node = state->fontList.head; node; node = node->next) {
-      __glcArray* map = ((__glcFont*)node->data)->charMap->map;
-      __glcCharMapEntry* entry = (__glcCharMapEntry*)GLC_ARRAY_DATA(map);
-      int i = 0;
+    for (node = state->masterList.head; node; node = node->next) {
+      __glcMaster* master = (__glcMaster*)node;
+      FT_ListNode faceNode = NULL;
 
-      for (i = 0; i < GLC_ARRAY_LENGTH(map); i++) {
-	  if (entry[i].displayList[0])
-	    count++;
+      for (faceNode = master->faceList.head; faceNode;
+	   faceNode = faceNode->next) {
+	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
+	FT_ListNode glyphNode = NULL;
+
+	for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	     glyphNode = glyphNode->next) {
+	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
+
+	  if (glyph->displayList[0] && glyph->textureObject)
+	      count++;
+	}
       }
     }
     return count;
@@ -948,7 +990,7 @@ GLint glcGeti(GLCenum inAttrib)
  *  This command returns \b GL_TRUE if the value of the boolean variable
  *  identified by inAttrib is \b GL_TRUE <em>(quoted from the specs ^_^)</em>
  *
- *  Attributes that can enabled and disables are listed on the glcDisable()
+ *  Attributes that can be enabled or disabled are listed on the glcDisable()
  *  description.
  *  \param inAttrib The attribute to be tested
  *  \return The state of the attribute \e inAttrib.
@@ -1023,13 +1065,13 @@ GLboolean glcIsEnabled(GLCenum inAttrib)
  *  </center>
  *
  *  Every character string used in the GLC API is represented as a
- *  zero-terminated array, unless otherwise specified. The value of
- *  the variable \b GLC_STRING_TYPE determines the interpretation of
- *  the array. The values \b GLC_UCS1, \b GLC_UCS2, \b GLC_UCS4 and
- *  \b GLC_UTF8_QSO indicate how the element of the string should be
- *  interpreted. Currently QuesoGLC supports UCS1, UCS2, UCS4 and UTF-8 formats
- *  defined in the Unicode 4.0.1 and ISO/IEC 10646:2003 standards. The initial
- *  value of \b GLC_STRING_TYPE is \b GLC_UCS1.
+ *  zero-terminated array, unless otherwise specified. The value of the
+ *  variable \b GLC_STRING_TYPE determines the interpretation of the array. The
+ *  values \b GLC_UCS1, \b GLC_UCS2, \b GLC_UCS4 and \b GLC_UTF8_QSO indicate
+ *  how each element of the string should be interpreted. Currently QuesoGLC
+ *  supports UCS1, UCS2, UCS4 and UTF-8 formats as defined in the Unicode 4.0.1
+ *  and ISO/IEC 10646:2003 standards. The initial value of \b GLC_STRING_TYPE
+ *  is \b GLC_UCS1.
  *
  *  \note Currently, the string formats UCS2 and UCS4 are interpreted according
  *  to the underlying platform endianess. If the strings are provided in a

@@ -33,7 +33,14 @@
  *  typeface is the combination of a family and a face (for example
  *  Palatino Bold).
  *
- *  A font is an instantiation of a master.
+ *  A font is an instantiation of a master for a given face.
+ *
+ *  Every font has an associated character map. A character map is a table of
+ *  entries that maps integer values to the name string that identifies the
+ *  characters. The character maps are used by GLC, for instance, to determine
+ *  that the character code \e 65 corresponds to \e A. The character map of a
+ *  font can be modified by either adding new entries or changing the mapping
+ *  of the characters (see glcFontMap()).
  *
  *  GLC maintains two lists of fonts : \b GLC_FONT_LIST and
  *  \b GLC_CURRENT_FONT_LIST. The former contains every font that have been
@@ -44,9 +51,9 @@
  *  \b GLC_CURRENT_FONT_LIST ). Finally, it must be stressed that the order in
  *  which the fonts are stored in the \b GLC_CURRENT_FONT_LIST matters : the
  *  first font of the list should be considered as the main font with which
- *  strings are rendered while other fonts of this list should be seen as
- *  fallback fonts which are fonts that are used when the first font of
- *  \b GLC_CURRENT_FONT_LIST does not map the character to render.
+ *  strings are rendered, while other fonts of this list should be seen as
+ *  fallback fonts (i.e. fonts that are used when the first font of
+ *  \b GLC_CURRENT_FONT_LIST does not map the character to render).
  *
  *  Most of the commands in this category have a parameter \e inFont. Unless
  *  otherwise specified, these commands raise \b GLC_PARAMETER_ERROR if
@@ -63,7 +70,8 @@
  *   1. The current thread owns a context state
  *   2. The font identifier 'inFont' is legal
  * This internal function does both checks and returns the pointer to the
- * __glcFont object that is identified by 'inFont'.
+ * __glcFont object that is identified by 'inFont' if the checks have succeeded
+ * otherwise returns NULL.
  */
 __glcFont* __glcVerifyFontParameters(GLint inFont)
 {
@@ -340,7 +348,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
 
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
   if (FT_List_Find(&inState->currentFontList, font)) {
-    __glcCharMap* newCharMap = __glcCharMapCreate(faceDesc->charSet);
+    __glcCharMap* newCharMap = __glcFaceDescGetCharMap(faceDesc, inState);
 
     if (!newCharMap) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -404,9 +412,7 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
   FcChar8* UinFace = NULL;
   __glcFont* font = NULL;
 
-  /* If inFace is NULL then there is no point in continuing */
-  if (!inFace)
-    return GL_FALSE;
+  assert(inFace);
 
   /* Check if the current thread owns a context state */
   if (!state) {
@@ -480,21 +486,10 @@ GLboolean glcFontFace(GLint inFont, const GLCchar* inFace)
 
 
 /** \ingroup font
- *  This command modifies the map of the font identified by \e inFont such that
- *  the font maps \e inCode to the character whose name is the string
+ *  This command modifies the character map of the font identified by \e inFont
+ *  such that the font maps \e inCode to the character whose name is the string
  *  \e inCharName. If \e inCharName is \b GLC_NONE, \e inCode is removed from
- *  the font's map.
- *
- *  Every font has an associated font map. A font map is a table of entries
- *  that map integer values to the name string that identifies the character.
- *
- *  Every character code used in QuesoGLC is an element of the Unicode
- *  Character Database (UCD) defined by the standards ISO/IEC 10646:2003 and
- *  Unicode 4.0.1 (unless otherwise specified). A Unicode code point is
- *  denoted as \e U+hexcode, where \e hexcode is a sequence of hexadecimal
- *  digits. Each Unicode code point corresponds to a character that has a
- *  unique name string. For example, the code \e U+41 corresponds to the
- *  character <em>LATIN CAPITAL LETTER A</em>.
+ *  the character map.
  *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inCharName is not
  *  \b GLC_NONE or an element of the font string's list attribute
@@ -521,14 +516,16 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     return;
 
   if (!inCharName)
+    /* Remove the character from the map */
     __glcCharMapRemoveChar(font->charMap, code);
   else {
     GLCchar* buffer = NULL;
     FT_ULong mappedCode  = 0;
-    FT_UInt glyph = 0;
+    __glcGlyph* glyph = NULL;
 
-    /* Convert the character name identified by inCharName into UTF-8 format. The
-     * result is stored into 'buffer'. */
+    /* Convert the character name identified by inCharName into UTF-8 format.
+     * The result is stored into 'buffer'.
+     */
     buffer = __glcConvertToUtf8(inCharName, state->stringType);
     if (!buffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -543,12 +540,16 @@ void glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       return;
     }
 
-    glyph = __glcFaceDescGetGlyphIndex(font->faceDesc, mappedCode, state);
-    __glcFree(buffer);
-    if (glyph == 0xffffffff)
+    /* Get the glyph that corresponds to the mapped code */
+    glyph = __glcFaceDescGetGlyph(font->faceDesc, mappedCode, state);
+    if (!glyph) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      __glcFree(buffer);
       return;
-
-    __glcCharMapAddChar(font->charMap, glyph, code, mappedCode, state);
+    }
+    /* Add the character and its corresponding glyph to the character map */
+    __glcCharMapAddChar(font->charMap, inCode, glyph);
+    __glcFree(buffer);
   }
 }
 
@@ -574,6 +575,29 @@ GLint glcGenFontID(void)
     return 0;
   }
 
+  /* The context state maintains the lower ID that is greater than all the
+   * the IDs of the fonts in GLC_FONT_LIST. So we return this ID and increments
+   * 'lastFontID' in order to take into account the new ID returned to the
+   * user.
+   * Notice however that :
+   * - Yes, this is a lazy policy
+   * - Even if the user never creates a font with this ID, QuesoGLC will
+   *   assume that this ID is lost until the context is deleted. This may lead
+   *   to unused font IDs.
+   * - If the user calls glcGenFontID() twice in a row he will get 2 different
+   *   IDs even though he/she has not used the first one. This may not be the
+   *   expected behaviour.
+   * - We do not take into account the overfow of the lastFontID parameter
+   *   and an evil user can make QuesoGLC returns the ID of a font that is
+   *   already a member of GLC_FONT_LIST
+   * But that would be the point in checking for such events ? Even if
+   * glcGenFontID() returns silly IDs, *every* GLC function that requires a
+   * font ID as a parameter checks its validity before using it. So yes, this
+   * function is really stupid but since it does not harm, let's keep it this
+   * way. In most cases, it will behave in a sensible way.
+   * Moreover, this behaviour is compliant with GLC specs and as a last resort
+   * the client can manage the font IDs itself.
+   */
   return state->lastFontID++;
 }
 
@@ -679,9 +703,6 @@ const GLCchar* glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
  *  This command returns the string name of the character that the font
  *  identified by \e inFont maps \e inCode to.
  *
- *  Every font has an associated font map. A font map is a table of entries
- *  that map integer values to the name string that identifies the character.
- *
  *  To change the map, that is, associate a different name string with the
  *  integer ID of a font, use glcFontMap().
  *
@@ -757,6 +778,7 @@ const GLCchar* glcGetFontc(GLint inFont, GLCenum inAttrib)
   __glcFont *font = __glcVerifyFontParameters(inFont);
 
   if (font)
+    /* Those are master attributes so we call the equivalent master function */
     return glcGetMasterc(font->parent->id, inAttrib);
   else
     return GLC_NONE;
@@ -868,15 +890,18 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
   FT_ListNode node = NULL;
   __glcFont *font = NULL;
 
+  /* Look for the font which ID is inFont in the GLC_FONT_LIST */
   for (node = inState->fontList.head; node; node = node->next) {
     font = (__glcFont*)node->data;
     if (font->id == inFont)
       break;
   }
 
+  /* No font with an ID equal to inFont has been found */
   if (!node)
     font = NULL;
 
+  /* Create a new entry for GLC_FONT_LIST */
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
   if (!node) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -892,6 +917,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
   node->data = font;
   FT_List_Add(&inState->fontList, node);
 
+  /* Update the last font ID (see glcGenFontID())*/
   if (inFont >= inState->lastFontID)
     inState->lastFontID = inFont + 1;
   return inFont;
@@ -966,9 +992,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   __glcMaster* master = NULL;
   FcChar8* UinFamily = NULL;
 
-  /* If inFamily is NULL then there is no point in continuing */
-  if (!inFamily)
-    return 0;
+  assert(inFamily);
 
   /* Check if inFont is in legal bounds */
   if (inFont < 1) {
@@ -983,6 +1007,7 @@ GLint glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     return 0;
   }
 
+  /* Convert the family name in UTF-8 encoding */
   UinFamily = __glcConvertToUtf8(inFamily, state->stringType);
   if (!UinFamily) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
