@@ -152,6 +152,13 @@ static int __glcUcs2ToUtf8(FcChar16 ucs2, FcChar8 dest[FC_UTF8_MAX_LEN])
   return d - dest;
 }
 
+/* Convert a character from UTF-8 to UCS1 and return the number of bytes
+ * needed to encode the character.
+ * According to the GLC specs, when the value of a character code exceed the
+ * range of the character encoding, the returned character is converted
+ * to a character sequence \<hexcode> where 'hexcode' is the original
+ * character code represented as a sequence of hexadecimal digits
+ */
 static int __glcUtf8ToUcs1(const FcChar8* src_orig,
 			   FcChar8 dst[GLC_OUT_OF_RANGE_LEN], int len,
 			   int* dstlen)
@@ -166,11 +173,7 @@ static int __glcUtf8ToUcs1(const FcChar8* src_orig,
       *dstlen = 1;
     }
     else {
-      /* According to GLC specs, when the value of a character code exceed the
-       * range of the character encoding, the returned character is converted
-       * to a character sequence \<hexcode> where 'hexcode' is the original
-       * character code represented as a sequence of hexadecimal digits
-       */
+      /* Convert to the string '\<xxx>' */
       snprintf((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
       /* Excluding the terminating '\0' character */
       *dstlen = strlen((const char*)dst) - 1;
@@ -179,6 +182,13 @@ static int __glcUtf8ToUcs1(const FcChar8* src_orig,
   return src_shift;
 }
 
+/* Convert a character from UTF-8 to UCS1 and return the number of bytes
+ * needed to encode the character.
+ * According to the GLC specs, when the value of a character code exceed the
+ * range of the character encoding, the returned character is converted
+ * to a character sequence \<hexcode> where 'hexcode' is the original
+ * character code represented as a sequence of hexadecimal digits
+ */
 static int __glcUtf8ToUcs2(const FcChar8* src_orig,
 			   FcChar16 dst[GLC_OUT_OF_RANGE_LEN], int len,
 			   int* dstlen)
@@ -193,15 +203,11 @@ static int __glcUtf8ToUcs2(const FcChar8* src_orig,
       *dstlen = 1;
     }
     else {
+      /* Convert to the string '\<xxx>' */
       int count;
       char* src = NULL;
       char buffer[GLC_OUT_OF_RANGE_LEN];
 
-      /* According to GLC specs, when the value of a character code exceed the
-       * range of the character encoding, the returned character is converted
-       * to a character sequence \<hexcode> where 'hexcode' is the original
-       * character code represented as a sequence of hexadecimal digits
-       */
       snprintf(buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
       for (count = 0, src = buffer; src && count < GLC_OUT_OF_RANGE_LEN;
 	   count++, *dst++ = *src++);
@@ -212,8 +218,8 @@ static int __glcUtf8ToUcs2(const FcChar8* src_orig,
   return src_shift;
 }
 
-/* Convert 'inString' in the UTF-8 format and return a copy of the
- * converted string.
+/* Convert 'inString' in the UTF-8 format and return a copy of the converted
+ * string.
  */
 FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
 {
@@ -227,14 +233,17 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
     {
       FcChar8* ucs1 = NULL;
 
+      /* Determine the length of the final string */
       for (len = 0, ucs1 = (FcChar8*)inString; *ucs1;
 	     len += __glcUcs1ToUtf8(*ucs1++, buffer));
+      /* Allocate the room to store the final string */
       string = (FcChar8*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       for (ucs1 = (FcChar8*)inString, ptr = string; *ucs1;
 	     ptr += __glcUcs1ToUtf8(*ucs1++, ptr));
       *ptr = 0;
@@ -244,14 +253,17 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
     {
       FcChar16* ucs2 = NULL;
 
+      /* Determine the length of the final string */
       for (len = 0, ucs2 = (FcChar16*)inString; *ucs2;
 	     len += __glcUcs2ToUtf8(*ucs2++, buffer));
+      /* Allocate the room to store the final string */
       string = (FcChar8*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       for (ucs2 = (FcChar16*)inString, ptr = string; *ucs2;
 	     ptr += __glcUcs2ToUtf8(*ucs2++, ptr));
       *ptr = 0;
@@ -261,20 +273,26 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
     {
       FcChar32* ucs4 = NULL;
 
+      /* Determine the length of the final string */
       for (len = 0, ucs4 = (FcChar32*)inString; *ucs4;
 	     len += FcUcs4ToUtf8(*ucs4++, buffer));
+      /* Allocate the room to store the final string */
       string = (FcChar8*)__glcMalloc((len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       for (ucs4 = (FcChar32*)inString, ptr = string; *ucs4;
 	     ptr += FcUcs4ToUtf8(*ucs4++, ptr));
       *ptr = 0;
     }
     break;
   case GLC_UTF8_QSO:
+    /* If the string is already encoded in UTF-8 format then all we need to do
+     * is to make a copy of it.
+     */
     string = (FcChar8*)strdup((const char*)inString);
     break;
   default:
@@ -284,126 +302,7 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
   return string;
 }
 
-/* Convert 'inString' from the UTF-8 format and return a copy of the
- * converted string.
- */
-GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
-			      const GLint inStringType)
-{
-  GLCchar* string = NULL;
-  const FcChar8* utf8 = NULL;
-  int len_buffer = 0;
-  int len = 0;
-  int shift = 0;
 
-  switch(inStringType) {
-  case GLC_UCS1:
-    {
-      FcChar8 buffer[GLC_OUT_OF_RANGE_LEN];
-      FcChar8* ucs1 = NULL;
-
-      utf8 = inString;
-      while(*utf8) {
-	shift = __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
-				&len_buffer);
-	if (shift < 0) {
-	  /* There is an ill-formed character in the UTF-8 string, abort */
-	  __glcRaiseError(GLC_PARAMETER_ERROR);
-	  return NULL;
-	}
-	utf8 += shift;
-	len += len_buffer;
-      }
-
-      string = (GLCchar*)__glcMalloc((len+1)*sizeof(FcChar8));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
-
-      utf8 = inString;
-      ucs1 = (FcChar8*)string;
-      while(*utf8) {
-	utf8 += __glcUtf8ToUcs1(utf8, ucs1, strlen((const char*)utf8),
-				&len_buffer);
-	ucs1 += len_buffer;
-      }
-      *ucs1 = 0;
-    }
-    break;
-  case GLC_UCS2:
-    {
-      FcChar16 buffer[GLC_OUT_OF_RANGE_LEN];
-      FcChar16* ucs2 = NULL;
-
-      utf8 = inString;
-      while(*utf8) {
-	shift = __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
-				&len_buffer);
-	if (shift < 0) {
-	  /* There is an ill-formed character in the UTF-8 string, abort */
-	  __glcRaiseError(GLC_PARAMETER_ERROR);
-	  return NULL;
-	}
-	utf8 += shift;
-	len += len_buffer;
-      }
-
-      string = (GLCchar*)__glcMalloc((len+1)*sizeof(FcChar16));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
-
-      utf8 = inString;
-      ucs2 = (FcChar16*)string;
-      while(*utf8) {
-	utf8 += __glcUtf8ToUcs2(utf8, ucs2, strlen((const char*)utf8),
-				&len_buffer);
-	ucs2 += len_buffer;
-      }
-      *ucs2 = 0;
-    }
-    break;
-  case GLC_UCS4:
-    {
-      FcChar32 buffer = 0;
-      FcChar32* ucs4 = NULL;
-
-      utf8 = inString;
-      while(*utf8) {
-	shift = FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
-	if (shift < 0) {
-	  /* There is an ill-formed character in the UTF-8 string, abort */
-	  __glcRaiseError(GLC_PARAMETER_ERROR);
-	  return NULL;
-	}
-	utf8 += shift;
-	len++;
-      }
-
-      string = (GLCchar*)__glcMalloc((len+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
-
-      utf8 = inString;
-      ucs4 = (FcChar32*)string;
-      while(*utf8)
-	utf8 += FcUtf8ToUcs4(utf8, ucs4++, strlen((const char*)utf8));
-
-      *ucs4 = 0;
-    }
-    break;
-  case GLC_UTF8_QSO:
-    string = strdup((const char*)inString);
-    break;
-  default:
-    return NULL;
-  }
-  return string;
-}
 
 /* Convert 'inString' from the UTF-8 format and return a copy of the
  * converted string in the context buffer.
@@ -418,8 +317,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
   int len = 0;
   int shift = 0;
 
-  if (!inString)
-    return GLC_NONE;
+  assert(inString);
 
   switch(inStringType) {
   case GLC_UCS1:
@@ -427,6 +325,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       FcChar8 buffer[GLC_OUT_OF_RANGE_LEN];
       FcChar8* ucs1 = NULL;
 
+      /* Determine the length of the final string */
       utf8 = inString;
       while(*utf8) {
 	shift = __glcUtf8ToUcs1(utf8, buffer, strlen((const char*)utf8),
@@ -440,12 +339,14 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 	len += len_buffer;
       }
 
+      /* Allocate the room to store the final string */
       string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       ucs1 = (FcChar8*)string;
       utf8 = inString;
       while(*utf8) {
@@ -454,7 +355,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 	ucs1 += len_buffer;
       }
 
-      *ucs1 = 0;
+      *ucs1 = 0; /* Add the '\0' termination of the string */
     }
     break;
   case GLC_UCS2:
@@ -462,6 +363,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       FcChar16 buffer[GLC_OUT_OF_RANGE_LEN];
       FcChar16* ucs2 = NULL;
 
+      /* Determine the length of the final string */
       utf8 = inString;
       while(*utf8) {
 	shift = __glcUtf8ToUcs2(utf8, buffer, strlen((const char*)utf8),
@@ -475,12 +377,14 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 	len += len_buffer;
       }
 
+      /* Allocate the room to store the final string */
       string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar16));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       ucs2 = (FcChar16*)string;
       utf8 = inString;
       while(*utf8) {
@@ -488,7 +392,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 				&len_buffer);
 	ucs2 += len_buffer;
       }
-      *ucs2 = 0;
+      *ucs2 = 0; /* Add the '\0' termination of the string */
     }
     break;
   case GLC_UCS4:
@@ -496,6 +400,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       FcChar32 buffer = 0;
       FcChar32* ucs4 = NULL;
 
+      /* Determine the length of the final string */
       utf8 = inString;
       while(*utf8) {
 	shift = FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
@@ -508,6 +413,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 	len++;
       }
 
+      /* Allocate the room to store the final string */
       string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -515,15 +421,19 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
       }
 
 
+      /* Perform the conversion */
       utf8 = inString;
       ucs4 = (FcChar32*)string;
       while(*utf8)
 	utf8 += FcUtf8ToUcs4(utf8, ucs4++, strlen((const char*)utf8));
 
-      *ucs4 = 0;
+      *ucs4 = 0; /* Add the '\0' termination of the string */
     }
     break;
   case GLC_UTF8_QSO:
+    /* If the string is already encoded in UTF-8 format then all we need to do
+     * is to make a copy of it.
+     */
     string = (GLCchar*)__glcCtxQueryBuffer(This,
 					   strlen((const char*)inString)+1);
     strcpy(string, (const char*)inString);
@@ -552,17 +462,20 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
     {
       FcChar8* ucs1 = NULL;
 
+      /* Determine the length of the final string */
       len = 0;
       ucs1 = (FcChar8*)inString;
       for (i = 0; i < inCount; i++)
 	len += __glcUcs1ToUtf8(*ucs1++, buffer);
 
+      /* Allocate the room to store the final string */
       string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       ucs1 = (FcChar8*)inString;
       ptr = string;
       for (i = 0; i < inCount; i++)
@@ -573,17 +486,20 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
     {
       FcChar16* ucs2 = NULL;
 
+      /* Determine the length of the final string */
       len = 0;
       ucs2 = (FcChar16*)inString;
       for (i = 0; i < inCount; i++)
 	len += __glcUcs2ToUtf8(*ucs2++, buffer);
 
+      /* Allocate the room to store the final string */
       string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       ucs2 = (FcChar16*)inString;
       ptr = string;
       for (i = 0; i < inCount; i++)
@@ -594,17 +510,20 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
     {
       FcChar32* ucs4 = NULL;
 
+      /* Determine the length of the final string */
       len = 0;
       ucs4 = (FcChar32*)inString;
       for (i = 0; i < inCount; i++)
 	len += FcUcs4ToUtf8(*ucs4++, buffer);
 
+      /* Allocate the room to store the final string */
       string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
       }
 
+      /* Perform the conversion */
       ucs4 = (FcChar32*)inString;
       ptr = string;
       for (i = 0; i < inCount; i++)
@@ -618,6 +537,7 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
       int len = 0;
       int shift = 0;
 
+      /* Determine the length (in bytes) of the final string */
       for (i = 0; i < inCount; i++) {
 	shift += FcUtf8ToUcs4(utf8, &dummy, 6);
 	if (shift < 0) {
@@ -629,6 +549,9 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 	len += shift;
       }
 
+      /* If the string is already encoded in UTF-8 format then all we need to
+       * do is to make a copy of it.
+       */
       string = (FcChar8*)__glcMalloc(len*sizeof(FcChar8));
       strncpy((char*)string, (const char*)inString, len);
     }
@@ -709,10 +632,9 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 
 
 
-/* Each thread has to store specific informations so they can retrieved later.
- * __glcGetThreadArea() returns a struct which contains thread specific info
- * for GLC. Notice that even if the lib does not support threads, this function
- * must be used.
+/* Each thread has to store specific informations so they can be retrieved
+ * later. __glcGetThreadArea() returns a struct which contains thread specific
+ * info for GLC.
  * If the 'threadArea' of the current thread does not exist, it is created and
  * initialized.
  * IMPORTANT NOTE : __glcGetThreadArea() must never use __glcMalloc() and
@@ -854,6 +776,7 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
 
 
 
+/* Store an 4x4 identity matrix in 'm' */
 static void __glcMakeIdentity(GLfloat* m)
 {
     m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
@@ -864,6 +787,9 @@ static void __glcMakeIdentity(GLfloat* m)
 
 
 
+/* Invert a 4x4 matrix stored in inMatrix. The result is stored in outMatrix
+ * It uses the Gauss-Jordan elimination method
+ */
 static GLboolean __glcInvertMatrix(GLfloat* inMatrix, GLfloat* outMatrix)
 {
   int i, j, k, swap;
@@ -926,6 +852,10 @@ static GLboolean __glcInvertMatrix(GLfloat* inMatrix, GLfloat* outMatrix)
 
 
 
+/* Mutiply two 4x4 matrices, the operands are stored in inMatrix1 and inMatrix2
+ * The result is stored in outMatrix which can be neither inMatrix1 nor
+ * inMatrix2.
+ */
 static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 			      GLfloat* outMatrix)
 {
@@ -944,7 +874,7 @@ static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 
 
 
-/* Compute an optimal size for that glyph to be rendered on the screen if no
+/* Compute an optimal size for the glyph to be rendered on the screen if no
  * display list is planned to be built.
  */
 GLboolean __glcGetScale(__glcContextState* inState,
@@ -955,10 +885,15 @@ GLboolean __glcGetScale(__glcContextState* inState,
   GLboolean displayListIsBuilding = GL_FALSE;
   int i = 0;
 
+  /* Check if a display list is currently building */
   glGetIntegerv(GL_LIST_INDEX, &listIndex);
   displayListIsBuilding = listIndex || inState->glObjects;
 
   if (inState->renderStyle != GLC_BITMAP) {
+    /* Compute the matrix that transforms object space coordinates to viewport
+     * coordinates. If we plan to use object space coordinates, this matrix is
+     * set to identity.
+     */
     GLfloat projectionMatrix[16];
     GLfloat modelviewMatrix[16];
     GLint viewport[4];
@@ -967,14 +902,11 @@ GLboolean __glcGetScale(__glcContextState* inState,
     glGetFloatv(GL_MODELVIEW_MATRIX, modelviewMatrix);
     glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
-    /* Compute the matrix that transforms object space coordinates to viewport
-     * coordinates. If we plan to use object space coordinates, this matrix is
-     * set to identity.
-     */
     __glcMultMatrices(modelviewMatrix, projectionMatrix, outTransformMatrix);
 
     if ((!displayListIsBuilding) && inState->hinting) {
       GLfloat rs[16], m[16];
+      /* Get the scale factors in each X, Y and Z direction */
       GLfloat sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
 			+outTransformMatrix[1] * outTransformMatrix[1]
 			+outTransformMatrix[2] * outTransformMatrix[2]);
