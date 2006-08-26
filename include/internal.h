@@ -45,18 +45,9 @@ typedef struct {
   GLCchar* name;
 } __glcDataCodeFromName;
 
-/* Process the character in order to find a font that maps the code and to
- * render the corresponding glyph. Replacement code or the '\<hexcode>'
- * character sequence is issued if necessary.
- * 'inCode' must be given in UCS-4 format
- */
-void* __glcProcessChar(__glcContextState *inState, GLint inCode,
-		       __glcProcessCharFunc inProcessCharFunc,
-		       void* inProcessCharData);
-
 /* Callback function type that is called by __glcProcessChar().
  * It allows to unify the character processing before the rendering or the
- * measurement of a character : __glcProcessChar() is called first (see above)
+ * measurement of a character : __glcProcessChar() is called first (see below)
  * then the callback function of type __glcProcessCharFunc is called by
  * __glcProcessChar(). Two functions are defined according to this type :
  * __glcRenderChar() for rendering and __glcGetCharMetric() for measurement.
@@ -65,6 +56,15 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inFont,
 				      __glcContextState* inState,
 				      void* inProcessCharData,
 				      GLboolean inMultipleChars);
+
+/* Process the character in order to find a font that maps the code and to
+ * render the corresponding glyph. Replacement code or the '\<hexcode>'
+ * character sequence is issued if necessary.
+ * 'inCode' must be given in UCS-4 format
+ */
+void* __glcProcessChar(__glcContextState *inState, GLint inCode,
+		       __glcProcessCharFunc inProcessCharFunc,
+		       void* inProcessCharData);
 
 /* Render scalable characters using either the GLC_LINE style or the
  * GLC_TRIANGLE style
