@@ -24,12 +24,12 @@
 typedef struct {
   FT_ListNodeRec node;
   FcChar8* styleName;
-  FcCharSet* charSet;
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   FcChar8* fileName;
   FT_Long indexInFile;
   FT_Face face;
   int faceRefCount;
+  FT_ListRec glyphList;
 } __glcFaceDescriptor;
 
 
@@ -42,9 +42,27 @@ void __glcFaceDescDestroy(__glcFaceDescriptor* This);
 FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
 			  __glcContextState* inState);
 void __glcFaceDescClose(__glcFaceDescriptor* This);
-FT_UInt __glcFaceDescGetGlyphIndex(__glcFaceDescriptor* This, GLint inCode,
-				   __glcContextState* inState);
-FT_Face __glcFaceDescLoadGlyph(__glcFaceDescriptor* This,
+__glcGlyph* __glcFaceDescGetGlyph(__glcFaceDescriptor* This, GLint inCode,
+				  __glcContextState* inState);
+FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
 			       __glcContextState* inState, GLfloat inScaleX,
 			       GLfloat inScaleY, FT_ULong inGlyphIndex);
+void __glcFaceDescDestroyGLObjects(__glcFaceDescriptor* This);
+__glcCharMap* __glcFaceDescGetCharMap(__glcFaceDescriptor* This,
+				      __glcContextState* inState);
+GLfloat* __glcFaceDescGetBoundingBox(__glcFaceDescriptor* This,
+				     FT_ULong inGlyphIndex, GLfloat* outVec,
+				     GLfloat inScaleX, GLfloat inScaleY,
+				     __glcContextState* inState);
+GLfloat* __glcFaceDescGetAdvance(__glcFaceDescriptor* This,
+				 FT_ULong inGlyphIndex, GLfloat* outVec,
+				 GLfloat inScaleX, GLfloat inScaleY,
+				 __glcContextState* inState);
+GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
+				     __glcContextState* inState,
+				     FcChar8** inFormat,
+				     FcChar8** inFullNameSGI,
+				     FcChar8** inVersion);
+GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
+				   __glcContextState* inState);
 #endif /* __glc_ofacedesc_h */
