@@ -1,6 +1,14 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Added a new __glcGlyph object that allow to cache the display list, the
+  texture, the bouding box of a glyph. Those objects are managed by
+  __glcFaceDescriptor which allow to keep the glyphes as long as the face exists
+- Revamped the code in order to better encapsulate FT_Face in
+  __glcFaceDescriptor and FcCharSet in _glcCharMap.
+- The thread local storage is now released when QuesoGLC is unloaded
+- Modified the python script that builds the character names database : the
+  number of character names can be given as a command-line parameter.
 - The master object (defined in omaster.h) now uses __glcCharMap instead of
   FcCharSet.
 - Brandon Casey fixed the rendering commands so that the character sequence
@@ -8,7 +16,6 @@ Changes made from the "0.3" release to the "0.4" release:
   (i.e. a string that only contains the null terminator) 
 - Brandon Casey fixed the measurement commands so that they give correct values
   for the minimum y coordinate
-- Functions of QuesoGLC now handle correctly NULL pointers given as arguments
 - Brandon Casey changed the GL_TEXTURE_ENV_MODE to GL_MODULATE instead of
   GL_REPLACE in order to allow the user to change the transparency of the text
   by setting the alpha component with glColor4*()
