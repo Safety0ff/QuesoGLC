@@ -1,10 +1,31 @@
-#include "GL/glc.h"
-#include <stdio.h>
+/* QuesoGLC
+ * A free implementation of the OpenGL Character Renderer (GLC)
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+/* $Id$ */
 
-/* This test checks that for routines that are not "global commands", GLC
+/** \file
+ * This test checks that for routines that are not "global commands", GLC
  * issues GLC_STATE_ERROR if no context has been made current to the issuing
  * thread.
  */
+
+#include "GL/glc.h"
+#include <stdio.h>
 
 #define TestErrorCode(func) \
     err = glcGetError(); \
@@ -21,6 +42,7 @@
 int main(void)
 {
     GLCenum err;
+    GLfloat tab[4];
 
     err = glcGetError();
     if (err) {
@@ -63,7 +85,7 @@ int main(void)
     glcGetf(GLC_RESOLUTION);
     TestErrorCode(glcGetf);
 
-    glcGetfv(GLC_BITMAP_MATRIX, NULL);
+    glcGetfv(GLC_BITMAP_MATRIX, tab);
     TestErrorCode(glcGetfv);
 
     glcGeti(GLC_VERSION_MAJOR);
@@ -77,7 +99,7 @@ int main(void)
 
     /* Master commands */
 
-    glcAppendCatalog(NULL);
+    glcAppendCatalog("");
     TestErrorCode(glcAppendCatalog);
 
     glcGetMasterListc(0, GLC_CHAR_LIST, 0);
@@ -92,7 +114,7 @@ int main(void)
     glcGetMasteri(0, GLC_CHAR_COUNT);
     TestErrorCode(glcGetMasteri);
 
-    glcPrependCatalog(NULL);
+    glcPrependCatalog("");
     TestErrorCode(glcPrependCatalog);
 
     glcRemoveCatalog(0);
@@ -109,10 +131,10 @@ int main(void)
     glcFont(0);
     TestErrorCode(glcFont);
 
-    glcFontFace(0, NULL);
+    glcFontFace(0, "");
     TestErrorCode(glcFontFace);
 
-    glcFontMap(0, 0, NULL);
+    glcFontMap(0, 0, "");
     TestErrorCode(glcFontMap);
 
     glcGenFontID();
@@ -136,7 +158,7 @@ int main(void)
     glcIsFont(0);
     TestErrorCode(glcIsFont);
 
-    glcNewFontFromFamily(1, NULL);
+    glcNewFontFromFamily(1, "");
     TestErrorCode(glcNewFontFromFamily);
 
     glcNewFontFromMaster(1, 0);
@@ -147,10 +169,10 @@ int main(void)
     glcLoadIdentity();
     TestErrorCode(glcLoadIdentity);
 
-    glcLoadMatrix(NULL);
+    glcLoadMatrix(tab);
     TestErrorCode(glcLoadMatrix);
 
-    glcMultMatrix(NULL);
+    glcMultMatrix(tab);
     TestErrorCode(glcMultMatrix);
 
     glcRotate(0.);
@@ -164,10 +186,10 @@ int main(void)
     glcRenderChar(0);
     TestErrorCode(glcRenderChar);
 
-    glcRenderCountedString(0, NULL);
+    glcRenderCountedString(0, "");
     TestErrorCode(glcRenderCountedString);
 
-    glcRenderString(NULL);
+    glcRenderString("");
     TestErrorCode(glcRenderString);
 
     glcRenderStyle(GLC_LINE);
@@ -181,22 +203,22 @@ int main(void)
 
     /* Measurement commands*/
 
-    glcGetCharMetric(0, GLC_BOUNDS, NULL);
+    glcGetCharMetric(0, GLC_BOUNDS, "");
     TestErrorCode(glcGetCharMetric);
 
-    glcGetMaxCharMetric(GLC_BASELINE, NULL);
+    glcGetMaxCharMetric(GLC_BASELINE, "");
     TestErrorCode(glcGetMaxCharMetric);
 
-    glcGetStringCharMetric(0, GLC_BOUNDS, NULL);
+    glcGetStringCharMetric(0, GLC_BOUNDS, "");
     TestErrorCode(glcGetStringCharMetric);
 
-    glcGetStringMetric(GLC_BOUNDS, 0);
+    glcGetStringMetric(GLC_BOUNDS, tab);
     TestErrorCode(glcGetStringMetric);
 
-    glcMeasureCountedString(GL_TRUE, 1, NULL);
+    glcMeasureCountedString(GL_TRUE, 1, "");
     TestErrorCode(glcMeasureCountedString);
 
-    glcMeasureString(GL_FALSE, NULL);
+    glcMeasureString(GL_FALSE, "");
     TestErrorCode(glcMeasureString);
 
     printf("Tests successful !\n");
