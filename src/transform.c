@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -78,7 +78,6 @@ void glcLoadIdentity(void)
  *  This command assigns the value [inMatrix[0] inMatrix[1] inMatrix[2]
  *  inMatrix[3]] to the floating point vector variable \b GLC_BITMAP_MATRIX.
  *
- *  The command raises \b GLC_PARAMETER_ERROR if \e inMatrix is NULL.
  *  \param inMatrix The value to assign to \b GLC_BITMAP_MATRIX
  *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
  *  \sa glcLoadIdentity()
@@ -90,11 +89,7 @@ void glcLoadMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
 
-  /* Check that inMatrix is not NULL */
-  if (!inMatrix) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
-  }
+    assert(inMatrix);
 
     /* Check if the current thread owns a context state */
     state = __glcGetCurrent();
@@ -112,7 +107,6 @@ void glcLoadMatrix(const GLfloat *inMatrix)
  *  This command multiply the floating point vector variable
  *  \b GLC_BITMAP_MATRIX by the incoming matrix \e inMatrix.
  *
- *  The command raises \b GLC_PARAMETER_ERROR if \e inMatrix is NULL.
  *  \param inMatrix A pointer to a 2x2 matrix stored in column-major order
  *                  as 4 consecutives values.
  *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
@@ -126,11 +120,7 @@ void glcMultMatrix(const GLfloat *inMatrix)
     __glcContextState *state = NULL;
     GLfloat tempMatrix[4];
 
-  /* Check that inMatrix is not NULL */
-  if (!inMatrix) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
-  }
+    assert(inMatrix);
 
     /* Check if the current thread owns a context state */
     state = __glcGetCurrent();
