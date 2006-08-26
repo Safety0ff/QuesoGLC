@@ -28,15 +28,12 @@
 #include "GL/glc.h"
 #include "ocontext.h"
 #include "oarray.h"
+#include "oglyph.h"
 
 typedef struct {
-  FT_ULong codepoint;
   FT_ULong mappedCode;
-  FT_ULong glyphIndex;
-  /* GL objects management */
-  GLuint textureObject;
-  GLuint displayList[3];
-} __glcCharMapEntry;
+  __glcGlyph* glyph;
+} __glcCharMapElement;
 
 typedef struct {
   FcCharSet* charSet;
@@ -45,22 +42,17 @@ typedef struct {
 
 __glcCharMap* __glcCharMapCreate(FcCharSet* inFaceDesc);
 void __glcCharMapDestroy(__glcCharMap* This);
-void __glcCharMapAddChar(__glcCharMap* This, FT_UInt inGlyph,
-			 GLint inCode, FT_ULong inMappedCode,
-			 __glcContextState* inState);
+void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
+			 __glcGlyph* inGlyph);
 void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 				 __glcContextState* inState);
-__glcCharMapEntry* __glcCharMapGetEntry(__glcCharMap* This,
-					FT_UInt inGlyph,
-					__glcContextState* inState,
-					GLint inCode);
+__glcGlyph* __glcCharMapGetGlyph(__glcCharMap* This, GLint inCode);
 GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
 GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 					__glcContextState* inState);
 GLint __glcCharMapGetCount(__glcCharMap* This);
 GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This);
 GLint __glcCharMapGetMinMappedCode(__glcCharMap* This);
-void __glcCharMapDestroyGLObjects(__glcCharMap* This, int inRank);
-GLboolean __glcCharMapUnion(__glcCharMap* This, FcCharSet* inCharSet);
+GLboolean __glcCharMapUnion(__glcCharMap* This, __glcCharMap* inCharMap);
 #endif
