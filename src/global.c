@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@
  *  Commands to create, manage and destroy GLC contexts.
  *
  *  Those commands do not use GLC context state variables and can therefore be
- *  executed successfully if the issuing thread has no current GLC context. 
+ *  executed successfully if the issuing thread has no current GLC context.
  *
  *  Each GLC context has a nonzero ID of type \b GLint. When a client is linked
  *  with a GLC library, the library maintains a list of IDs that contains one
@@ -106,40 +106,6 @@ static void __glcUnlock(void)
 
 
 
-/* This function is called when QuesoGLC is no longer needed.
- */
-#ifdef QUESOGLC_STATIC_LIBRARY
-static void __glcExitLibrary(void)
-#else
-#ifdef __GNUC__
-__attribute__((destructor)) void fini(void)
-#else
-void _fini(void)
-#endif
-#endif
-{
-  FT_ListNode node = NULL;
-
-  __glcLock();
-
-  /* destroy remaining contexts */
-  node = __glcCommonArea.stateList.head;
-  while (node) {
-    FT_ListNode next = node->next;
-    __glcCtxDestroy((__glcContextState*)node);
-    node = next;
-  }
-
-  __glcUnlock();
-  pthread_mutex_destroy(&__glcCommonArea.mutex);
-
-#if FC_MINOR > 2
-  FcFini();
-#endif
-}
-
-
-
 /* This function is called each time a pthread is cancelled or exits in order
  * to free its specific area
  */
@@ -155,6 +121,48 @@ static void __glcFreeThreadArea(void *keyValue)
       state->isCurrent = GL_FALSE;
     free(area); /* DO NOT use __glcFree() !!! */
   }
+}
+
+
+
+/* This function is called when QuesoGLC is no longer needed.
+ */
+#ifdef QUESOGLC_STATIC_LIBRARY
+static void __glcExitLibrary(void)
+#else
+#ifdef __GNUC__
+__attribute__((destructor)) void fini(void)
+#else
+void _fini(void)
+#endif
+#endif
+{
+  FT_ListNode node = NULL;
+  void *key = NULL;
+
+  __glcLock();
+
+  /* destroy remaining contexts */
+  node = __glcCommonArea.stateList.head;
+  while (node) {
+    FT_ListNode next = node->next;
+    __glcCtxDestroy((__glcContextState*)node);
+    node = next;
+  }
+
+  __glcUnlock();
+  pthread_mutex_destroy(&__glcCommonArea.mutex);
+
+  /* Destroy the thread local storage */
+  key = pthread_getspecific(__glcCommonArea.threadKey);
+  if (key)
+    __glcFreeThreadArea(key);
+
+  pthread_key_delete(__glcCommonArea.threadKey);
+
+#if FC_MINOR > 2
+  FcFini();
+#endif
 }
 
 
@@ -233,7 +241,7 @@ void _init(void)
 
 
 
-/* Get the context state of a given context */
+/* Get the context state corresponding to a given context ID */
 static __glcContextState* __glcGetState(GLint inContext)
 {
   FT_ListNode node = NULL;
@@ -336,6 +344,7 @@ void glcDeleteContext(GLint inContext)
     /* The context is current to a thread : just mark for deletion */
     state->pendingDelete = GL_TRUE;
   else {
+    /* Remove the context from the context list then destroy it */
     FT_List_Remove(&__glcCommonArea.stateList, (FT_ListNode)state);
     __glcCtxDestroy(state);
   }
@@ -553,8 +562,10 @@ GLint glcGenContext(void)
 	== FcResultTypeMismatch)
       continue;
 
+    /* Get the path to file */
     dirName = FcStrDirname(fileName);
 
+    /* Add the path to the catalog list if relevant */
     if (!FcStrSetMember(state->catalogList, dirName)) {
       if (!FcStrSetAdd(state->catalogList, dirName)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
