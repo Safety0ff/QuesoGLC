@@ -39,5 +39,12 @@ typedef struct {
 __glcFont*  __glcFontCreate(GLint id, __glcMaster *parent,
 			    __glcContextState* state);
 void __glcFontDestroy(__glcFont *This);
-
+__glcGlyph* __glcFontGetGlyph(__glcFont *This, GLint inCode,
+			      __glcContextState* inState);
+GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
+				 GLfloat* outVec, __glcContextState* inState,
+				 GLfloat inScaleX, GLfloat inScaleY);
+GLfloat* __glcFontGetAdvance(__glcFont *This, GLint inCode, GLfloat* outVec,
+			     __glcContextState* inState,
+			     GLfloat inScaleX, GLfloat inScaleY);
 #endif /* __glc_ofont_h */

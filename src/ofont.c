@@ -22,13 +22,21 @@
 
 #include "internal.h"
 
+/** \file
+ * defines the object __glcFont which manage the fonts
+ */
+
+/* Constructor of the object : it allocates memory and initializes the member
+ * of the new object.
+ * The user must give the master 'inParent' which the font will instantiate.
+ */
 __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
-			   __glcContextState* state)
+			   __glcContextState* inState)
 {
   __glcFont *This = NULL;
 
   assert(inParent);
-  assert(state);
+  assert(inState);
 
   This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
   if (!This) {
@@ -40,7 +48,7 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
    */
   This->faceDesc = (__glcFaceDescriptor*)inParent->faceList.head;
 
-  This->charMap = __glcCharMapCreate(This->faceDesc->charSet);
+  This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inState);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
@@ -53,10 +61,116 @@ __glcFont* __glcFontCreate(GLint inID, __glcMaster *inParent,
   return This;
 }
 
+
+
+/* Destructor of the object */
 void __glcFontDestroy(__glcFont *This)
 {
   if (This->charMap)
     __glcCharMapDestroy(This->charMap);
 
   __glcFree(This);
+}
+
+
+
+/* Extract from the font the glyph which corresponds to the character code
+ * 'inCode'.
+ */
+__glcGlyph* __glcFontGetGlyph(__glcFont *This, GLint inCode,
+			      __glcContextState* inState)
+{
+  /* Try to get the glyph from the character map */
+  __glcGlyph* glyph = __glcCharMapGetGlyph(This->charMap, inCode);
+
+  if (!glyph) {
+    /* If it fails, we must extract the glyph from the face */
+    glyph = __glcFaceDescGetGlyph(This->faceDesc, inCode, inState);
+    if (!glyph) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return NULL;
+    }
+    /* Update the character map so that the glyph will be cached */
+    __glcCharMapAddChar(This->charMap, inCode, glyph);
+  }
+
+  return glyph;
+}
+
+
+
+/* Get the bounding box of a glyph according to the size given by inScaleX and
+ * inScaleY. The result is returned in outVec. 'inCode' contains the character
+ * code for which the bounding box is requested.
+ */
+GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
+				 GLfloat* outVec, __glcContextState* inState,
+				 GLfloat inScaleX, GLfloat inScaleY)
+{
+  /* Get the glyph from the font */
+  __glcGlyph* glyph = __glcFontGetGlyph(This, inCode, inState);
+
+  assert(outVec);
+
+  if (!glyph)
+    return NULL;
+
+  /* If the bounding box of the glyph is cached then copy it to outVec and
+   * return.
+   */
+  if (glyph->boundingBox[0] || glyph->boundingBox[1] || glyph->boundingBox[2]
+      || glyph->boundingBox[3]) {
+    memcpy(outVec, glyph->boundingBox, 4 * sizeof(GLfloat));
+    return outVec;
+  }
+
+  /* Otherwise, we must extract the bounding box from the face file */
+  if (!__glcFaceDescGetBoundingBox(This->faceDesc, glyph->index,
+				   glyph->boundingBox, inScaleX, inScaleY,
+				   inState)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  /* Copy the result to outVec and return */
+  memcpy(outVec, glyph->boundingBox, 4 * sizeof(GLfloat));
+  return outVec;
+}
+
+
+
+/* Get the advance of a glyph according to the size given by inScaleX and
+ * inScaleY. The result is returned in outVec. 'inCode' contains the character
+ * code for which the bounding box is requested.
+ */
+GLfloat* __glcFontGetAdvance(__glcFont *This, GLint inCode, GLfloat* outVec,
+			     __glcContextState* inState, GLfloat inScaleX,
+			     GLfloat inScaleY)
+{
+  /* Get the glyph from the font */
+  __glcGlyph* glyph = __glcFontGetGlyph(This, inCode, inState);
+
+  assert(outVec);
+
+  if (!glyph)
+    return NULL;
+
+  /* If the advance of the glyph is cached then copy it to outVec and
+   * return.
+   */
+  if (glyph->advance[0] || glyph->advance[1]) {
+    memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
+    return outVec;
+  }
+
+  /* Otherwise, we must extract the advance from the face file */
+  if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
+			       inScaleX, inScaleY, inState)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  /* Copy the result to outVec and return */
+  memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
+  return outVec;
 }
