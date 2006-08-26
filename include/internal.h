@@ -45,19 +45,37 @@ typedef struct {
   GLCchar* name;
 } __glcDataCodeFromName;
 
+/* Process the character in order to find a font that maps the code and to
+ * render the corresponding glyph. Replacement code or the '\<hexcode>'
+ * character sequence is issued if necessary.
+ * 'inCode' must be given in UCS-4 format
+ */
+void* __glcProcessChar(__glcContextState *inState, GLint inCode,
+		       __glcProcessCharFunc inProcessCharFunc,
+		       void* inProcessCharData);
+
+/* Callback function type that is called by __glcProcessChar().
+ * It allows to unify the character processing before the rendering or the
+ * measurement of a character : __glcProcessChar() is called first (see above)
+ * then the callback function of type __glcProcessCharFunc is called by
+ * __glcProcessChar(). Two functions are defined according to this type :
+ * __glcRenderChar() for rendering and __glcGetCharMetric() for measurement.
+ */
 typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inFont,
 				      __glcContextState* inState,
 				      void* inProcessCharData,
 				      GLboolean inMultipleChars);
 
-/* Character renderers */
+/* Render scalable characters using either the GLC_LINE style or the
+ * GLC_TRIANGLE style
+ */
 extern void __glcRenderCharScalable(__glcFont* inFont,
-				    __glcContextState* inState, GLint inCode,
+				    __glcContextState* inState,
 				    GLCenum inRenderMode,
 				    GLboolean inDisplayListIsBuilding,
 				    GLfloat* inTransformMatrix,
 				    GLfloat scale_x, GLfloat scale_y,
-				    __glcCharMapEntry* inCharMapEntry);
+				    __glcGlyph* inGlyph);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);
@@ -68,6 +86,7 @@ extern void* __glcRealloc(void* ptr, size_t size);
 extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
 				   const GLCchar* inSeparator);
 
+/* Arrays that contain the Unicode name of characters */
 extern const __glcDataCodeFromName __glcCodeFromNameArray[];
 extern const GLint __glcNameFromCodeArray[];
 extern const GLint __glcMaxCode;
@@ -83,10 +102,6 @@ extern GLint __glcCodeFromName(GLCchar* name);
 extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
 				   const GLint inStringType);
 
-/* Duplicate a UTF-8 string to another format */
-extern GLCchar* __glcConvertFromUtf8(const FcChar8* inString,
-				     const GLint inStringType);
-
 /* Duplicate a UTF-8 string to the context buffer */
 extern GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
 					     const FcChar8* inString,
@@ -99,14 +114,13 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 
 /* Convert a UCS-4 character code into the current string type. The result is
  * stored in a GLint. This function is needed since the GLC specs store
- * individual character codes in GLint which may cause problems for the UTF-8
- * format.
+ * individual character codes in GLint whatever is their string type.
  */
 GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode);
 
 /* Convert a character encoded in the current string type to the UCS-4 format.
  * This function is needed since the GLC specs store individual character
- * codes in GLint which may cause problems for the UTF-8 format.
+ * codes in GLint whatever is their string type.
  */
 GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode);
 
@@ -129,18 +143,10 @@ void __glcRaiseError(GLCenum inError);
 /* Return the current context state */
 __glcContextState* __glcGetCurrent(void);
 
-/* Process the character in order to find a font that maps the code and to
- * render the corresponding glyph. Replacement code and '<hexcode>' format
- * are issued if necessary.
- * 'inCode' must be given in UCS-4 format
+/* Compute an optimal size for the glyph to be rendered on the screen (if no
+ * display list is currently building).
  */
-void* __glcProcessChar(__glcContextState *inState, GLint inCode,
-		       __glcProcessCharFunc inProcessCharFunc,
-		       void* inProcessCharData);
-
-/* Compute an optimal size for that glyph to be rendered on the screen if no display
- * list is planned to be built.
- */
-GLboolean __glcGetScale(__glcContextState* inState, GLfloat* outTransformMatrix,
-			GLfloat* outScaleX, GLfloat* outScaleY);
+GLboolean __glcGetScale(__glcContextState* inState,
+			GLfloat* outTransformMatrix, GLfloat* outScaleX,
+			GLfloat* outScaleY);
 #endif /* __glc_internal_h */
