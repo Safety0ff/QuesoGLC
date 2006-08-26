@@ -29,6 +29,11 @@
  *  A master is a representation of a font that is stored outside QuesoGLC in a
  *  standard format such as TrueType or Type1.
  *
+ *  Every master has an associated character map. A character map is a table of
+ *  entries that maps integer values to the name string that identifies the
+ *  characters. Unlike fonts character maps, the character map of a master can
+ *  not be modified.
+ *
  *  QuesoGLC maps the font files into master objects that are visible through
  *  the GLC API. A group of font files from a single typeface family will be
  *  mapped into a single GLC master object that has multiple faces. For
@@ -46,13 +51,6 @@
 
 #include "internal.h"
 #include FT_LIST_H
-#include FT_TYPE1_TABLES_H
-#include FT_BDF_H
-#ifdef FT_WINFONTS_H
-#include FT_WINFONTS_H
-#endif
-#include FT_SFNT_NAMES_H
-#include FT_TRUETYPE_IDS_H
 
 
 
@@ -170,10 +168,12 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     /* Get the face name */
     for (node = master->faceList.head; inIndex && node; node = node->next,
 	 inIndex--);
+    /* Check if it has been found */
     if (!node) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return GLC_NONE;
     }
+    /* Convert it from UTF-8 to the current string type and return */
     return __glcConvertFromUtf8ToBuffer(state,
 				 ((__glcFaceDescriptor*)node)->styleName,
 					state->stringType);
@@ -240,88 +240,14 @@ const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
 static GLboolean __glcGetMasterInfoJustInTime(__glcMaster* inMaster,
 					      __glcContextState* inState)
 {
-  static FcChar8 unknown[] = "Unknown";
-  static FcChar8 masterFormat1[] = "Type 1";
-  static FcChar8 masterFormat2[] = "BDF";
-#ifdef FT_WINFONTS_H
-  static FcChar8 masterFormat3[] = "Windows FNT";
-#endif
-  static FcChar8 masterFormat4[] = "TrueType/OpenType";
-
   __glcFaceDescriptor* faceDesc =
 	(__glcFaceDescriptor*)inMaster->faceList.head;
-  FT_Face face = NULL;
-  PS_FontInfoRec afont_info;
-  const char* acharset_encoding = NULL;
-  const char* acharset_registry = NULL;
-#ifdef FT_WINFONTS_H
-  FT_WinFNT_HeaderRec aheader;
-#endif
-  FT_UInt count = 0;
 
   assert(faceDesc);
 
-  face = __glcFaceDescOpen(faceDesc, inState);
-  if (!face) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GL_FALSE;
-  }
-
-  /* Is it Type 1 ? */
-  if (!FT_Get_PS_Font_Info(faceDesc->face, &afont_info)) {
-    inMaster->masterFormat = masterFormat1;
-    if (afont_info.full_name)
-      inMaster->fullNameSGI = (FcChar8*)strdup(afont_info.full_name);
-    if (afont_info.version)
-      inMaster->version = (FcChar8*)strdup(afont_info.version);
-  }
-  /* Is it BDF ? */
-  else if (!FT_Get_BDF_Charset_ID(faceDesc->face, &acharset_encoding,
-				  &acharset_registry)) {
-    inMaster->masterFormat = masterFormat2;
-    inMaster->fullNameSGI = unknown;
-    inMaster->version = unknown;
-  }
-#ifdef FT_WINFONTS_H
-  /* Is it Windows FNT ? */
-  else if (!FT_Get_WinFNT_Header(faceDesc->face, &aheader)) {
-    inMaster->masterFormat = masterFormat3;
-    inMaster->fullNameSGI = unknown;
-    inMaster->version = unknown;
-  }
-#endif
-  /* Is it TrueType/OpenType ? */
-  else if ((count = FT_Get_Sfnt_Name_Count(faceDesc->face))) {
-    #if 0
-    FT_UInt i = 0;
-    FT_SfntName aName;
-    #endif
-
-    inMaster->masterFormat = masterFormat4;
-
-    /* TODO : decode the SFNT name tables in order to get full name
-     * of the TrueType/OpenType fonts and their version
-     */
-    #if 0
-    for (i = 0; i < count; i++) {
-      if (!FT_Get_Sfnt_Name(faceDesc->face, i, &aName)) {
-        if ((aName.name_id != TT_NAME_ID_FULL_NAME)
-		&& (aName.name_id != TT_NAME_ID_VERSION_STRING))
-	  continue;
-
-        switch (aName.platform_id) {
-	case TT_PLATFORM_APPLE_UNICODE:
-	  break;
-	case TT_PLATFORM_MICROSOFT:
-	  break;
-	}
-      }
-    }
-    #endif
-  }
-
-  __glcFaceDescClose(faceDesc);
-  return GL_TRUE;
+  return __glcFaceDescGetFontFormat(faceDesc, inState, &inMaster->masterFormat,
+				    &inMaster->fullNameSGI,
+				    &inMaster->version);
 }
 
 
@@ -495,7 +421,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   if (!master)
     return GLC_NONE;
 
-  /* returns the requested attribute */
+  /* return the requested attribute */
   switch(inAttrib) {
   case GLC_CHAR_COUNT:
     return __glcCharMapGetCount(master->charList);
@@ -503,6 +429,12 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     for (node = master->faceList.head; node; node = node->next, count++);
     return count;
   case GLC_IS_FIXED_PITCH:
+    /* TODO : not interleave faces with a fixed pitch with other faces in
+     * the same master.
+     */
+    /* Return GL_TRUE if *every* face of the master has a fixed pitch.
+     * Return GL_FACE otherwise.
+     */
     for (node = master->faceList.head; node; node = node->next) {
       __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)node;
       if (!faceDesc->isFixedPitch)
