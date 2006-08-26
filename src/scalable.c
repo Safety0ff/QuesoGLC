@@ -49,6 +49,14 @@ typedef struct {
 					   built ? */
 }__glcRendererData;
 
+
+
+/* Transform the object coordinates in the array 'inCoord' in screen
+ * coordinates. The function updates 'inCoord' according to :
+ * inCoord[0..1] contains the 2D glyph coordinates in the object space
+ * inCoord[2..4] contains the 2D homogeneous coordinates in observer space
+ * inCoord[5..6] contains the viewport coordinates
+ */
 static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
 					 __glcRendererData* inData)
 {
@@ -128,10 +136,14 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     return 1;
   }
 
+  /* Compute the bounding box dimensions in the viewport coordinates */
   xMin = cp[5];
   xMax = cp[5];
   yMin = cp[6];
   yMax = cp[6];
+  /* Keep track of the z coordinate to check if the glyph is outside the
+   * frustrum or not.
+   */
   zMin = z;
   zMax = z;
 
@@ -143,6 +155,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     return 1;
   }
 
+  /* Build the array of the control points */
   for (i = 1; i < inOrder; i++) {
     cp[0] = (GLfloat) inControl[i-1]->x * data->scale_x;
     cp[1] = (GLfloat) inControl[i-1]->y * data->scale_y;
@@ -153,6 +166,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
       GLC_ARRAY_LENGTH(data->vertexArray) = rank;
       return 1;
     }
+    /* Update the bounding box dimensions in the viewport coordinates */
     xMin = (cp[5] < xMin ? cp[5] : xMin);
     xMax = (cp[5] > xMax ? cp[5] : xMax);
     yMin = (cp[6] < yMin ? cp[6] : yMin);
@@ -161,6 +175,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     zMax = (z > zMax ? z : zMax);
   }
 
+  /* Append the last vertex of the curve to the control points array */
   cp[0] = (GLfloat) inVecTo->x * data->scale_x;
   cp[1] = (GLfloat) inVecTo->y * data->scale_y;
   z = __glcComputePixelCoordinates(cp, data);
@@ -170,6 +185,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     GLC_ARRAY_LENGTH(data->vertexArray) = rank;
     return 1;
   }
+  /* Update the bounding box dimensions in the viewport coordinates */
   xMin = (cp[5] < xMin ? cp[5] : xMin);
   xMax = (cp[5] > xMax ? cp[5] : xMax);
   yMin = (cp[6] < yMin ? cp[6] : yMin);
@@ -203,6 +219,7 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     }
   }
 
+  /* Here the de Casteljau algorithm begins */
   for (iter = 0; (iter < GLC_MAX_ITER) && (arc != nArc); iter++) {
     GLint j = 0;
     GLfloat dmax = 0.;
@@ -211,13 +228,15 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     GLfloat abx = controlPoint[inOrder][5] - ax;
     GLfloat aby = controlPoint[inOrder][6] - ay;
 
-    /* Normalize AB */
+    /* Normalize AB (the segment that joins the first and the last vertex of
+     * the curve).
+     */
     GLfloat normab = sqrt(abx * abx + aby * aby);
     abx /= normab;
     aby /= normab;
 
     /* For each control point, compute its chordal distance that is its
-     * distance from the line between the first and the last control points
+     * distance from the segment AB
      */
     for (i = 1; i < inOrder; i++) {
       GLfloat cpx = controlPoint[i][5] - ax;
@@ -310,6 +329,12 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   return 0;
 }
 
+
+
+/* Callback function that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * MoveTo is called when the pen move from one curve to another curve.
+ */
 #if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
 static int __glcMoveTo(const FT_Vector *inVecTo, void* inUserData)
 #else
@@ -333,6 +358,12 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
   return 0;
 }
 
+
+
+/* Callback function that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * LineTo is called when the pen draws a line between two points.
+ */
 #if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
 static int __glcLineTo(const FT_Vector *inVecTo, void* inUserData)
 #else
@@ -353,6 +384,13 @@ static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
   return 0;
 }
 
+
+
+/* Callback function that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * ConicTo is called when the pen draws a conic between two points (and with
+ * one control point).
+ */
 #if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
 static int __glcConicTo(const FT_Vector *inVecControl,
 			const FT_Vector *inVecTo, void* inUserData)
@@ -372,6 +410,13 @@ static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
   return error;
 }
 
+
+
+/* Callback functions that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * CubicTo is called when the pen draws a cubic between two points (and with
+ * two control points).
+ */
 #if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
 static int __glcCubicTo(const FT_Vector *inVecControl1,
 			const FT_Vector *inVecControl2,
@@ -393,6 +438,14 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
   return error;
 }
 
+
+
+/* Callback function that is called by the GLU when it is tesselating a
+ * polygon. This function is needed when a Bezier curve is replaced by a
+ * piecewise linear curve (which can occur when a curve is outside the
+ * viewport). In such a case since the curve is roughly described some
+ * intersections can occur between two contours in certain positions.
+ */
 static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
 				 GLfloat weight[4], void** outData,
 				 void* inUserData)
@@ -405,6 +458,7 @@ static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
     int i;
   } intInPtr;
 
+  /* Compute the new vertex and append it to the vertex array */
   vertex[0] = (GLfloat)coords[0];
   vertex[1] = (GLfloat)coords[1];
   if (!__glcArrayAppend(data->vertexArray, vertex)) {
@@ -412,10 +466,17 @@ static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
     return;
   }
 
+  /* Returns the index of the new vertex in the vertex array */
   intInPtr.i = GLC_ARRAY_LENGTH(data->vertexArray)-1;
   *outData = intInPtr.ptr;
 }
 
+
+
+/* Callback function that is called by the GLU when it is rendering the
+ * tesselated polygon. This function is needed to convert the indices of the
+ * vertex array into the coordinates of the vertex.
+ */
 static void __glcVertexCallback(void* vertex_data, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
@@ -430,17 +491,31 @@ static void __glcVertexCallback(void* vertex_data, void* inUserData)
   glVertex2fv(vertexArray[intInPtr.i]);
 }
 
+
+
+/* Callback function that is called by the GLU whenever an error occur during
+ * the tesselation of the polygon.
+ */
 static void __glcCallbackError(GLenum inErrorCode)
 {
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
+
+
+/* Function called by __glcRenderChar() and that performs the actual rendering
+ * for the GLC_LINE and the GLC_TRIANGLE types. It transforms the outlines of
+ * the glyph in polygon contour. If the rendering type is GLC_LINE then the
+ * contour is rendered as is and if the rendering type is GLC_TRIANGLE then the
+ * contour defines a ploygon that is tesselated in triangles by the GLU library
+ * before being rendered.
+ */
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
-			     GLint inCode, GLCenum inRenderMode,
+			     GLCenum inRenderMode,
 			     GLboolean inDisplayListIsBuilding,
 			     GLfloat* inTransformMatrix, GLfloat scale_x,
 			     GLfloat scale_y,
-			     __glcCharMapEntry* inCharMapEntry)
+			     __glcGlyph* inGlyph)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs interface;
@@ -449,6 +524,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 				 0., 0., 0., 0., 1.};
   FT_Face face = inFont->faceDesc->face;
 
+  /* Initialize the data for FreeType to parse the outline */
   outline = &face->glyph->outline;
   interface.shift = 0;
   interface.delta = 0;
@@ -517,21 +593,25 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     return;
   }
 
+  /* Prepare the display list compilation if needed */
   if (inState->glObjects) {
     int index = (inRenderMode == GLC_LINE) ? 1 : 2;
 
-    inCharMapEntry->displayList[index] = glGenLists(1);
-    if (!inCharMapEntry->displayList[index]) {
+    inGlyph->displayList[index] = glGenLists(1);
+    if (!inGlyph->displayList[index]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
       GLC_ARRAY_LENGTH(inState->endContour) = 0;
       return;
     }
 
-    glNewList(inCharMapEntry->displayList[index], GL_COMPILE_AND_EXECUTE);
+    glNewList(inGlyph->displayList[index], GL_COMPILE_AND_EXECUTE);
   }
 
   if (inRenderMode == GLC_TRIANGLE) {
+    /* Tesselate the polygon defined by the contour returned by
+     * FT_Outline_Decompose().
+     */
     GLUtesselator *tess = gluNewTess();
     int i = 0, j = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
@@ -539,6 +619,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
     GLdouble coords[3] = {0., 0., 0.};
 
+    /* Initialize the GLU tesselator */
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
     gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, GL_FALSE);
 
@@ -552,6 +633,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     gluTessNormal(tess, 0., 0., 1.);
 
+    /* Define the polygon geometry */
     gluTessBeginPolygon(tess, &rendererData);
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
@@ -571,11 +653,16 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       gluTessEndContour(tess);
     }
 
+    /* Close the polygon and run the tesselation */
     gluTessEndPolygon(tess);
 
+    /* Free memory */
     gluDeleteTess(tess);
   }
   else {
+    /* For GLC_LINE, there is no need to tesselate. The vertex are contained
+     * in an array so we use the OpenGL function glDrawArrays().
+     */
     int i = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
 
@@ -590,6 +677,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     glPopClientAttrib();
   }
 
+  /* Take into account the advance of the glyph */
   glTranslatef(face->glyph->advance.x * rendererData.scale_x,
 	       face->glyph->advance.y * rendererData.scale_y, 0.);
 
