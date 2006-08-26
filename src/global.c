@@ -138,7 +138,9 @@ void _fini(void)
 #endif
 {
   FT_ListNode node = NULL;
+#if 0
   void *key = NULL;
+#endif
 
   __glcLock();
 
@@ -153,12 +155,14 @@ void _fini(void)
   __glcUnlock();
   pthread_mutex_destroy(&__glcCommonArea.mutex);
 
+#if 0
   /* Destroy the thread local storage */
   key = pthread_getspecific(__glcCommonArea.threadKey);
   if (key)
     __glcFreeThreadArea(key);
 
   pthread_key_delete(__glcCommonArea.threadKey);
+#endif
 
 #if FC_MINOR > 2
   FcFini();
