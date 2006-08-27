@@ -78,10 +78,15 @@ typedef struct {
   GLint versionMinor;		/* GLC_VERSION_MINOR */
 
   FT_ListRec stateList;
+#ifndef __WIN32__
   pthread_mutex_t mutex;	/* For concurrent accesses to the common
 				   area */
 
   pthread_key_t threadKey;
+#else
+  CRITICAL_SECTION section;
+  DWORD threadKey;
+#endif
 
   /* Evil hack : we use the FT_MemoryRec_ structure definition which is
    * supposed not to be exported by FreeType headers. So this definition may

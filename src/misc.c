@@ -645,7 +645,11 @@ threadArea* __glcGetThreadArea(void)
 {
   threadArea *area = NULL;
 
+#ifdef __WIN32__
+  area = (threadArea*)TlsGetValue(__glcCommonArea.threadKey);
+#else
   area = (threadArea*)pthread_getspecific(__glcCommonArea.threadKey);
+#endif
 
   if (!area) {
     area = (threadArea*)malloc(sizeof(threadArea));
@@ -658,7 +662,14 @@ threadArea* __glcGetThreadArea(void)
     area->exceptionStack.head = NULL;
     area->exceptionStack.tail = NULL;
     area->failedTry = GLC_NO_EXC;
-    pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
+#ifdef __WIN32__
+	if (!TlsSetValue(__glcCommonArea.threadKey, (LPVOID)area)) {
+	  free(area);
+	  return NULL;
+	}
+#else
+	pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
+#endif
   }
 
   return area;

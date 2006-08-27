@@ -81,7 +81,11 @@ static void __glcLock(void)
   assert(area);
 
   if (!area->lockState)
+#ifdef __WIN32__
+    EnterCriticalSection(&__glcCommonArea.section);
+#else
     pthread_mutex_lock(&__glcCommonArea.mutex);
+#endif
 
   area->lockState++;
 }
@@ -101,7 +105,11 @@ static void __glcUnlock(void)
 
   area->lockState--;
   if (!area->lockState)
+#ifdef __WIN32__
+    LeaveCriticalSection(&__glcCommonArea.section);
+#else
     pthread_mutex_unlock(&__glcCommonArea.mutex);
+#endif
 }
 
 
@@ -153,7 +161,11 @@ void _fini(void)
   }
 
   __glcUnlock();
+#ifdef __WIN32__
+  DeleteCriticalSection(&__glcCommonArea.section);
+#else
   pthread_mutex_destroy(&__glcCommonArea.mutex);
+#endif
 
 #if 0
   /* Destroy the thread local storage */
@@ -214,8 +226,14 @@ void _init(void)
   __glcCommonArea.versionMinor = 2;
 
   /* Create the thread-local storage for GLC errors */
+#ifdef __WIN32__
+  __glcCommonArea.threadKey = TlsAlloc();
+  if (__glcCommonArea.threadKey == 0xffffffff)
+    goto FatalError;
+#else
   if (pthread_key_create(&__glcCommonArea.threadKey, __glcFreeThreadArea))
     goto FatalError;
+#endif
 
   __glcCommonArea.memoryManager.user = NULL;
   __glcCommonArea.memoryManager.alloc = __glcAllocFunc;
@@ -227,8 +245,12 @@ void _init(void)
   __glcCommonArea.stateList.tail = NULL;
 
   /* Initialize the mutex for access to the stateList array */
+#ifdef __WIN32__
+  InitializeCriticalSection(&__glcCommonArea.section);
+#else
   if (pthread_mutex_init(&__glcCommonArea.mutex, NULL))
     goto FatalError;
+#endif
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   atexit(__glcExitLibrary);
@@ -242,6 +264,23 @@ void _init(void)
   perror("GLC Fatal Error");
   exit(-1);
 }
+
+
+
+#if defined __WIN32__ && !defined __GNUC__
+BOOL WINAPI DllMain(HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
+{
+  switch(dwReason) {
+  case DLL_PROCESS_ATTACH:
+    _init();
+	return TRUE;
+  case DLL_PROCESS_DETACH:
+    _fini();
+	return TRUE;
+  }
+  return TRUE;
+}
+#endif
 
 
 
@@ -272,7 +311,7 @@ static __glcContextState* __glcGetState(GLint inContext)
  *  \sa glcGetAllContexts()
  *  \sa glcContext()
  */
-GLboolean glcIsContext(GLint inContext)
+GLAPI GLboolean APIENTRY glcIsContext(GLint inContext)
 {
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -292,7 +331,7 @@ GLboolean glcIsContext(GLint inContext)
  *  \sa glcGetAllContexts()
  *  \sa glcIsContext()
  */
-GLint glcGetCurrentContext(void)
+GLAPI GLint APIENTRY glcGetCurrentContext(void)
 {
   __glcContextState *state = NULL;
 
@@ -324,7 +363,7 @@ GLint glcGetCurrentContext(void)
  *  \sa glcContext()
  *  \sa glcGetCurrentContext()
  */
-void glcDeleteContext(GLint inContext)
+GLAPI void APIENTRY glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
 
@@ -380,7 +419,7 @@ void glcDeleteContext(GLint inContext)
  *  \sa glcGetAllContexts()
  *  \sa glcIsContext()
  */
-void glcContext(GLint inContext)
+GLAPI void APIENTRY glcContext(GLint inContext)
 {
 #if 0
   char *version = NULL;
@@ -498,7 +537,7 @@ void glcContext(GLint inContext)
  *  \sa glcContext()
  *  \sa glcGetCurrentContext()
  */
-GLint glcGenContext(void)
+GLAPI GLint APIENTRY glcGenContext(void)
 {
   int newContext = 0;
   __glcContextState *state = NULL;
@@ -632,7 +671,7 @@ GLint glcGenContext(void)
  *  \sa glcGetCurrentContext()
  *  \sa glcIsContext()
  */
-GLint* glcGetAllContexts(void)
+GLAPI GLint* APIENTRY glcGetAllContexts(void)
 {
   int count = 0;
   GLint* contextArray = NULL;
@@ -699,7 +738,7 @@ GLint* glcGetAllContexts(void)
  *   </table>
  *   </center>
  */
-GLCenum glcGetError(void)
+GLAPI GLCenum APIENTRY glcGetError(void)
 {
   GLCenum error = GLC_NONE;
   threadArea * area = NULL;
