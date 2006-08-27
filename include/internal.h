@@ -29,7 +29,7 @@
 #include <assert.h>
 
 #include "GL/glc.h"
-#if !defined __APPLE__ && !defined __MACH__
+#if !(defined __APPLE__ && defined __MACH__) && !defined __WIN32__
 #include "qglc_config.h"
 #endif
 #include "ofont.h"
