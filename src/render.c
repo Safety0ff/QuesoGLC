@@ -87,6 +87,15 @@
 #if defined __APPLE__ && defined __MACH__
 #include <OpenGL/glu.h>
 #else
+#include <GL/gl.h>
+#ifdef __WIN32__
+/* GL_TEXTURE_MAX_LEVEL is defined in OpenGL 1.2 which is not supposed to be
+ * available under Windows.
+ */
+#ifndef GL_TEXTURE_MAX_LEVEL
+#define GL_TEXTURE_MAX_LEVEL 0x813D
+#endif
+#endif
 #include <GL/glu.h>
 #endif
 
@@ -532,7 +541,7 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
  *  \sa glcRenderStyle()
  *  \sa glcCallbackFunc()
  */
-void glcRenderChar(GLint inCode)
+GLAPI void APIENTRY glcRenderChar(GLint inCode)
 {
   __glcContextState *state = NULL;
   GLint code = 0;
@@ -567,7 +576,7 @@ void glcRenderChar(GLint inCode)
  *  \sa glcRenderChar()
  *  \sa glcRenderString()
  */
-void glcRenderCountedString(GLint inCount, const GLCchar *inString)
+GLAPI void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
   GLint i = 0;
   __glcContextState *state = NULL;
@@ -627,7 +636,7 @@ void glcRenderCountedString(GLint inCount, const GLCchar *inString)
  *  \sa glcRenderChar()
  *  \sa glcRenderCountedString()
  */
-void glcRenderString(const GLCchar *inString)
+GLAPI void APIENTRY glcRenderString(const GLCchar *inString)
 {
   __glcContextState *state = NULL;
   FcChar8* UinString = NULL;
@@ -699,7 +708,7 @@ void glcRenderString(const GLCchar *inString)
  *  \param inStyle The value to assign to the variable \b GLC_RENDER_STYLE.
  *  \sa glcGeti() with argument \b GLC_RENDER_STYLE
  */
-void glcRenderStyle(GLCenum inStyle)
+GLAPI void APIENTRY glcRenderStyle(GLCenum inStyle)
 {
   __glcContextState *state = NULL;
 
@@ -738,7 +747,7 @@ void glcRenderStyle(GLCenum inStyle)
  *  \sa glcGeti() with argument \b GLC_REPLACEMENT_CODE
  *  \sa glcRenderChar()
  */
-void glcReplacementCode(GLint inCode)
+GLAPI void APIENTRY glcReplacementCode(GLint inCode)
 {
   __glcContextState *state = __glcGetCurrent();
   GLint code = 0;
@@ -771,7 +780,7 @@ void glcReplacementCode(GLint inCode)
  *  \param inVal A floating point number to be used as resolution.
  *  \sa glcGeti() with argument GLC_RESOLUTION
  */
-void glcResolution(GLfloat inVal)
+GLAPI void APIENTRY glcResolution(GLfloat inVal)
 {
   __glcContextState *state = __glcGetCurrent();
 

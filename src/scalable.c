@@ -507,7 +507,7 @@ static void __glcCallbackError(GLenum inErrorCode)
  * for the GLC_LINE and the GLC_TRIANGLE types. It transforms the outlines of
  * the glyph in polygon contour. If the rendering type is GLC_LINE then the
  * contour is rendered as is and if the rendering type is GLC_TRIANGLE then the
- * contour defines a ploygon that is tesselated in triangles by the GLU library
+ * contour defines a polygon that is tesselated in triangles by the GLU library
  * before being rendered.
  */
 void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
@@ -518,7 +518,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 			     __glcGlyph* inGlyph)
 {
   FT_Outline *outline = NULL;
-  FT_Outline_Funcs interface;
+  FT_Outline_Funcs outlineInterface;
   __glcRendererData rendererData;
   GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
 				 0., 0., 0., 0., 1.};
@@ -526,12 +526,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
   /* Initialize the data for FreeType to parse the outline */
   outline = &face->glyph->outline;
-  interface.shift = 0;
-  interface.delta = 0;
-  interface.move_to = __glcMoveTo;
-  interface.line_to = __glcLineTo;
-  interface.conic_to = __glcConicTo;
-  interface.cubic_to = __glcCubicTo;
+  outlineInterface.shift = 0;
+  outlineInterface.delta = 0;
+  outlineInterface.move_to = __glcMoveTo;
+  outlineInterface.line_to = __glcLineTo;
+  outlineInterface.conic_to = __glcConicTo;
+  outlineInterface.cubic_to = __glcCubicTo;
 
   /* grid_coordinate is given in 26.6 fixed point integer hence we
      divide the scale by 2^6 */
@@ -578,7 +578,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   }
 
   /* Parse the outline of the glyph */
-  if (FT_Outline_Decompose(outline, &interface, &rendererData)) {
+  if (FT_Outline_Decompose(outline, &outlineInterface, &rendererData)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
@@ -623,13 +623,24 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
     gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, GL_FALSE);
 
-    gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
+#ifndef __WIN32__
+	gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
     gluTessCallback(tess, GLU_TESS_VERTEX_DATA,
 		    (void (*) ())__glcVertexCallback);
     gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
 		    (void (*) ())__glcCombineCallback);
     gluTessCallback(tess, GLU_TESS_END, glEnd);
+#else
+	gluTessCallback(tess, GLU_TESS_ERROR,
+			(CALLBACK void (*) ())__glcCallbackError);
+    gluTessCallback(tess, GLU_TESS_BEGIN, (CALLBACK void (*) ())glBegin);
+    gluTessCallback(tess, GLU_TESS_VERTEX_DATA,
+		    (CALLBACK void (*) ())__glcVertexCallback);
+    gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
+		    (CALLBACK void (*) ())__glcCombineCallback);
+    gluTessCallback(tess, GLU_TESS_END, (CALLBACK void (*) ())glEnd);
+#endif
 
     gluTessNormal(tess, 0., 0., 1.);
 

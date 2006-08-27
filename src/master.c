@@ -127,7 +127,7 @@ __glcMaster* __glcVerifyMasterParameters(GLint inMaster)
  *  \sa glcGetMasterc()
  *  \sa glcGetMasteri()
  */
-const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
+GLAPI const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 				 GLint inIndex)
 {
   __glcContextState *state = __glcGetCurrent();
@@ -212,7 +212,7 @@ const GLCchar* glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  *  \sa glcGetMasterc()
  *  \sa glcGetMasteri()
  */
-const GLCchar* glcGetMasterMap(GLint inMaster, GLint inCode)
+GLAPI const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
 {
   __glcMaster *master = __glcVerifyMasterParameters(inMaster);
   __glcContextState *state = __glcGetCurrent();
@@ -286,7 +286,7 @@ static GLboolean __glcGetMasterInfoJustInTime(__glcMaster* inMaster,
  *  \sa glcGetMasterMap()
  *  \sa glcGetMasterListc()
  */
-const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
+GLAPI const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
   __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = NULL;
@@ -395,7 +395,7 @@ const GLCchar* glcGetMasterc(GLint inMaster, GLCenum inAttrib)
  *  \sa glcGetMasterMap()
  *  \sa glcGetMasterListc()
  */
-GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
+GLAPI GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 {
   __glcMaster *master = NULL;
   FT_ListNode node = NULL;
@@ -478,7 +478,7 @@ GLint glcGetMasteri(GLint inMaster, GLCenum inAttrib)
  *  \sa glcPrependCatalog()
  *  \sa glcRemoveCatalog()
  */
-void glcAppendCatalog(const GLCchar* inCatalog)
+GLAPI void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
 {
   __glcContextState *state = NULL;
 
@@ -506,7 +506,7 @@ void glcAppendCatalog(const GLCchar* inCatalog)
  *  \sa glcAppendCatalog()
  *  \sa glcRemoveCatalog()
  */
-void glcPrependCatalog(const GLCchar* inCatalog)
+GLAPI void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
 {
   __glcContextState *state = NULL;
 
@@ -540,7 +540,7 @@ void glcPrependCatalog(const GLCchar* inCatalog)
  *  \sa glcAppendCatalog()
  *  \sa glcPrependCatalog()
  */
-void glcRemoveCatalog(GLint inIndex)
+GLAPI void APIENTRY glcRemoveCatalog(GLint inIndex)
 {
   __glcContextState *state = NULL;
 

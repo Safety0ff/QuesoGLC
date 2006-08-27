@@ -217,7 +217,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
  *  \sa glcMeasureCountedString()
  *  \sa glcMeasureString()
  */
-GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
+GLAPI GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
 {
   __glcContextState *state = NULL;
   GLint code = 0;
@@ -291,7 +291,7 @@ GLfloat* glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
  *  \sa glcMeasureCountedString()
  *  \sa glcMeasureString()
  */
-GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
+GLAPI GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 {
   __glcContextState *state = NULL;
   GLfloat advance_x = 0., advance_y = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
@@ -419,11 +419,13 @@ GLfloat* glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  \sa glcMeasureCountedString()
  *  \sa glcMeasureString()
  */
-GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
+GLAPI GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 				GLfloat *outVec)
 {
   __glcContextState *state = NULL;
   GLfloat (*measurementBuffer)[12] = NULL;
+
+  assert(outVec);
 
   /* Check the parameters */
   switch(inMetric) {
@@ -431,12 +433,6 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
   case GLC_BOUNDS:
     break;
   default:
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return NULL;
-  }
-
-  /* Check that outVec is not NULL */
-  if (!outVec) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
@@ -493,7 +489,7 @@ GLfloat* glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
  *  \sa glcMeasureCountedString()
  *  \sa glcMeasureString()
  */
-GLfloat* glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
+GLAPI GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 {
   __glcContextState *state = NULL;
 
@@ -671,7 +667,7 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
  *  \sa glcGetStringCharMetric()
  *  \sa glcGetStringMetric()
  */
-GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
+GLAPI GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 			      const GLCchar* inString)
 {
   __glcContextState *state = NULL;
@@ -728,7 +724,7 @@ GLint glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
  *  \sa glcGetStringCharMetric()
  *  \sa glcGetStringMetric()
  */
-GLint glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
+GLAPI GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
 {
   __glcContextState *state = NULL;
   FcChar8* UinString = NULL;
