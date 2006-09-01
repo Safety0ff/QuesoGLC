@@ -130,7 +130,11 @@ int main(int argc, char **argv)
 
   ctx = glcGenContext();
   glcContext(ctx);
+#ifdef __WIN32__
+  font = glcNewFontFromFamily(glcGenFontID(), "Courier New");
+#else
   font = glcNewFontFromFamily(glcGenFontID(), "Courier");
+#endif
   glcFont(font);
   glcFontFace(font, "Italic");
 

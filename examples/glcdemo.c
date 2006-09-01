@@ -6,8 +6,8 @@
    implied. This program is -not- in the public domain. */
 
 #include <string.h>
-#include <GL/glut.h>
 #include <GL/glc.h>
+#include <GL/glut.h>
 
 int font = 1;
 char defaultMessage[] = "GLUT means OpenGL.";
@@ -95,16 +95,28 @@ main(int argc, char **argv)
   glutAddMenuEntry("abc", 1);
   glutAddMenuEntry("ABC", 2);
   glutCreateMenu(selectFont);
+#ifdef __WIN32__
+  glutAddMenuEntry("Arial", 1);
+  glutAddMenuEntry("Courier New", 2);
+  glutAddMenuEntry("Times New Roman", 3);
+#else
   glutAddMenuEntry("Helvetica", 1);
   glutAddMenuEntry("Courier", 2);
   glutAddMenuEntry("Times", 3);
+#endif
   glutAddSubMenu("Messages", submenu);
   glutAttachMenu(GLUT_RIGHT_BUTTON);
   glcContext(glcGenContext());
   glcScale(30, 30);
+#ifdef __WIN32__
+  glcNewFontFromFamily(1, "Arial");
+  glcNewFontFromFamily(2, "Courier New");
+  glcNewFontFromFamily(3, "Times New Roman");
+#else
   glcNewFontFromFamily(1, "Helvetica");
   glcNewFontFromFamily(2, "Courier");
   glcNewFontFromFamily(3, "Times");
+#endif
   glcFont(font);
   glutMainLoop();
   return 0;             /* ANSI C requires main to return int. */

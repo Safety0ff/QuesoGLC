@@ -157,7 +157,11 @@ access_font()
    GLint glc_context;
 
    GLint master_count;
+#ifdef _WIN32_
+   const char* master_name = "Times New Roman";
+#else
    const char* master_name = "Times";
+#endif
    GLint master;
 
    GLint face_count;

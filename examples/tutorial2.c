@@ -104,7 +104,11 @@ int main(int argc, char **argv)
 
   /* Create a font "Palatino Bold" */
   myFont = glcGenFontID();
+#ifdef __WIN32__
+  glcNewFontFromFamily(myFont, "Palatino Linotype");
+#else
   glcNewFontFromFamily(myFont, "Palatino");
+#endif
   glcFontFace(myFont, "Bold");
   glcFont(myFont);
 
