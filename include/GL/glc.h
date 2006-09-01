@@ -38,6 +38,15 @@
 #    define APIENTRY
 #  endif
 #endif
+
+/* CALLBACK */
+#if !defined(CALLBACK)
+#  if defined(__WIN32__)
+#    define CALLBACK __stdcall
+#  else
+#    define CALLBACK
+#  endif
+#endif
 /*
  * End system-specific stuff.
  ************************************************************************/
@@ -58,17 +67,9 @@ typedef void GLCchar;
 typedef GLint GLCenum;
 
 #if defined(__cplusplus)
-#ifdef __WIN32__
-typedef GLboolean (APIENTRY *GLCfunc)(...);
+typedef GLboolean (CALLBACK *GLCfunc)(...);
 #else
-typedef GLboolean (*GLCfunc)(...);
-#endif
-#else
-#ifdef __WIN32__
-typedef GLboolean (APIENTRY *GLCfunc)();
-#else
-typedef GLboolean (*GLCfunc)();
-#endif
+typedef GLboolean (CALLBACK *GLCfunc)();
 #endif
 
 /*************************************************************/
@@ -231,7 +232,7 @@ GLAPI GLint APIENTRY glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint in
 #define GLC_HINTING_QSO                           0x8005
 
 #if defined (__cplusplus)
-    }
+}
 #endif
 
 #endif /* defined (__glc_h_) */
