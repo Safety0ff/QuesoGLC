@@ -446,7 +446,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
  * viewport). In such a case since the curve is roughly described some
  * intersections can occur between two contours in certain positions.
  */
-static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
+static CALLBACK void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
 				 GLfloat weight[4], void** outData,
 				 void* inUserData)
 {
@@ -477,7 +477,7 @@ static void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
  * tesselated polygon. This function is needed to convert the indices of the
  * vertex array into the coordinates of the vertex.
  */
-static void __glcVertexCallback(void* vertex_data, void* inUserData)
+static CALLBACK void __glcVertexCallback(void* vertex_data, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
   GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
@@ -496,7 +496,7 @@ static void __glcVertexCallback(void* vertex_data, void* inUserData)
 /* Callback function that is called by the GLU whenever an error occur during
  * the tesselation of the polygon.
  */
-static void __glcCallbackError(GLenum inErrorCode)
+static CALLBACK void __glcCallbackError(GLenum inErrorCode)
 {
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
