@@ -311,7 +311,7 @@ static __glcContextState* __glcGetState(GLint inContext)
  *  \sa glcGetAllContexts()
  *  \sa glcContext()
  */
-GLAPI GLboolean APIENTRY glcIsContext(GLint inContext)
+GLboolean APIENTRY glcIsContext(GLint inContext)
 {
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -331,7 +331,7 @@ GLAPI GLboolean APIENTRY glcIsContext(GLint inContext)
  *  \sa glcGetAllContexts()
  *  \sa glcIsContext()
  */
-GLAPI GLint APIENTRY glcGetCurrentContext(void)
+GLint APIENTRY glcGetCurrentContext(void)
 {
   __glcContextState *state = NULL;
 
@@ -363,7 +363,7 @@ GLAPI GLint APIENTRY glcGetCurrentContext(void)
  *  \sa glcContext()
  *  \sa glcGetCurrentContext()
  */
-GLAPI void APIENTRY glcDeleteContext(GLint inContext)
+void APIENTRY glcDeleteContext(GLint inContext)
 {
   __glcContextState *state = NULL;
 
@@ -419,7 +419,7 @@ GLAPI void APIENTRY glcDeleteContext(GLint inContext)
  *  \sa glcGetAllContexts()
  *  \sa glcIsContext()
  */
-GLAPI void APIENTRY glcContext(GLint inContext)
+void APIENTRY glcContext(GLint inContext)
 {
 #if 0
   char *version = NULL;
@@ -537,7 +537,7 @@ GLAPI void APIENTRY glcContext(GLint inContext)
  *  \sa glcContext()
  *  \sa glcGetCurrentContext()
  */
-GLAPI GLint APIENTRY glcGenContext(void)
+GLint APIENTRY glcGenContext(void)
 {
   int newContext = 0;
   __glcContextState *state = NULL;
@@ -671,7 +671,7 @@ GLAPI GLint APIENTRY glcGenContext(void)
  *  \sa glcGetCurrentContext()
  *  \sa glcIsContext()
  */
-GLAPI GLint* APIENTRY glcGetAllContexts(void)
+GLint* APIENTRY glcGetAllContexts(void)
 {
   int count = 0;
   GLint* contextArray = NULL;
@@ -738,7 +738,7 @@ GLAPI GLint* APIENTRY glcGetAllContexts(void)
  *   </table>
  *   </center>
  */
-GLAPI GLCenum APIENTRY glcGetError(void)
+GLCenum APIENTRY glcGetError(void)
 {
   GLCenum error = GLC_NONE;
   threadArea * area = NULL;

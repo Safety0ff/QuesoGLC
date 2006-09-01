@@ -541,7 +541,7 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
  *  \sa glcRenderStyle()
  *  \sa glcCallbackFunc()
  */
-GLAPI void APIENTRY glcRenderChar(GLint inCode)
+void APIENTRY glcRenderChar(GLint inCode)
 {
   __glcContextState *state = NULL;
   GLint code = 0;
@@ -576,7 +576,7 @@ GLAPI void APIENTRY glcRenderChar(GLint inCode)
  *  \sa glcRenderChar()
  *  \sa glcRenderString()
  */
-GLAPI void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
+void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
   GLint i = 0;
   __glcContextState *state = NULL;
@@ -636,7 +636,7 @@ GLAPI void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inStrin
  *  \sa glcRenderChar()
  *  \sa glcRenderCountedString()
  */
-GLAPI void APIENTRY glcRenderString(const GLCchar *inString)
+void APIENTRY glcRenderString(const GLCchar *inString)
 {
   __glcContextState *state = NULL;
   FcChar8* UinString = NULL;
@@ -708,7 +708,7 @@ GLAPI void APIENTRY glcRenderString(const GLCchar *inString)
  *  \param inStyle The value to assign to the variable \b GLC_RENDER_STYLE.
  *  \sa glcGeti() with argument \b GLC_RENDER_STYLE
  */
-GLAPI void APIENTRY glcRenderStyle(GLCenum inStyle)
+void APIENTRY glcRenderStyle(GLCenum inStyle)
 {
   __glcContextState *state = NULL;
 
@@ -747,7 +747,7 @@ GLAPI void APIENTRY glcRenderStyle(GLCenum inStyle)
  *  \sa glcGeti() with argument \b GLC_REPLACEMENT_CODE
  *  \sa glcRenderChar()
  */
-GLAPI void APIENTRY glcReplacementCode(GLint inCode)
+void APIENTRY glcReplacementCode(GLint inCode)
 {
   __glcContextState *state = __glcGetCurrent();
   GLint code = 0;
@@ -780,7 +780,7 @@ GLAPI void APIENTRY glcReplacementCode(GLint inCode)
  *  \param inVal A floating point number to be used as resolution.
  *  \sa glcGeti() with argument GLC_RESOLUTION
  */
-GLAPI void APIENTRY glcResolution(GLfloat inVal)
+void APIENTRY glcResolution(GLfloat inVal)
 {
   __glcContextState *state = __glcGetCurrent();
 

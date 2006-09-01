@@ -79,7 +79,7 @@
  *  \sa glcDataPointer()
  *  \sa glcRenderChar()
  */
-GLAPI void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
+void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 {
   __glcContextState *state = NULL;
 
@@ -113,7 +113,7 @@ GLAPI void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
  *  \sa glcGetPointer()
  *  \sa glcCallbackFunc()
  */
-GLAPI void APIENTRY glcDataPointer(GLvoid *inPointer)
+void APIENTRY glcDataPointer(GLvoid *inPointer)
 {
   __glcContextState *state = NULL;
 
@@ -141,7 +141,7 @@ GLAPI void APIENTRY glcDataPointer(GLvoid *inPointer)
  *  GLC context owns, not all objects in all contexts.
  *  \sa glcGetListi()
  */
-GLAPI void APIENTRY glcDeleteGLObjects(void)
+void APIENTRY glcDeleteGLObjects(void)
 {
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
@@ -241,7 +241,7 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
  *  \sa glcIsEnabled()
  *  \sa glcEnable()
  */
-GLAPI void APIENTRY glcDisable(GLCenum inAttrib)
+void APIENTRY glcDisable(GLCenum inAttrib)
 {
   __glcChangeState(inAttrib, GL_FALSE);
 }
@@ -268,7 +268,7 @@ GLAPI void APIENTRY glcDisable(GLCenum inAttrib)
  *  \sa glcDisable()
  *  \sa glcIsEnabled()
  */
-GLAPI void APIENTRY glcEnable(GLCenum inAttrib)
+void APIENTRY glcEnable(GLCenum inAttrib)
 {
   __glcChangeState(inAttrib, GL_TRUE);
 }
@@ -284,7 +284,7 @@ GLAPI void APIENTRY glcEnable(GLCenum inAttrib)
  *  \return The value of the callback function variable
  *  \sa glcCallbackFunc()
  */
-GLAPI GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
+GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
 {
   __glcContextState *state = NULL;
 
@@ -336,7 +336,7 @@ GLAPI GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
  *  \return The string list element
  *  \sa glcGetListi()
  */
-GLAPI const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
+const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
 {
   __glcContextState *state = NULL;
   FcStrList* iterator = NULL;
@@ -464,7 +464,7 @@ GLAPI const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
  *  \return The element from the integer list.
  *  \sa glcGetListc()
  */
-GLAPI GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
+GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
 {
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
@@ -607,7 +607,7 @@ GLAPI GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
  *  \return The pointer
  *  \sa glcDataPointer()
  */
-GLAPI GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
+GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
 
@@ -656,7 +656,7 @@ GLAPI GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
  *  \sa glcGetfv()
  *  \sa glcGetPointer()
  */
-GLAPI const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
+const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
     " GLC_QSO_hinting";
@@ -723,7 +723,7 @@ GLAPI const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
  *  \sa glcGetfv()
  *  \sa glcGetPointer()
  */
-GLAPI GLfloat APIENTRY glcGetf(GLCenum inAttrib)
+GLfloat APIENTRY glcGetf(GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
 
@@ -769,7 +769,7 @@ GLAPI GLfloat APIENTRY glcGetf(GLCenum inAttrib)
  *  \sa glcGetc()
  *  \sa glcGetPointer()
  */
-GLAPI GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
+GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 {
   __glcContextState *state = NULL;
 
@@ -859,7 +859,7 @@ GLAPI GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *  \sa glcGetfv()
  *  \sa glcGetPointer()
  */
-GLAPI GLint APIENTRY glcGeti(GLCenum inAttrib)
+GLint APIENTRY glcGeti(GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
@@ -993,7 +993,7 @@ GLAPI GLint APIENTRY glcGeti(GLCenum inAttrib)
  *  \sa glcEnable()
  *  \sa glcDisable()
  */
-GLAPI GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
+GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
 {
   __glcContextState *state = NULL;
 
@@ -1085,7 +1085,7 @@ GLAPI GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
  *  \param inStringType Value to assign to \b GLC_STRING_TYPE
  *  \sa glcGeti() with argument \b GLC_STRING_TYPE
  */
-GLAPI void APIENTRY glcStringType(GLCenum inStringType)
+void APIENTRY glcStringType(GLCenum inStringType)
 {
   __glcContextState *state = NULL;
 

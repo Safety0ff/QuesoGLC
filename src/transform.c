@@ -55,7 +55,7 @@
  *  \sa glcRotate()
  *  \sa glcScale()
  */
-GLAPI void APIENTRY glcLoadIdentity(void)
+void APIENTRY glcLoadIdentity(void)
 {
     __glcContextState *state = NULL;
 
@@ -85,7 +85,7 @@ GLAPI void APIENTRY glcLoadIdentity(void)
  *  \sa glcRotate()
  *  \sa glcScale()
  */
-GLAPI void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
+void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
 
@@ -115,7 +115,7 @@ GLAPI void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
  *  \sa glcRotate()
  *  \sa glcScale()
  */
-GLAPI void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
+void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
 {
     __glcContextState *state = NULL;
     GLfloat tempMatrix[4];
@@ -156,7 +156,7 @@ GLAPI void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
  *  \sa glcMultMatrix()
  *  \sa glcScale()
  */
-GLAPI void APIENTRY glcRotate(GLfloat inAngle)
+void APIENTRY glcRotate(GLfloat inAngle)
 {
     GLfloat tempMatrix[4];
     GLfloat radian = inAngle * GLC_PI / 180.;
@@ -187,7 +187,7 @@ GLAPI void APIENTRY glcRotate(GLfloat inAngle)
  *  \sa glcMultMatrix()
  *  \sa glcRotate()
  */
-GLAPI void APIENTRY glcScale(GLfloat inX, GLfloat inY)
+void APIENTRY glcScale(GLfloat inX, GLfloat inY)
 {
     GLfloat tempMatrix[4];
 

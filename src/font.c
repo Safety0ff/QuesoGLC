@@ -116,7 +116,7 @@ __glcFont* __glcVerifyFontParameters(GLint inFont)
  *  \sa glcNewFontFromFamily()
  *  \sa glcNewFontFromMaster()
  */
-GLAPI void APIENTRY glcAppendFont(GLint inFont)
+void APIENTRY glcAppendFont(GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
   FT_ListNode node = NULL;
@@ -192,7 +192,7 @@ static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
  *  \sa glcNewFontFromFamily()
  *  \sa glcNewFontFromMaster()
  */
-GLAPI void APIENTRY glcDeleteFont(GLint inFont)
+void APIENTRY glcDeleteFont(GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
   __glcFont *font = __glcVerifyFontParameters(inFont);
@@ -241,7 +241,7 @@ static void __glcCloseFace(FT_Memory inMemory, void* data, void* user)
  *  \sa glcGeti() with argument \b GLC_CURRENT_FONT_COUNT
  *  \sa glcAppendFont()
  */
-GLAPI void APIENTRY glcFont(GLint inFont)
+void APIENTRY glcFont(GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
 
@@ -406,7 +406,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
  *          to the font \e inFont. \b GL_FALSE is returned otherwise.
  *  \sa glcGetFontFace()
  */
-GLAPI GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
+GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
 {
   __glcContextState *state = __glcGetCurrent();
   FcChar8* UinFace = NULL;
@@ -499,7 +499,7 @@ GLAPI GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
  *  \param inCharName The string name of a character
  *  \sa glcGetFontMap()
  */
-GLAPI void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
+void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
   __glcFont *font = NULL;
   GLint code = 0;
@@ -564,7 +564,7 @@ GLAPI void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inChar
  *  \sa glcNewFontFromFamily()
  *  \sa glcNewFontFromMaster()
  */
-GLAPI GLint APIENTRY glcGenFontID(void)
+GLint APIENTRY glcGenFontID(void)
 {
   __glcContextState *state = NULL;
 
@@ -610,7 +610,7 @@ GLAPI GLint APIENTRY glcGenFontID(void)
  *  \return The string name of the font \e inFont
  *  \sa glcFontFace()
  */
-GLAPI const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
+const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
 
@@ -678,7 +678,7 @@ GLAPI const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
  *  \sa glcGetFontc()
  *  \sa glcGetFonti()
  */
-GLAPI const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
+const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint inIndex)
 {
   __glcFont* font = __glcVerifyFontParameters(inFont);
   __glcContextState* state = __glcGetCurrent();
@@ -719,7 +719,7 @@ GLAPI const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib, GL
  *  \sa glcGetMasterMap()
  *  \sa glcFontMap()
  */
-GLAPI const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
+const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
   __glcContextState *state = __glcGetCurrent();
@@ -773,7 +773,7 @@ GLAPI const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
  *  \sa glcGetFonti()
  *  \sa glcGetFontListc()
  */
-GLAPI const GLCchar* APIENTRY glcGetFontc(GLint inFont, GLCenum inAttrib)
+const GLCchar* APIENTRY glcGetFontc(GLint inFont, GLCenum inAttrib)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
 
@@ -821,7 +821,7 @@ GLAPI const GLCchar* APIENTRY glcGetFontc(GLint inFont, GLCenum inAttrib)
  *  \sa glcGetFontc()
  *  \sa glcGetFontListc()
  */
-GLAPI GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
+GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
 {
   __glcFont *font = __glcVerifyFontParameters(inFont);
 
@@ -857,7 +857,7 @@ GLAPI GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
  *  \sa glcNewFontFromFamily()
  *  \sa glcNewFontFromMaster()
  */
-GLAPI GLboolean APIENTRY glcIsFont(GLint inFont)
+GLboolean APIENTRY glcIsFont(GLint inFont)
 {
   __glcContextState *state = __glcGetCurrent();
   FT_ListNode node = NULL;
@@ -941,7 +941,7 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
  *  \sa glcNewFontFromFamily()
  *  \sa glcDeleteFont()
  */
-GLAPI GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
+GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
   __glcContextState *state = __glcGetCurrent();
   __glcMaster *master = __glcVerifyMasterParameters(inMaster);
@@ -985,7 +985,7 @@ GLAPI GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
  *  \sa glcNewFontFromMaster()
  *  \sa glcDeleteFont()
  */
-GLAPI GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
+GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 {
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
