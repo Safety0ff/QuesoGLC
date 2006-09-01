@@ -203,13 +203,13 @@ int main(void)
 
     /* Measurement commands*/
 
-    glcGetCharMetric(0, GLC_BOUNDS, "");
+    glcGetCharMetric(0, GLC_BOUNDS, NULL);
     TestErrorCode(glcGetCharMetric);
 
-    glcGetMaxCharMetric(GLC_BASELINE, "");
+    glcGetMaxCharMetric(GLC_BASELINE, NULL);
     TestErrorCode(glcGetMaxCharMetric);
 
-    glcGetStringCharMetric(0, GLC_BOUNDS, "");
+    glcGetStringCharMetric(0, GLC_BOUNDS, NULL);
     TestErrorCode(glcGetStringCharMetric);
 
     glcGetStringMetric(GLC_BOUNDS, tab);
