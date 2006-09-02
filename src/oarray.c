@@ -23,7 +23,7 @@
 #define GLC_ARRAY_BLOCK_SIZE 16
 
 
-/* \file
+/** \file
  * defines the object __glcArray which is an array which size can grow as some
  * new elements are added to it.
  */
