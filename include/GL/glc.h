@@ -4,9 +4,8 @@
 /************************************************************************
  * Begin system-specific stuff.
  * from Mesa 3-D graphics library
- * Version:  4.0
- *
  * Copyright (C) 1999-2001  Brian Paul   All Rights Reserved.
+ *
 
  */
 /* __WIN32__ */
@@ -14,19 +13,19 @@
 #  define __WIN32__
 #endif
 
-/* GLAPI, part 1 (use WINGDIAPI, if defined) */
+/* GLCAPI, part 1 (use WINGDIAPI, if defined) */
 #if defined(__WIN32__) && defined(WINGDIAPI)
-#  define GLAPI WINGDIAPI
+#  define GLCAPI WINGDIAPI
 #endif
 
-/* GLAPI, part 2 */
-#if !defined(GLAPI)
+/* GLCAPI, part 2 */
+#if !defined(GLCAPI)
 #  if defined(_MSC_VER)                        /* Microsoft Visual C++ */
-#    define GLAPI __declspec(dllimport)
+#    define GLCAPI __declspec(dllimport)
 #  elif defined(__LCC__) && defined(__WIN32__) /* LCC-Win32 */
-#    define GLAPI __stdcall
+#    define GLCAPI __stdcall
 #  else                                        /* Others (e.g. MinGW, Cygwin, non-win32) */
-#    define GLAPI extern
+#    define GLCAPI extern
 #  endif
 #endif
 
@@ -144,83 +143,83 @@ typedef GLboolean (CALLBACK *GLCfunc)();
 
 /*************************************************************/
 
-GLAPI void APIENTRY glcContext (GLint inContext);
-GLAPI void APIENTRY glcDeleteContext (GLint inContext);
-GLAPI GLint APIENTRY glcGenContext (void);
-GLAPI GLint* APIENTRY glcGetAllContexts (void);
-GLAPI GLint APIENTRY glcGetCurrentContext (void);
-GLAPI GLCenum APIENTRY glcGetError (void);
-GLAPI GLboolean APIENTRY glcIsContext (GLint inContext);
+GLCAPI void APIENTRY glcContext (GLint inContext);
+GLCAPI void APIENTRY glcDeleteContext (GLint inContext);
+GLCAPI GLint APIENTRY glcGenContext (void);
+GLCAPI GLint* APIENTRY glcGetAllContexts (void);
+GLCAPI GLint APIENTRY glcGetCurrentContext (void);
+GLCAPI GLCenum APIENTRY glcGetError (void);
+GLCAPI GLboolean APIENTRY glcIsContext (GLint inContext);
 
-GLAPI void APIENTRY glcCallbackFunc (GLCenum inOpcode, GLCfunc inFunc);
-GLAPI void APIENTRY glcDataPointer (GLvoid *inPointer);
-GLAPI void APIENTRY glcDeleteGLObjects (void);
-GLAPI void APIENTRY glcDisable (GLCenum inAttrib);
-GLAPI void APIENTRY glcEnable (GLCenum inAttrib);
-GLAPI GLCfunc APIENTRY glcGetCallbackFunc (GLCenum inOpcode);
-GLAPI const GLCchar* APIENTRY glcGetListc (GLCenum inAttrib, GLint inIndex);
-GLAPI GLint APIENTRY glcGetListi (GLCenum inAttrib, GLint inIndex);
-GLAPI GLvoid* APIENTRY glcGetPointer (GLCenum inAttrib);
-GLAPI const GLCchar* APIENTRY glcGetc (GLCenum inAttrib);
-GLAPI GLfloat APIENTRY glcGetf (GLCenum inAttrib);
-GLAPI GLfloat* APIENTRY glcGetfv (GLCenum inAttrib, GLfloat *outVec);
-GLAPI GLint APIENTRY glcGeti (GLCenum inAttrib);
-GLAPI GLboolean APIENTRY glcIsEnabled (GLCenum inAttrib);
-GLAPI void APIENTRY glcStringType (GLCenum inStringType);
+GLCAPI void APIENTRY glcCallbackFunc (GLCenum inOpcode, GLCfunc inFunc);
+GLCAPI void APIENTRY glcDataPointer (GLvoid *inPointer);
+GLCAPI void APIENTRY glcDeleteGLObjects (void);
+GLCAPI void APIENTRY glcDisable (GLCenum inAttrib);
+GLCAPI void APIENTRY glcEnable (GLCenum inAttrib);
+GLCAPI GLCfunc APIENTRY glcGetCallbackFunc (GLCenum inOpcode);
+GLCAPI const GLCchar* APIENTRY glcGetListc (GLCenum inAttrib, GLint inIndex);
+GLCAPI GLint APIENTRY glcGetListi (GLCenum inAttrib, GLint inIndex);
+GLCAPI GLvoid* APIENTRY glcGetPointer (GLCenum inAttrib);
+GLCAPI const GLCchar* APIENTRY glcGetc (GLCenum inAttrib);
+GLCAPI GLfloat APIENTRY glcGetf (GLCenum inAttrib);
+GLCAPI GLfloat* APIENTRY glcGetfv (GLCenum inAttrib, GLfloat *outVec);
+GLCAPI GLint APIENTRY glcGeti (GLCenum inAttrib);
+GLCAPI GLboolean APIENTRY glcIsEnabled (GLCenum inAttrib);
+GLCAPI void APIENTRY glcStringType (GLCenum inStringType);
 
-GLAPI void APIENTRY glcAppendCatalog (const GLCchar *inCatalog);
-GLAPI const GLCchar* APIENTRY glcGetMasterListc (GLint inMaster, GLCenum inAttrib, GLint inIndex);
-GLAPI GLint APIENTRY glcGetMasterListiSGI (GLint inMaster, GLCenum inAttrib, GLint inIndex);
-GLAPI const GLCchar* APIENTRY glcGetMasterMap (GLint inMaster, GLint inCode);
-GLAPI const GLCchar* APIENTRY glcGetMasterc (GLint inMaster, GLCenum inAttrib);
-GLAPI GLint APIENTRY glcGetMasteri (GLint inMaster, GLCenum inAttrib);
-GLAPI void APIENTRY glcPrependCatalog (const GLCchar *inCatalog);
-GLAPI void APIENTRY glcRemoveCatalog (GLint inIndex);
+GLCAPI void APIENTRY glcAppendCatalog (const GLCchar *inCatalog);
+GLCAPI const GLCchar* APIENTRY glcGetMasterListc (GLint inMaster, GLCenum inAttrib, GLint inIndex);
+GLCAPI GLint APIENTRY glcGetMasterListiSGI (GLint inMaster, GLCenum inAttrib, GLint inIndex);
+GLCAPI const GLCchar* APIENTRY glcGetMasterMap (GLint inMaster, GLint inCode);
+GLCAPI const GLCchar* APIENTRY glcGetMasterc (GLint inMaster, GLCenum inAttrib);
+GLCAPI GLint APIENTRY glcGetMasteri (GLint inMaster, GLCenum inAttrib);
+GLCAPI void APIENTRY glcPrependCatalog (const GLCchar *inCatalog);
+GLCAPI void APIENTRY glcRemoveCatalog (GLint inIndex);
 
-GLAPI void APIENTRY glcAppendFont (GLint inFont);
-GLAPI void APIENTRY glcDeleteFont (GLint inFont);
-GLAPI void APIENTRY glcFont (GLint inFont);
-GLAPI GLboolean APIENTRY glcFontFace (GLint inFont, const GLCchar *inFace);
-GLAPI void APIENTRY glcFontMap (GLint inFont, GLint inCode, const GLCchar *inCharName);
-GLAPI GLint APIENTRY glcGenFontID (void);
-GLAPI const GLCchar* APIENTRY glcGetFontFace (GLint inFont);
-GLAPI const GLCchar* APIENTRY glcGetFontListc (GLint inFont, GLCenum inAttrib, GLint inIndex);
-GLAPI GLint APIENTRY glcGetFontListiSGI (GLint inFont, GLCenum inAttrib, GLint inIndex);
-GLAPI const GLCchar* APIENTRY glcGetFontMap (GLint inFont, GLint inCode);
-GLAPI const GLbyte* APIENTRY glcGetFontMasterArray (GLint inFont, GLboolean inFull, GLint *outCount);
-GLAPI const GLCchar* APIENTRY glcGetFontc (GLint inFont, GLCenum inAttrib);
-GLAPI GLint APIENTRY glcGetFonti (GLint inFont, GLCenum inAttrib);
-GLAPI GLboolean APIENTRY glcIsFont (GLint inFont);
-GLAPI GLint APIENTRY glcNewFontFromFamily (GLint inFont, const GLCchar *inFamily);
-GLAPI GLint APIENTRY glcNewFontFromMaster (GLint inFont, GLint inMaster);
+GLCAPI void APIENTRY glcAppendFont (GLint inFont);
+GLCAPI void APIENTRY glcDeleteFont (GLint inFont);
+GLCAPI void APIENTRY glcFont (GLint inFont);
+GLCAPI GLboolean APIENTRY glcFontFace (GLint inFont, const GLCchar *inFace);
+GLCAPI void APIENTRY glcFontMap (GLint inFont, GLint inCode, const GLCchar *inCharName);
+GLCAPI GLint APIENTRY glcGenFontID (void);
+GLCAPI const GLCchar* APIENTRY glcGetFontFace (GLint inFont);
+GLCAPI const GLCchar* APIENTRY glcGetFontListc (GLint inFont, GLCenum inAttrib, GLint inIndex);
+GLCAPI GLint APIENTRY glcGetFontListiSGI (GLint inFont, GLCenum inAttrib, GLint inIndex);
+GLCAPI const GLCchar* APIENTRY glcGetFontMap (GLint inFont, GLint inCode);
+GLCAPI const GLbyte* APIENTRY glcGetFontMasterArray (GLint inFont, GLboolean inFull, GLint *outCount);
+GLCAPI const GLCchar* APIENTRY glcGetFontc (GLint inFont, GLCenum inAttrib);
+GLCAPI GLint APIENTRY glcGetFonti (GLint inFont, GLCenum inAttrib);
+GLCAPI GLboolean APIENTRY glcIsFont (GLint inFont);
+GLCAPI GLint APIENTRY glcNewFontFromFamily (GLint inFont, const GLCchar *inFamily);
+GLCAPI GLint APIENTRY glcNewFontFromMaster (GLint inFont, GLint inMaster);
 
-GLAPI void APIENTRY glcLoadIdentity (void);
-GLAPI void APIENTRY glcLoadMatrix (const GLfloat *inMatrix);
-GLAPI void APIENTRY glcMultMatrix (const GLfloat *inMatrix);
-GLAPI void APIENTRY glcRotate (GLfloat inAngle);
-GLAPI void APIENTRY glcScale (GLfloat inX, GLfloat inY);
+GLCAPI void APIENTRY glcLoadIdentity (void);
+GLCAPI void APIENTRY glcLoadMatrix (const GLfloat *inMatrix);
+GLCAPI void APIENTRY glcMultMatrix (const GLfloat *inMatrix);
+GLCAPI void APIENTRY glcRotate (GLfloat inAngle);
+GLCAPI void APIENTRY glcScale (GLfloat inX, GLfloat inY);
 
-GLAPI void APIENTRY glcRenderChar (GLint inCode);
-GLAPI void APIENTRY glcRenderCountedString (GLint inCount, const GLCchar *inString);
-GLAPI void APIENTRY glcRenderString (const GLCchar *inString);
-GLAPI void APIENTRY glcRenderStyle (GLCenum inStyle);
-GLAPI void APIENTRY glcReplacementCode (GLint inCode);
-GLAPI void APIENTRY glcResolution (GLfloat inVal);
+GLCAPI void APIENTRY glcRenderChar (GLint inCode);
+GLCAPI void APIENTRY glcRenderCountedString (GLint inCount, const GLCchar *inString);
+GLCAPI void APIENTRY glcRenderString (const GLCchar *inString);
+GLCAPI void APIENTRY glcRenderStyle (GLCenum inStyle);
+GLCAPI void APIENTRY glcReplacementCode (GLint inCode);
+GLCAPI void APIENTRY glcResolution (GLfloat inVal);
 
-GLAPI GLfloat* APIENTRY glcGetCharMetric (GLint inCode, GLCenum inMetric, GLfloat *outVec);
-GLAPI GLfloat* APIENTRY glcGetMaxCharMetric (GLCenum inMetric, GLfloat *outVec);
-GLAPI GLfloat* APIENTRY glcGetStringCharMetric (GLint inIndex, GLCenum inMetric, GLfloat *outVec);
-GLAPI GLfloat* APIENTRY glcGetStringMetric (GLCenum inMetric, GLfloat *outVec);
-GLAPI GLint APIENTRY glcMeasureCountedString (GLboolean inMeasureChars, GLint inCount, const GLCchar *inString);
-GLAPI GLint APIENTRY glcMeasureString (GLboolean inMeasureChars, const GLCchar *inString);
+GLCAPI GLfloat* APIENTRY glcGetCharMetric (GLint inCode, GLCenum inMetric, GLfloat *outVec);
+GLCAPI GLfloat* APIENTRY glcGetMaxCharMetric (GLCenum inMetric, GLfloat *outVec);
+GLCAPI GLfloat* APIENTRY glcGetStringCharMetric (GLint inIndex, GLCenum inMetric, GLfloat *outVec);
+GLCAPI GLfloat* APIENTRY glcGetStringMetric (GLCenum inMetric, GLfloat *outVec);
+GLCAPI GLint APIENTRY glcMeasureCountedString (GLboolean inMeasureChars, GLint inCount, const GLCchar *inString);
+GLCAPI GLint APIENTRY glcMeasureString (GLboolean inMeasureChars, const GLCchar *inString);
 
 /*************************************************************/
 
 #define GLC_SGI_ufm_typeface_handle               1
 #define GLC_UFM_TYPEFACE_HANDLE_SGI               0x8001
 #define GLC_UFM_TYPEFACE_HANDLE_COUNT_SGI         0x8003
-GLAPI GLint APIENTRY glcGetMasterListiSGI(GLint inMaster, GLCenum inAttrib, GLint inIndex);
-GLAPI GLint APIENTRY glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint inIndex);
+GLCAPI GLint APIENTRY glcGetMasterListiSGI(GLint inMaster, GLCenum inAttrib, GLint inIndex);
+GLCAPI GLint APIENTRY glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint inIndex);
 
 #define GLC_SGI_full_name                         1
 #define GLC_FULL_NAME_SGI                         0x8002
