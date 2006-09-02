@@ -10,6 +10,7 @@ programs with character rendering services via an application programming
 interface (API).
 
 \image html screenshot.png "The glclogo example by Gerard Lanois rendered with QuesoGLC"
+\image latex screenshot.eps "The glclogo example by Gerard Lanois rendered with QuesoGLC" width=10cm
 
 The character rendering services provided by GLC has some significant
 advantages over platform specific interface such as GLX or WGL :
@@ -36,7 +37,7 @@ its specifications has not evolved since late 1996.
 QuesoGLC is a free implementation of the OpenGL Character Renderer (GLC).
 QuesoGLC is based on the FreeType library, provides Unicode support and is
 designed to be easily ported to any platform that supports both FreeType and
-OpenGL API.
+the OpenGL API.
 
 QuesoGLC is free software; you can redistribute it and/or modify it under the
 terms of the GNU Lesser General Public License as published by the Free
@@ -244,6 +245,7 @@ That's it ! With a few lines of code, GLC allows to render some text in an
 OpenGL window.
 
 \image html tutorial.png
+\image latex tutorial.eps "'Hello world!' example" width=10cm
 
 \n
 As a reminder, the complete code is given below :
@@ -358,6 +360,7 @@ around the 4 last letters of the word <em>"Hello"</em> as shown in the image
 below.
 
 \image html tutorial2.png "Figure 1 - The result of the tutorial"
+\image latex tutorial2.eps "The result of the tutorial" width=10cm
 
 The code presented in the \ref tutorial tutorial is the starting point of the
 current example. Notice however that it has been slightly changed : a call to
@@ -403,6 +406,7 @@ of the variable \b GLC_RENDER_STYLE is \b GLC_BITMAP then each point is
 transformed by the 2x2 \b GLC_BITMAP_MATRIX.
 
 \image html measure.png "Figure 2 - Metrics coordinates"
+\image latex measure.eps "Metrics coordinates" width=7cm
 
 Since there are 4 corners, we need to define an array of 8 floating point
 numbers which will contain the <em>(x, y)</em> coordinates of the bounding box.
@@ -465,6 +469,7 @@ location since we do not have taken the advance of the character \e "H" into
 account :
 
 \image html tutorial2_wrong.png "Figure 3 - The bounding box of 'ello' is misplaced"
+\image latex tutorial2_wrong.eps "The bounding box of 'ello' is misplaced" width=10cm
 
 Hence we need first to translate the bounding box of the advance of the
 character \e "H". Since the advance of a character is equal to the length of its
@@ -828,6 +833,7 @@ letters of the following text have not the same height, even though they are
 displayed at the same point size with distinct fonts:</em>
 
 \image html body_comparison.png
+\image latex body_comparison.eps "Body comparison" width=9cm
 
 As one can see, the glyphs of the Courier family are smaller than those of Times
 New Roman, which themselves are slightly smaller than those of Arial, even
@@ -872,10 +878,12 @@ Each layout uses a different convention for glyph placement:
   <em>The pen position is always placed on the baseline.</em>
 
 \image html Image1.png
+\image latex Image1.eps "Glyph positioning" width=9cm
 
 - With a vertical layout, glyphs are centered around the baseline:
 
 \image html Image2.png
+\image latex Image2.eps "Vertical layout" width=3cm
 
 \subsection typographic Typographic metrics and bounding boxes
 
@@ -965,10 +973,12 @@ can be used to render text either horizontally or vertically:
 Here is a picture giving all the details for horizontal metrics:
 
 \image html Image3.png
+\image latex Image3.eps "Horizontal metrics" width=7cm
 
 And here is another one for the vertical metrics:
 
 \image html Image4.png
+\image latex Image4.eps "Vertical metrics" width=5cm
 
 \subsection gridfitting_effect The effects of grid-fitting
 
