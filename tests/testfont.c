@@ -31,8 +31,13 @@ int main(void)
   ctx = glcGenContext();
   glcContext(ctx);
 
+#ifdef __WIN32__
+  glcFontFace(glcNewFontFromFamily(1, "Times New Roman"), "Bold");
+  font = glcNewFontFromFamily(2, "Courier New");
+#else
   glcFontFace(glcNewFontFromFamily(1, "Utopia"), "Bold");
   font = glcNewFontFromFamily(2, "Courier");
+#endif
   glcFont(font);
   glcFontFace(font, "Italic");
 
