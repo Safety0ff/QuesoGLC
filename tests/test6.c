@@ -44,7 +44,7 @@ GLboolean checkError(GLCenum expectedError)
   }
 }
 
-GLboolean callback(GLint inCode)
+CALLBACK GLboolean callback(GLint inCode)
 {
   printf("Code 0x%X\n", inCode);
   return GL_FALSE;
