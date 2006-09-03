@@ -25,7 +25,8 @@ advantages over platform specific interface such as GLX or WGL :
 -# GLC provides better support for glyph transformations. For example, GLC
    supports rotated text, which is unavailable in GLX.
 -# GLC provides better support for the large coded character set defined by the
-   standards ISO/IEC 10646:2003 and Unicode 4.0.1
+   standards ISO/IEC 10646:2003 and <a href="http://www.unicode.org">Unicode</a>
+   4.0.1
 
 GLC is a library that has been designed by SGI and that was only available on
 SGI workstations under IRIX 6.2 and later. The draft of the GLC specifications
@@ -53,7 +54,8 @@ License</a> for more details.
 Its development platform is Linux.
 \section requirements Requirements
 QuesoGLC is written in ANSI C and should compile with any C compiler that is
-compliant with ANSI C standards.
+compliant with ANSI C standards. QuesoGLC has been successfully compiled and
+used under Linux and Windows.
 
 <a href="http://www.opengl.org">OpenGL</a>,
 <a href="http://www.freetype.org">FreeType 2</a> and
@@ -62,6 +64,18 @@ dependencies.
 
 So far, Fontconfig is mandatory in order to build and run the QuesoGLC library.
 However, it is expected that Fontconfig will become optional in the future.
+\section qusers QuesoGLC users
+QuesoGLC users are :
+
+-# <a href="http://sourceforge.net/projects/yogur">Yogur</a> an add-on to the
+   OpenGL Character renderer. It provides additional GLC measurement metrics,
+   convertion between string encodings and generic selection of font properties.
+-# <a href="http://sourceforge.net/projects/glguia/">GlGuiA</a> a set of
+   packages for Ada 2006 that can be used to create Graphical User Interfaces,
+   relaying (almost) only on OpenGL. Hence should be rather platform-independant.
+
+If you know other projects that use QuesoGLC please let
+<a href="mailto:bcoconni@users.sourceforge.net">me</a> know.
 \n
 */
 /** \page tutorial First Steps

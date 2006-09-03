@@ -1,167 +1,169 @@
 TD, CAPTION {
-    font-size: 14px;
+font-size: 14px;
+margin: 0px;
+padding: 0px;
 }
 /* RedBlog */
 a:link, a:visited {
-    text-decoration: none;
-    color: #314e96;
+text-decoration: none;
+color: #314e96;
 }
 
 a:hover {
-    text-decoration: none;
-    color: #fe7405;
+text-decoration: none;
+color: #fe7405;
 }
 
 body {	
-    background-color: #ffffff;	
-    margin-top: 10px;	
-    font-family: Verdana, Arial, sans-serif;
+background-color: #ffffff;	
+margin-top: 10px;	
+font-family: Verdana, Arial, sans-serif;
 }
 
 hr { height: 1px; border: solid #fe7405 0px; border-top-width: 1px;}
 
 TABLE.module {
-    border: 1px solid #cccccc;
-    background-color: #ffffff;
+border: 1px solid #cccccc;
+background-color: #ffffff;
 }
 
 TABLE.module2 {
-    border: 1px solid #cccccc;
-    background-color: #f8f8f8; 
+border: 1px solid #cccccc;
+background-color: #f8f8f8; 
 }
 
 TABLE.mark3 {
-    border: solid 1px #cccccc;
-    padding: 2px;
+border: solid 1px #cccccc;
+padding: 2px;
 }
 
 SPAN.gen {
-    font-size: 12px;
+font-size: 12px;
 }
 
 SPAN.light {
-    font-size: 12px;
-    color: #555555;
+font-size: 12px;
+color: #555555;
 }
 /* QuesoGLC */
 TABLE.menu {
-    text-decoration: none;
-    width: 160px;
-    margin-top: 0px;
-    padding-left: 2px;
-    padding-right: 2px;
-    background: #f5f5f5;
-    border: 1px #cccccc solid;
+text-decoration: none;
+width: 160px;
+margin-top: 0px;
+padding-left: 2px;
+padding-right: 2px;
+background: #f5f5f5;
+border: 1px #cccccc solid;
 }
 
 TABLE.submenu {
-    border: 0px #cccccc solid;
-    background: #f5f5f5;
+border: 0px #cccccc solid;
+background: #f5f5f5;
 }
 
 TD.title {
-    text-decoration: none;
-    text-align: center;
-    color: #fe7405;
-    padding-bottom: 4px;
-    padding-left: 0px;
-    margin: 0px;
-    font-size: 14px;
+text-decoration: none;
+text-align: center;
+color: #fe7405;
+padding-bottom: 4px;
+padding-left: 0px;
+margin: 0px;
+font-size: 14px;
 }
 
 TD.item a {
-    text-decoration: none;
-    display: block;
-    background: #ffffff;
-    color: #314e96;
-    margin: 0px;
-    padding: 4px;
-    padding-left: 10px;
-    border: 1px #cccccc solid;
-    font-size: 12px;
+text-decoration: none;
+display: block;
+background: #ffffff;
+color: #314e96;
+margin: 0px;
+padding: 4px;
+padding-left: 10px;
+border: 1px #cccccc solid;
+font-size: 12px;
 }
 
 TD.item a:hover {
-    text-decoration: none;
-    display: block;
-    color: #fe7405;
-    border: 1px #cccccc solid;
-    text-decoration: none;
+text-decoration: none;
+display: block;
+color: #fe7405;
+border: 1px #cccccc solid;
+text-decoration: none;
 }
 
 TABLE.icons {
-    border: 0px;
-    background: #ffffff;
-    padding-top: 20px;
+border: 0px;
+background: #ffffff;
+padding-top: 20px;
 }
 
 TD.icons {
-    padding-bottom: 10px;
-    text-align: center;
+padding-bottom: 10px;
+text-align: center;
 }
 
 TD.main {
-    border: 0px #cccccc solid;
-    background: #ffffff;
-    padding: 4px;
-    font-size: 14px;
+border: 0px #cccccc solid;
+background: #ffffff;
+padding: 4px;
+font-size: 14px;
 }
 
 /* Doxygen */
 A.anchor, A.anchor:hover, H1 {
-    text-align: center;
-    color: #000000;
+text-align: center;
+color: #000000;
 }
 
 H2 {
-    text-decoration: none;
-    border: 1px #cccccc solid;
-    padding: 4px;
-    background: #f5f5f5;
-    color: #555555;
-    font-size: 20px;
+text-decoration: none;
+border: 1px #cccccc solid;
+padding: 4px;
+background: #f5f5f5;
+color: #555555;
+font-size: 20px;
 }
 
 TABLE.mdTable {
-    border: 1px solid #e8e0d8;
-    background-color: #fff4e0;
-    color: #555555;
-    font-size: 14px;
-    width: 100%;
+border: 1px solid #e8e0d8;
+background-color: #fff4e0;
+color: #555555;
+font-size: 14px;
+width: 100%;
 }
 
 TD.mdRow {
-    padding: 8px 20px;
-    color: #555555;
-    font-size: 14px;
+padding: 8px 20px;
+color: #555555;
+font-size: 14px;
 }
 
 TD.md {
-    background-color: #fff4e0;
-    font-weight: bold;
-    color: #555555;
+background-color: #fff4e0;
+font-weight: bold;
+color: #555555;
 }
 
 TD.mdname1 {
-    background-color: #fff4e0;
-    font-weight: bold;
-    color: #A03030;
+background-color: #fff4e0;
+font-weight: bold;
+color: #A03030;
 }
 
 TD.mdname {
-    background-color: #fff4e0;
-    font-weight: bold;
-    color: #A03030;
-    width: 600px;
+background-color: #fff4e0;
+font-weight: bold;
+color: #A03030;
+width: 600px;
 }
 
 DIV.fragment {
-    width: 80%;
-    border: 1px solid #f0f0d0;
-    background-color: #ffffe8;
-    padding-left: 3%;
-    margin: 4px;
-    margin-left: 10%;
+width: 80%;
+border: 1px solid #f0f0d0;
+background-color: #ffffe8;
+padding-left: 3%;
+margin: 4px;
+margin-left: 10%;
 }
 
 SPAN.keyword       { color: #008000 }
@@ -175,11 +177,11 @@ SPAN.charliteral   { color: #008080 }
 CAPTION { font-weight: bold }
 
 ul.qmenu li ul{
-  display:none;
+display:none;
 }
 
 ul.qmenu li:hover>ul{
-  display:block;
+display:block;
 }
 
 ul.qmenu{
@@ -191,12 +193,14 @@ ul.qmenu ul{
   list-style:none;
   width: 100%;
   padding:0px;
+  margin:0px;
+  margin-bottom:2px;
 }
 
 ul.qmenu ul{
   position:absolute;
   top:-1px;
-  left:150px;
+  left:152px;
   border: 1px #cccccc solid;
   background: #fbfbfb;
 }
