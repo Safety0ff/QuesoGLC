@@ -1,10 +1,11 @@
-QuesoGLC can only be built on POSIX platforms.
+These are the instructions to build QuesoGLC on POSIX platforms. If you want to
+build QuesoGLC on Windows, see INSTALL.win
 
 1. What do you need in order to build QuesoGLC :
-==============================================
+================================================
 
 1.1 Tools/headers/libraries that are mandatory :
-----------------------------------------------
+------------------------------------------------
 
 QuesoGLC depends on tools and libraries that are now widely used in the
 Open Source world, and which might already be installed on your favorite
@@ -29,14 +30,14 @@ platform. If not, you can get them on Internet and build them on your system.
 	first.
 
 1.2 Tools/headers/libraries that are optional :
----------------------------------------------
+-----------------------------------------------
 
 QuesoGLC can be safely built and used without GLUT. However, some test programs
 need GLUT in order to display OpenGL graphics : if GLUT is not installed on your
 system, the examples will not build.
 Doxygen is a tool to generate the docs, you need it if you want to generate the
 documentation yourself; otherwise you can get the reference manual of QuesoGLC
-by either downloading it from sourceforge or browsing it on-line on the QuesoGLC
+by either downloading it from SourceForge or browsing it on-line on the QuesoGLC
 web site (http://quesoglc.sourceforge.net).
 
 * Mark Kilgard's GLUT (www.opengl.org/resources/libraries/glut.html)
@@ -48,10 +49,10 @@ web site (http://quesoglc.sourceforge.net).
 
 2. OK, all those libs and headers are installed on my machine.
 What shall I do now ?
-=============================================================
+==============================================================
 
 2.1. Build the library and the examples :
----------------------------------------
+-----------------------------------------
 
 Simply type
 
@@ -65,14 +66,18 @@ install QuesoGLC to another location, use the --prefix option of configure :
 
   ./configure --prefix=/another/location
 
-By default, QuesoGLC is built as a static library, but it can also be built as a
-shared library, in which case you must use the --enable-shared option of the
+By default, both the static and the dynamic library are built, but if you only
+want the static library you can use the --disable-shared option of the
 configure script :
 
-  ./configure --enable-shared
+  ./configure --disable-shared
+
+For more informations about the options of the configure script, just type :
+
+  ./configure --help
 
 2.2 Build the docs (optional) :
------------------------------
+-------------------------------
 
 You may also want to build the documentation; QuesoGLC uses Doxygen that does
 the job nicely. In order to get the docs, go to the docs/ directory and run
@@ -89,8 +94,8 @@ pdflatex to be installed on your system).
 
 When the library has been successfully built, you might define the environment
 variable GLC_PATH in order to indicate QuesoGLC where to find fonts. This step
-is optional since QuesoGLC uses Fontconfig to locate fonts on your system. You
-can however add some additional directories to those detected by Fontconfig.
+is optional since QuesoGLC uses Fontconfig to locate the fonts on your system.
+You can however add some additional directories to those detected by Fontconfig.
 
 GLC_PATH is a colon-separated list of directories similar to the PATH
 environment variable. Depending on your shell the command is either

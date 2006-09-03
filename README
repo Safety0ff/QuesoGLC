@@ -1,3 +1,7 @@
+This file contains general informations about QuesoGLC. For installations
+instructions, see the INSTALL file if you run a POSIX platform and INSTALL.win
+if you run Windows.
+
 QuesoGLC is a free implementation of SGI's OpenGL Character Renderer (GLC).
 QuesoGLC is based on the FreeType library, provides Unicode support and is
 designed to be easily ported on any platform that supports both FreeType and
