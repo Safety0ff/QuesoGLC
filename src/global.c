@@ -640,7 +640,18 @@ GLint APIENTRY glcGenContext(void)
        * context */
       begin = path;
       do {
+#ifdef __WIN32__
+	/* Windows can not use a colon-separated list since the colon sign is
+	 * used after the drive letter. The semicolon is used for the PATH
+	 * variable, so we use it for consistency.
+	 */
+	sep = (char *)__glcFindIndexList(begin, 1, ";");
+#else
+	/* POSIX platforms uses colon-separated lists for the paths variables
+	 * so we keep with it for consistency.
+	 */
 	sep = (char *)__glcFindIndexList(begin, 1, ":");
+#endif
         if (--sep != begin + strlen(begin))
 	  *(sep++) = 0;
 	__glcCtxAddMasters(state, begin, GL_TRUE);
