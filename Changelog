@@ -1,6 +1,8 @@
 Changes made from the "0.3" release to the "0.4" release:
 -----------------------------------------------------------
 
+- Modified the GLC_PATH parser code in order to use semicolon-separated lists
+  for Win32 and colon-separated for POSIX platforms.
 - Added a makefile so that QuesoGLC can be built under Win32
 - Removed the pthread dependency for Win32
 - Added a new __glcGlyph object that allow to cache the display list, the
