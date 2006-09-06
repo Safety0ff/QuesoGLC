@@ -394,13 +394,15 @@ static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 #if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
 static int __glcConicTo(const FT_Vector *inVecControl,
 			const FT_Vector *inVecTo, void* inUserData)
+{
+  const FT_Vector *control[1];
 #else
 static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
 			void* inUserData)
-#endif
 {
-  __glcRendererData *data = (__glcRendererData *) inUserData;
   FT_Vector *control[1];
+#endif
+  __glcRendererData *data = (__glcRendererData *) inUserData;
   int error = 0;
 
   control[0] = inVecControl;
@@ -421,13 +423,15 @@ static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
 static int __glcCubicTo(const FT_Vector *inVecControl1,
 			const FT_Vector *inVecControl2,
 			const FT_Vector *inVecTo, void* inUserData)
+{
+  const FT_Vector *control[2];
 #else
 static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 			FT_Vector *inVecTo, void* inUserData)
-#endif
 {
-  __glcRendererData *data = (__glcRendererData *) inUserData;
   FT_Vector *control[2];
+#endif
+  __glcRendererData *data = (__glcRendererData *) inUserData;
   int error = 0;
 
   control[0] = inVecControl1;
