@@ -1,4 +1,28 @@
-/* $Id */
+/* QuesoGLC
+ * A free implementation of the OpenGL Character Renderer (GLC)
+ * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2.1 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+/* $Id$ */
+
+/** \file
+ * Checks the Unicode conversion code and that error conditions that generates
+ * errors.
+ */
+
 #include <GL/glc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +32,7 @@
 #define QUESOGLC_MINOR 2
 
 static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name GLC_QSO_hinting";
-static GLCchar* __glcRelease = (GLCchar*) "0.4";
+static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
 static GLCchar* __glcExtensionsUCS2 = NULL;

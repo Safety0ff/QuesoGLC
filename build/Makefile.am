@@ -1,13 +1,3 @@
-MAJOR = @MAJOR@
-MINOR = @MINOR@
-REVISION = @REVISION@
-
-if DEBUGMODE
-AM_CFLAGS = -g -DDEBUGMODE -Wall -pedantic-errors -Werror
-else
-AM_CFLAGS = -fomit-frame-pointer -ffast-math
-endif
-
 lib_LTLIBRARIES = libGLC.la
 
 libGLC_la_SOURCES = $(top_builddir)/src/context.c \
@@ -39,8 +29,7 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/oglyph.c
 
 libGLC_la_CPPFLAGS = -I$(top_builddir)/src \
-                   -DQUESOGLC_VERSION_MAJOR=$(MAJOR) \
-                   -DQUESOGLC_VERSION_MINOR=$(MINOR) \
+                   -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" \
                    @PTHREAD_CFLAGS@ \
                    @FONTCONFIG_CFLAGS@ \
                    @FREETYPE2_CFLAGS@ \

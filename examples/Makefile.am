@@ -8,16 +8,10 @@ noinst_PROGRAMS = glclogo \
                   glcdemo \
                   demo
 
-if DEBUGMODE
-AM_CFLAGS = -g -DDEBUGMODE
-else
-AM_CFLAGS = -O2 -fomit-frame-pointer -ffast-math
-endif
-
-AM_CFLAGS += @PTHREAD_CFLAGS@ \
-             @FREETYPE2_CFLAGS@ \
-             @FONTCONFIG_CFLAGS@ \
-             @GLUT_CFLAGS@
+AM_CFLAGS = @PTHREAD_CFLAGS@ \
+            @FREETYPE2_CFLAGS@ \
+            @FONTCONFIG_CFLAGS@ \
+            @GLUT_CFLAGS@
 
 LDADD = $(top_builddir)/build/libGLC.la \
         @GLUT_LIBS@ \

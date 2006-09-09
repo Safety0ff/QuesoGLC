@@ -17,16 +17,10 @@ EXTRA_PROGRAMS = test7 \
 
 TESTS = $(noinst_PROGRAMS)
 
-if DEBUGMODE
-AM_CFLAGS = -g -DDEBUGMODE
-else
-AM_CFLAGS = -O2 -fomit-frame-pointer -ffast-math
-endif
-
-AM_CFLAGS += @PTHREAD_CFLAGS@ \
-             @FREETYPE2_CFLAGS@ \
-             @FONTCONFIG_CFLAGS@ \
-             @GLUT_CFLAGS@
+AM_CFLAGS = @PTHREAD_CFLAGS@ \
+            @FREETYPE2_CFLAGS@ \
+            @FONTCONFIG_CFLAGS@ \
+            @GLUT_CFLAGS@
 
 LDADD = $(top_builddir)/build/libGLC.la \
         @GLUT_LIBS@ \
@@ -45,16 +39,13 @@ test4_SOURCES = test4.c
 test5_SOURCES = test5.c
 
 test6_SOURCES = test6.c
-test6_CFLAGS = $(CFLAGS) -DQUESOGLC_VERSION_MAJOR=@MAJOR@ -DQUESOGLC_VERSION_MINOR=@MINOR@
+test6_CFLAGS = $(CFLAGS) -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\"
 
 testcontex_SOURCES = testcontex.c
-#testcontex_LDADD = $(LDADD)
 
 testfont_SOURCES = testfont.c
-#testfont_LDADD = $(LDADD)
 
 testmaster_SOURCES = testmaster.c
-#testmaster_LDADD = $(LDADD)
 
 test7_SOURCES = test7.c
 test7_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@

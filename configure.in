@@ -16,22 +16,11 @@ AC_CONFIG_SRCDIR([src/global.c])
 AC_CONFIG_AUX_DIR([build])
 AC_CONFIG_MACRO_DIR([build/m4])
 
-MAJOR=0
-MINOR=5
-REVISION=0
-
 
 # Init automake.
 # --------------
 
 AM_INIT_AUTOMAKE([dist-bzip2])
-
-
-# Automate the debug build
-# ------------------------
-
-AC_ARG_ENABLE(debug-mode, [  --enable-debug-mode[=ARG] build debug library [default=no] ])
-AM_CONDITIONAL(DEBUGMODE, test "$enable_debug_mode" = yes)
 
 
 # Checks for programs.
@@ -130,9 +119,6 @@ AC_CONFIG_FILES(Makefile
                 tests/Makefile
                 examples/Makefile)
 
-AC_SUBST(MAJOR)
-AC_SUBST(MINOR)
-AC_SUBST(REVISION)
 AC_SUBST(EXAMPLES)
 AC_SUBST(TESTS_WITH_GLUT)
 AC_OUTPUT
