@@ -310,6 +310,7 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
  *  This command returns the string at offset \e inIndex from the first element
  *  in the string list identified by \e inAttrib which must be chosen in the
  *  table below :
+ *
  *  <center>
  *  <table>
  *  <caption>String lists</caption>
@@ -661,7 +662,7 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
     " GLC_QSO_hinting";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
-  char __glcRelease[4] = " . ";
+  static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 
   __glcContextState *state = NULL;
 
@@ -689,8 +690,6 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
     return __glcConvertFromUtf8ToBuffer(state, __glcExtensions,
 					state->stringType);
   case GLC_RELEASE:
-    __glcRelease[0] = QUESOGLC_VERSION_MAJOR+'0';
-    __glcRelease[2] = QUESOGLC_VERSION_MINOR+'0';
     return __glcConvertFromUtf8ToBuffer(state, (GLCchar*)__glcRelease,
 					state->stringType);
   case GLC_VENDOR:
