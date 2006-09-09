@@ -1,25 +1,38 @@
-noinst_PROGRAMS = glclogo tutorial tutorial2 unicode glcdemo demo
+
+## Process this file with automake to produce Makefile.in.
+
+noinst_PROGRAMS = glclogo \
+                  tutorial \
+                  tutorial2 \
+                  unicode \
+                  glcdemo \
+                  demo
 
 if DEBUGMODE
-AM_CPPFLAGS = -g -DDEBUGMODE
+AM_CFLAGS = -g -DDEBUGMODE
 else
-AM_CPPFLAGS = -O2 -fomit-frame-pointer -ffast-math
+AM_CFLAGS = -O2 -fomit-frame-pointer -ffast-math
 endif
 
-glclogo_SOURCES = glclogo.c $(top_builddir)/include/GL/glc.h
-glclogo_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+AM_CFLAGS += @PTHREAD_CFLAGS@ \
+             @FREETYPE2_CFLAGS@ \
+             @FONTCONFIG_CFLAGS@ \
+             @GLUT_CFLAGS@
 
-tutorial_SOURCES = tutorial.c $(top_builddir)/include/GL/glc.h
-tutorial_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+LDADD = $(top_builddir)/build/libGLC.la \
+        @GLUT_LIBS@ \
+        @FONTCONFIG_LIBS@ \
+        @FREETYPE2_LIBS@ \
+        @PTHREAD_LIBS@
 
-tutorial2_SOURCES = tutorial2.c $(top_builddir)/include/GL/glc.h
-tutorial2_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+glclogo_SOURCES = glclogo.c
 
-unicode_SOURCES = unicode.c $(top_builddir)/include/GL/glc.h
-unicode_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+tutorial_SOURCES = tutorial.c
 
-glcdemo_SOURCES = glcdemo.c $(top_builddir)/include/GL/glc.h
-glcdemo_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+tutorial2_SOURCES = tutorial2.c
 
-demo_SOURCES = demo.c trackball.c trackball.h $(top_builddir)/include/GL/glc.h
-demo_LDADD = $(top_builddir)/lib/libGLC.la -lglut
+unicode_SOURCES = unicode.c
+
+glcdemo_SOURCES = glcdemo.c
+
+demo_SOURCES = demo.c trackball.c trackball.h

@@ -1,0 +1,14 @@
+compile
+config.*
+depcomp
+install-sh
+ltmain.sh
+missing
+mkinstalldirs
+Makefile
+Makefile.in
+.deps
+.libs
+*.o
+*.lo
+*.la
