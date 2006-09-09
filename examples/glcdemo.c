@@ -5,9 +5,16 @@
    and is provided without guarantee or warrantee expressed or 
    implied. This program is -not- in the public domain. */
 
-#include <string.h>
-#include <GL/glc.h>
+#if defined __APPLE__ && defined __MACH__
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
+#else
+#include <GL/gl.h>
 #include <GL/glut.h>
+#endif
+#include <GL/glc.h>
+
+#include <string.h>
 
 int font = 1;
 char defaultMessage[] = "GLUT means OpenGL.";
