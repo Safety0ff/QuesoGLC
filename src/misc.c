@@ -610,6 +610,7 @@ GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
 GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 {
   GLint code = inCode;
+  FcBlanks* blanks = NULL;
 
   if (inCode < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -625,6 +626,13 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return -1;
     }
+  }
+
+  /* Treat all blank characters as '\0' */
+  blanks = FcConfigGetBlanks(NULL);
+  if (blanks) {
+    if (FcBlanksIsMember(blanks, code))
+      return 0;
   }
 
   return code;
