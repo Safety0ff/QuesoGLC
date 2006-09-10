@@ -2,5 +2,5 @@ Thanks to :
 
 * Pablo Barbáchano for fixing the install process and providing a patch to allow QuesoGLC to be linked with FreeType 2.2.x
 * Brandon Casey for many bug fixes
-* Thomas Zimmermann for fixing the string measurement commands
+* Thomas Zimmermann for fixing the string measurement commands and improving the autotools building scripts
 * Matt Turner for demonstrating that QuesoGLC could be compiled under Windows with a few changes
