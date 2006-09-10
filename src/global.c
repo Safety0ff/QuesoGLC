@@ -630,33 +630,48 @@ GLint APIENTRY glcGenContext(void)
   if (getenv("GLC_PATH")) {
     char *path = NULL;
     char *begin = NULL;
-    char *sep = NULL;
+    char *sepPos = NULL;
+    char *separator = NULL;
 
-    /* Read the paths of fonts file. GLC_PATH uses the same format than PATH */
-    path = strdup(getenv("GLC_PATH"));
-    if (path) {
+    /* Read the paths of fonts file.
+     * First, try GLC_CATALOG_LIST...
+     */
+    if (getenv("GLC_CATALOG_LIST"))
+      path = strdup(getenv("GLC_CATALOG_LIST"));
+    else if (getenv("GLC_PATH")) {
+      /* Try GLC_PATH which uses the same format than PATH */
+      path = strdup(getenv("GLC_PATH"));
+    }
 
-      /* Get each path and add the corresponding masters to the current
-       * context */
-      begin = path;
-      do {
+    /* Get the list separator */
+    separator = getenv("GLC_LIST_SEPARATOR");
+    if (!separator) {
 #ifdef __WIN32__
 	/* Windows can not use a colon-separated list since the colon sign is
 	 * used after the drive letter. The semicolon is used for the PATH
 	 * variable, so we use it for consistency.
 	 */
-	sep = (char *)__glcFindIndexList(begin, 1, ";");
+	separator = (char *)";";
 #else
 	/* POSIX platforms uses colon-separated lists for the paths variables
 	 * so we keep with it for consistency.
 	 */
-	sep = (char *)__glcFindIndexList(begin, 1, ":");
+	separator = (char *)":";
 #endif
-        if (--sep != begin + strlen(begin))
-	  *(sep++) = 0;
+    }
+
+    if (path) {
+      /* Get each path and add the corresponding masters to the current
+       * context */
+      begin = path;
+      do {
+	sepPos = (char *)__glcFindIndexList(begin, 1, separator);
+
+        if (--sepPos != begin + strlen(begin))
+	  *(sepPos++) = 0;
 	__glcCtxAddMasters(state, begin, GL_TRUE);
-	begin = sep;
-      } while (*sep);
+	begin = sepPos;
+      } while (*sepPos);
       __glcFree(path);
     }
     else {
