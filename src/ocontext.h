@@ -63,6 +63,7 @@ typedef struct {
   __glcArray* vertexArray;	/* Array of vertices */
   __glcArray* controlPoints;	/* Array of control points */
   __glcArray* endContour;	/* Array of contour limits */
+  GLint glCapacities;		/* Capacities of the GL driver */
 } __glcContextState;
 
 typedef struct {

@@ -29,7 +29,7 @@
 #include <assert.h>
 
 #include "GL/glc.h"
-#if !(defined __APPLE__ && defined __MACH__) && !defined __WIN32__
+#ifdef HAVE_CONFIG_H
 #include "qglc_config.h"
 #endif
 #include "ofont.h"
@@ -39,6 +39,8 @@
 #define GLC_OUT_OF_RANGE_LEN	11
 #define GLC_EPSILON		1E-6
 #define GLC_POINT_SIZE		128
+
+#define GLC_TEXTURE_LOD		1
 
 typedef struct {
   GLint code;

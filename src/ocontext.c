@@ -133,6 +133,8 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
+  This->glCapacities = 0;
+
   return This;
 }
 

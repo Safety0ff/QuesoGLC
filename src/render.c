@@ -219,6 +219,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   GLint format = 0;
   GLint boundTexture = 0;
   GLint level = 0;
+  int minSize = (inState->glCapacities & GLC_TEXTURE_LOD) ? 2 : 1;
 
   assert(face);
 
@@ -276,7 +277,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glBindTexture(GL_TEXTURE_2D, texture);
 
   /* Iterate on the powers of 2 in order to build the mipmap */
-  while ((pixmap.width > 2) && (pixmap.rows > 2)) {
+  while ((pixmap.width > minSize) && (pixmap.rows > minSize)) {
     FT_Vector* vector = NULL;
 
     /* fill the pixmap buffer with the background color */
@@ -329,10 +330,39 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 
   /* Initialize the texture parameters */
   if (inState->mipmap && inDisplayListIsBuilding) {
+    if (inState->glCapacities & GLC_TEXTURE_LOD)
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
+    else {
+      /* The OpenGL driver does not support the extension GL_EXT_texture_lod 
+       * We must finish the pixmap until the mipmap level is 1x1.
+       */
+      int savedWidth = pixmap.width;
+      int savedRows = pixmap.rows;
+      GLint savedLevel = level;
+
+      /* Here the smaller mipmap levels will be transparent, no glyph will be
+       * rendered.
+       * TODO: Use gluScaleImage() to render the last levels.
+       */
+      memset(pixmap.buffer, 0, pixmap.width * pixmap.rows);
+      while ((pixmap.width > 0) || (pixmap.rows > 0)) {
+	glTexImage2D(GL_TEXTURE_2D, level++, GL_ALPHA8,
+		     pixmap.width ? pixmap.width : 1,
+		     pixmap.rows ? pixmap.rows : 1, 0, GL_ALPHA,
+		     GL_UNSIGNED_BYTE, pixmap.buffer);
+
+	pixmap.width >>= 1;
+	pixmap.rows >>= 1;
+      }
+
+      pixmap.width = savedWidth;
+      pixmap.rows = savedRows;
+      level = savedLevel;
+    }
+
     pixmap.width <<= level;
     pixmap.rows <<= level;
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		    GL_LINEAR_MIPMAP_LINEAR);
   }
