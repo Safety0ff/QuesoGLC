@@ -1,6 +1,13 @@
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
+- The OpenGL version is now checked and the texture rendering behaves
+  accordingly.
+- Environment variables GLC_LIST_SEPARATOR and GLC_CATALOG_LIST are now read by
+  QuesoGLC. They supersedes GLC_PATH if defined otherwise GLC_PATH is parsed.
+  (suggestion by Brandon Casey).
+- Blank Unicode characters (that is character which are expected to be blank
+  when drawn) are now managed according to the Unicode standards.
 - Thomas Zimmermann greatly improved the building scripts.
 
 Changes made from the "0.3" release to the "0.4" release:
