@@ -420,13 +420,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     glNewList(inGlyph->displayList[0], GL_COMPILE_AND_EXECUTE);
   }
 
-  glPushAttrib(GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   /* Repeat glBindTexture() so that the display list includes it */
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
   /* Compute the size of the glyph */
   width = (GLfloat)((boundingBox.xMax - boundingBox.xMin) / 64.);
@@ -451,8 +446,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   /* Store the glyph advance in the display list */
   glTranslatef(face->glyph->advance.x / 64. / scale_x,
 	       face->glyph->advance.y / 64. / scale_y, 0.);
-
-  glPopAttrib();
 
   if (inState->glObjects) {
     /* Finish display list creation */
@@ -494,16 +487,19 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 	glCallList(glyph->displayList[0]);
 	return;
       }
+      break;
     case GLC_LINE:
       if (glyph->displayList[1]) {
 	glCallList(glyph->displayList[1]);
 	return;
       }
+      break;
     case GLC_TRIANGLE:
       if (glyph->displayList[2]) {
 	glCallList(glyph->displayList[2]);
 	return;
       }
+      break;
     }
   }
 
@@ -617,6 +613,8 @@ void APIENTRY glcRenderChar(GLint inCode)
 {
   __glcContextState *state = NULL;
   GLint code = 0;
+  GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
+  GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
 
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -625,12 +623,39 @@ void APIENTRY glcRenderChar(GLint inCode)
     return;
   }
 
+  /* Set the texture environment if the render style is GLC_TEXTURE */
+  if (state->renderStyle == GLC_TEXTURE) {
+    /* Save the value of the parameters */
+    tex2D = glIsEnabled(GL_TEXTURE_2D);
+    blend = glIsEnabled(GL_BLEND);
+    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texEnvMode);
+    glGetIntegerv(GL_BLEND_SRC, &blendSrc);
+    glGetIntegerv(GL_BLEND_DST, &blendDst);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+    /* Set the new values of the parameters */
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  }
+
   /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(state, inCode);
   if (code < 0)
     return;
 
   __glcProcessChar(state, code, __glcRenderChar, NULL);
+
+  /* Restore the values of the texture parameters if needed */
+  if (state->renderStyle == GLC_TEXTURE) {
+    glBindTexture(GL_TEXTURE_2D, texture);
+    if (!tex2D)
+      glDisable(GL_TEXTURE_2D);
+    if (!blend)
+      glDisable(GL_BLEND);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texEnvMode);
+    glBlendFunc(blendSrc, blendDst);
+  }
 }
 
 
@@ -654,6 +679,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   __glcContextState *state = NULL;
   FcChar8* UinString = NULL;
   FcChar8* ptr = NULL;
+  GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
+  GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
 
   /* Check if inCount is positive */
   if (inCount < 0) {
@@ -682,6 +709,22 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     return;
   }
 
+  /* Set the texture environment if the render style is GLC_TEXTURE */
+  if (state->renderStyle == GLC_TEXTURE) {
+    /* Save the value of the parameters */
+    tex2D = glIsEnabled(GL_TEXTURE_2D);
+    blend = glIsEnabled(GL_BLEND);
+    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texEnvMode);
+    glGetIntegerv(GL_BLEND_SRC, &blendSrc);
+    glGetIntegerv(GL_BLEND_DST, &blendDst);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+    /* Set the new values of the parameters */
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  }
+
   /* Render the string */
   ptr = UinString;
   for (i = 0; i < inCount; i++) {
@@ -697,6 +740,17 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   }
 
   __glcFree(UinString);
+
+  /* Restore the values of the texture parameters if needed */
+  if (state->renderStyle == GLC_TEXTURE) {
+    glBindTexture(GL_TEXTURE_2D, texture);
+    if (!tex2D)
+      glDisable(GL_TEXTURE_2D);
+    if (!blend)
+      glDisable(GL_BLEND);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texEnvMode);
+    glBlendFunc(blendSrc, blendDst);
+  }
 }
 
 
@@ -714,6 +768,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   FcChar8* UinString = NULL;
   FcChar8* ptr = NULL;
   FcChar32 code = 0;
+  GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
+  GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
 
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -735,6 +791,22 @@ void APIENTRY glcRenderString(const GLCchar *inString)
     return;
   }
 
+  /* Set the texture environment if the render style is GLC_TEXTURE */
+  if (state->renderStyle == GLC_TEXTURE) {
+    /* Save the value of the parameters */
+    tex2D = glIsEnabled(GL_TEXTURE_2D);
+    blend = glIsEnabled(GL_BLEND);
+    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texEnvMode);
+    glGetIntegerv(GL_BLEND_SRC, &blendSrc);
+    glGetIntegerv(GL_BLEND_DST, &blendDst);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+    /* Set the new values of the parameters */
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+  }
+
   /* Render the string */
   ptr = UinString;
   while (*ptr) {
@@ -749,6 +821,17 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   }
 
   __glcFree(UinString);
+
+  /* Restore the values of the texture parameters if needed */
+  if (state->renderStyle == GLC_TEXTURE) {
+    glBindTexture(GL_TEXTURE_2D, texture);
+    if (!tex2D)
+      glDisable(GL_TEXTURE_2D);
+    if (!blend)
+      glDisable(GL_BLEND);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texEnvMode);
+    glBlendFunc(blendSrc, blendDst);
+  }
 }
 
 
