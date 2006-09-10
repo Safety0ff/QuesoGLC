@@ -1,6 +1,10 @@
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
+- Improved the speed for display list rendering by moving out some stuff that is
+  only needed for immediate mode rendering.
+- QuesoGLC now tries to re-use as much as possible the texture generated for
+  immediate mode rendering.
 - The OpenGL version is now checked and the texture rendering behaves
   accordingly.
 - Environment variables GLC_LIST_SEPARATOR and GLC_CATALOG_LIST are now read by
