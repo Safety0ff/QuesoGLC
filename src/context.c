@@ -161,6 +161,14 @@ void APIENTRY glcDeleteGLObjects(void)
     for (; faceNode; faceNode = faceNode->next)
       __glcFaceDescDestroyGLObjects((__glcFaceDescriptor*)faceNode);
   }
+
+  /* Delete the texture used for immediate mode */
+  if (state->texture) {
+    glDeleteTextures(1, &state->texture);
+    state->texture = 0;
+    state->textureWidth = 0;
+    state->textureHeigth = 0;
+  }
 }
 
 

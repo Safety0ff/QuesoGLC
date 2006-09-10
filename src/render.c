@@ -220,6 +220,8 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   GLint boundTexture = 0;
   GLint level = 0;
   int minSize = (inState->glCapacities & GLC_TEXTURE_LOD) ? 2 : 1;
+  GLsizei texWidth = 0, texHeigth = 0;
+  GLboolean newTexture = GL_FALSE;
 
   assert(face);
 
@@ -240,16 +242,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 				  + 1);
   pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
 
-  /* Check if a new texture can be created */
-  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, pixmap.width,
-	       pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
-  glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
-			   &format);
-  if (!format) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
   /* Fill the pixmap descriptor and the pixmap buffer */
   pixmap.pixel_mode = ft_pixel_mode_grays;	/* Anti-aliased rendering */
   pixmap.num_grays = 256;
@@ -262,8 +254,43 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   /* Flip the picture */
   pixmap.pitch = - pixmap.pitch;
 
-  /* Create a texture object and make it current */
-  glGenTextures(1, &texture);
+  if (((pixmap.width > inState->textureWidth) || (pixmap.rows > inState->textureHeigth))
+      && (!inDisplayListIsBuilding) && inState->texture) {
+    glDeleteTextures(1, &inState->texture);
+    inState->texture = 0;
+    inState->textureWidth = 0;
+    inState->textureHeigth = 0;
+  }
+
+  if (inDisplayListIsBuilding || !inState->texture) {
+    /* Check if a new texture can be created */
+    glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, pixmap.width,
+		 pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
+    glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
+			     &format);
+    if (!format) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
+
+    /* Create a texture object and make it current */
+    glGenTextures(1, &texture);
+
+    if (!inDisplayListIsBuilding) {
+      inState->texture = texture;
+      inState->textureWidth = pixmap.width;
+      inState->textureHeigth = pixmap.rows;
+      newTexture = GL_TRUE;
+    }
+
+    texWidth = pixmap.width;
+    texHeigth = pixmap.rows;
+  }
+  else {
+    texture = inState->texture;
+    texWidth = inState->textureWidth;
+    texHeigth = inState->textureHeigth;
+  }
 
   /* Create the texture */
   glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
@@ -294,18 +321,28 @@ static void __glcRenderCharTexture(__glcFont* inFont,
       glBindTexture(GL_TEXTURE_2D, boundTexture);
       glPopClientAttrib();
       glDeleteTextures(1, &texture);
+      if (!inDisplayListIsBuilding) {
+	inState->texture = 0;
+	inState->textureWidth = 0;
+	inState->textureHeigth = 0;
+      }
       __glcFree(pixmap.buffer);
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
 
-    glTexImage2D(GL_TEXTURE_2D, level, GL_ALPHA8, pixmap.width,
-		 pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
+    if (!inDisplayListIsBuilding && ((pixmap.width != inState->textureWidth)
+	|| (pixmap.rows != inState->textureHeigth) || !newTexture))
+      glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, pixmap.width, pixmap.rows,
+		      GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
+    else
+      glTexImage2D(GL_TEXTURE_2D, level, GL_ALPHA8, pixmap.width,
+		   pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
 
     /* A mipmap is built only if a display list is currently building
      * otherwise it adds useless computations
      */
-    if ((!inState->mipmap) || (!inDisplayListIsBuilding))
+    if (!(inState->mipmap && inDisplayListIsBuilding))
       break;
 
     /* translate the outline to match (0,0) with the glyph's lower left
@@ -335,12 +372,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
     else {
       /* The OpenGL driver does not support the extension GL_EXT_texture_lod 
        * We must finish the pixmap until the mipmap level is 1x1.
-       */
-      int savedWidth = pixmap.width;
-      int savedRows = pixmap.rows;
-      GLint savedLevel = level;
-
-      /* Here the smaller mipmap levels will be transparent, no glyph will be
+       * Here the smaller mipmap levels will be transparent, no glyph will be
        * rendered.
        * TODO: Use gluScaleImage() to render the last levels.
        */
@@ -355,13 +387,7 @@ static void __glcRenderCharTexture(__glcFont* inFont,
 	pixmap.rows >>= 1;
       }
 
-      pixmap.width = savedWidth;
-      pixmap.rows = savedRows;
-      level = savedLevel;
     }
-
-    pixmap.width <<= level;
-    pixmap.rows <<= level;
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		    GL_LINEAR_MIPMAP_LINEAR);
@@ -411,13 +437,13 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   glTexCoord2f(0., 0.);
   glVertex2f(boundingBox.xMin / 64. / scale_x, 
 	     boundingBox.yMin / 64. / scale_y);
-  glTexCoord2f(width / pixmap.width, 0.);
+  glTexCoord2f(width / texWidth, 0.);
   glVertex2f(boundingBox.xMax / 64. / scale_x,
 	     boundingBox.yMin / 64. / scale_y);
-  glTexCoord2f(width / pixmap.width, height / pixmap.rows);
+  glTexCoord2f(width / texWidth, height / texHeigth);
   glVertex2f(boundingBox.xMax / 64. / scale_x,
 	     boundingBox.yMax / 64. / scale_y);
-  glTexCoord2f(0., height / pixmap.rows);
+  glTexCoord2f(0., height / texHeigth);
   glVertex2f(boundingBox.xMin / 64. / scale_x,
 	     boundingBox.yMax / 64. / scale_y);
   glEnd();
@@ -431,10 +457,6 @@ static void __glcRenderCharTexture(__glcFont* inFont,
   if (inState->glObjects) {
     /* Finish display list creation */
     glEndList();
-  }
-  else {
-    if (!inDisplayListIsBuilding)
-      glDeleteTextures(1, &texture);
   }
 
   __glcFree(pixmap.buffer);
@@ -453,15 +475,44 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
   __glcGlyph* glyph = NULL;
-  GLboolean displayListIsBuilding = __glcGetScale(inState, transformMatrix,
-						  &scale_x, &scale_y);
+  GLboolean displayListIsBuilding = GL_FALSE;
   __glcFont* font = __glcVerifyFontParameters(inFont);
 
-  if ((!font) || (scale_x == 0.f) || (scale_y == 0.f))
+  if (!font)
     return NULL;
 
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(font, inCode, inState);
+
+  /* Renders the display lists if they exist and if GLC_GL_OBJECTS is enabled
+   * then return.
+   */
+  if (inState->glObjects) {
+    switch(inState->renderStyle) {
+    case GLC_TEXTURE:
+      if (glyph->displayList[0]) {
+	glCallList(glyph->displayList[0]);
+	return;
+      }
+    case GLC_LINE:
+      if (glyph->displayList[1]) {
+	glCallList(glyph->displayList[1]);
+	return;
+      }
+    case GLC_TRIANGLE:
+      if (glyph->displayList[2]) {
+	glCallList(glyph->displayList[2]);
+	return;
+      }
+    }
+  }
+
+  displayListIsBuilding = __glcGetScale(inState, transformMatrix, &scale_x,
+  					&scale_y);
+
+  if ((scale_x == 0.f) || (scale_y == 0.f))
+    return NULL;
+
   __glcFaceDescLoadFreeTypeGlyph(font->faceDesc, inState, scale_x, scale_y,
                         glyph->index);
 
@@ -530,24 +581,15 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 			  scale_y);
     break;
   case GLC_TEXTURE:
-    if (glyph->displayList[0])
-      glCallList(glyph->displayList[0]);
-    else
       __glcRenderCharTexture(font, inState, displayListIsBuilding,
 			     scale_x, scale_y, glyph);
     break;
   case GLC_LINE:
-    if (glyph->displayList[1])
-      glCallList(glyph->displayList[1]);
-    else
       __glcRenderCharScalable(font, inState, GLC_LINE,
 			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
   case GLC_TRIANGLE:
-    if (glyph->displayList[2])
-      glCallList(glyph->displayList[2]);
-    else
       __glcRenderCharScalable(font, inState, GLC_TRIANGLE,
 			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y, glyph);

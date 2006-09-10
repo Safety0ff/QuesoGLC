@@ -134,6 +134,9 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   }
 
   This->glCapacities = 0;
+  This->texture = 0;
+  This->textureWidth = 0;
+  This->textureHeigth = 0;
 
   return This;
 }
