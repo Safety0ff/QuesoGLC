@@ -230,6 +230,9 @@ GLCAPI GLint APIENTRY glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint i
 #define GLC_QSO_hinting                           1
 #define GLC_HINTING_QSO                           0x8005
 
+#define GLC_QSO_extrude                           1
+#define GLC_EXTRUDE_QSO                           0x8006
+
 #if defined (__cplusplus)
 }
 #endif

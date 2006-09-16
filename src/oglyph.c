@@ -53,7 +53,7 @@ __glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
   This->textureObject = NULL;
 
   /* A display list for each rendering mode (except GLC_BITMAP) may be built */
-  memset(This->displayList, 0, 3 * sizeof(GLuint));
+  memset(This->displayList, 0, 4 * sizeof(GLuint));
   memset(This->boundingBox, 0, 4 * sizeof(GLfloat));
   memset(This->advance, 0, 2 * sizeof(GLfloat));
 
@@ -97,5 +97,53 @@ void __glcGlyphDestroyGLObjects(__glcGlyph* This)
   if (This->displayList[2])
     glDeleteLists(This->displayList[2], 1);
 
-  memset(This->displayList, 0, 3 * sizeof(GLuint));
+  if (This->displayList[3])
+    glDeleteLists(This->displayList[3], 1);
+
+  memset(This->displayList, 0, 4 * sizeof(GLuint));
+}
+
+
+
+/* Returns the number of display that has been built for a glyph */
+int __glcGlyphGetDisplayListCount(__glcGlyph* This)
+{
+  int i = 0;
+  int count = 0;
+
+  for (i = 0; i < 4; i++) {
+    if (This->displayList[i])
+      count++;
+  }
+
+  return count;
+}
+
+
+
+/* Returns the ID of the inCount-th display list that has been built for a
+ * glyph.
+ */
+GLuint __glcGlyphGetDisplayList(__glcGlyph* This, int inCount)
+{
+  int i = 0;
+
+  assert(inCount >= 0);
+  assert(inCount < __glcGlyphGetDisplayListCount(This));
+
+  for (i = 0; i < 4; i++) {
+    GLuint displayList = This->displayList[i];
+
+    if (displayList) {
+      if (!inCount)
+	return displayList;
+      inCount--;
+    }
+  }
+
+  /* The program is not supposed to reach the end of the function.
+   * The following return is there to prevent the compiler to issue
+   * a warning about 'control reaching the end of a non-void function'.
+   */
+  return 0xdeadbeef;
 }

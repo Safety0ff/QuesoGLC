@@ -189,6 +189,7 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   case GLC_GL_OBJECTS:
   case GLC_MIPMAP:
   case GLC_HINTING_QSO: /* QuesoGLC Extension */
+  case GLC_EXTRUDE_QSO: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -227,6 +228,8 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
     break;
   case GLC_HINTING_QSO:
     state->hinting = value;
+  case GLC_EXTRUDE_QSO:
+    state->extrude = value;
   }
 }
 
@@ -253,6 +256,11 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
  *    <tr>
  *      <td><b>GLC_HINTING_QSO</b></td>
  *      <td>0x8005</td>
+ *      <td><b>GL_FALSE</b></td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_EXTRUDE_QSO</b></td>
+ *      <td>0x8006</td>
  *      <td><b>GL_FALSE</b></td>
  *    </tr>
  *  </table>
@@ -283,6 +291,10 @@ void APIENTRY glcDisable(GLCenum inAttrib)
  *    characters that are rendered at small sizes. Hinting may however generate
  *    visual artifacts such as shaking outlines if the character is animated.
  *    This attribute should be disabled in such cases.
+ *  - \b GLC_EXTRUDE_QSO : if enabled and \b GLC_RENDER_STYLE is
+ *    \b GLC_TRIANGLE then GLC renders extruded characters with a thickness
+ *    equal to 1.0. A call to glScale3*(1., 1., \e thickness ) can be added
+ *    before the rendering commands in order to obtain the desired thickness.
  *
  *  \param inAttrib A symbolic constant indicating a GLC attribute.
  *  \sa glcDisable()
@@ -560,17 +572,12 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
 	for (glyphNode = faceDesc->glyphList.head; glyphNode;
 	     glyphNode = glyphNode->next) {
 	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
-	  int i = 0;
+	  int count = __glcGlyphGetDisplayListCount(glyph);
 
-	  for (i = 0; i < 3; i++) {
-	    GLuint displayList = glyph->displayList[i];
-
-	    if (displayList) {
-	      if (!inIndex)
-		return displayList;
-	      inIndex--;
-	    }
-	  }
+	  if (inIndex < count)
+	    return __glcGlyphGetDisplayList(glyph, inIndex);
+	  else
+	    inIndex -= count;
 	}
       }
     }
@@ -938,13 +945,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
 	for (glyphNode = faceDesc->glyphList.head; glyphNode;
 	     glyphNode = glyphNode->next) {
 	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
-	  int i = 0;
 
-	  for (i = 0; i < 3; i++) {
-	    if (glyph->displayList[i]) {
-	      count++;
-	    }
-	  }
+	  count += __glcGlyphGetDisplayListCount(glyph);
 	}
       }
     }

@@ -28,7 +28,7 @@ typedef struct {
   FT_ULong codepoint;
   /* GL objects management */
   void* textureObject;
-  GLuint displayList[3];
+  GLuint displayList[4];
   /* Measurement infos */
   GLfloat boundingBox[4];
   GLfloat advance[2];
@@ -38,4 +38,6 @@ __glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
 void __glcGlyphDestroy(__glcGlyph* This);
 void __glcGlyphDestroyTexture(__glcGlyph* This);
 void __glcGlyphDestroyGLObjects(__glcGlyph* This);
+int __glcGlyphGetDisplayListCount(__glcGlyph* This);
+GLuint __glcGlyphGetDisplayList(__glcGlyph* This, int inCount);
 #endif

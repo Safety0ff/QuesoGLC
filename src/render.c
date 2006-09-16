@@ -227,8 +227,12 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
       }
       break;
     case GLC_TRIANGLE:
-      if (glyph->displayList[2]) {
+      if ((!inState->extrude) && glyph->displayList[2]) {
 	glCallList(glyph->displayList[2]);
+	return NULL;
+      }
+      if (inState->extrude && glyph->displayList[3]) {
+	glCallList(glyph->displayList[3]);
 	return NULL;
       }
       break;

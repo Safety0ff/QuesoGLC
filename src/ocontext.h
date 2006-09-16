@@ -53,6 +53,7 @@ typedef struct {
   GLboolean glObjects;		/* GLC_GLOBJECTS */
   GLboolean mipmap;		/* GLC_MIPMAP */
   GLboolean hinting;		/* GLC_HINTING_QSO */
+  GLboolean extrude;		/* GLC_EXTRUDE_QSO */
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */

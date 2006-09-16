@@ -47,6 +47,9 @@ typedef struct {
   GLfloat halfHeight;
   GLboolean displayListIsBuilding;	/* Is a display list planned to be
 					   built ? */
+  GLboolean extrude;
+  GLenum mode;
+  __glcArray* vertexBuffer;
 }__glcRendererData;
 
 
@@ -173,6 +176,30 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     yMax = (cp[6] > yMax ? cp[6] : yMax);
     zMin = (z < zMin ? z : zMin);
     zMax = (z > zMax ? z : zMax);
+
+    if (data->extrude) {
+      GLfloat x1 = cp[2] - data->transformMatrix[8];
+      GLfloat y1 = cp[3] - data->transformMatrix[9];
+      GLfloat z1 = z - data->transformMatrix[10];
+      GLfloat w1 = cp[4] - data->transformMatrix[11];
+      GLfloat norm1 = x1 * x1 + y1 * y1 + z1 * z1;
+
+      if (w1 * w1 < norm1 * GLC_EPSILON * GLC_EPSILON) {
+	/* Ugly hack to handle the singularity of w */
+	w1 = sqrt(norm1) * GLC_EPSILON;
+      }
+
+      x1 /= w1;
+      y1 /= w1;
+      z1 /= w1;
+
+      xMin = (x1 < xMin ? x1 : xMin);
+      xMax = (x1 > xMax ? x1 : xMax);
+      yMin = (y1 < yMin ? y1 : yMin);
+      yMax = (y1 > yMax ? y1 : yMax);
+      zMin = (z1 < zMin ? z1 : zMin);
+      zMax = (z1 > zMax ? z1 : zMax);
+    }
   }
 
   /* Append the last vertex of the curve to the control points array */
@@ -192,6 +219,30 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
   yMax = (cp[6] > yMax ? cp[6] : yMax);
   zMin = (z < zMin ? z : zMin);
   zMax = (z > zMax ? z : zMax);
+
+  if (data->extrude) {
+    GLfloat x1 = cp[2] - data->transformMatrix[8];
+    GLfloat y1 = cp[3] - data->transformMatrix[9];
+    GLfloat z1 = z - data->transformMatrix[10];
+    GLfloat w1 = cp[4] - data->transformMatrix[11];
+    GLfloat norm1 = x1 * x1 + y1 * y1 + z1 * z1;
+
+    if (w1 * w1 < norm1 * GLC_EPSILON * GLC_EPSILON) {
+      /* Ugly hack to handle the singularity of w */
+      w1 = sqrt(norm1) * GLC_EPSILON;
+    }
+
+    x1 /= w1;
+    y1 /= w1;
+    z1 /= w1;
+
+    xMin = (x1 < xMin ? x1 : xMin);
+    xMax = (x1 > xMax ? x1 : xMax);
+    yMin = (y1 < yMin ? y1 : yMin);
+    yMax = (y1 > yMax ? y1 : yMax);
+    zMin = (z1 < zMin ? z1 : zMin);
+    zMax = (z1 > zMax ? z1 : zMax);
+  }
 
   /* controlPoint[] must be computed there because data->controlPoints->data
    * may have been modified by a realloc() in __glcArrayInsert()
@@ -493,6 +544,42 @@ static CALLBACK void __glcVertexCallback(void* vertex_data, void* inUserData)
 
   intInPtr.ptr = vertex_data;
   glVertex2fv(vertexArray[intInPtr.i]);
+
+  if (data->extrude)
+    __glcArrayAppend(data->vertexBuffer, &intInPtr.i);
+}
+
+
+
+static CALLBACK void __glcBeginCallback(GLenum mode, void* inUserData)
+{
+  __glcRendererData *data = (__glcRendererData*)inUserData;
+
+  data->mode = mode;
+  glBegin(mode);
+  glNormal3f(0.f, 0.f, 1.f);
+}
+
+
+
+static CALLBACK void __glcEndCallback(void* inUserData)
+{
+  __glcRendererData *data = (__glcRendererData*)inUserData;
+  GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
+  int* vertexBuffer = (int*)GLC_ARRAY_DATA(data->vertexBuffer);
+  int i = 0;
+
+  glEnd();
+
+  glBegin(data->mode);
+  glNormal3f(0.f, 0.f, -1.f);
+
+  for (i = 0; i < GLC_ARRAY_LENGTH(data->vertexBuffer); i++)
+    glVertex3f(vertexArray[vertexBuffer[i]][0], vertexArray[vertexBuffer[i]][1], -1.f);
+
+  glEnd();
+
+  GLC_ARRAY_LENGTH(data->vertexBuffer) = 0;
 }
 
 
@@ -547,6 +634,16 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   rendererData.endContour = inState->endContour;
 
   rendererData.displayListIsBuilding = inDisplayListIsBuilding;
+  rendererData.extrude = inState->extrude;
+  if (inState->extrude) {
+    rendererData.vertexBuffer = __glcArrayCreate(sizeof(int));
+    if (!rendererData.vertexBuffer) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
+  }
+  else
+    rendererData.vertexBuffer = NULL;
 
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
@@ -564,6 +661,23 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.transformMatrix[1] *= rendererData.halfHeight;
     rendererData.transformMatrix[5] *= rendererData.halfHeight;
     rendererData.transformMatrix[13] *= rendererData.halfHeight;
+
+    if (inState->extrude) {
+      int i = 0;
+
+      rendererData.transformMatrix[8] *= rendererData.halfWidth;
+      rendererData.transformMatrix[9] *= rendererData.halfHeight;
+
+      for (i = 0; i < 3; i++) {
+	GLfloat norm = 0.f;
+	int j = 0;
+
+	for (j = 0; j < 3; j++)
+	  norm += inTransformMatrix[i*4+j] * inTransformMatrix[i*4+j];
+	memset(&inTransformMatrix[i*4], 0, 3 * sizeof(GLfloat));
+	inTransformMatrix[i*4+i] = sqrt(norm);
+      }
+    }
 #if 0
     rendererData.tolerance = .25; /* Half pixel tolerance */
 #else
@@ -586,6 +700,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
+    if (inState->extrude)
+      __glcArrayDestroy(rendererData.vertexBuffer);
     return;
   }
 
@@ -594,18 +710,31 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
+    if (inState->extrude)
+      __glcArrayDestroy(rendererData.vertexBuffer);
     return;
   }
 
   /* Prepare the display list compilation if needed */
   if (inState->glObjects) {
-    int index = (inRenderMode == GLC_LINE) ? 1 : 2;
+    int index = 0;
+
+    switch(inRenderMode) {
+    case GLC_LINE:
+      index = 1;
+      break;
+    case GLC_TRIANGLE:
+      index = inState->extrude ? 3 : 2;
+      break;
+    }
 
     inGlyph->displayList[index] = glGenLists(1);
     if (!inGlyph->displayList[index]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
       GLC_ARRAY_LENGTH(inState->endContour) = 0;
+      if (inState->extrude)
+	__glcArrayDestroy(rendererData.vertexBuffer);
       return;
     }
 
@@ -627,24 +756,19 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
     gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, GL_FALSE);
 
-#ifndef __WIN32__
-	gluTessCallback(tess, GLU_TESS_ERROR, (void (*) ())__glcCallbackError);
-    gluTessCallback(tess, GLU_TESS_BEGIN, (void (*) ())glBegin);
-    gluTessCallback(tess, GLU_TESS_VERTEX_DATA,
-		    (void (*) ())__glcVertexCallback);
-    gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
-		    (void (*) ())__glcCombineCallback);
-    gluTessCallback(tess, GLU_TESS_END, glEnd);
-#else
-	gluTessCallback(tess, GLU_TESS_ERROR,
+    gluTessCallback(tess, GLU_TESS_ERROR,
 			(CALLBACK void (*) ())__glcCallbackError);
-    gluTessCallback(tess, GLU_TESS_BEGIN, (CALLBACK void (*) ())glBegin);
     gluTessCallback(tess, GLU_TESS_VERTEX_DATA,
 		    (CALLBACK void (*) ())__glcVertexCallback);
     gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
 		    (CALLBACK void (*) ())__glcCombineCallback);
-    gluTessCallback(tess, GLU_TESS_END, (CALLBACK void (*) ())glEnd);
-#endif
+    gluTessCallback(tess, GLU_TESS_BEGIN_DATA,
+		    (CALLBACK void (*) ())__glcBeginCallback);
+    if (inState->extrude)
+      gluTessCallback(tess, GLU_TESS_END_DATA,
+		      (CALLBACK void (*) ())__glcEndCallback);
+    else
+      gluTessCallback(tess, GLU_TESS_END, (CALLBACK void (*) ())glEnd);
 
     gluTessNormal(tess, 0., 0., 1.);
 
@@ -673,6 +797,48 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     /* Free memory */
     gluDeleteTess(tess);
+
+    /* For extruded glyphes : close the contours */
+    if (inState->extrude) {
+      GLfloat ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f;
+      GLfloat nx = 0.f, ny = 0.f, length = 0.f;
+
+      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
+	glBegin(GL_TRIANGLE_STRIP);
+	for (j = endContour[i]; j < endContour[i+1]; j++) {
+	  if (j == endContour[i]) {
+	    ax = vertexArray[endContour[i+1]-1][0];
+	    ay = vertexArray[endContour[i+1]-1][1];
+	    bx = vertexArray[j+1][0];
+	    by = vertexArray[j+1][1];
+	    nx = by - ay;
+	    ny = ax - bx;
+	  }
+	  else if (j == (endContour[i+1] - 1)) {
+	    ax = vertexArray[j-1][0];
+	    ay = vertexArray[j-1][1];
+	    bx = vertexArray[endContour[i]][0];
+	    by = vertexArray[endContour[i]][1];
+	  }
+	  else {
+	    ax = vertexArray[j-1][0];
+	    ay = vertexArray[j-1][1];
+	    bx = vertexArray[j+1][0];
+	    by = vertexArray[j+1][1];
+	  }
+
+	  length = sqrt((by - ay) * (by - ay) + (ax - bx) * (ax - bx));
+	  glNormal3f((by-ay)/length, (ax-bx)/length, 0.f);
+	  glVertex2fv(vertexArray[j]);
+	  glVertex3f(vertexArray[j][0], vertexArray[j][1], -1.f);
+	}
+	length = sqrt(nx * nx + ny * ny);
+	glNormal3f(nx / length, ny / length, 0.f);
+	glVertex2fv(vertexArray[endContour[i]]);
+	glVertex3f(vertexArray[endContour[i]][0], vertexArray[endContour[i]][1], -1.f);
+	glEnd();
+      }
+    }
   }
   else {
     /* For GLC_LINE, there is no need to tesselate. The vertex are contained
@@ -683,6 +849,10 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
     glEnableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
     glNormal3f(0., 0., 1.);
     glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
 
@@ -701,4 +871,6 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
   GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inState->endContour) = 0;
+  if (inState->extrude)
+    __glcArrayDestroy(rendererData.vertexBuffer);
 }
