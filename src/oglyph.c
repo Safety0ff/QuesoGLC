@@ -21,6 +21,7 @@
 /* Defines the methods of an object that is intended to managed glyphs */
 
 #include "internal.h"
+#include "texture.h"
 
 /** \file
  * defines the object __glcGlyph which caches all the data needed for a given
@@ -49,7 +50,8 @@ __glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
 
   This->index = inIndex;
   This->codepoint = inCode;
-  This->textureObject = 0;
+  This->textureObject = NULL;
+
   /* A display list for each rendering mode (except GLC_BITMAP) may be built */
   memset(This->displayList, 0, 3 * sizeof(GLuint));
   memset(This->boundingBox, 0, 4 * sizeof(GLfloat));
@@ -69,14 +71,24 @@ void __glcGlyphDestroy(__glcGlyph* This)
 
 
 
+/* Remove all GL objects related to the texture of the glyph */
+void __glcGlyphDestroyTexture(__glcGlyph* This)
+{
+  glDeleteLists(This->displayList[0], 1);
+  This->displayList[0] = 0;
+  This->textureObject = NULL;
+}
+
+
+
 /* This function destroys the display lists and the texture objects that
  * are associated with a glyph.
  */
 void __glcGlyphDestroyGLObjects(__glcGlyph* This)
 {
   if (This->displayList[0]) {
-    glDeleteTextures(1, &This->textureObject);
-    glDeleteLists(This->displayList[0], 1);
+    __glcDeleteAtlasElement((__glcAtlasElement*)This->textureObject, __glcGetCurrent());
+    __glcGlyphDestroyTexture(This);
   }
 
   if (This->displayList[1])

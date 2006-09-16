@@ -32,6 +32,12 @@
 #include "except.h"
 
 typedef struct {
+  GLuint id;
+  GLsizei width;
+  GLsizei heigth;
+} __glcTexture;
+
+typedef struct {
   FT_ListNodeRec node;
 
   GLboolean isCurrent;
@@ -65,9 +71,13 @@ typedef struct {
   __glcArray* endContour;	/* Array of contour limits */
 
   GLint glCapacities;		/* Capacities of the GL driver */
-  GLuint texture;		/* Texture for immediate mode rendering */
-  GLsizei textureWidth;
-  GLsizei textureHeigth;
+  __glcTexture texture;		/* Texture for immediate mode rendering */
+
+  __glcTexture atlas;
+  FT_ListRec atlasList;
+  int atlasWidth;
+  int atlasHeight;
+  int atlasCount;
 } __glcContextState;
 
 typedef struct {

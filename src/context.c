@@ -163,11 +163,11 @@ void APIENTRY glcDeleteGLObjects(void)
   }
 
   /* Delete the texture used for immediate mode */
-  if (state->texture) {
-    glDeleteTextures(1, &state->texture);
-    state->texture = 0;
-    state->textureWidth = 0;
-    state->textureHeigth = 0;
+  if (state->texture.id) {
+    glDeleteTextures(1, &state->texture.id);
+    state->texture.id = 0;
+    state->texture.width = 0;
+    state->texture.heigth = 0;
   }
 }
 
@@ -212,6 +212,18 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
     break;
   case GLC_MIPMAP:
     state->mipmap = value;
+    if (state->atlas.id) {
+      GLint boundTexture = 0;
+      glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
+      if (state->mipmap)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+			GL_LINEAR_MIPMAP_LINEAR);
+      else
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+			GL_LINEAR);
+      glBindTexture(GL_TEXTURE_2D, boundTexture);
+    }
     break;
   case GLC_HINTING_QSO:
     state->hinting = value;
@@ -565,27 +577,19 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
-    /* See also comments of GLC_LIST_OBJECT_LIST above */
-    for (node = state->masterList.head; node; node = node->next) {
-      __glcMaster* master = (__glcMaster*)node;
-      FT_ListNode faceNode = NULL;
-
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
-	FT_ListNode glyphNode = NULL;
-
-	for (glyphNode = faceDesc->glyphList.head; glyphNode;
-	     glyphNode = glyphNode->next) {
-	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
-
-	  if (glyph->displayList[0]) {
-	    if (!inIndex)
-	      return glyph->textureObject;
-	    inIndex--;
-	  }
-	}
-      }
+    switch(inIndex) {
+      case 1:
+	if (state->texture.id)
+	  return state->texture.id;
+	if (state->atlas.id)
+	  return state->atlas.id;
+	break;
+      case 2:
+	if ((state->texture.id) && (state->atlas.id))
+	  return state->atlas.id;
+	break;
+      default:
+	break;
     }
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
@@ -959,24 +963,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_STRING_TYPE:
     return state->stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    for (node = state->masterList.head; node; node = node->next) {
-      __glcMaster* master = (__glcMaster*)node;
-      FT_ListNode faceNode = NULL;
-
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
-	FT_ListNode glyphNode = NULL;
-
-	for (glyphNode = faceDesc->glyphList.head; glyphNode;
-	     glyphNode = glyphNode->next) {
-	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
-
-	  if (glyph->displayList[0] && glyph->textureObject)
-	      count++;
-	}
-      }
-    }
+    count += (state->texture.id ? 1: 0);
+    count += (state->atlas.id ? 1:0);
     return count;
   case GLC_VERSION_MAJOR:
     return __glcCommonArea.versionMajor;

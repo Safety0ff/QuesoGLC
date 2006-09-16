@@ -100,6 +100,7 @@
 #endif
 
 #include "internal.h"
+#include "texture.h"
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
@@ -187,276 +188,6 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 
 
 
-/* Compute the lower power of 2 that is greater than value. It is used to
- * determine the smaller texture than can contain a glyph.
- */
-static int __glcNextPowerOf2(int value)
-{
-  int power = 0;
-
-  for (power = 1; power < value; power <<= 1);
-
-  return power;
-}
-
-
-
-/* Internal function that renders glyph in textures :
- * 'inCode' must be given in UCS-4 format
- */
-static void __glcRenderCharTexture(__glcFont* inFont,
-				   __glcContextState* inState,
-				   GLboolean inDisplayListIsBuilding,
-				   GLfloat scale_x, GLfloat scale_y,
-				   __glcGlyph* inGlyph)
-{
-  FT_Face face = inFont->faceDesc->face;
-  FT_Outline outline;
-  FT_BBox boundingBox;
-  FT_Bitmap pixmap;
-  GLuint texture = 0;
-  GLfloat width = 0, height = 0;
-  GLint format = 0;
-  GLint boundTexture = 0;
-  GLint level = 0;
-  int minSize = (inState->glCapacities & GLC_TEXTURE_LOD) ? 2 : 1;
-  GLsizei texWidth = 0, texHeigth = 0;
-  GLboolean newTexture = GL_FALSE;
-
-  assert(face);
-
-  outline = face->glyph->outline;
-
-  /* Get the bounding box of the glyph */
-  FT_Outline_Get_CBox(&outline, &boundingBox);
-
-  /* Compute the size of the pixmap where the glyph will be rendered */
-  boundingBox.xMin = boundingBox.xMin & -64;	/* floor(xMin) */
-  boundingBox.yMin = boundingBox.yMin & -64;	/* floor(yMin) */
-  boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
-  boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
-
-  pixmap.width = __glcNextPowerOf2(((boundingBox.xMax - boundingBox.xMin) >> 6)
-				   + 1);
-  pixmap.rows = __glcNextPowerOf2(((boundingBox.yMax - boundingBox.yMin) >> 6)
-				  + 1);
-  pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
-
-  /* Fill the pixmap descriptor and the pixmap buffer */
-  pixmap.pixel_mode = ft_pixel_mode_grays;	/* Anti-aliased rendering */
-  pixmap.num_grays = 256;
-  pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
-  if (!pixmap.buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* Flip the picture */
-  pixmap.pitch = - pixmap.pitch;
-
-  if (((pixmap.width > inState->textureWidth) || (pixmap.rows > inState->textureHeigth))
-      && (!inDisplayListIsBuilding) && inState->texture) {
-    glDeleteTextures(1, &inState->texture);
-    inState->texture = 0;
-    inState->textureWidth = 0;
-    inState->textureHeigth = 0;
-  }
-
-  if (inDisplayListIsBuilding || !inState->texture) {
-    /* Check if a new texture can be created */
-    glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, pixmap.width,
-		 pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
-    glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
-			     &format);
-    if (!format) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-
-    /* Create a texture object and make it current */
-    glGenTextures(1, &texture);
-
-    if (!inDisplayListIsBuilding) {
-      inState->texture = texture;
-      inState->textureWidth = pixmap.width;
-      inState->textureHeigth = pixmap.rows;
-      newTexture = GL_TRUE;
-    }
-
-    texWidth = pixmap.width;
-    texHeigth = pixmap.rows;
-  }
-  else {
-    texture = inState->texture;
-    texWidth = inState->textureWidth;
-    texHeigth = inState->textureHeigth;
-  }
-
-  /* Create the texture */
-  glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
-  glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  /* Iterate on the powers of 2 in order to build the mipmap */
-  while ((pixmap.width > minSize) && (pixmap.rows > minSize)) {
-    FT_Vector* vector = NULL;
-
-    /* fill the pixmap buffer with the background color */
-    memset(pixmap.buffer, 0, - pixmap.rows * pixmap.pitch);
-
-    /* translate the outline to match (0,0) with the glyph's lower left
-     * corner
-     */
-    FT_Outline_Translate(&outline, -((boundingBox.xMin >> level) & -64),
-			 -((boundingBox.yMin >> level) & -64));
-
-    /* render the glyph */
-    if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
-      glBindTexture(GL_TEXTURE_2D, boundTexture);
-      glPopClientAttrib();
-      glDeleteTextures(1, &texture);
-      if (!inDisplayListIsBuilding) {
-	inState->texture = 0;
-	inState->textureWidth = 0;
-	inState->textureHeigth = 0;
-      }
-      __glcFree(pixmap.buffer);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-
-    if (!inDisplayListIsBuilding && ((pixmap.width != inState->textureWidth)
-	|| (pixmap.rows != inState->textureHeigth) || !newTexture))
-      glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, pixmap.width, pixmap.rows,
-		      GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
-    else
-      glTexImage2D(GL_TEXTURE_2D, level, GL_ALPHA8, pixmap.width,
-		   pixmap.rows, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
-
-    /* A mipmap is built only if a display list is currently building
-     * otherwise it adds useless computations
-     */
-    if (!(inState->mipmap && inDisplayListIsBuilding))
-      break;
-
-    /* translate the outline to match (0,0) with the glyph's lower left
-     * corner
-     */
-    FT_Outline_Translate(&outline, ((boundingBox.xMin >> level) & -64),
-			 ((boundingBox.yMin >> level) & -64));
-
-    level++; /* Next level of mipmap */
-    pixmap.width >>= 1;
-    pixmap.rows >>= 1;
-    pixmap.pitch >>= 1;
-
-    /* For the next level of mipmap, the character size must divided by 2. */
-    for (vector = outline.points; vector < outline.points + outline.n_points;
-	 vector++) {
-      vector->x >>= 1;
-      vector->y >>= 1;
-    }
-
-  }
-
-  /* Initialize the texture parameters */
-  if (inState->mipmap && inDisplayListIsBuilding) {
-    if (inState->glCapacities & GLC_TEXTURE_LOD)
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
-    else {
-      /* The OpenGL driver does not support the extension GL_EXT_texture_lod 
-       * We must finish the pixmap until the mipmap level is 1x1.
-       * Here the smaller mipmap levels will be transparent, no glyph will be
-       * rendered.
-       * TODO: Use gluScaleImage() to render the last levels.
-       */
-      memset(pixmap.buffer, 0, pixmap.width * pixmap.rows);
-      while ((pixmap.width > 0) || (pixmap.rows > 0)) {
-	glTexImage2D(GL_TEXTURE_2D, level++, GL_ALPHA8,
-		     pixmap.width ? pixmap.width : 1,
-		     pixmap.rows ? pixmap.rows : 1, 0, GL_ALPHA,
-		     GL_UNSIGNED_BYTE, pixmap.buffer);
-
-	pixmap.width >>= 1;
-	pixmap.rows >>= 1;
-      }
-
-    }
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-		    GL_LINEAR_MIPMAP_LINEAR);
-  }
-  else
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-  glBindTexture(GL_TEXTURE_2D, boundTexture);
-  glPopClientAttrib();
-
-  /* Add the new texture to the texture list and the new display list
-   * to the list of display lists
-   */
-  if (inState->glObjects) {
-    inGlyph->textureObject = texture;
-    inGlyph->displayList[0] = glGenLists(1);
-    if (!inGlyph->displayList[0]) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      glDeleteTextures(1, &texture);
-      __glcFree(pixmap.buffer);
-      return;
-    }
-
-    /* Create the display list */
-    glNewList(inGlyph->displayList[0], GL_COMPILE_AND_EXECUTE);
-  }
-
-  /* Repeat glBindTexture() so that the display list includes it */
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  /* Compute the size of the glyph */
-  width = (GLfloat)((boundingBox.xMax - boundingBox.xMin) / 64.);
-  height = (GLfloat)((boundingBox.yMax - boundingBox.yMin) / 64.);
-
-  /* Do the actual GL rendering */
-  glBegin(GL_QUADS);
-  glTexCoord2f(0., 0.);
-  glVertex2f(boundingBox.xMin / 64. / scale_x, 
-	     boundingBox.yMin / 64. / scale_y);
-  glTexCoord2f(width / texWidth, 0.);
-  glVertex2f(boundingBox.xMax / 64. / scale_x,
-	     boundingBox.yMin / 64. / scale_y);
-  glTexCoord2f(width / texWidth, height / texHeigth);
-  glVertex2f(boundingBox.xMax / 64. / scale_x,
-	     boundingBox.yMax / 64. / scale_y);
-  glTexCoord2f(0., height / texHeigth);
-  glVertex2f(boundingBox.xMin / 64. / scale_x,
-	     boundingBox.yMax / 64. / scale_y);
-  glEnd();
-
-  /* Store the glyph advance in the display list */
-  glTranslatef(face->glyph->advance.x / 64. / scale_x,
-	       face->glyph->advance.y / 64. / scale_y, 0.);
-
-  if (inState->glObjects) {
-    /* Finish display list creation */
-    glEndList();
-  }
-
-  __glcFree(pixmap.buffer);
-}
-
-
-
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
@@ -485,19 +216,20 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
     case GLC_TEXTURE:
       if (glyph->displayList[0]) {
 	glCallList(glyph->displayList[0]);
-	return;
+	FT_List_Up(&inState->atlasList, (FT_ListNode)glyph->textureObject);
+	return NULL;
       }
       break;
     case GLC_LINE:
       if (glyph->displayList[1]) {
 	glCallList(glyph->displayList[1]);
-	return;
+	return NULL;
       }
       break;
     case GLC_TRIANGLE:
       if (glyph->displayList[2]) {
 	glCallList(glyph->displayList[2]);
-	return;
+	return NULL;
       }
       break;
     }
@@ -637,6 +369,10 @@ void APIENTRY glcRenderChar(GLint inCode)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    if (state->glObjects && state->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
+    else if (!state->glObjects && state->texture.id)
+      glBindTexture(GL_TEXTURE_2D, state->texture.id);
   }
 
   /* Get the character code converted to the UCS-4 format */
@@ -723,6 +459,10 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    if (state->glObjects && state->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
+    else if (!state->glObjects && state->texture.id)
+      glBindTexture(GL_TEXTURE_2D, state->texture.id);
   }
 
   /* Render the string */
@@ -805,6 +545,10 @@ void APIENTRY glcRenderString(const GLCchar *inString)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    if (state->glObjects && state->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
+    else if (!state->glObjects && state->texture.id)
+      glBindTexture(GL_TEXTURE_2D, state->texture.id);
   }
 
   /* Render the string */

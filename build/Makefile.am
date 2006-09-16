@@ -26,7 +26,8 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/scalable.c \
                     $(top_builddir)/src/transform.c \
                     $(top_builddir)/src/oglyph.h \
-                    $(top_builddir)/src/oglyph.c
+                    $(top_builddir)/src/oglyph.c \
+                    $(top_builddir)/src/texture.c
 
 libGLC_la_CPPFLAGS = -I$(top_builddir)/src \
                    -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" \

@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #include "internal.h"
+#include "texture.h"
 #include FT_MODULE_H
 #include FT_LIST_H
 
@@ -134,9 +135,18 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   }
 
   This->glCapacities = 0;
-  This->texture = 0;
-  This->textureWidth = 0;
-  This->textureHeigth = 0;
+  This->texture.id = 0;
+  This->texture.width = 0;
+  This->texture.heigth = 0;
+
+  This->atlas.id = 0;
+  This->atlas.width = 0;
+  This->atlas.heigth = 0;
+  This->atlasList.head = NULL;
+  This->atlasList.tail = NULL;
+  This->atlasWidth = 0;
+  This->atlasHeight = 0;
+  This->atlasCount = 0;
 
   return This;
 }
@@ -146,12 +156,29 @@ __glcContextState* __glcCtxCreate(GLint inContext)
 /* This function is called from FT_List_Finalize() to destroy all
  * remaining fonts
  */
-static void __glcFontDestructor(FT_Memory inMemory, void *inData, void* inUser)
+static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
 {
   __glcFont *font = (__glcFont*)inData;
 
   if (font)
     __glcFontDestroy(font);
+}
+
+
+
+/* This function is called from FT_List_Finalize() to destroy all
+ * atlas elements and update the glyphs accordingly
+ */
+static void __glcAtlasDestructor(FT_Memory inMemory, void* inData, void* inUser)
+{
+  __glcAtlasElement* element = (__glcAtlasElement*)inData;
+  __glcGlyph* glyph = NULL;
+
+  assert(element);
+
+  glyph = element->glyph;
+  if (glyph)
+    __glcGlyphDestroyTexture(glyph);
 }
 
 
@@ -186,6 +213,15 @@ void __glcCtxDestroy(__glcContextState *This)
     __glcMasterDestroy((__glcMaster*)node);
     node = next;
   }
+
+  if (This->texture.id)
+    glDeleteTextures(1, &This->texture.id);
+
+  if (This->atlas.id)
+    glDeleteTextures(1, &This->atlas.id);
+
+  FT_List_Finalize(&This->atlasList, __glcAtlasDestructor,
+		   &__glcCommonArea.memoryManager, NULL);
 
   if (This->bufferSize)
     __glcFree(This->buffer);

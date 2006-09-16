@@ -18,24 +18,23 @@
  */
 /* $Id$ */
 
-#ifndef __glc_oglyph_h
-#define __glc_oglyph_h
+#ifndef __glc_texture_h
+#define __glc_texture_h
+
+#include "oglyph.h"
+#include "ofont.h"
 
 typedef struct {
   FT_ListNodeRec node;
 
-  FT_ULong index;
-  FT_ULong codepoint;
-  /* GL objects management */
-  void* textureObject;
-  GLuint displayList[3];
-  /* Measurement infos */
-  GLfloat boundingBox[4];
-  GLfloat advance[2];
-} __glcGlyph;
+  int position;
+  __glcGlyph* glyph;
+} __glcAtlasElement;
 
-__glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
-void __glcGlyphDestroy(__glcGlyph* This);
-void __glcGlyphDestroyTexture(__glcGlyph* This);
-void __glcGlyphDestroyGLObjects(__glcGlyph* This);
+void __glcDeleteAtlasElement(__glcAtlasElement* This, __glcContextState* inState);
+void __glcRenderCharTexture(__glcFont* inFont,
+			    __glcContextState* inState,
+			    GLboolean inDisplayListIsBuilding,
+			    GLfloat scale_x, GLfloat scale_y,
+			    __glcGlyph* inGlyph);
 #endif
