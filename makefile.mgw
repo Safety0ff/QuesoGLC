@@ -30,7 +30,7 @@ GLUT_LIBS=c:\mingw\lib\libglut.a
 #                                    #
 ######################################
 
-C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c ofacedesc.c ofont.c oglyph.c omaster.c render.c scalable.c transform.c
+C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c ofacedesc.c ofont.c oglyph.c omaster.c render.c scalable.c transform.c texture.c
 TESTS=test1 test4 test5 test6 test7 testcontex testfont testmaster testrender
 EXAMPLES=glcdemo glclogo tutorial tutorial2 unicode demo
 
