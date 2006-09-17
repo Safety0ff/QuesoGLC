@@ -1,6 +1,8 @@
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
+- QuesoGLC is now compliant with the Unicode Bidirectional Algorithm (UAX#9)
+  thanks to Fribidi.
 - Added the ability to extrude the characters.
 - A texture atlas is now used for GLC_TEXTURE rendering style.
 - Improved the speed for display list rendering by moving out some stuff that is
