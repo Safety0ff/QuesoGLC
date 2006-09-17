@@ -151,4 +151,17 @@ __glcContextState* __glcGetCurrent(void);
 GLboolean __glcGetScale(__glcContextState* inState,
 			GLfloat* outTransformMatrix, GLfloat* outScaleX,
 			GLfloat* outScaleY);
+
+/* Convert 'inString' (stored in logical order) to UCS4 format and return a
+ * copy of the converted string in visual order.
+ */
+FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
+				   const GLCchar* inString);
+
+/* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4
+ * format and return a copy of the converted string in visual order.
+ */
+FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
+						const GLCchar* inString,
+						const GLint inCount);
 #endif /* __glc_internal_h */

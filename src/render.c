@@ -417,8 +417,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
   GLint i = 0;
   __glcContextState *state = NULL;
-  FcChar8* UinString = NULL;
-  FcChar8* ptr = NULL;
+  FcChar32* UinString = NULL;
+  FcChar32* ptr = NULL;
   GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
   GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
 
@@ -442,8 +442,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertCountedStringToUtf8(inCount, inString,
-					      state->stringType);
+  UinString = __glcConvertCountedStringToVisualUcs4(state, inString, inCount);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -471,19 +470,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  for (i = 0; i < inCount; i++) {
-    FcChar32 code = 0;
-    int len = 0;
-    len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
-    if (len < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      break;
-    }
-    ptr += len;
-    __glcProcessChar(state, code, __glcRenderChar, NULL);
-  }
-
-  __glcFree(UinString);
+  for (i = 0; i < inCount; i++)
+    __glcProcessChar(state, *(ptr++), __glcRenderChar, NULL);
 
   /* Restore the values of the texture parameters if needed */
   if (state->renderStyle == GLC_TEXTURE) {
@@ -509,9 +497,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 void APIENTRY glcRenderString(const GLCchar *inString)
 {
   __glcContextState *state = NULL;
-  FcChar8* UinString = NULL;
-  FcChar8* ptr = NULL;
-  FcChar32 code = 0;
+  FcChar32* UinString = NULL;
+  FcChar32* ptr = NULL;
   GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
   GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
 
@@ -529,7 +516,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertToUtf8(inString, state->stringType);
+  UinString = __glcConvertToVisualUcs4(state, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -557,18 +544,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  while (*ptr) {
-    int len = 0;
-    len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
-    if (len < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      break;
-    }
-    ptr += len;
-    __glcProcessChar(state, code, __glcRenderChar, NULL);
-  }
-
-  __glcFree(UinString);
+  while (*ptr)
+    __glcProcessChar(state, *(ptr++), __glcRenderChar, NULL);
 
   /* Restore the values of the texture parameters if needed */
   if (state->renderStyle == GLC_TEXTURE) {

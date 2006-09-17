@@ -27,7 +27,21 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/transform.c \
                     $(top_builddir)/src/oglyph.h \
                     $(top_builddir)/src/oglyph.c \
-                    $(top_builddir)/src/texture.c
+                    $(top_builddir)/src/texture.c \
+                    $(top_builddir)/src/unicode.c \
+                    $(fribidi_SOURCES)
+
+
+fribidi_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
+                  $(top_builddir)/src/fribidi/fribidi.c \
+                  $(top_builddir)/src/fribidi/fribidi_char_type.c \
+                  $(top_builddir)/src/fribidi/fribidi_mirroring.c \
+                  $(top_builddir)/src/fribidi/fribidi_types.c \
+                  $(top_builddir)/src/fribidi/fribidi_types.h \
+                  $(top_builddir)/src/fribidi/fribidi_types.i \
+                  $(top_builddir)/src/fribidi/fribidi_unicode.h \
+                  $(top_builddir)/src/fribidi/fribidi_tab_mirroring.i \
+                  $(top_builddir)/src/fribidi/fribidi_tab_char_type_9.i
 
 libGLC_la_CPPFLAGS = -I$(top_builddir)/src \
                    -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" \

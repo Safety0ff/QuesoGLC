@@ -529,15 +529,15 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 
 /* This function perform the actual work of measuring a string
  * It is called by both glcMeasureString() and glcMeasureCountedString()
- * The string inString is encoded in UTF-8.
+ * The string inString is encoded in UCS4 and is stored in visual order.
  */
 static GLint __glcMeasureCountedString(__glcContextState *inState,
 				GLboolean inMeasureChars, GLint inCount,
-				const FcChar8* inString)
+				const FcChar32* inString)
 {
   GLint i = 0;
   GLfloat metrics[12] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
-  const FcChar8* ptr = NULL;
+  const FcChar32* ptr = NULL;
   const GLint storeRenderStyle = inState->renderStyle;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
@@ -557,24 +557,7 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
    */
   ptr = inString;
   for (i = 0; i < inCount; i++) {
-    FcChar32 code = 0;
-    int len = 0;
-
-    /* Get the current character code and increment the pointer ptr of the
-     * length of its UTF-8 encoding.
-     */
-    len = FcUtf8ToUcs4(ptr, &code, strlen((const char*)ptr));
-    if (len < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      inState->renderStyle = storeRenderStyle;
-      return 0;
-    }
-    ptr += len;
-    /* Call __glcProcessChar that will get a font which maps the code to a
-     * glyph or issue the replacement code or the character sequence \<xxx> and
-     * call __glcGetCharMetric().
-     */
-    __glcProcessChar(inState, code, __glcGetCharMetric, metrics);
+    __glcProcessChar(inState, *(ptr++), __glcGetCharMetric, metrics);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)
@@ -672,7 +655,7 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 {
   __glcContextState *state = NULL;
   GLint count = 0;
-  FcChar8* UinString = NULL;
+  FcChar32* UinString = NULL;
 
   /* Check the parameters */
   if (inCount < 0) {
@@ -691,16 +674,13 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   if (!inString)
     return 0;
 
-  UinString = __glcConvertCountedStringToUtf8(inCount, inString,
-					      state->stringType);
+  UinString = __glcConvertCountedStringToVisualUcs4(state, inString, inCount);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
   }
 
   count = __glcMeasureCountedString(state, inMeasureChars, inCount, UinString);
-
-  __glcFree(UinString);
 
   return count;
 }
@@ -727,12 +707,10 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
 {
   __glcContextState *state = NULL;
-  FcChar8* UinString = NULL;
+  FcChar32* UinString = NULL;
   GLint count = 0;
   GLint len = 0;
-  int shift = 0;
-  FcChar32 dummy = 0;
-  FcChar8* utf8 = NULL;
+  FcChar32* ucs4 = NULL;
 
   /* Verify if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -745,7 +723,7 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inStrin
   if (!inString)
     return 0;
 
-  UinString = __glcConvertToUtf8(inString, state->stringType);
+  UinString = __glcConvertToVisualUcs4(state, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
@@ -755,21 +733,10 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inStrin
    * difference in the measurement process afterwards between the counted
    * strings and the other strings.
    */
-  utf8 = UinString;
-  len = 0;
-  while(*utf8) {
-    shift = FcUtf8ToUcs4(utf8, &dummy, 6);
-    if (shift < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return 0;
-    }
-    utf8 += shift;
-    len += shift;
-  }
+  for (ucs4 = UinString, len = 0; *ucs4; ucs4++, len++);
+
 
   count = __glcMeasureCountedString(state, inMeasureChars, len, UinString);
-
-  __glcFree(UinString);
 
   return count;
 }
