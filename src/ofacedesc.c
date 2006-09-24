@@ -420,6 +420,8 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
 #endif
 
     *inFormat = masterFormat4;
+    *inFullNameSGI = unknown;
+    *inVersion = unknown;
 
     /* TODO : decode the SFNT name tables in order to get full name
      * of the TrueType/OpenType fonts and their version

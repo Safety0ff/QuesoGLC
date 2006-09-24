@@ -123,10 +123,6 @@ void __glcMasterDestroy(__glcMaster *This)
     __glcFree(This->family);
   if (This->vendor != (FcChar8*)unknown)
     __glcFree(This->vendor);
-  if (This->fullNameSGI)
-    __glcFree(This->fullNameSGI);
-  if (This->version)
-    __glcFree(This->version);
 
   __glcFree(This);
 }
