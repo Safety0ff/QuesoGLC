@@ -1,6 +1,8 @@
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
+- Fixed a bug where glcGetMasterc() returned silly values for
+  GLC_FULL_NAME_SGI and GLC_VERSION attributes.
 - QuesoGLC is now compliant with the Unicode Bidirectional Algorithm (UAX#9)
   thanks to Fribidi.
 - Added the ability to extrude the characters.
