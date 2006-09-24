@@ -7,7 +7,6 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/font.c \
                     $(top_builddir)/src/global.c \
                     $(top_builddir)/src/master.c \
-                    $(top_builddir)/src/master.h \
                     $(top_builddir)/src/measure.c \
                     $(top_builddir)/src/misc.c \
                     $(top_builddir)/src/oarray.c \
@@ -27,6 +26,7 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/transform.c \
                     $(top_builddir)/src/oglyph.h \
                     $(top_builddir)/src/oglyph.c \
+                    $(top_builddir)/src/texture.h \
                     $(top_builddir)/src/texture.c \
                     $(top_builddir)/src/unicode.c \
                     $(fribidi_SOURCES)
@@ -58,3 +58,6 @@ libGLC_la_LIBADD = @GLU_LIBS@ \
 
 libGLC_la_LDFLAGS = -version-info 0:2 \
                     -release @PACKAGE_VERSION@
+
+$(top_builddir)/src/database.c: $(top_builddir)/database/buildDB.py
+	cd $(top_builddir)/database && python buildDB.py && cd $(top_builddir)/src
