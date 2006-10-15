@@ -30,12 +30,13 @@ GLUT_LIBS=c:\mingw\lib\libglut.a
 #                                    #
 ######################################
 
-C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c ofacedesc.c ofont.c oglyph.c omaster.c render.c scalable.c transform.c texture.c
+C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c ofacedesc.c ofont.c oglyph.c omaster.c render.c scalable.c transform.c texture.c unicode.c
+FRIBIDI_FILES=fribidi.c fribidi_char_type.c fribidi_types.c fribidi_mirroring.c
 TESTS=test1 test4 test5 test6 test7 testcontex testfont testmaster testrender
 EXAMPLES=glcdemo glclogo tutorial tutorial2 unicode demo
 
-C_SOURCE=$(addprefix src/,$(C_FILES))
-LIB_OBJECTS=$(addprefix lib/,$(C_FILES:.c=.o))
+C_SOURCE=$(addprefix src/,$(C_FILES)) $(addprefix src/fribidi/,$(FRIBIDI_FILES))
+LIB_OBJECTS=$(addprefix lib/,$(C_FILES:.c=.o)) $(addprefix lib/,$(FRIBIDI_FILES:.c=.o))
 TESTS_OBJECTS=$(addprefix tests/,$(addsuffix .exe, $(TESTS)))
 EXAMPLES_OBJECTS=$(addprefix examples/,$(addsuffix .exe, $(EXAMPLES)))
 GLUT_FLAGS+=-Iinclude
@@ -65,19 +66,22 @@ clean:
 	del tests\*.exe
 
 tests/%.exe : tests/%.c lib/$(LIBRARY)
-	$(CC) $(CFLAGS) $(GLUT_FLAGS) $< -o $@ $(LIBS) $(GLUT_LIBS)
+	$(CC) $(CFLAGS) $(GLUT_FLAGS) -DQUESOGLC_VERSION=\"0.5.0\" $< -o $@ $(LIBS) $(GLUT_LIBS)
 
-lib/%.o : examples/%.c
-	$(CC) -c $(CFLAGS) $(GLUT_FLAGS) $< -o $@
+lib/trackball.o : examples/trackball.c
+	$(CC) -c $(CFLAGS) $< -o $@
 
-examples/demo.exe : lib/demo.o lib/trackball.o
-	$(CC) -o $@ $^ $(LIBS) $(GLUT_LIBS)
+examples/demo.exe : examples/demo.c lib/trackball.o
+	$(CC) $(CFLAGS) $(GLUT_FLAGS) -o $@ $^ $(LIBS) $(GLUT_LIBS)
 
 examples/%.exe : examples/%.c lib/$(LIBRARY)
 	$(CC) $(CFLAGS) $(GLUT_FLAGS) $< -o $@ $(LIBS) $(GLUT_LIBS)
+
+lib/%.o : src/fribidi/%.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -Isrc/fribidi $< -o $@
 
 lib/%.o : src/%.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) -DQUESOGLC_VERSION=\"0.5.0\" $< -o $@
 
 lib/$(LIBRARY): $(LIB_OBJECTS)
-	$(CC) -shared -o lib/$(LIBRARY) -Wl,--out-implib,lib/lib$(LIB_NAME).a $(LIB_OBJECTS) $(SUBLIBRARIES)
+	$(CC) -shared -o lib/$(LIBRARY) -Wl,--output-def,lib/glc32.def,--out-implib,lib/lib$(LIB_NAME).a $(LIB_OBJECTS) $(SUBLIBRARIES)
