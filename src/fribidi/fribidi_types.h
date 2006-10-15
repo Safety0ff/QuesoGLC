@@ -27,6 +27,11 @@
 #include "qglc_config.h"
 #endif
 
+#ifdef __WIN32__
+#define FRIBIDI_INT8	char
+#define FRIBIDI_INT16	short
+#define FRIBIDI_INT32	int
+#else
 #define FRIBIDI_INT8	char
 #if SIZEOF_INT+0 == 2
 # define FRIBIDI_INT16	int
@@ -41,6 +46,7 @@
 # define FRIBIDI_INT32	long
 #else
 # error cannot determine a 32-bit integer type.  check qglc_config.h
+#endif
 #endif
 
 
