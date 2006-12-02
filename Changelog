@@ -1,6 +1,9 @@
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
+- Added support for kerning.
+- Added support for the FreeType cache sub-system.
+- Force thread-safety for included libraries.
 - Fixed a bug where glcGetMasterc() returned silly values for
   GLC_FULL_NAME_SGI and GLC_VERSION attributes.
 - QuesoGLC is now compliant with the Unicode Bidirectional Algorithm (UAX#9)
@@ -50,7 +53,7 @@ Changes made from the "0.3" release to the "0.4" release:
   uploaded in order not to depend on the user setting of those parameters
 - Brandon Casey provided a patch to allow QuesoGLC to compile with FreeType libs
   older than 2.1.8 (winfonts were not supported before 2.1.8)
-- Pablo Barbachano provided a patch to allow QuesoGLC to use FreeType 2.2.x
+- Pablo Barb√°chano provided a patch to allow QuesoGLC to use FreeType 2.2.x
   (const-ness added to some parameters of the callbak functions of
   FT_Outline_Decompose)
 - Removed the stupid limit that generated GLC_PARAMETER_ERROR whenever some
@@ -207,8 +210,8 @@ Changes made from the "0.2" release to the "0.3" release:
 - When the shared library is built, the version number is appended to the
   library name and the corresponding links are created when QuesoGLC is
   installed. This allows several different versions of QuesoGLC to coexist
-  on most *nix (feature suggested by Pablo Barb·chano).
-- Pablo Barb·chano fixed the install process of QuesoGLC
+  on most *nix (feature suggested by Pablo Barb√°chano).
+- Pablo Barb√°chano fixed the install process of QuesoGLC
 
 Changes made from the "0.1" release to the "0.2" release:
 -----------------------------------------------------------
