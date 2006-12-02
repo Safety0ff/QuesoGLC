@@ -45,6 +45,7 @@ fribidi_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
 
 libGLC_la_CPPFLAGS = -I$(top_builddir)/src \
                    -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" \
+		   -D_REENTRANT \
                    @PTHREAD_CFLAGS@ \
                    @FONTCONFIG_CFLAGS@ \
                    @FREETYPE2_CFLAGS@ \
