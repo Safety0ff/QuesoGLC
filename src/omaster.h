@@ -44,5 +44,5 @@ typedef struct {
 __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 			       const FcChar8* inVendorName,
 			       GLint inID, GLint inStringType);
-void __glcMasterDestroy(__glcMaster *This);
+void __glcMasterDestroy(__glcMaster *This, __glcContextState* inState);
 #endif /* __glc_omaster_h */

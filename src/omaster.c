@@ -100,7 +100,7 @@ __glcMaster* __glcMasterCreate(const FcChar8* familyName,
 
 
 /* Destructor of the object */
-void __glcMasterDestroy(__glcMaster *This)
+void __glcMasterDestroy(__glcMaster *This, __glcContextState* inState)
 {
   /* FIXME :
    * Check that linked lists are empty before the pointer is freed
@@ -114,7 +114,7 @@ void __glcMasterDestroy(__glcMaster *This)
   node = This->faceList.head;
   while (node) {
     next = node->next;
-    __glcFaceDescDestroy((__glcFaceDescriptor*)node);
+    __glcFaceDescDestroy((__glcFaceDescriptor*)node, inState);
     node = next;
   }
 

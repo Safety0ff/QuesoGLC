@@ -164,4 +164,10 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
 FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
 						const GLCchar* inString,
 						const GLint inCount);
+
+#ifdef FT_CACHE_H
+/* Callback function used by the FreeType cache manager to open a given face */
+FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary, FT_Pointer inData,
+		       FT_Face* outFace);
+#endif
 #endif /* __glc_internal_h */

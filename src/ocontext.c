@@ -56,6 +56,15 @@ __glcContextState* __glcCtxCreate(GLint inContext)
 
   FT_Add_Default_Modules(This->library);
 
+#ifdef FT_CACHE_H
+  if (FTC_Manager_New(This->library, 0, 0, 0, __glcFileOpen, NULL, &This->cache)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FT_Done_Library(This->library);
+    __glcFree(This);
+    return NULL;
+  }
+#endif
+
   This->node.prev = NULL;
   This->node.next = NULL;
   This->node.data = NULL;
@@ -65,6 +74,9 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->catalogList = FcStrSetCreate();
   if (!This->catalogList) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
     FT_Done_Library(This->library);
     __glcFree(This);
     return NULL;
@@ -92,6 +104,9 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->measurementBuffer = __glcArrayCreate(12 * sizeof(GLfloat));
   if (!This->measurementBuffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
     FT_Done_Library(This->library);
     FcStrSetDestroy(This->catalogList);
     __glcFree(This);
@@ -108,6 +123,9 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   if (!This->vertexArray) {
     __glcArrayDestroy(This->measurementBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
     FT_Done_Library(This->library);
     FcStrSetDestroy(This->catalogList);
     __glcFree(This);
@@ -118,6 +136,9 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
     FT_Done_Library(This->library);
     FcStrSetDestroy(This->catalogList);
     __glcFree(This);
@@ -129,6 +150,9 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
     FT_Done_Library(This->library);
     FcStrSetDestroy(This->catalogList);
     __glcFree(This);
@@ -211,7 +235,7 @@ void __glcCtxDestroy(__glcContextState *This)
   node = This->masterList.head;
   while (node) {
     next = node->next;
-    __glcMasterDestroy((__glcMaster*)node);
+    __glcMasterDestroy((__glcMaster*)node, This);
     node = next;
   }
 
@@ -239,6 +263,9 @@ void __glcCtxDestroy(__glcContextState *This)
   if (This->endContour)
     __glcArrayDestroy(This->endContour);
 
+#ifdef FT_CACHE_H
+  FTC_Manager_Done(This->cache);
+#endif
   FT_Done_Library(This->library);
   __glcFree(This);
 }
@@ -653,14 +680,14 @@ void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
 
     /* Delete the face descriptor */
     FT_List_Remove(&master->faceList, (FT_ListNode)faceDesc);
-    __glcFaceDescDestroy(faceDesc);
+    __glcFaceDescDestroy(faceDesc, This);
 
     /* If the master is empty (i.e. does not contain any face) then
      * remove it.
      */
     if (!master->faceList.head) {
       FT_List_Remove(&This->masterList, masterNode);
-      __glcMasterDestroy(master);
+      __glcMasterDestroy(master, This);
       master = NULL;
     }
     else {

@@ -24,6 +24,10 @@
 #include "internal.h"
 #include FT_LIST_H
 #include FT_GLYPH_H
+#ifdef FT_CACHE_H
+#include FT_CACHE_H
+#endif
+
 #include FT_TYPE1_TABLES_H
 #include FT_BDF_H
 #ifdef FT_WINFONTS_H
@@ -82,8 +86,10 @@ __glcFaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
   This->node.data = NULL;
   This->isFixedPitch = inIsFixedPitch;
   This->indexInFile = inIndexInFile;
+#ifndef FT_CACHE_H
   This->face = NULL;
   This->faceRefCount = 0;
+#endif
   This->glyphList.head = NULL;
   This->glyphList.tail = NULL;
 
@@ -93,7 +99,7 @@ __glcFaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
 
 
 /* Destructor of the object */
-void __glcFaceDescDestroy(__glcFaceDescriptor* This)
+void __glcFaceDescDestroy(__glcFaceDescriptor* This, __glcContextState* inState)
 {
   FT_ListNode node = NULL;
   FT_ListNode next = NULL;
@@ -108,6 +114,11 @@ void __glcFaceDescDestroy(__glcFaceDescriptor* This)
     node = next;
   }
 
+#ifdef FT_CACHE_H
+  /* In order to make sure its ID is removed from the FreeType cache */
+  FTC_Manager_RemoveFaceID(inState->cache, (FTC_FaceID)This);
+#endif
+
   free(This->styleName);
   free(This->fileName);
   __glcFree(This);
@@ -115,6 +126,7 @@ void __glcFaceDescDestroy(__glcFaceDescriptor* This)
 
 
 
+#ifndef FT_CACHE_H
 /* Open a face, select a Unicode charmap. __glcFaceDesc maintains a reference
  * count for each face so that the face is open only once.
  */
@@ -165,6 +177,31 @@ void __glcFaceDescClose(__glcFaceDescriptor* This)
 
 
 
+#else /* FT_CACHE_H */
+/* Callback function used by the FreeType cache manager to open a given face */
+FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
+		       FT_Pointer inData, FT_Face* outFace)
+{
+  __glcFaceDescriptor* file = (__glcFaceDescriptor*)inFile;
+  FT_Error error = FT_New_Face(inLibrary, (const char*)file->fileName,
+			       file->indexInFile, outFace);
+
+  if (error) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return error;
+  }
+
+  /* select a Unicode charmap */
+  error = FT_Select_Charmap(*outFace, ft_encoding_unicode);
+  if (error)
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+
+  return error;
+}
+#endif /* FT_CACHE_H */
+
+
+
 /* Return the glyph which corresponds to codepoint 'inCode' */
 __glcGlyph* __glcFaceDescGetGlyph(__glcFaceDescriptor* This, GLint inCode,
 				  __glcContextState* inState)
@@ -181,24 +218,35 @@ __glcGlyph* __glcFaceDescGetGlyph(__glcFaceDescriptor* This, GLint inCode,
   }
 
   /* Open the face */
+#ifdef FT_CACHE_H
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)This, &face)) {
+#else
   face = __glcFaceDescOpen(This, inState);
   if (!face) {
+#endif
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
   /* Create a new glyph */
+#ifdef FT_CACHE_H
+  glyph = __glcGlyphCreate(FT_Get_Char_Index(face, inCode), inCode);
+  if (!glyph)
+    return NULL;
+#else
   glyph = __glcGlyphCreate(FcFreeTypeCharIndex(face, inCode), inCode);
   if (!glyph) {
     __glcFaceDescClose(This);
     return NULL;
   }
-
+#endif
   /* Append the new glyph to the list of the glyphes of the face and close the
    * face.
    */
   FT_List_Add(&This->glyphList, (FT_ListNode)glyph);
+#ifndef FT_CACHE_H
   __glcFaceDescClose(This);
+#endif
   return glyph;
 }
 
@@ -215,6 +263,10 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
 {
   FT_Face face = NULL;
   FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
+#ifdef FT_CACHE_H
+  FTC_ScalerRec scaler;
+  FT_Size size = NULL;
+#endif
 
   /* If GLC_HINTING_QSO is enabled then perform hinting on the glyph while
    * loading it.
@@ -223,6 +275,21 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
     loadFlags |= FT_LOAD_NO_HINTING;
 
   /* Open the face */
+#ifdef FT_CACHE_H
+  scaler.face_id = (FTC_FaceID)This;
+  scaler.width = (FT_F26Dot6)(inScaleX * 64.);
+  scaler.height = (FT_F26Dot6)(inScaleY * 64.);
+  scaler.pixel = 0;
+  scaler.x_res = (FT_UInt)inState->resolution;
+  scaler.y_res = (FT_UInt)inState->resolution;
+
+  if (FTC_Manager_LookupSize(inState->cache, &scaler, &size)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  face = size->face;
+#else
   face = __glcFaceDescOpen(This, inState);
   if (!face) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -238,11 +305,14 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+#endif
 
   /* Load the glyph */
   if (FT_Load_Glyph(face, inGlyphIndex, loadFlags)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifndef FT_CACHE_H
     __glcFaceDescClose(This);
+#endif
     return NULL;
   }
 
@@ -270,20 +340,53 @@ __glcCharMap* __glcFaceDescGetCharMap(__glcFaceDescriptor* This,
 				      __glcContextState* inState)
 {
   __glcCharMap* charMap = NULL;
-  FT_Face face = __glcFaceDescOpen(This, inState);
+  FT_Face face = NULL;
   FcCharSet* charSet = NULL;
+#ifdef FT_CACHE_H
+  FT_UInt gindex = 0;
+  FT_ULong charCode = 0;
+#endif
 
   /* Check that the face is opened */
+#ifdef FT_CACHE_H
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)This, &face)) {
+#else
+  face = __glcFaceDescOpen(This, inState);
   if (!face) {
+#endif
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
   /* Build a character map based on the FcCharSet of the face */
+#ifndef FT_CACHE_H
   charSet = FcFreeTypeCharSet(face, NULL);
+#else
+  /* For some reason, FcFreeTypeCharSet() fails when a cached face is used.
+   * Instead we build the charset ourselves but that means that we may not
+   * get a list as complete as the one we get when calling FcFreeTypeCharSet.
+   */
+  charSet = FcCharSetCreate();
+  if (!charSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+  charCode = FT_Get_First_Char(face, &gindex);
+  while (gindex) {
+    if (!FcCharSetAddChar(charSet, charCode)) {
+      FcCharSetDestroy(charSet);
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return NULL;
+    }
+    charCode = FT_Get_Next_Char(face, charCode, &gindex);
+  }
+#endif
+
   charMap = __glcCharMapCreate(charSet);
   FcCharSetDestroy(charSet);
+#ifndef FT_CACHE_H
   __glcFaceDescClose(This);
+#endif
   return charMap;
 }
 
@@ -321,7 +424,9 @@ GLfloat* __glcFaceDescGetBoundingBox(__glcFaceDescriptor* This,
   outVec[3] = (GLfloat) boundBox.yMax / GLC_POINT_SIZE / 64.;
 
   FT_Done_Glyph(glyph);
+#ifndef FT_CACHE_H
   __glcFaceDescClose(This);
+#endif
   return outVec;
 }
 
@@ -350,7 +455,9 @@ GLfloat* __glcFaceDescGetAdvance(__glcFaceDescriptor* This,
   outVec[0] = (GLfloat) face->glyph->advance.x / 64.;
   outVec[1] = (GLfloat) face->glyph->advance.y / 64.;
 
+#ifndef FT_CACHE_H
   __glcFaceDescClose(This);
+#endif
   return outVec;
 }
 
@@ -383,8 +490,12 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
   FT_UInt count = 0;
 
   /* Open the face */
+#ifdef FT_CACHE_H
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)This, &face)) {
+#else
   face = __glcFaceDescOpen(This, inState);
   if (!face) {
+#endif
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;
   }
@@ -444,8 +555,10 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
 #endif
   }
 
+#ifndef FT_CACHE_H
   /* Close the face */
   __glcFaceDescClose(This);
+#endif
   return GL_TRUE;
 }
 
@@ -457,14 +570,19 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
 GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
 				   __glcContextState* inState)
 {
-  FT_Face face = __glcFaceDescOpen(This, inState);
+  FT_Face face = NULL;
   /* If the resolution of the context is zero then use the default 72 dpi */
   GLfloat scale = (inState->resolution < GLC_EPSILON ?
 		   72. : inState->resolution) / 72.;
 
   assert(outVec);
 
+#ifdef FT_CACHE_H
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)This, &face))
+#else
+  face = __glcFaceDescOpen(This, inState);
   if (!face)
+#endif
     return NULL;
 
   scale /= face->units_per_EM;
@@ -477,6 +595,8 @@ GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
   outVec[4] = (GLfloat)face->bbox.xMax * scale;
   outVec[5] = (GLfloat)face->bbox.xMin * scale;
 
+#ifndef FT_CACHE_H
   __glcFaceDescClose(This);
+#endif
   return outVec;
 }

@@ -201,6 +201,7 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
   __glcGlyph* glyph = NULL;
   GLboolean displayListIsBuilding = GL_FALSE;
   __glcFont* font = __glcVerifyFontParameters(inFont);
+  FT_Face face = NULL;
 
   if (!font)
     return NULL;
@@ -239,6 +240,15 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
     }
   }
 
+#ifndef FT_CACHE_H
+  face = font->faceDesc->face;
+#else
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)font->faceDesc, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+#endif
+
   displayListIsBuilding = __glcGetScale(inState, transformMatrix, &scale_x,
   					&scale_y);
 
@@ -253,7 +263,6 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
     FT_Vector* vector = NULL;
     GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
     GLfloat xMax = -1E20, yMax = -1E20, zMax = -1E20;
-    FT_Face face = font->faceDesc->face;
 
     /* If the outline contains no point then the glyph represents a space
      * character and there is no need to continue the process of rendering.
@@ -263,7 +272,9 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
       /* Update the advance and return */
       glTranslatef(face->glyph->advance.x / 64. / scale_x,
 		  face->glyph->advance.y / 64. / scale_y, 0.);
+#ifndef FT_CACHE_H
       __glcFaceDescClose(font->faceDesc);
+#endif
       return NULL;
     }
 
@@ -298,7 +309,9 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 	|| (zMin > 1.) || (zMax < -1.)) {
       glTranslatef(face->glyph->advance.x / 64. / scale_x,
 		  face->glyph->advance.y / 64. / scale_y, 0.);
+#ifndef FT_CACHE_H
       __glcFaceDescClose(font->faceDesc);
+#endif
       return NULL;
     }
   }
@@ -309,7 +322,7 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
    */
   switch(inState->renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(font->faceDesc->face->glyph, inState, scale_x,
+    __glcRenderCharBitmap(face->glyph, inState, scale_x,
 			  scale_y);
     break;
   case GLC_TEXTURE:
@@ -330,7 +343,9 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
     __glcRaiseError(GLC_PARAMETER_ERROR);
   }
 
+#ifndef FT_CACHE_H
   __glcFaceDescClose(font->faceDesc);
+#endif
   return NULL;
 }
 

@@ -613,7 +613,16 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   __glcRendererData rendererData;
   GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
 				 0., 0., 0., 0., 1.};
-  FT_Face face = inFont->faceDesc->face;
+  FT_Face face = NULL;
+
+#ifndef FT_CACHE_H
+  face = inFont->faceDesc->face;
+#else
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)inFont->faceDesc, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+#endif
 
   /* Initialize the data for FreeType to parse the outline */
   outline = &face->glyph->outline;

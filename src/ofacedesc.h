@@ -27,8 +27,10 @@ typedef struct {
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
   FcChar8* fileName;
   FT_Long indexInFile;
+#ifndef FT_CACHE_H
   FT_Face face;
   int faceRefCount;
+#endif
   FT_ListRec glyphList;
 } __glcFaceDescriptor;
 
@@ -38,10 +40,12 @@ __glcFaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
 					 GLboolean inIsFixedPitch,
 					 FcChar8* inFileName,
 					 FT_Long inIndexInFile);
-void __glcFaceDescDestroy(__glcFaceDescriptor* This);
+void __glcFaceDescDestroy(__glcFaceDescriptor* This, __glcContextState* inState);
+#ifndef FT_CACHE_H
 FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
 			  __glcContextState* inState);
 void __glcFaceDescClose(__glcFaceDescriptor* This);
+#endif
 __glcGlyph* __glcFaceDescGetGlyph(__glcFaceDescriptor* This, GLint inCode,
 				  __glcContextState* inState);
 FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,

@@ -140,11 +140,13 @@ void APIENTRY glcAppendFont(GLint inFont)
     return;
   }
 
+#ifndef FT_CACHE_H
   if (!__glcFaceDescOpen(font->faceDesc, state)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
     return;
   }
+#endif
 
   /* Add the font to GLC_CURRENT_FONT_LIST */
   node->data = font;
@@ -169,7 +171,9 @@ static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
   /* If the font has been found, remove it from the list */
   if (node) {
     FT_List_Remove(&state->currentFontList, node);
+#ifndef FT_CACHE_H
     __glcFaceDescClose(font->faceDesc);
+#endif
     __glcFree(node);
   }
   __glcFontDestroy(font);
@@ -214,6 +218,7 @@ void APIENTRY glcDeleteFont(GLint inFont)
 
 
 
+#ifndef FT_CACHE_H
 /* Function called by FT_List_Finalize
  * Close the face of a font when GLC_CURRENT_FONT_LIST is deleted
  */
@@ -225,6 +230,7 @@ static void __glcCloseFace(FT_Memory inMemory, void* data, void* user)
   assert(font->faceDesc);
   __glcFaceDescClose(font->faceDesc);
 }
+#endif
 
 
 
@@ -272,10 +278,12 @@ void APIENTRY glcFont(GLint inFont)
       FT_List_Remove(&state->currentFontList, node);
     }
     else {
+#ifndef FT_CACHE_H
       if (!__glcFaceDescOpen(font->faceDesc, state)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
       }
+#endif
 
       /* Append the font identified by inFont to GLC_CURRENT_FONT_LIST */
       node = state->currentFontList.head;
@@ -283,10 +291,12 @@ void APIENTRY glcFont(GLint inFont)
         /* We keep the first node of the current font list in order not to need
          * to create a new one to store the font identified by 'inFont'
          */
+#ifndef FT_CACHE_H
         __glcFont* dummyFont = (__glcFont*)node->data;
 
         /* Close the face of the font stored in the first node */
 	__glcFaceDescClose(dummyFont->faceDesc);
+#endif
         /* Remove the first node of the list to prevent it to be deleted by
          * FT_List_Finalize().
          */
@@ -296,24 +306,37 @@ void APIENTRY glcFont(GLint inFont)
         /* The list is empty, create a new node */
         node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
         if (!node) {
+#ifndef FT_CACHE_H
 	  __glcFaceDescClose(font->faceDesc);
+#endif
           __glcRaiseError(GLC_RESOURCE_ERROR);
           return;
         }
       }
     }
 
+#ifndef FT_CACHE_H
     /* Close the remaining fonts in GLC_CURRENT_FONT_LIST and empty the list */
     FT_List_Finalize(&state->currentFontList, __glcCloseFace,
 		     &__glcCommonArea.memoryManager, NULL);
+#else
+    /* Empties GLC_CURRENT_FONT_LIST */
+    FT_List_Finalize(&state->currentFontList, NULL,
+		     &__glcCommonArea.memoryManager, NULL);
+#endif
     /* Insert the updated node as the first and only node */
     node->data = font;
     FT_List_Add(&state->currentFontList, node);
   }
   else {
     /* Empties the list GLC_CURRENT_FONT_LIST */
+#ifndef FT_CACHE_H
     FT_List_Finalize(&state->currentFontList, __glcCloseFace,
                      &__glcCommonArea.memoryManager, NULL);
+#else
+    FT_List_Finalize(&state->currentFontList, NULL,
+                     &__glcCommonArea.memoryManager, NULL);
+#endif
   }
 }
 
@@ -355,6 +378,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
       return GL_FALSE;
     }
 
+#ifndef FT_CACHE_H
     /* Open the new face */
     if (!__glcFaceDescOpen(faceDesc, inState)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -364,6 +388,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
 
     /* Close the current face */
     __glcFaceDescClose(font->faceDesc);
+#endif
 
     /* Destroy the current charmap */
     if (font->charMap)

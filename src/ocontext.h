@@ -27,6 +27,12 @@
 #include <windows.h>
 #endif
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#ifdef FT_CACHE_H
+#include FT_CACHE_H
+#endif
+
 #include "GL/glc.h"
 #include "oarray.h"
 #include "except.h"
@@ -45,6 +51,10 @@ typedef struct {
   GLint bufferSize;
 
   FT_Library library;
+#ifdef FT_CACHE_H
+  FTC_Manager cache;
+#endif
+
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */
   GLCfunc callback;		/* Callback function */

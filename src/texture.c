@@ -198,7 +198,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
 			    GLfloat scale_x, GLfloat scale_y,
 			    __glcGlyph* inGlyph)
 {
-  FT_Face face = inFont->faceDesc->face;
+  FT_Face face = NULL;
   FT_Outline outline;
   FT_BBox boundingBox;
   FT_Bitmap pixmap;
@@ -211,7 +211,15 @@ void __glcRenderCharTexture(__glcFont* inFont,
   GLfloat texWidth = 0, texHeigth = 0;
   GLfloat texScaleX = 0, texScaleY = 0;
 
+#ifndef FT_CACHE_H
+  face = inFont->faceDesc->face;
   assert(face);
+#else
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)inFont->faceDesc, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+#endif
 
   outline = face->glyph->outline;
 
@@ -266,10 +274,10 @@ void __glcRenderCharTexture(__glcFont* inFont,
     posY = 0;
   }
 
-  pixmap.pitch = pixmap.width;		/* 8 bits / pixel */
+  pixmap.pitch = pixmap.width; /* 8 bits / pixel */
 
   /* Fill the pixmap descriptor and the pixmap buffer */
-  pixmap.pixel_mode = ft_pixel_mode_grays;	/* Anti-aliased rendering */
+  pixmap.pixel_mode = ft_pixel_mode_grays; /* Anti-aliased rendering */
   pixmap.num_grays = 256;
   pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
   if (!pixmap.buffer) {
@@ -380,6 +388,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
 
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
+  glNormal3f(0., 0., 1.);
   glTexCoord2f(posX / texWidth, posY / texHeigth);
   glVertex2f(boundingBox.xMin / 64. / texScaleX, 
 	     boundingBox.yMin / 64. / texScaleY);
