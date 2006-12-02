@@ -190,6 +190,7 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   case GLC_MIPMAP:
   case GLC_HINTING_QSO: /* QuesoGLC Extension */
   case GLC_EXTRUDE_QSO: /* QuesoGLC Extension */
+  case GLC_KERNING_QSO: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -230,6 +231,8 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
     state->hinting = value;
   case GLC_EXTRUDE_QSO:
     state->extrude = value;
+  case GLC_KERNING_QSO:
+    state->kerning = value;
   }
 }
 
@@ -261,6 +264,11 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
  *    <tr>
  *      <td><b>GLC_EXTRUDE_QSO</b></td>
  *      <td>0x8006</td>
+ *      <td><b>GL_FALSE</b></td>
+ *    </tr>
+ *    <tr>
+ *      <td><b>GLC_KERNING_QSO</b></td>
+ *      <td>0x8007</td>
  *      <td><b>GL_FALSE</b></td>
  *    </tr>
  *  </table>
@@ -295,6 +303,8 @@ void APIENTRY glcDisable(GLCenum inAttrib)
  *    \b GLC_TRIANGLE then GLC renders extruded characters with a thickness
  *    equal to 1.0. A call to glScale3*(1., 1., \e thickness ) can be added
  *    before the rendering commands in order to obtain the desired thickness.
+ *  - \b GLC_KERNING_QSO : if enabled, GLC uses kerning information (when
+ *    available) when string are rendered or measured.
  *
  *  \param inAttrib A symbolic constant indicating a GLC attribute.
  *  \sa glcDisable()
@@ -679,7 +689,7 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
 const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
-    " GLC_QSO_hinting";
+    " GLC_QSO_hinting GLC_QSO_kerning";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 
@@ -1000,6 +1010,8 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
   case GLC_GL_OBJECTS:
   case GLC_MIPMAP:
   case GLC_HINTING_QSO: /* QuesoGLC Extension */
+  case GLC_EXTRUDE_QSO: /* QuesoGLC Extension */
+  case GLC_KERNING_QSO: /* QuesoGLC Extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -1023,6 +1035,10 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
     return state->mipmap;
   case GLC_HINTING_QSO:
     return state->hinting;
+  case GLC_EXTRUDE_QSO:
+    return state->extrude;
+  case GLC_KERNING_QSO:
+    return state->kerning;
   }
 
   return GL_FALSE;

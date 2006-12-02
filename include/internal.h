@@ -54,8 +54,8 @@ typedef struct {
  * __glcProcessChar(). Two functions are defined according to this type :
  * __glcRenderChar() for rendering and __glcGetCharMetric() for measurement.
  */
-typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inFont,
-				      __glcContextState* inState,
+typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
+				      GLint inFont, __glcContextState* inState,
 				      void* inProcessCharData,
 				      GLboolean inMultipleChars);
 
@@ -65,7 +65,7 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inFont,
  * 'inCode' must be given in UCS-4 format
  */
 void* __glcProcessChar(__glcContextState *inState, GLint inCode,
-		       __glcProcessCharFunc inProcessCharFunc,
+		       GLint inPrevCode, __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData);
 
 /* Render scalable characters using either the GLC_LINE style or the

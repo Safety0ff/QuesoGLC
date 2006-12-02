@@ -191,7 +191,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcRenderChar(GLint inCode, GLint inFont,
+static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
 			    __glcContextState* inState, void* inData,
 			    GLboolean inMultipleChars)
 {
@@ -205,6 +205,20 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
 
   if (!font)
     return NULL;
+
+  displayListIsBuilding = __glcGetScale(inState, transformMatrix, &scale_x,
+  					&scale_y);
+
+  if ((scale_x == 0.f) || (scale_y == 0.f))
+    return NULL;
+
+  if (inPrevCode && inState->kerning) {
+    GLfloat kerning[2];
+
+    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
+			    scale_y))
+      glTranslatef(-kerning[0] / scale_x, -kerning[1] / scale_y, 0.);
+  }
 
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(font, inCode, inState);
@@ -248,12 +262,6 @@ static void* __glcRenderChar(GLint inCode, GLint inFont,
     return NULL;
   }
 #endif
-
-  displayListIsBuilding = __glcGetScale(inState, transformMatrix, &scale_x,
-  					&scale_y);
-
-  if ((scale_x == 0.f) || (scale_y == 0.f))
-    return NULL;
 
   __glcFaceDescLoadFreeTypeGlyph(font->faceDesc, inState, scale_x, scale_y,
                         glyph->index);
@@ -399,7 +407,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   if (code < 0)
     return;
 
-  __glcProcessChar(state, code, __glcRenderChar, NULL);
+  __glcProcessChar(state, code, 0, __glcRenderChar, NULL);
 
   /* Restore the values of the texture parameters if needed */
   if (state->renderStyle == GLC_TEXTURE) {
@@ -436,6 +444,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   FcChar32* ptr = NULL;
   GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
   GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
+  GLint prevCode = 0;
 
   /* Check if inCount is positive */
   if (inCount < 0) {
@@ -485,8 +494,10 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  for (i = 0; i < inCount; i++)
-    __glcProcessChar(state, *(ptr++), __glcRenderChar, NULL);
+  for (i = 0; i < inCount; i++) {
+    __glcProcessChar(state, *ptr, prevCode, __glcRenderChar, NULL);
+    prevCode = *(ptr++);
+  }
 
   /* Restore the values of the texture parameters if needed */
   if (state->renderStyle == GLC_TEXTURE) {
@@ -516,6 +527,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   FcChar32* ptr = NULL;
   GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
   GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
+  GLint prevCode = 0;
 
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -559,8 +571,10 @@ void APIENTRY glcRenderString(const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  while (*ptr)
-    __glcProcessChar(state, *(ptr++), __glcRenderChar, NULL);
+  while (*ptr) {
+    __glcProcessChar(state, *ptr, prevCode, __glcRenderChar, NULL);
+    prevCode = *(ptr++);
+  }
 
   /* Restore the values of the texture parameters if needed */
   if (state->renderStyle == GLC_TEXTURE) {

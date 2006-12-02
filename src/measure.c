@@ -51,7 +51,8 @@
  *  origin of the following layout. \b GLC_BOUNDS is the bounding box of the
  *  layout.
  *
- *  \image html measure.png
+ *  \image html measure.png "Baseline and bounds"
+ *  \image latex measure.eps "Baseline and bounds" width=10cm
  *  \n Each point <em>(x,y)</em> is computed in em coordinates, with the origin
  *  of a layout at <em>(0,0)</em>. If the value of the variable
  *  \b GLC_RENDER_STYLE is \b GLC_BITMAP, each point is transformed by the 2x2
@@ -61,6 +62,8 @@
 #include <math.h>
 #include "internal.h"
 #include FT_GLYPH_H
+
+
 
 /* Multiply a vector by the GLC_BITMAP_MATRIX */
 static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
@@ -77,7 +80,7 @@ static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
  * identified by 'inFont'.
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcGetCharMetric(GLint inCode, GLint inFont,
+static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
 				__glcContextState* inState, void* inData,
 				GLboolean inMultipleChars)
 {
@@ -135,23 +138,20 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
     /* Transform the values in outVec from the screen coordinate system to the
      * the glyph coordinate system
      */
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < 7; i++)
       __glcTransformVector(&outVec[2*i], inverseMatrix);
   }
 
-/*  if (!inMultipleChars) {
-    if (inState->renderStyle == GLC_BITMAP) {
-      glGetFloatv(GL_CURRENT_RASTER_POSITION, outVec);
-      outVec[2] = outVec[0];
-      outVec[3] = outVec[1];
-    }
-    else {*/
+  if (!inMultipleChars) {
       outVec[0] = 0.;
       outVec[1] = 0.;
       outVec[2] = 0.;
       outVec[3] = 0.;
-/*    }
-  }*/
+  }
+  else {
+    outVec[2] -= outVec[12];
+    outVec[3] -= outVec[13];
+  }
 
   __glcFontGetBoundingBox(font, inCode, temp, inState, scale_x, scale_y);
   /* Take into account the advance of the glyphs that have already been
@@ -187,9 +187,22 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
   outVec[2] += temp[0] / GLC_POINT_SIZE;
   outVec[3] += temp[1] / GLC_POINT_SIZE;
 
+  if (inPrevCode && inState->kerning) {
+    GLfloat kerning[2];
+
+    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
+			    scale_y))
+      outVec[12] = kerning[0] / GLC_POINT_SIZE;
+      outVec[13] = kerning[1] / GLC_POINT_SIZE;
+  }
+  else {
+    outVec[12] = 0.;
+    outVec[13] = 0.;
+  }
+
   /* Transforms the values into the screen coordinate system if necessary */
   if (inState->renderStyle == GLC_BITMAP) {
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < 7; i++)
       __glcTransformVector(&outVec[2*i], inState->bitmapMatrix);
   }
 
@@ -217,11 +230,12 @@ static void* __glcGetCharMetric(GLint inCode, GLint inFont,
  *  \sa glcMeasureCountedString()
  *  \sa glcMeasureString()
  */
-GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outVec)
+GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
+				   GLfloat *outVec)
 {
   __glcContextState *state = NULL;
   GLint code = 0;
-  GLfloat vector[12];
+  GLfloat vector[14];
 
   assert(outVec);
 
@@ -250,7 +264,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric, GLfloat *outV
    * or issue the replacement code or the character sequence \<xxx> and call
    * __glcGetCharMetric()
    */
-  if (__glcProcessChar(state, code, __glcGetCharMetric, vector)) {
+  if (__glcProcessChar(state, code, 0, __glcGetCharMetric, vector)) {
     switch(inMetric) {
     case GLC_BASELINE:
       memcpy(outVec, vector, 4 * sizeof(GLfloat));
@@ -536,12 +550,14 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
 				const FcChar32* inString)
 {
   GLint i = 0;
-  GLfloat metrics[12] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+  GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+			 0.};
   const FcChar32* ptr = NULL;
   const GLint storeRenderStyle = inState->renderStyle;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
   GLfloat* outVec = inState->measurementStringBuffer;
+  GLint prevCode = 0;
 
   if (inState->renderStyle == GLC_BITMAP) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
@@ -557,7 +573,8 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
    */
   ptr = inString;
   for (i = 0; i < inCount; i++) {
-    __glcProcessChar(inState, *(ptr++), __glcGetCharMetric, metrics);
+    __glcProcessChar(inState, *ptr, prevCode, __glcGetCharMetric, metrics);
+    prevCode = *(ptr++);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)
@@ -574,6 +591,13 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
       outVec[5] = metrics[5] + metrics[1];
       outVec[6] = metrics[6] + metrics[0];
       outVec[9] = metrics[9] + metrics[1];
+    }
+    else {
+      /* Takes the kerning into account */
+      outVec[2] -= metrics[12];
+      outVec[3] -= metrics[13];
+      outVec[0] = outVec[2];
+      outVec[1] = outVec[3];
     }
 
     xMin = metrics[4] + outVec[2];

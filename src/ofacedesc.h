@@ -40,7 +40,8 @@ __glcFaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
 					 GLboolean inIsFixedPitch,
 					 FcChar8* inFileName,
 					 FT_Long inIndexInFile);
-void __glcFaceDescDestroy(__glcFaceDescriptor* This, __glcContextState* inState);
+void __glcFaceDescDestroy(__glcFaceDescriptor* This,
+			  __glcContextState* inState);
 #ifndef FT_CACHE_H
 FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
 			  __glcContextState* inState);
@@ -69,4 +70,8 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
 				     FcChar8** inVersion);
 GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
 				   __glcContextState* inState);
+GLfloat* __glcFaceDescGetKerning(__glcFaceDescriptor* This,
+				 FT_UInt inGlyphIndex, FT_UInt inPrevGlyphIndex,
+				 GLfloat inScaleX, GLfloat inScaleY,
+				 GLfloat* outVec, __glcContextState* inState);
 #endif /* __glc_ofacedesc_h */

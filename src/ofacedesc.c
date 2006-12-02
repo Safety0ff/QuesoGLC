@@ -600,3 +600,39 @@ GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
 #endif
   return outVec;
 }
+
+
+
+/* Get the kerning information of a pair of glyphes according to the size given
+ * by inScaleX and inScaleY. The result is returned in outVec.
+ */
+GLfloat* __glcFaceDescGetKerning(__glcFaceDescriptor* This,
+				 FT_UInt inGlyphIndex, FT_UInt inPrevGlyphIndex,
+				 GLfloat inScaleX, GLfloat inScaleY,
+				 GLfloat* outVec, __glcContextState* inState)
+{
+  FT_Vector kerning;
+  FT_Error error;
+  FT_Face face = __glcFaceDescLoadFreeTypeGlyph(This, inState, inScaleX,
+						inScaleY, inGlyphIndex);
+
+  assert(outVec);
+
+  if (!face)
+    return NULL;
+
+  error = FT_Get_Kerning(face, inPrevGlyphIndex, inGlyphIndex,
+			 FT_KERNING_DEFAULT, &kerning);
+
+#ifndef FT_CACHE_H
+  __glcFaceDescClose(This);
+#endif
+
+  if (error)
+    return NULL;
+  else {
+    outVec[0] = (GLfloat) kerning.x / 64.;
+    outVec[1] = (GLfloat) kerning.y / 64.;
+    return outVec;
+  }
+}

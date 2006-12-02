@@ -141,9 +141,9 @@ GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
 
 /* Get the advance of a glyph according to the size given by inScaleX and
  * inScaleY. The result is returned in outVec. 'inCode' contains the character
- * code for which the bounding box is requested.
+ * code for which the advance is requested.
  */
-GLfloat* __glcFontGetAdvance(__glcFont *This, GLint inCode, GLfloat* outVec,
+GLfloat* __glcFontGetAdvance(__glcFont* This, GLint inCode, GLfloat* outVec,
 			     __glcContextState* inState, GLfloat inScaleX,
 			     GLfloat inScaleY)
 {
@@ -173,4 +173,25 @@ GLfloat* __glcFontGetAdvance(__glcFont *This, GLint inCode, GLfloat* outVec,
   /* Copy the result to outVec and return */
   memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
   return outVec;
+}
+
+
+
+/* Get the kerning information of a pair of glyph according to the size given by
+ * inScaleX and inScaleY. The result is returned in outVec. 'inCode' contains
+ * the current character code and 'inPrevCode' the character code of the
+ * previously displayed character.
+ */
+GLfloat* __glcFontGetKerning(__glcFont* This, GLint inCode, GLint inPrevCode,
+			     GLfloat* outVec, __glcContextState* inState,
+			     GLfloat inScaleX, GLfloat inScaleY)
+{
+  __glcGlyph* glyph = __glcFontGetGlyph(This, inCode, inState);
+  __glcGlyph* prevGlyph = __glcFontGetGlyph(This, inPrevCode, inState);
+
+  if (!glyph || !prevGlyph)
+    return NULL;
+
+  return __glcFaceDescGetKerning(This->faceDesc, glyph->index, prevGlyph->index,
+				 inScaleX, inScaleY, outVec, inState);
 }

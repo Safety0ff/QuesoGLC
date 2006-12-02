@@ -96,6 +96,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->mipmap = GL_TRUE;
   This->hinting = GL_FALSE;
   This->extrude = GL_FALSE;
+  This->kerning = GL_FALSE;
   This->resolution = 0.;
   This->bitmapMatrix[0] = 1.;
   This->bitmapMatrix[1] = 0.;

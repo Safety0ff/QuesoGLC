@@ -159,7 +159,7 @@ __glcContextState* __glcGetCurrent(void)
  * 'inCode' must be given in UCS-4 format
  */
 void* __glcProcessChar(__glcContextState *inState, GLint inCode,
-		       __glcProcessCharFunc inProcessCharFunc,
+		       GLint inPrevCode, __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData)
 {
   GLint repCode = 0;
@@ -169,8 +169,8 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
   font = __glcCtxGetFont(inState, inCode);
   if (font >= 0) {
     /* A font has been found */
-    return inProcessCharFunc(inCode, font, inState, inProcessCharData,
-			     GL_FALSE);
+    return inProcessCharFunc(inCode, inPrevCode, font, inState,
+			     inProcessCharData, GL_FALSE);
   }
 
   /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
@@ -184,8 +184,8 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
   repCode = inState->replacementCode;
   font = __glcCtxGetFont(inState, repCode);
   if (repCode && font)
-    return inProcessCharFunc(repCode, font, inState, inProcessCharData,
-			     GL_FALSE);
+    return inProcessCharFunc(repCode, inPrevCode, font, inState,
+			     inProcessCharData, GL_FALSE);
   else {
     /* If we get there, we failed to render both the character that inCode maps
      * to and the replacement code. Now, we will try to render the character
@@ -214,15 +214,18 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
     }
 
     /* Render the '\<hexcode>' sequence */
-    inProcessCharFunc('\\', __glcCtxGetFont(inState, '\\'), inState,
+    inProcessCharFunc('\\', inPrevCode, __glcCtxGetFont(inState, '\\'), inState,
 			   inProcessCharData, GL_FALSE);
-    inProcessCharFunc('<', __glcCtxGetFont(inState, '<'), inState,
+    inProcessCharFunc('<', '\\', __glcCtxGetFont(inState, '<'), inState,
 			   inProcessCharData, GL_TRUE);
-    for (i = 0; i < n; i++)
-      inProcessCharFunc(buf[i], __glcCtxGetFont(inState, buf[i]), inState,
-		      inProcessCharData, GL_TRUE);
-    return inProcessCharFunc('>', __glcCtxGetFont(inState, '>'), inState,
-			     inProcessCharData, GL_TRUE);
+    inPrevCode = '<';
+    for (i = 0; i < n; i++) {
+      inProcessCharFunc(buf[i], inPrevCode, __glcCtxGetFont(inState, buf[i]),
+			inState, inProcessCharData, GL_TRUE);
+      inPrevCode = buf[i];
+    }
+    return inProcessCharFunc('>', inPrevCode, __glcCtxGetFont(inState, '>'),
+			     inState, inProcessCharData, GL_TRUE);
   }
 }
 

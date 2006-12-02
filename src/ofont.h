@@ -21,8 +21,6 @@
 #ifndef __glc_ofont_h
 #define __glc_ofont_h
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
 #include "GL/glc.h"
 #include "omaster.h"
 #include "ocontext.h"
@@ -46,5 +44,8 @@ GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
 				 GLfloat inScaleX, GLfloat inScaleY);
 GLfloat* __glcFontGetAdvance(__glcFont *This, GLint inCode, GLfloat* outVec,
 			     __glcContextState* inState,
+			     GLfloat inScaleX, GLfloat inScaleY);
+GLfloat* __glcFontGetKerning(__glcFont* This, GLint inCode, GLint inPrevCode,
+			     GLfloat* outVec, __glcContextState* inState,
 			     GLfloat inScaleX, GLfloat inScaleY);
 #endif /* __glc_ofont_h */
