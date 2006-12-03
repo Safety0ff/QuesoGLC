@@ -66,7 +66,6 @@ typedef struct {
   GLboolean extrude;		/* GLC_EXTRUDE_QSO */
   GLboolean kerning;		/* GLC_KERNING_QSO */
   GLfloat resolution;		/* GLC_RESOLUTION */
-  GLfloat bitmapMatrix[4];	/* GLC_BITMAP_MATRIX */
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_ListRec fontList;		/* GLC_FONT_LIST */
   FT_ListRec masterList;
@@ -90,6 +89,10 @@ typedef struct {
   int atlasWidth;
   int atlasHeight;
   int atlasCount;
+
+  GLfloat* bitmapMatrix;	/* GLC_BITMAP_MATRIX */
+  GLfloat bitmapMatrixStack[4*GLC_MAX_MATRIX_STACK_DEPTH_QSO];
+  GLint bitmapMatrixStackDepth;
 } __glcContextState;
 
 typedef struct {

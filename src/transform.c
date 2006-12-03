@@ -35,6 +35,14 @@
  *  uses em coordinates directly as GL world coordinates when drawing a layout,
  *  and it is the responsibility of the GLC client to issue GL commands that
  *  set up the appropriate GL transformations.
+ *
+ *  There is a stack of matrices for \b GLC_BITMAP_MATRIX, the stack depth is
+ *  at least 32 (that is, there is a stack of at least 32 matrices). Matrices
+ *  can be pushed or popped in the stack with glcPushMatrixQSO() and
+ *  glcPopMatrixQSO(). The maximum depth is implementation specific but can be
+ *  retrieved by calling glcGeti() with \b GLC_MAX_MATRIX_STACK_DEPTH_QSO. The
+ *  number of matrices that are currently stored in the stack can be retrieved
+ *  by calling glcGeti() with \b GLC_MATRIX_STACK_DEPTH_QSO.
  */
 
 #include <math.h>
@@ -197,4 +205,70 @@ void APIENTRY glcScale(GLfloat inX, GLfloat inY)
     tempMatrix[3] = inY;
 
     glcMultMatrix(tempMatrix);
+}
+
+
+
+/** \ingroup transform
+ *  This command pushes the stack down by one, duplicating the current
+ *  \b GLC_BITMAP_MATRIX in both the top of the stack and the entry below it.
+ *  Pushing a matrix onto a full stack generates the error
+ *  \b GLC_STACK_OVERFLOW_QSO.
+ *  \sa glcPopMatrixQSO()
+ *  \sa glcGeti() with argument GLC_MATRIX_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument GLC_MAX_MATRIX_STACK_DEPTH_QSO
+ */
+void APIENTRY glcPushMatrixQSO(void)
+{
+  __glcContextState *state = NULL;
+
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+	__glcRaiseError(GLC_STATE_ERROR);
+	return;
+  }
+
+  if (state->bitmapMatrixStackDepth >= GLC_MAX_MATRIX_STACK_DEPTH) {
+    __glcRaiseError(GLC_STACK_OVERFLOW_QSO);
+    return;
+  }
+
+  memcpy(state->bitmapMatrix+4, state->bitmapMatrix, 4*sizeof(GLfloat));
+  state->bitmapMatrix += 4;
+  state->bitmapMatrixStackDepth++;
+  return;
+}
+
+
+
+/** \ingroup transform
+ *  This command pops the top entry off the stack, replacing the current
+ *  \b GLC_BITMAP_MATRIX with the matrix that was the second entry in the
+ *  stack.
+ *  Popping a matrix off a stack with only one entry generates the error
+ *  \b GLC_STACK_OVERFLOW_QSO.
+ *  \sa glcPushMatrixQSO()
+ *  \sa glcGeti() with argument GLC_MATRIX_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument GLC_MAX_MATRIX_STACK_DEPTH_QSO
+ */
+void APIENTRY glcPopMatrixQSO(void)
+{
+  __glcContextState *state = NULL;
+
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+	return;
+  }
+
+  if (state->bitmapMatrixStackDepth <= 0) {
+    __glcRaiseError(GLC_STACK_UNDERFLOW_QSO);
+    return;
+  }
+
+  state->bitmapMatrix -= 4;
+  state->bitmapMatrixStackDepth--;
+  return;
 }

@@ -41,6 +41,7 @@
 #define GLC_POINT_SIZE		128
 
 #define GLC_TEXTURE_LOD		1
+#define GLC_MAX_MATRIX_STACK_DEPTH	32
 
 typedef struct {
   GLint code;

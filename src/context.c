@@ -689,7 +689,7 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
 const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
-    " GLC_QSO_hinting GLC_QSO_kerning";
+    " GLC_QSO_hinting GLC_QSO_extrude GLC_QSO_kerning GLC_QSO_matrix_stack";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 
@@ -878,6 +878,14 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *    <td>0x00EB</td>
  *    <td>\<implementation specific\></td>
  *  </tr>
+ *  <tr>
+ *    <td><b>GLC_MATRIX_STACK_DEPTH_QSO</b></td> <td>0x8008</td> <td>0</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_MAX_MATRIX_STACK_DEPTH_QSO</b></td>
+ *    <td>0x8009</td>
+ *    <td>\<implementation specific\></td>
+ *  </tr>
  *  </table>
  *  </center>
  *  \param inAttrib Attribute for which an integer variable is requested.
@@ -909,6 +917,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_TEXTURE_OBJECT_COUNT:
   case GLC_VERSION_MAJOR:
   case GLC_VERSION_MINOR:
+  case GLC_MATRIX_STACK_DEPTH_QSO:     /* QuesoGLC extension */
+  case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -982,6 +992,10 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
     return __glcCommonArea.versionMajor;
   case GLC_VERSION_MINOR:
     return __glcCommonArea.versionMinor;
+  case GLC_MATRIX_STACK_DEPTH_QSO:     /* QuesoGLC extension */
+    return state->bitmapMatrixStackDepth;
+  case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
+    return GLC_MAX_MATRIX_STACK_DEPTH;
   }
 
   return 0;

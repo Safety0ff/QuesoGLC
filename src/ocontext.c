@@ -98,6 +98,8 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->extrude = GL_FALSE;
   This->kerning = GL_FALSE;
   This->resolution = 0.;
+  This->bitmapMatrixStackDepth = 0;
+  This->bitmapMatrix = This->bitmapMatrixStack;
   This->bitmapMatrix[0] = 1.;
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
