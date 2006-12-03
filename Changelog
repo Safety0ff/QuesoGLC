@@ -1,6 +1,7 @@
-Changes made from the "0.4" release to the "0.5" release:
+﻿Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
+- Added a matrix stack for GLC_BITMAP_MATRIX
 - Added support for kerning.
 - Added support for the FreeType cache sub-system.
 - Force thread-safety for included libraries.
