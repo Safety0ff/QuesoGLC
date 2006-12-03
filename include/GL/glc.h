@@ -236,6 +236,25 @@ GLCAPI GLint APIENTRY glcGetFontListiSGI(GLint inFont, GLCenum inAttrib, GLint i
 #define GLC_QSO_kerning                           1
 #define GLC_KERNING_QSO                           0x8007
 
+#define GLC_QSO_matrix_stack                      1
+#define GLC_MATRIX_STACK_DEPTH_QSO                0x8008
+#define GLC_MAX_MATRIX_STACK_DEPTH_QSO            0x8009
+#define GLC_STACK_OVERFLOW_QSO                    0x800A
+#define GLC_STACK_UNDERFLOW_QSO                   0x800B
+GLCAPI void APIENTRY glcPushMatrixQSO(void);
+GLCAPI void APIENTRY glcPopMatrixQSO(void);
+
+#define GLC_QSO_attrib_stack                      1
+#define GLC_ENABLE_BIT_QSO                        0x00000001
+#define GLC_RENDER_BIT_QSO                        0x00000002
+#define GLC_STRING_BIT_QSO                        0x00000004
+#define GLC_GL_ATTRIB_BIT_QSO                     0x00000008
+#define GLC_ALL_ATTRIB_BITS_QSO                   0x0000FFFF
+#define GLC_ATTRIB_STACK_DEPTH_QSO                0x800C
+#define GLC_MAX_ATTRIB_STACK_DEPTH_QSO            0x800D
+GLCAPI void APIENTRY glcPushAttribQSO(GLbitfield inMask);
+GLCAPI void APIENTRY glcPopAttribQSO(GLbitfield inMask);
+
 #if defined (__cplusplus)
 }
 #endif
