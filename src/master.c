@@ -176,7 +176,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     /* Convert it from UTF-8 to the current string type and return */
     return __glcConvertFromUtf8ToBuffer(state,
 				 ((__glcFaceDescriptor*)node)->styleName,
-					state->stringType);
+					state->stringState.stringType);
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
@@ -345,7 +345,8 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   }
 
   /* Convert the string and store it in the context buffer */
-  buffer = __glcConvertFromUtf8ToBuffer(state, s, state->stringType);
+  buffer = __glcConvertFromUtf8ToBuffer(state, s,
+					state->stringState.stringType);
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;

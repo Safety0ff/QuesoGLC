@@ -212,7 +212,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   if ((scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
 
-  if (inPrevCode && inState->kerning) {
+  if (inPrevCode && inState->enableState.kerning) {
     GLfloat kerning[2];
 
     if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
@@ -226,8 +226,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   /* Renders the display lists if they exist and if GLC_GL_OBJECTS is enabled
    * then return.
    */
-  if (inState->glObjects) {
-    switch(inState->renderStyle) {
+  if (inState->enableState.glObjects) {
+    switch(inState->renderState.renderStyle) {
     case GLC_TEXTURE:
       if (glyph->displayList[0]) {
 	glCallList(glyph->displayList[0]);
@@ -242,11 +242,11 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
       }
       break;
     case GLC_TRIANGLE:
-      if ((!inState->extrude) && glyph->displayList[2]) {
+      if ((!inState->enableState.extrude) && glyph->displayList[2]) {
 	glCallList(glyph->displayList[2]);
 	return NULL;
       }
-      if (inState->extrude && glyph->displayList[3]) {
+      if (inState->enableState.extrude && glyph->displayList[3]) {
 	glCallList(glyph->displayList[3]);
 	return NULL;
       }
@@ -266,7 +266,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   __glcFaceDescLoadFreeTypeGlyph(font->faceDesc, inState, scale_x, scale_y,
                         glyph->index);
 
-  if ((inState->renderStyle != GLC_BITMAP) && (!displayListIsBuilding)) {
+  if ((inState->renderState.renderStyle != GLC_BITMAP)
+      && (!displayListIsBuilding)) {
     FT_Outline outline;
     FT_Vector* vector = NULL;
     GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
@@ -328,7 +329,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
    * checks if a display list that draws the desired glyph has already been
    * defined
    */
-  switch(inState->renderStyle) {
+  switch(inState->renderState.renderStyle) {
   case GLC_BITMAP:
     __glcRenderCharBitmap(face->glyph, inState, scale_x,
 			  scale_y);
@@ -372,8 +373,7 @@ void APIENTRY glcRenderChar(GLint inCode)
 {
   __glcContextState *state = NULL;
   GLint code = 0;
-  GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
-  GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
+  __glcGLState GLState;
 
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
@@ -383,22 +383,17 @@ void APIENTRY glcRenderChar(GLint inCode)
   }
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (state->renderStyle == GLC_TEXTURE) {
+  if (state->renderState.renderStyle == GLC_TEXTURE) {
     /* Save the value of the parameters */
-    tex2D = glIsEnabled(GL_TEXTURE_2D);
-    blend = glIsEnabled(GL_BLEND);
-    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texEnvMode);
-    glGetIntegerv(GL_BLEND_SRC, &blendSrc);
-    glGetIntegerv(GL_BLEND_DST, &blendDst);
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+    __glcSaveGLState(&GLState);
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (state->glObjects && state->atlas.id)
+    if (state->enableState.glObjects && state->atlas.id)
       glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-    else if (!state->glObjects && state->texture.id)
+    else if (!state->enableState.glObjects && state->texture.id)
       glBindTexture(GL_TEXTURE_2D, state->texture.id);
   }
 
@@ -410,15 +405,8 @@ void APIENTRY glcRenderChar(GLint inCode)
   __glcProcessChar(state, code, 0, __glcRenderChar, NULL);
 
   /* Restore the values of the texture parameters if needed */
-  if (state->renderStyle == GLC_TEXTURE) {
-    glBindTexture(GL_TEXTURE_2D, texture);
-    if (!tex2D)
-      glDisable(GL_TEXTURE_2D);
-    if (!blend)
-      glDisable(GL_BLEND);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texEnvMode);
-    glBlendFunc(blendSrc, blendDst);
-  }
+  if (state->renderState.renderStyle == GLC_TEXTURE)
+    __glcRestoreGLState(&GLState);
 }
 
 
@@ -442,8 +430,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   __glcContextState *state = NULL;
   FcChar32* UinString = NULL;
   FcChar32* ptr = NULL;
-  GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
-  GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
+  __glcGLState GLState;
   GLint prevCode = 0;
 
   /* Check if inCount is positive */
@@ -473,22 +460,17 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   }
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (state->renderStyle == GLC_TEXTURE) {
+  if (state->renderState.renderStyle == GLC_TEXTURE) {
     /* Save the value of the parameters */
-    tex2D = glIsEnabled(GL_TEXTURE_2D);
-    blend = glIsEnabled(GL_BLEND);
-    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texEnvMode);
-    glGetIntegerv(GL_BLEND_SRC, &blendSrc);
-    glGetIntegerv(GL_BLEND_DST, &blendDst);
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+    __glcSaveGLState(&GLState);
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (state->glObjects && state->atlas.id)
+    if (state->enableState.glObjects && state->atlas.id)
       glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-    else if (!state->glObjects && state->texture.id)
+    else if (!state->enableState.glObjects && state->texture.id)
       glBindTexture(GL_TEXTURE_2D, state->texture.id);
   }
 
@@ -500,15 +482,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   }
 
   /* Restore the values of the texture parameters if needed */
-  if (state->renderStyle == GLC_TEXTURE) {
-    glBindTexture(GL_TEXTURE_2D, texture);
-    if (!tex2D)
-      glDisable(GL_TEXTURE_2D);
-    if (!blend)
-      glDisable(GL_BLEND);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texEnvMode);
-    glBlendFunc(blendSrc, blendDst);
-  }
+  if (state->renderState.renderStyle == GLC_TEXTURE)
+    __glcRestoreGLState(&GLState);
 }
 
 
@@ -525,8 +500,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   __glcContextState *state = NULL;
   FcChar32* UinString = NULL;
   FcChar32* ptr = NULL;
-  GLboolean tex2D = GL_FALSE, blend = GL_FALSE;
-  GLint texEnvMode = 0, blendSrc = 0, blendDst = 0, texture = 0;
+  __glcGLState GLState;
   GLint prevCode = 0;
 
   /* Check if the current thread owns a context state */
@@ -550,22 +524,17 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   }
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (state->renderStyle == GLC_TEXTURE) {
+  if (state->renderState.renderStyle == GLC_TEXTURE) {
     /* Save the value of the parameters */
-    tex2D = glIsEnabled(GL_TEXTURE_2D);
-    blend = glIsEnabled(GL_BLEND);
-    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &texEnvMode);
-    glGetIntegerv(GL_BLEND_SRC, &blendSrc);
-    glGetIntegerv(GL_BLEND_DST, &blendDst);
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
+    __glcSaveGLState(&GLState);
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (state->glObjects && state->atlas.id)
+    if (state->enableState.glObjects && state->atlas.id)
       glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-    else if (!state->glObjects && state->texture.id)
+    else if (!state->enableState.glObjects && state->texture.id)
       glBindTexture(GL_TEXTURE_2D, state->texture.id);
   }
 
@@ -577,15 +546,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   }
 
   /* Restore the values of the texture parameters if needed */
-  if (state->renderStyle == GLC_TEXTURE) {
-    glBindTexture(GL_TEXTURE_2D, texture);
-    if (!tex2D)
-      glDisable(GL_TEXTURE_2D);
-    if (!blend)
-      glDisable(GL_BLEND);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, texEnvMode);
-    glBlendFunc(blendSrc, blendDst);
-  }
+  if (state->renderState.renderStyle == GLC_TEXTURE)
+    __glcRestoreGLState(&GLState);
 }
 
 
@@ -641,7 +603,7 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
   }
 
   /* Stores the rendering style */
-  state->renderStyle = inStyle;
+  state->renderState.renderStyle = inStyle;
   return;
 }
 
@@ -673,7 +635,7 @@ void APIENTRY glcReplacementCode(GLint inCode)
     return;
 
   /* Stores the replacement code */
-  state->replacementCode = code;
+  state->stringState.replacementCode = code;
   return;
 }
 
@@ -700,7 +662,7 @@ void APIENTRY glcResolution(GLfloat inVal)
   }
 
   /* Stores the resolution */
-  state->resolution = inVal;
+  state->renderState.resolution = inVal;
 
   return;
 }

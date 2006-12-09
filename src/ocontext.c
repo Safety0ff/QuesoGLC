@@ -89,21 +89,25 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->isCurrent = GL_FALSE;
   This->id = inContext;
   This->pendingDelete = GL_FALSE;
-  This->callback = GLC_NONE;
-  This->dataPointer = NULL;
-  This->autoFont = GL_TRUE;
-  This->glObjects = GL_TRUE;
-  This->mipmap = GL_TRUE;
-  This->hinting = GL_FALSE;
-  This->extrude = GL_FALSE;
-  This->kerning = GL_FALSE;
-  This->resolution = 0.;
-  This->bitmapMatrixStackDepth = 0;
+  This->stringState.callback = GLC_NONE;
+  This->stringState.dataPointer = NULL;
+  This->stringState.replacementCode = 0;
+  This->stringState.stringType = GLC_UCS1;
+  This->enableState.autoFont = GL_TRUE;
+  This->enableState.glObjects = GL_TRUE;
+  This->enableState.mipmap = GL_TRUE;
+  This->enableState.hinting = GL_FALSE;
+  This->enableState.extrude = GL_FALSE;
+  This->enableState.kerning = GL_FALSE;
+  This->renderState.resolution = 0.;
+  This->renderState.renderStyle = GLC_BITMAP;
+  This->bitmapMatrixStackDepth = 1;
   This->bitmapMatrix = This->bitmapMatrixStack;
   This->bitmapMatrix[0] = 1.;
   This->bitmapMatrix[1] = 0.;
   This->bitmapMatrix[2] = 0.;
   This->bitmapMatrix[3] = 1.;
+  This->attribStackDepth = 0;
   This->measurementBuffer = __glcArrayCreate(12 * sizeof(GLfloat));
   if (!This->measurementBuffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -115,9 +119,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
-  This->renderStyle = GLC_BITMAP;
-  This->replacementCode = 0;
-  This->stringType = GLC_UCS1;
   This->isInCallbackFunc = GL_FALSE;
   This->buffer = NULL;
   This->bufferSize = 0;
@@ -373,7 +374,8 @@ void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
 	id = 0;
 
       /* Create a new master and add it to the current context */
-      master = __glcMasterCreate(familyName, vendorName, id, This->stringType);
+      master = __glcMasterCreate(familyName, vendorName, id,
+				 This->stringState.stringType);
       if (!master) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	break;
@@ -762,7 +764,7 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
   if (inState->isInCallbackFunc)
     return GL_FALSE;
 
-  callbackFunc = inState->callback;
+  callbackFunc = inState->stringState.callback;
   if (!callbackFunc)
     return GL_FALSE;
 
@@ -814,7 +816,7 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
    * GLC_FONT_LIST for the first font that maps 'inCode'. If the search
    * succeeds, then append the font's ID to GLC_CURRENT_FONT_LIST.
    */
-  if (This->autoFont) {
+  if (This->enableState.autoFont) {
     FT_ListNode node = NULL;
 
     font = __glcLookupFont(inCode, &This->fontList);

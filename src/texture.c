@@ -107,7 +107,7 @@ static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState, __glcG
 		   size, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
     }
 
-    if (inState->mipmap)
+    if (inState->enableState.mipmap)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		      GL_LINEAR_MIPMAP_LINEAR);
     else
@@ -318,13 +318,14 @@ void __glcRenderCharTexture(__glcFont* inFont,
       return;
     }
 
-    glTexSubImage2D(GL_TEXTURE_2D, level, posX >> level, posY >> level, pixmap.width, pixmap.rows,
-		    GL_ALPHA, GL_UNSIGNED_BYTE, pixmap.buffer);
+    glTexSubImage2D(GL_TEXTURE_2D, level, posX >> level, posY >> level,
+		    pixmap.width, pixmap.rows, GL_ALPHA, GL_UNSIGNED_BYTE,
+		    pixmap.buffer);
 
     /* A mipmap is built only if a display list is currently building
      * otherwise it adds useless computations
      */
-    if (!(inState->mipmap && inDisplayListIsBuilding))
+    if (!(inState->enableState.mipmap && inDisplayListIsBuilding))
       break;
 
     /* restore the outline initial position */
@@ -341,7 +342,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   }
 
   /* Finish to build the mipmap if necessary */
-  if (inState->mipmap && inDisplayListIsBuilding) {
+  if (inState->enableState.mipmap && inDisplayListIsBuilding) {
     if (inState->glCapacities & GLC_TEXTURE_LOD)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
     else {
@@ -370,7 +371,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   /* Add the new texture to the texture list and the new display list
    * to the list of display lists
    */
-  if (inState->glObjects) {
+  if (inState->enableState.glObjects) {
     inGlyph->displayList[0] = glGenLists(1);
     if (!inGlyph->displayList[0]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -407,7 +408,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   glTranslatef(face->glyph->advance.x / 64. / scale_x,
 	       face->glyph->advance.y / 64. / scale_y, 0.);
 
-  if (inState->glObjects) {
+  if (inState->enableState.glObjects) {
     /* Finish display list creation */
     glEndList();
   }

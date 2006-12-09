@@ -181,7 +181,7 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
    * finds a font that maps the replacement code, we now render the character
    * that the replacement code is mapped to
    */
-  repCode = inState->replacementCode;
+  repCode = inState->stringState.replacementCode;
   font = __glcCtxGetFont(inState, repCode);
   if (repCode && font)
     return inProcessCharFunc(repCode, inPrevCode, font, inState,
@@ -342,9 +342,9 @@ GLboolean __glcGetScale(__glcContextState* inState,
 
   /* Check if a display list is currently building */
   glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  displayListIsBuilding = listIndex || inState->glObjects;
+  displayListIsBuilding = listIndex || inState->enableState.glObjects;
 
-  if (inState->renderStyle != GLC_BITMAP) {
+  if (inState->renderState.renderStyle != GLC_BITMAP) {
     /* Compute the matrix that transforms object space coordinates to viewport
      * coordinates. If we plan to use object space coordinates, this matrix is
      * set to identity.
@@ -359,7 +359,7 @@ GLboolean __glcGetScale(__glcContextState* inState,
 
     __glcMultMatrices(modelviewMatrix, projectionMatrix, outTransformMatrix);
 
-    if ((!displayListIsBuilding) && inState->hinting) {
+    if ((!displayListIsBuilding) && inState->enableState.hinting) {
       GLfloat rs[16], m[16];
       /* Get the scale factors in each X, Y and Z direction */
       GLfloat sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
@@ -418,7 +418,7 @@ GLboolean __glcGetScale(__glcContextState* inState,
       return displayListIsBuilding;
     }
 
-    if (inState->hinting) {
+    if (inState->enableState.hinting) {
       *outScaleX = sqrt(transform[0]*transform[0]+transform[1]*transform[1]);
       *outScaleY = sqrt(transform[2]*transform[2]+transform[3]*transform[3]);
     }
@@ -429,4 +429,32 @@ GLboolean __glcGetScale(__glcContextState* inState,
   }
 
   return displayListIsBuilding;
+}
+
+
+
+/* Save the GL State in a structure */
+void __glcSaveGLState(__glcGLState* inGLState)
+{
+  inGLState->texture2D = glIsEnabled(GL_TEXTURE_2D);
+  inGLState->blend = glIsEnabled(GL_BLEND);
+  glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+		&inGLState->textureEnvMode);
+  glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
+  glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
+  glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
+}
+
+
+
+/* Restore the GL State from a structure */
+void __glcRestoreGLState(__glcGLState* inGLState)
+{
+  glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
+  if (!inGLState->texture2D)
+    glDisable(GL_TEXTURE_2D);
+  if (!inGLState->blend)
+      glDisable(GL_BLEND);
+  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, inGLState->textureEnvMode);
+  glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
 }

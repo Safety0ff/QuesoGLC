@@ -253,7 +253,7 @@ GLCAPI void APIENTRY glcPopMatrixQSO(void);
 #define GLC_ATTRIB_STACK_DEPTH_QSO                0x800C
 #define GLC_MAX_ATTRIB_STACK_DEPTH_QSO            0x800D
 GLCAPI void APIENTRY glcPushAttribQSO(GLbitfield inMask);
-GLCAPI void APIENTRY glcPopAttribQSO(GLbitfield inMask);
+GLCAPI void APIENTRY glcPopAttribQSO(void);
 
 #if defined (__cplusplus)
 }

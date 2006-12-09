@@ -643,8 +643,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   rendererData.endContour = inState->endContour;
 
   rendererData.displayListIsBuilding = inDisplayListIsBuilding;
-  rendererData.extrude = inState->extrude;
-  if (inState->extrude) {
+  rendererData.extrude = inState->enableState.extrude;
+  if (inState->enableState.extrude) {
     rendererData.vertexBuffer = __glcArrayCreate(sizeof(int));
     if (!rendererData.vertexBuffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -671,7 +671,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.transformMatrix[5] *= rendererData.halfHeight;
     rendererData.transformMatrix[13] *= rendererData.halfHeight;
 
-    if (inState->extrude) {
+    if (inState->enableState.extrude) {
       int i = 0;
 
       rendererData.transformMatrix[8] *= rendererData.halfWidth;
@@ -709,7 +709,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
-    if (inState->extrude)
+    if (inState->enableState.extrude)
       __glcArrayDestroy(rendererData.vertexBuffer);
     return;
   }
@@ -719,13 +719,13 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
-    if (inState->extrude)
+    if (inState->enableState.extrude)
       __glcArrayDestroy(rendererData.vertexBuffer);
     return;
   }
 
   /* Prepare the display list compilation if needed */
-  if (inState->glObjects) {
+  if (inState->enableState.glObjects) {
     int index = 0;
 
     switch(inRenderMode) {
@@ -733,7 +733,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       index = 1;
       break;
     case GLC_TRIANGLE:
-      index = inState->extrude ? 3 : 2;
+      index = inState->enableState.extrude ? 3 : 2;
       break;
     }
 
@@ -742,7 +742,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
       GLC_ARRAY_LENGTH(inState->endContour) = 0;
-      if (inState->extrude)
+      if (inState->enableState.extrude)
 	__glcArrayDestroy(rendererData.vertexBuffer);
       return;
     }
@@ -773,7 +773,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 		    (CALLBACK void (*) ())__glcCombineCallback);
     gluTessCallback(tess, GLU_TESS_BEGIN_DATA,
 		    (CALLBACK void (*) ())__glcBeginCallback);
-    if (inState->extrude)
+    if (inState->enableState.extrude)
       gluTessCallback(tess, GLU_TESS_END_DATA,
 		      (CALLBACK void (*) ())__glcEndCallback);
     else
@@ -808,7 +808,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     gluDeleteTess(tess);
 
     /* For extruded glyphes : close the contours */
-    if (inState->extrude) {
+    if (inState->enableState.extrude) {
       GLfloat ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f;
       GLfloat nx = 0.f, ny = 0.f, length = 0.f;
 
@@ -875,11 +875,11 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   glTranslatef(face->glyph->advance.x * rendererData.scale_x,
 	       face->glyph->advance.y * rendererData.scale_y, 0.);
 
-  if (inState->glObjects)
+  if (inState->enableState.glObjects)
     glEndList();
 
   GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inState->endContour) = 0;
-  if (inState->extrude)
+  if (inState->enableState.extrude)
     __glcArrayDestroy(rendererData.vertexBuffer);
 }

@@ -41,7 +41,6 @@
 #define GLC_POINT_SIZE		128
 
 #define GLC_TEXTURE_LOD		1
-#define GLC_MAX_MATRIX_STACK_DEPTH	32
 
 typedef struct {
   GLint code;
@@ -171,4 +170,11 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
 FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary, FT_Pointer inData,
 		       FT_Face* outFace);
 #endif
+
+/* Save the GL State in a structure */
+void __glcSaveGLState(__glcGLState* inGLState);
+
+/* Restore the GL State from a structure */
+void __glcRestoreGLState(__glcGLState* inGLState);
+
 #endif /* __glc_internal_h */

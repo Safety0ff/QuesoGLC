@@ -52,7 +52,7 @@
  *  layout.
  *
  *  \image html measure.png "Baseline and bounds"
- *  \image latex measure.eps "Baseline and bounds" width=10cm
+ *  \image latex measure.eps "Baseline and bounds" width=7cm
  *  \n Each point <em>(x,y)</em> is computed in em coordinates, with the origin
  *  of a layout at <em>(0,0)</em>. If the value of the variable
  *  \b GLC_RENDER_STYLE is \b GLC_BITMAP, each point is transformed by the 2x2
@@ -107,7 +107,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
       || (fabs(scale_y) < GLC_EPSILON))
     return NULL;
 
-  if (inMultipleChars && (inState->renderStyle == GLC_BITMAP)) {
+  if (inMultipleChars && (inState->renderState.renderStyle == GLC_BITMAP)) {
     /* If a string (or several characters) is to be measured, it will be easier
      * to perform the calculations in the glyph coordinate system than in the
      * screen coordinate system. In order to get the values that already stored
@@ -187,7 +187,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   outVec[2] += temp[0] / GLC_POINT_SIZE;
   outVec[3] += temp[1] / GLC_POINT_SIZE;
 
-  if (inPrevCode && inState->kerning) {
+  if (inPrevCode && inState->enableState.kerning) {
     GLfloat kerning[2];
 
     if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
@@ -201,7 +201,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   }
 
   /* Transforms the values into the screen coordinate system if necessary */
-  if (inState->renderStyle == GLC_BITMAP) {
+  if (inState->renderState.renderStyle == GLC_BITMAP) {
     for (i = 0; i < 7; i++)
       __glcTransformVector(&outVec[2*i], inState->bitmapMatrix);
   }
@@ -355,7 +355,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     outVec[1] = 0.;
     outVec[2] = advance_x;
     outVec[3] = advance_y;
-    if (state->renderStyle == GLC_BITMAP)
+    if (state->renderState.renderStyle == GLC_BITMAP)
       __glcTransformVector(&outVec[2], state->bitmapMatrix);
     return outVec;
   case GLC_BOUNDS:
@@ -367,7 +367,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     outVec[5] = yt;
     outVec[6] = xl;
     outVec[7] = yt;
-    if (state->renderStyle == GLC_BITMAP) {
+    if (state->renderState.renderStyle == GLC_BITMAP) {
       int i = 0;
 
       for (i = 0; i < 4; i++)
@@ -553,17 +553,17 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
   GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 			 0.};
   const FcChar32* ptr = NULL;
-  const GLint storeRenderStyle = inState->renderStyle;
+  const GLint storeRenderStyle = inState->renderState.renderStyle;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
   GLfloat* outVec = inState->measurementStringBuffer;
   GLint prevCode = 0;
 
-  if (inState->renderStyle == GLC_BITMAP) {
+  if (inState->renderState.renderStyle == GLC_BITMAP) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
       * with the GLC_MATRIX, state->renderStyle must not be GLC_BITMAP
       */
-    inState->renderStyle = 0;
+    inState->renderState.renderStyle = 0;
   }
 
   memset(outVec, 0, 12*sizeof(GLfloat));
@@ -623,7 +623,7 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
    * style is GLC_BITMAP.
    */
   if (storeRenderStyle == GLC_BITMAP) {
-    inState->renderStyle = storeRenderStyle;
+    inState->renderState.renderStyle = storeRenderStyle;
     for (i = 0; i < 6; i++)
       __glcTransformVector(&inState->measurementStringBuffer[2*i],
 			   inState->bitmapMatrix);

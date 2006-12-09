@@ -31,7 +31,9 @@
 #define QUESOGLC_MAJOR 0
 #define QUESOGLC_MINOR 2
 
-static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name GLC_QSO_hinting";
+static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
+    " GLC_QSO_hinting GLC_QSO_extrude GLC_QSO_kerning GLC_QSO_matrix_stack"
+    " GLC_QSO_attrib_stack";
 static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
@@ -62,6 +64,12 @@ GLboolean checkError(GLCenum expectedError)
   case GLC_RESOURCE_ERROR:
     printf("Unexpected GLC_RESOURCE_ERROR\n");
     return GL_FALSE;
+  case GLC_STACK_OVERFLOW_QSO:
+    printf("Unexpected GLC_STACK_OVERFLOW_QSO\n");
+    return GL_FALSE;
+  case GLC_STACK_UNDERFLOW_QSO:
+    printf("Unexpected GLC_STACK_UNDERFLOW_QSO\n");
+    return GL_FALSE;
   default:
     printf("Unknown error 0x%X\n", err);
     return GL_FALSE;
@@ -75,14 +83,18 @@ CALLBACK GLboolean callback(GLint inCode)
 }
 
 GLboolean checkIsEnabled(GLboolean autofont, GLboolean glObjects,
-			 GLboolean mipmap)
+			 GLboolean mipmap, GLboolean hinting, GLboolean extrude,
+			 GLboolean kerning)
 {
   if (!checkError(GLC_NONE))
     return GL_FALSE;
 
   if ((glcIsEnabled(GLC_AUTO_FONT) != autofont)
       || (glcIsEnabled(GLC_GL_OBJECTS) != glObjects)
-      || (glcIsEnabled(GLC_MIPMAP) != mipmap)) {
+      || (glcIsEnabled(GLC_MIPMAP) != mipmap)
+      || (glcIsEnabled(GLC_HINTING_QSO) != hinting)
+      || (glcIsEnabled(GLC_EXTRUDE_QSO) != extrude)
+      || (glcIsEnabled(GLC_KERNING_QSO) != kerning)) {
     printf("GLC_AUTO_FONT %s (expected %s)\n" ,
 	   glcIsEnabled(GLC_AUTO_FONT) ? "GL_TRUE" : "GL_FALSE",
 	   autofont ? "GL_TRUE" : "GL_FALSE");
@@ -92,6 +104,15 @@ GLboolean checkIsEnabled(GLboolean autofont, GLboolean glObjects,
     printf("GLC_MIPMAP %s (expected %s)\n" ,
 	   glcIsEnabled(GLC_MIPMAP) ? "GL_TRUE" : "GL_FALSE",
 	   mipmap ? "GL_TRUE" : "GL_FALSE");
+    printf("GLC_HINTING_QSO %s (expected %s)\n" ,
+	   glcIsEnabled(GLC_HINTING_QSO) ? "GL_TRUE" : "GL_FALSE",
+	   hinting ? "GL_TRUE" : "GL_FALSE");
+    printf("GLC_EXTRUDE_QSO %s (expected %s)\n" ,
+	   glcIsEnabled(GLC_EXTRUDE_QSO) ? "GL_TRUE" : "GL_FALSE",
+	   extrude ? "GL_TRUE" : "GL_FALSE");
+    printf("GLC_KERNING_QSO %s (expected %s)\n" ,
+	   glcIsEnabled(GLC_KERNING_QSO) ? "GL_TRUE" : "GL_FALSE",
+	   kerning ? "GL_TRUE" : "GL_FALSE");
     return GL_FALSE;
   }
 
@@ -145,6 +166,9 @@ int main(void)
 {
   GLint ctx = glcGenContext();
   GLint count = 0;
+  GLint maxStackDepth = 0;
+  GLint stackDepth = 0;
+  GLint i = 0;
 
   if (!checkError(GLC_NONE))
     return -1;
@@ -244,7 +268,7 @@ int main(void)
     return -1;
 
   if (!glcIsEnabled(GLC_GL_OBJECTS)) {
-    printf("GLC_AUTOFONT is disabled\n");
+    printf("GLC_GL_OBJECTS is disabled\n");
     return -1;
   }
 
@@ -252,12 +276,120 @@ int main(void)
     return -1;
 
   if (!glcIsEnabled(GLC_MIPMAP)) {
-    printf("GLC_AUTOFONT is disabled\n");
+    printf("GLC_MIPMAP is disabled\n");
     return -1;
   }
 
   if (!checkError(GLC_NONE))
     return -1;
+
+  if (glcIsEnabled(GLC_HINTING_QSO)) {
+    printf("GLC_HINTING_QSO is enabled\n");
+    return -1;
+  }
+
+  if (!checkError(GLC_NONE))
+    return -1;
+
+  if (glcIsEnabled(GLC_EXTRUDE_QSO)) {
+    printf("GLC_EXTRUDE_QSO is enabled\n");
+    return -1;
+  }
+
+  if (!checkError(GLC_NONE))
+    return -1;
+
+  if (glcIsEnabled(GLC_KERNING_QSO)) {
+    printf("GLC_KERNING_QSO is enabled\n");
+    return -1;
+  }
+
+  if (!checkError(GLC_NONE))
+    return -1;
+
+  maxStackDepth = glcGeti(GLC_MAX_ATTRIB_STACK_DEPTH_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+
+  if (!maxStackDepth) {
+    printf("Max stack depth is expected not to be zero\n");
+    return -1;
+  }
+
+  stackDepth = glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (stackDepth) {
+    printf("Current stack depth is not zero\n");
+    return -1;
+  }
+
+  glcPopAttribQSO();
+  if (!checkError(GLC_STACK_UNDERFLOW_QSO))
+    return -1;
+
+  /* Check that the faulty glcPopAttribQSO left the stack depth unchanged */
+  stackDepth = glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (stackDepth) {
+    printf("Current stack depth is not zero\n");
+    return -1;
+  }
+
+  for (i = 0; i < maxStackDepth; i++) {
+    glcPushAttribQSO(GLC_ENABLE_BIT_QSO);
+    if (!checkError(GLC_NONE))
+      return -1;
+
+    stackDepth = glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO);
+    if (!checkError(GLC_NONE))
+      return -1;
+    if (stackDepth != (i+1)) {
+      printf("Stack depth has not been updated\n");
+      return -1;
+    }
+  }
+
+  glcPushAttribQSO(GLC_ENABLE_BIT_QSO);
+  if (!checkError(GLC_STACK_OVERFLOW_QSO))
+    return -1;
+
+  /* Check that the faulty glcPushAttribQSO left the stack depth unchanged */
+  stackDepth = glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (stackDepth != maxStackDepth) {
+    printf("Current stack depth is not maximum\n");
+    return -1;
+  }
+
+  for (i = 0; i < maxStackDepth; i++) {
+    glcPopAttribQSO();
+    if (!checkError(GLC_NONE))
+      return -1;
+
+    stackDepth = glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO);
+    if (!checkError(GLC_NONE))
+      return -1;
+    if (stackDepth != maxStackDepth-i-1) {
+      printf("Stack depth has not been updated\n");
+      return -1;
+    }
+  }
+
+  glcPopAttribQSO();
+  if (!checkError(GLC_STACK_UNDERFLOW_QSO))
+    return -1;
+
+  /* Check that the faulty glcPopAttribQSO left the stack depth unchanged */
+  stackDepth = glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (stackDepth) {
+    printf("Current stack depth is not zero\n");
+    return -1;
+  }
 
   glcIsEnabled((GLCenum)0);
   if (!checkError(GLC_PARAMETER_ERROR))
@@ -268,32 +400,42 @@ int main(void)
 
   glcDisable(GLC_AUTO_FONT);
 
-  if (!checkIsEnabled(GL_FALSE, GL_TRUE, GL_TRUE))
+  if (!checkIsEnabled(GL_FALSE, GL_TRUE, GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE))
     return -1;
 
   glcDisable(GLC_GL_OBJECTS);
 
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_TRUE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE))
     return -1;
 
   glcDisable(GLC_MIPMAP);
 
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
+    return -1;
+
+  glcPushAttribQSO(GLC_ENABLE_BIT_QSO);
+  if (!checkError(GLC_NONE))
     return -1;
 
   glcEnable(GLC_AUTO_FONT);
 
-  if (!checkIsEnabled(GL_TRUE, GL_FALSE, GL_FALSE))
+  if (!checkIsEnabled(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
     return -1;
 
   glcEnable(GLC_GL_OBJECTS);
 
-  if (!checkIsEnabled(GL_TRUE, GL_TRUE, GL_FALSE))
+  if (!checkIsEnabled(GL_TRUE, GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
     return -1;
 
   glcEnable(GLC_MIPMAP);
 
-  if (!checkIsEnabled(GL_TRUE, GL_TRUE, GL_TRUE))
+  if (!checkIsEnabled(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE))
+    return -1;
+
+  glcPopAttribQSO();
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
     return -1;
 
   glcEnable((GLCenum)0);
@@ -392,6 +534,15 @@ int main(void)
   if (!checkError(GLC_NONE))
     return -1;
 
+  glcEnable(GLC_KERNING_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE))
+    return -1;
+  glcPushAttribQSO(GLC_ENABLE_BIT_QSO|GLC_STRING_BIT_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+
   glcStringType(GLC_UCS2);
   if (!checkError(GLC_NONE))
     return -1;
@@ -404,6 +555,26 @@ int main(void)
   if (!checkError(GLC_NONE))
     return -1;
 
+  glcEnable(GLC_HINTING_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE))
+    return -1;
+  glcPushAttribQSO(GLC_ENABLE_BIT_QSO|GLC_STRING_BIT_QSO);
+  if (!checkError(GLC_NONE))
+    return -1;
+
+  glcEnable(GLC_AUTO_FONT);
+  glcRenderStyle(GLC_TRIANGLE);
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (!checkIsEnabled(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE))
+    return -1;
+  if (glcGeti(GLC_ATTRIB_STACK_DEPTH_QSO) != 2) {
+    printf("Attrib stack depth is expected to be 2\n");
+    return -1;
+  }
+
   glcStringType(GLC_UCS4);
   if (!checkError(GLC_NONE))
     return -1;
@@ -415,6 +586,34 @@ int main(void)
 
   if (!checkError(GLC_NONE))
     return -1;
+
+  glcPopAttribQSO();
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE))
+    return -1;
+  if (glcGeti(GLC_STRING_TYPE) != GLC_UCS2) {
+    printf("String type was expected to be GLC_UCS2\n");
+    return -1;
+  }
+  if (glcGeti(GLC_RENDER_STYLE) != GLC_TRIANGLE) {
+    printf("The render style is not GLC_TRIANGLE\n");
+    return -1;
+  }
+
+  glcPopAttribQSO();
+  if (!checkError(GLC_NONE))
+    return -1;
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE))
+    return -1;
+  if (glcGeti(GLC_STRING_TYPE) != GLC_UCS1) {
+    printf("String type was expected to be GLC_UCS1\n");
+    return -1;
+  }
+  if (glcGeti(GLC_RENDER_STYLE) != GLC_TRIANGLE) {
+    printf("The render style is not GLC_TRIANGLE\n");
+    return -1;
+  }
 
   glcStringType(GLC_UTF8_QSO);
   if (!checkError(GLC_NONE))

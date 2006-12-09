@@ -37,11 +37,52 @@
 #include "oarray.h"
 #include "except.h"
 
+#define GLC_MAX_MATRIX_STACK_DEPTH	32
+#define GLC_MAX_ATTRIB_STACK_DEPTH	16
+
 typedef struct {
   GLuint id;
   GLsizei width;
   GLsizei heigth;
 } __glcTexture;
+
+typedef struct {
+  GLboolean autoFont;		/* GLC_AUTO_FONT */
+  GLboolean glObjects;		/* GLC_GLOBJECTS */
+  GLboolean mipmap;		/* GLC_MIPMAP */
+  GLboolean hinting;		/* GLC_HINTING_QSO */
+  GLboolean extrude;		/* GLC_EXTRUDE_QSO */
+  GLboolean kerning;		/* GLC_KERNING_QSO */
+} __glcEnableState;
+
+typedef struct {
+  GLfloat resolution;		/* GLC_RESOLUTION */
+  GLint renderStyle;		/* GLC_RENDER_STYLE */
+} __glcRenderState;
+
+typedef struct {
+  GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
+  GLint stringType;		/* GLC_STRING_TYPE */
+  GLCfunc callback;		/* Callback function GLC_OP_glcUnmappedCode */
+  GLvoid* dataPointer;		/* GLC_DATA_POINTER */
+} __glcStringState;
+
+typedef struct {
+  GLboolean texture2D;
+  GLint textureID;
+  GLint textureEnvMode;
+  GLboolean blend;
+  GLint blendSrc;
+  GLint blendDst;
+} __glcGLState;
+
+typedef struct {
+  GLbitfield attribBits;
+  __glcEnableState enableState;
+  __glcRenderState renderState;
+  __glcStringState stringState;
+  __glcGLState glState;
+} __glcAttribStackLevel;
 
 typedef struct {
   FT_ListNodeRec node;
@@ -57,22 +98,13 @@ typedef struct {
 
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */
-  GLCfunc callback;		/* Callback function */
-  GLvoid* dataPointer;		/* GLC_DATA_POINTER */
-  GLboolean autoFont;		/* GLC_AUTO_FONT */
-  GLboolean glObjects;		/* GLC_GLOBJECTS */
-  GLboolean mipmap;		/* GLC_MIPMAP */
-  GLboolean hinting;		/* GLC_HINTING_QSO */
-  GLboolean extrude;		/* GLC_EXTRUDE_QSO */
-  GLboolean kerning;		/* GLC_KERNING_QSO */
-  GLfloat resolution;		/* GLC_RESOLUTION */
+  __glcEnableState enableState;
+  __glcRenderState renderState;
+  __glcStringState stringState;
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_ListRec fontList;		/* GLC_FONT_LIST */
   FT_ListRec masterList;
   FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
-  GLint renderStyle;		/* GLC_RENDER_STYLE */
-  GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
-  GLint stringType;		/* GLC_STRING_TYPE */
   __glcArray* measurementBuffer;
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
@@ -91,8 +123,11 @@ typedef struct {
   int atlasCount;
 
   GLfloat* bitmapMatrix;	/* GLC_BITMAP_MATRIX */
-  GLfloat bitmapMatrixStack[4*GLC_MAX_MATRIX_STACK_DEPTH_QSO];
+  GLfloat bitmapMatrixStack[4*GLC_MAX_MATRIX_STACK_DEPTH];
   GLint bitmapMatrixStackDepth;
+
+  __glcAttribStackLevel attribStack[GLC_MAX_ATTRIB_STACK_DEPTH];
+  GLint attribStackDepth;
 } __glcContextState;
 
 typedef struct {

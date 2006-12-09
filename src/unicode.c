@@ -417,7 +417,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
  */
 GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
 {
-  switch(inState->stringType) {
+  switch(inState->stringState.stringType) {
   case GLC_UCS2:
     /* Check that inCode can be stored in UCS-2 format */
     if (inCode <= 65535)
@@ -468,7 +468,7 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
   }
 
   /* If the current string type is GLC_UTF8_QSO then converts to GLC_UCS4 */
-  if (inState->stringType == GLC_UTF8_QSO) {
+  if (inState->stringState.stringType == GLC_UTF8_QSO) {
     /* Convert the codepoint in UCS4 format and check if it is ill-formed or
      * not
      */
@@ -503,7 +503,7 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
 
   assert(inString);
 
-  switch(inState->stringType) {
+  switch(inState->stringState.stringType) {
   case GLC_UCS1:
     {
       FcChar8* ucs1 = (FcChar8*)inString;
@@ -625,7 +625,7 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
 
   assert(inString);
 
-  switch(inState->stringType) {
+  switch(inState->stringState.stringType) {
   case GLC_UCS1:
     {
       FcChar8* ucs1 = (FcChar8*)inString;

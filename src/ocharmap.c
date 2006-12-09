@@ -217,7 +217,8 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
   }
 
   /* Convert the Unicode to the current string type */
-  buffer = __glcConvertFromUtf8ToBuffer(inState, name, inState->stringType);
+  buffer = __glcConvertFromUtf8ToBuffer(inState, name,
+					inState->stringState.stringType);
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
@@ -359,7 +360,7 @@ GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 
 	    /* Performs the conversion to the current string type */
 	    buffer = __glcConvertFromUtf8ToBuffer(inState, name,
-						  inState->stringType);
+					inState->stringState.stringType);
 	    if (!buffer) {
 	      __glcRaiseError(GLC_RESOURCE_ERROR);
 	      return GLC_NONE;

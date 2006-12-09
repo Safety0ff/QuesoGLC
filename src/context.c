@@ -96,7 +96,7 @@ void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
     return;
   }
 
-  state->callback = inFunc;
+  state->stringState.callback = inFunc;
 }
 
 
@@ -124,7 +124,7 @@ void APIENTRY glcDataPointer(GLvoid *inPointer)
     return;
   }
 
-  state->dataPointer = inPointer;
+  state->stringState.dataPointer = inPointer;
 }
 
 
@@ -207,18 +207,18 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   /* Assigns the value to the member identified by inAttrib */
   switch(inAttrib) {
   case GLC_AUTO_FONT:
-    state->autoFont = value;
+    state->enableState.autoFont = value;
     break;
   case GLC_GL_OBJECTS:
-    state->glObjects = value;
+    state->enableState.glObjects = value;
     break;
   case GLC_MIPMAP:
-    state->mipmap = value;
+    state->enableState.mipmap = value;
     if (state->atlas.id) {
       GLint boundTexture = 0;
       glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
       glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-      if (state->mipmap)
+      if (state->enableState.mipmap)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 			GL_LINEAR_MIPMAP_LINEAR);
       else
@@ -228,11 +228,14 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
     }
     break;
   case GLC_HINTING_QSO:
-    state->hinting = value;
+    state->enableState.hinting = value;
+    break;
   case GLC_EXTRUDE_QSO:
-    state->extrude = value;
+    state->enableState.extrude = value;
+    break;
   case GLC_KERNING_QSO:
-    state->kerning = value;
+    state->enableState.kerning = value;
+    break;
   }
 }
 
@@ -343,7 +346,7 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
     return GLC_NONE;
   }
 
-  return state->callback;
+  return state->stringState.callback;
 }
 
 
@@ -654,7 +657,7 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
     return GLC_NONE;
   }
 
-  return state->dataPointer;
+  return state->stringState.dataPointer;
 }
 
 
@@ -689,7 +692,8 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
 const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
-    " GLC_QSO_hinting GLC_QSO_extrude GLC_QSO_kerning GLC_QSO_matrix_stack";
+    " GLC_QSO_hinting GLC_QSO_extrude GLC_QSO_kerning GLC_QSO_matrix_stack"
+    " GLC_QSO_attrib_stack";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 
@@ -717,12 +721,13 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   switch(inAttrib) {
   case GLC_EXTENSIONS:
     return __glcConvertFromUtf8ToBuffer(state, __glcExtensions,
-					state->stringType);
+					state->stringState.stringType);
   case GLC_RELEASE:
     return __glcConvertFromUtf8ToBuffer(state, (GLCchar*)__glcRelease,
-					state->stringType);
+					state->stringState.stringType);
   case GLC_VENDOR:
-    return __glcConvertFromUtf8ToBuffer(state, __glcVendor, state->stringType);
+    return __glcConvertFromUtf8ToBuffer(state, __glcVendor,
+					state->stringState.stringType);
   default:
     return GLC_NONE;
   }
@@ -768,7 +773,7 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
     return 0.f;
   }
 
-  return state->resolution;
+  return state->renderState.resolution;
 }
 
 
@@ -788,6 +793,7 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
  *  </tr>
  *  </table>
  *  </center>
+ *
  *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inAttrib The parameter value to be returned
  *  \param outVec Specifies where to store the return value
@@ -919,6 +925,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_VERSION_MINOR:
   case GLC_MATRIX_STACK_DEPTH_QSO:     /* QuesoGLC extension */
   case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
+  case GLC_ATTRIB_STACK_DEPTH_QSO:     /* QuesoGLC extension */
+  case GLC_MAX_ATTRIB_STACK_DEPTH_QSO: /* QuesoGLC extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -978,12 +986,12 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_MEASURED_CHAR_COUNT:
     return GLC_ARRAY_LENGTH(state->measurementBuffer);
   case GLC_RENDER_STYLE:
-    return state->renderStyle;
+    return state->renderState.renderStyle;
   case GLC_REPLACEMENT_CODE:
     /* Return the replacement character converted to the current string type */
-    return __glcConvertUcs4ToGLint(state, state->replacementCode);
+    return __glcConvertUcs4ToGLint(state, state->stringState.replacementCode);
   case GLC_STRING_TYPE:
-    return state->stringType;
+    return state->stringState.stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
     count += (state->texture.id ? 1: 0);
     count += (state->atlas.id ? 1:0);
@@ -996,6 +1004,10 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
     return state->bitmapMatrixStackDepth;
   case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
     return GLC_MAX_MATRIX_STACK_DEPTH;
+  case GLC_ATTRIB_STACK_DEPTH_QSO:     /* QuesoGLC extension */
+    return state->attribStackDepth;
+  case GLC_MAX_ATTRIB_STACK_DEPTH_QSO: /* QuesoGLC extension */
+    return GLC_MAX_ATTRIB_STACK_DEPTH;
   }
 
   return 0;
@@ -1042,17 +1054,17 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_AUTO_FONT:
-    return state->autoFont;
+    return state->enableState.autoFont;
   case GLC_GL_OBJECTS:
-    return state->glObjects;
+    return state->enableState.glObjects;
   case GLC_MIPMAP:
-    return state->mipmap;
+    return state->enableState.mipmap;
   case GLC_HINTING_QSO:
-    return state->hinting;
+    return state->enableState.hinting;
   case GLC_EXTRUDE_QSO:
-    return state->extrude;
+    return state->enableState.extrude;
   case GLC_KERNING_QSO:
-    return state->kerning;
+    return state->enableState.kerning;
   }
 
   return GL_FALSE;
@@ -1135,6 +1147,218 @@ void APIENTRY glcStringType(GLCenum inStringType)
     return;
   }
 
-  state->stringType = inStringType;
+  state->stringState.stringType = inStringType;
+  return;
+}
+
+
+
+/** \ingroup context
+ *  This command provides a means to save groups of state variables. It takes a
+ *  OR of symbolic constants indicating which groups of state variables to push
+ *  onto the attribute stack. Each constant refers to a group of state
+ *  variables.
+ *  <center>
+ *  <table>
+ *  <caption>Group attributes</caption>
+ *  <tr>
+ *    <td>Group attribute</td> <td>Name</td>
+ *  </tr>
+ *  <tr>
+ *    <td>enable</td> <td><b>GLC_ENABLE_BIT_QSO</b></td>
+ *  </tr>
+ *  <tr>
+ *    <td>render</td> <td><b>GLC_RENDER_BIT_QSO</b></td>
+ *  </tr>
+ *  <tr>
+ *    <td>string</td> <td><b>GLC_STRING_BIT_QSO</b></td>
+ *  </tr>
+ *  <tr>
+ *    <td> </td> <td><b>GLC_GL_ATTRIB_BIT_QSO</b></td>
+ *  </tr>
+ *  <tr>
+ *    <td> </td> <td><b>GLC_ALL_ATTRIBS_BIT_QSO</b></td>
+ *  </tr>
+ *  </table>
+ *  </center>
+ *
+ *  The classification of each variable into a group is indicated in the
+ *  following table of state variables.
+ *  <center>
+ *  <table>
+ *  <caption>State variables</caption>
+ *  <tr>
+ *    <td>Name</td> <td>Type</td> <td>Get command</td> <td>Group attribute</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_AUTO_FONT</b></td>
+ *    <td>GLboolean</td>
+ *    <td>glcIsEnabled()</td>
+ *    <td>enable</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_GL_OBJECTS</b></td>
+ *    <td>GLboolean</td>
+ *    <td>glcIsEnabled()</td>
+ *    <td>enable</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_MIPMAP</b></td>
+ *    <td>GLboolean</td>
+ *    <td>glcIsEnabled()</td>
+ *    <td>enable</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_HINTING_QSO</b></td>
+ *    <td>GLboolean</td>
+ *    <td>glcIsEnabled()</td>
+ *    <td>enable</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_EXTRUDE_QSO</b></td>
+ *    <td>GLboolean</td>
+ *    <td>glcIsEnabled()</td>
+ *    <td>enable</td>
+ *  </tr>
+  *  <tr>
+ *    <td><b>GLC_KERNING_QSO</b></td>
+ *    <td>GLboolean</td>
+ *    <td>glcIsEnabled()</td>
+ *    <td>enable</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_RENDER_STYLE</b></td>
+ *    <td>GLint</td>
+ *    <td>glcGeti()</td>
+ *    <td>render</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_RESOLUTION</b></td>
+ *    <td>GLfloat</td>
+ *    <td>glcGetf()</td>
+ *    <td>render</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_STRING_TYPE</b></td>
+ *    <td>GLint</td>
+ *    <td>glcGeti()</td>
+ *    <td>string</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_REPLACEMENT_CODE</b></td>
+ *    <td>GLint</td>
+ *    <td>glcGeti()</td>
+ *    <td>string</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_OP_glcUnmappedCode</b></td>
+ *    <td>GLCfunc</td>
+ *    <td>glcGetCallbackFunc()</td>
+ *    <td>string</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_DATA_POINTER</b></td>
+ *    <td>GLvoid*</td>
+ *    <td>glcGetPointer()</td>
+ *    <td>string</td>
+ *  </tr>
+ *  </table>
+ *  </center>
+ *
+ *  The error \b GLC_STACK_OVERFLOW_QSO is generated if glcPushAttribQSO() is
+ *  executed while the attribute stack depth is equal to
+ *  \b GLC_MAX_ATTRIB_STACK_DEPTH_QSO.
+ *  \b GLC_STACK_OVERFLOW_QSO.
+ *  \sa glcPopAttribQSO()
+ *  \sa glcGeti() with argument \b GLC_ATTRIB_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument \b GLC_MAX_ATTRIB_STACK_DEPTH_QSO
+ */
+void APIENTRY glcPushAttribQSO(GLbitfield inMask)
+{
+  __glcContextState *state = NULL;
+  __glcAttribStackLevel *level = NULL;
+
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
+
+  if (state->attribStackDepth >= GLC_MAX_ATTRIB_STACK_DEPTH) {
+    __glcRaiseError(GLC_STACK_OVERFLOW_QSO);
+    return;
+  }
+
+  level = &state->attribStack[state->attribStackDepth++];
+  level->attribBits = 0;
+
+  if (inMask & GLC_ENABLE_BIT_QSO) {
+    memcpy(&level->enableState, &state->enableState, sizeof(__glcEnableState));
+    level->attribBits |= GLC_ENABLE_BIT_QSO;
+  }
+
+  if (inMask & GLC_RENDER_BIT_QSO) {
+    memcpy(&level->renderState, &state->renderState, sizeof(__glcRenderState));
+    level->attribBits |= GLC_RENDER_BIT_QSO;
+  }
+
+  if (inMask & GLC_STRING_BIT_QSO) {
+    memcpy(&level->stringState, &state->stringState, sizeof(__glcStringState));
+    level->attribBits |= GLC_STRING_BIT_QSO;
+  }
+
+  if (inMask & GLC_GL_ATTRIB_BIT_QSO) {
+    __glcSaveGLState(&level->glState);
+    level->attribBits |= GLC_GL_ATTRIB_BIT_QSO;
+  }
+
+  return;
+}
+
+
+
+/** \ingroup context
+ *  This command resets the values of those state variables that were saved with
+ *  the last corresponding glcPushAttribQSO(). Those not saved remain unchanged.
+ *  The error \b GLC_STACK_UNDERFLOW_QSO is generated if glcPopAttrib() is
+ *  executed while the attribute stack is empty.
+ *  \sa glcPushAttribQSO()
+ *  \sa glcGeti() with argument \b GLC_ATTRIB_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument \b GLC_MAX_ATTRIB_STACK_DEPTH_QSO
+ */
+void APIENTRY glcPopAttribQSO(void)
+{
+  __glcContextState *state = NULL;
+  __glcAttribStackLevel *level = NULL;
+  GLbitfield mask;
+
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
+
+  if (state->attribStackDepth <= 0) {
+    __glcRaiseError(GLC_STACK_UNDERFLOW_QSO);
+    return;
+  }
+
+  level = &state->attribStack[--state->attribStackDepth];
+  mask = level->attribBits;
+
+  if (mask & GLC_ENABLE_BIT_QSO)
+    memcpy(&state->enableState, &level->enableState, sizeof(__glcEnableState));
+
+  if (mask & GLC_RENDER_BIT_QSO)
+    memcpy(&state->renderState, &level->renderState, sizeof(__glcRenderState));
+
+  if (mask & GLC_STRING_BIT_QSO)
+    memcpy(&state->stringState, &level->stringState, sizeof(__glcStringState));
+
+  if (mask & GLC_GL_ATTRIB_BIT_QSO)
+    __glcRestoreGLState(&level->glState);
+
   return;
 }

@@ -445,7 +445,7 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
     return GL_FALSE;
   }
 
-  UinFace = __glcConvertToUtf8(inFace, state->stringType);
+  UinFace = __glcConvertToUtf8(inFace, state->stringState.stringType);
   if (!UinFace) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;
@@ -551,7 +551,7 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     /* Convert the character name identified by inCharName into UTF-8 format.
      * The result is stored into 'buffer'.
      */
-    buffer = __glcConvertToUtf8(inCharName, state->stringType);
+    buffer = __glcConvertToUtf8(inCharName, state->stringState.stringType);
     if (!buffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
@@ -645,7 +645,7 @@ const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
 
     /* Convert the string name of the face into the current string type */
     buffer = __glcConvertFromUtf8ToBuffer(state, font->faceDesc->styleName,
-					  state->stringType);
+					  state->stringState.stringType);
     if (!buffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
@@ -1033,7 +1033,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   }
 
   /* Convert the family name in UTF-8 encoding */
-  UinFamily = __glcConvertToUtf8(inFamily, state->stringType);
+  UinFamily = __glcConvertToUtf8(inFamily, state->stringState.stringType);
   if (!UinFamily) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;

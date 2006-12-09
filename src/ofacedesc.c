@@ -271,7 +271,7 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
   /* If GLC_HINTING_QSO is enabled then perform hinting on the glyph while
    * loading it.
    */
-  if (!inState->hinting)
+  if (!inState->enableState.hinting)
     loadFlags |= FT_LOAD_NO_HINTING;
 
   /* Open the face */
@@ -280,8 +280,8 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
   scaler.width = (FT_F26Dot6)(inScaleX * 64.);
   scaler.height = (FT_F26Dot6)(inScaleY * 64.);
   scaler.pixel = 0;
-  scaler.x_res = (FT_UInt)inState->resolution;
-  scaler.y_res = (FT_UInt)inState->resolution;
+  scaler.x_res = (FT_UInt)inState->renderState.resolution;
+  scaler.y_res = (FT_UInt)inState->renderState.resolution;
 
   if (FTC_Manager_LookupSize(inState->cache, &scaler, &size)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -572,8 +572,8 @@ GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
 {
   FT_Face face = NULL;
   /* If the resolution of the context is zero then use the default 72 dpi */
-  GLfloat scale = (inState->resolution < GLC_EPSILON ?
-		   72. : inState->resolution) / 72.;
+  GLfloat scale = (inState->renderState.resolution < GLC_EPSILON ?
+		   72. : inState->renderState.resolution) / 72.;
 
   assert(outVec);
 
