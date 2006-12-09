@@ -892,6 +892,14 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *    <td>0x8009</td>
  *    <td>\<implementation specific\></td>
  *  </tr>
+ *  <tr>
+ *    <td><b>GLC_ATTRIB_STACK_DEPTH_QSO</b></td> <td>0x800C</td> <td>0</td>
+ *  </tr>
+ *  <tr>
+ *    <td><b>GLC_MAX_ATTRIB_STACK_DEPTH_QSO</b></td>
+ *    <td>0x800D</td>
+ *    <td>\<implementation specific\></td>
+ *  </tr>
  *  </table>
  *  </center>
  *  \param inAttrib Attribute for which an integer variable is requested.
