@@ -100,8 +100,8 @@ int main(void)
   stackDepth = glcGeti(GLC_MATRIX_STACK_DEPTH_QSO);
   if (!checkError(GLC_NONE))
     return -1;
-  if (stackDepth) {
-    printf("Current stack depth is not zero\n");
+  if (stackDepth != 1) {
+    printf("Current stack depth is not one\n");
     return -1;
   }
 
@@ -113,8 +113,8 @@ int main(void)
   stackDepth = glcGeti(GLC_MATRIX_STACK_DEPTH_QSO);
   if (!checkError(GLC_NONE))
     return -1;
-  if (stackDepth) {
-    printf("Current stack depth is not zero\n");
+  if (stackDepth != 1) {
+    printf("Current stack depth is not one\n");
     return -1;
   }
 
@@ -131,7 +131,7 @@ int main(void)
     return -1;
   }
 
-  for (i = 0; i < maxStackDepth; i++) {
+  for (i = 1; i < maxStackDepth; i++) {
     glcPushMatrixQSO();
     if (!checkError(GLC_NONE))
       return -1;
@@ -158,7 +158,7 @@ int main(void)
     return -1;
   }
 
-  for (i = 0; i < maxStackDepth; i++) {
+  for (i = 1; i < maxStackDepth; i++) {
     glcPopMatrixQSO();
     if (!checkError(GLC_NONE))
       return -1;
@@ -166,7 +166,7 @@ int main(void)
     stackDepth = glcGeti(GLC_MATRIX_STACK_DEPTH_QSO);
     if (!checkError(GLC_NONE))
       return -1;
-    if (stackDepth != maxStackDepth-i-1) {
+    if (stackDepth != maxStackDepth-i) {
       printf("Stack depth has not been updated\n");
       return -1;
     }
@@ -180,8 +180,8 @@ int main(void)
   stackDepth = glcGeti(GLC_MATRIX_STACK_DEPTH_QSO);
   if (!checkError(GLC_NONE))
     return -1;
-  if (stackDepth) {
-    printf("Current stack depth is not zero\n");
+  if (stackDepth != 1) {
+    printf("Current stack depth is not one\n");
     return -1;
   }
 
@@ -192,8 +192,8 @@ int main(void)
   stackDepth = glcGeti(GLC_MATRIX_STACK_DEPTH_QSO);
   if (!checkError(GLC_NONE))
     return -1;
-  if (stackDepth != 1) {
-    printf("Current stack depth is not one\n");
+  if (stackDepth != 2) {
+    printf("Current stack depth is not 2\n");
     return -1;
   }
 
@@ -256,8 +256,8 @@ int main(void)
   stackDepth = glcGeti(GLC_MATRIX_STACK_DEPTH_QSO);
   if (!checkError(GLC_NONE))
     return -1;
-  if (stackDepth) {
-    printf("Current stack depth is not zero\n");
+  if (stackDepth != 1) {
+    printf("Current stack depth is not one\n");
     return -1;
   }
   ref[0] = 1.5;

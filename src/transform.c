@@ -225,8 +225,8 @@ void APIENTRY glcScale(GLfloat inX, GLfloat inY)
  *  Pushing a matrix onto a full stack generates the error
  *  \b GLC_STACK_OVERFLOW_QSO.
  *  \sa glcPopMatrixQSO()
- *  \sa glcGeti() with argument GLC_MATRIX_STACK_DEPTH_QSO
- *  \sa glcGeti() with argument GLC_MAX_MATRIX_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument \b GLC_MATRIX_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument \b GLC_MAX_MATRIX_STACK_DEPTH_QSO
  */
 void APIENTRY glcPushMatrixQSO(void)
 {
@@ -259,8 +259,8 @@ void APIENTRY glcPushMatrixQSO(void)
  *  Popping a matrix off a stack with only one entry generates the error
  *  \b GLC_STACK_OVERFLOW_QSO.
  *  \sa glcPushMatrixQSO()
- *  \sa glcGeti() with argument GLC_MATRIX_STACK_DEPTH_QSO
- *  \sa glcGeti() with argument GLC_MAX_MATRIX_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument \b GLC_MATRIX_STACK_DEPTH_QSO
+ *  \sa glcGeti() with argument \b GLC_MAX_MATRIX_STACK_DEPTH_QSO
  */
 void APIENTRY glcPopMatrixQSO(void)
 {
@@ -273,7 +273,7 @@ void APIENTRY glcPopMatrixQSO(void)
     return;
   }
 
-  if (state->bitmapMatrixStackDepth <= 0) {
+  if (state->bitmapMatrixStackDepth <= 1) {
     __glcRaiseError(GLC_STACK_UNDERFLOW_QSO);
     return;
   }
