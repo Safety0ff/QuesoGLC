@@ -124,5 +124,14 @@ void __glcMasterDestroy(__glcMaster *This, __glcContextState* inState)
   if (This->vendor != (FcChar8*)unknown)
     __glcFree(This->vendor);
 
+  if (This->fullNameSGI) {
+    if (strncmp((const char*)This->fullNameSGI, "Unknown", 7))
+      __glcFree(This->fullNameSGI);
+  }
+  if (This->version) {
+    if (strncmp((const char*)This->version, "Unknown", 7))
+      __glcFree(This->version);
+  }
+
   __glcFree(This);
 }

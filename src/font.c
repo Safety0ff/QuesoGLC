@@ -471,8 +471,10 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
   else {
     FT_ListNode node = NULL;
 
-    if (!state->currentFontList.head)
+    if (!state->currentFontList.head) {
+      __glcFree(UinFace);
       return GL_FALSE;
+    }
 
     /* Check that every font of GLC_CURRENT_FONT_LIST has a face identified
      * by UinFace.
