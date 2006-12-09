@@ -57,7 +57,7 @@
 /** \ingroup transform
  *  This command assigns the value [1 0 0 1] to the floating point vector
  *  variable \b GLC_BITMAP_MATRIX.
- *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcGetfv() with argument \b GLC_BITMAP_MATRIX
  *  \sa glcLoadMatrix()
  *  \sa glcMultMatrix()
  *  \sa glcRotate()
@@ -65,19 +65,19 @@
  */
 void APIENTRY glcLoadIdentity(void)
 {
-    __glcContextState *state = NULL;
+  __glcContextState *state = NULL;
 
-    /* Check if the current thread owns a context state */
-    state = __glcGetCurrent();
-    if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
-	return;
-    }
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
 
-    state->bitmapMatrix[0] = 1.;
-    state->bitmapMatrix[1] = 0.;
-    state->bitmapMatrix[2] = 0.;
-    state->bitmapMatrix[3] = 1.;
+  state->bitmapMatrix[0] = 1.;
+  state->bitmapMatrix[1] = 0.;
+  state->bitmapMatrix[2] = 0.;
+  state->bitmapMatrix[3] = 1.;
 }
 
 
@@ -87,7 +87,7 @@ void APIENTRY glcLoadIdentity(void)
  *  inMatrix[3]] to the floating point vector variable \b GLC_BITMAP_MATRIX.
  *
  *  \param inMatrix The value to assign to \b GLC_BITMAP_MATRIX
- *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcGetfv() with argument \b GLC_BITMAP_MATRIX
  *  \sa glcLoadIdentity()
  *  \sa glcMultMatrix()
  *  \sa glcRotate()
@@ -95,18 +95,18 @@ void APIENTRY glcLoadIdentity(void)
  */
 void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
 {
-    __glcContextState *state = NULL;
+  __glcContextState *state = NULL;
 
-    assert(inMatrix);
+  assert(inMatrix);
 
-    /* Check if the current thread owns a context state */
-    state = __glcGetCurrent();
-    if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
-	return;
-    }
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
 
-    memcpy(state->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
+  memcpy(state->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
 }
 
 
@@ -117,7 +117,7 @@ void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
  *
  *  \param inMatrix A pointer to a 2x2 matrix stored in column-major order
  *                  as 4 consecutives values.
- *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcGetfv() with argument \b GLC_BITMAP_MATRIX
  *  \sa glcLoadIdentity()
  *  \sa glcLoadMatrix()
  *  \sa glcRotate()
@@ -125,28 +125,28 @@ void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
  */
 void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
 {
-    __glcContextState *state = NULL;
-    GLfloat tempMatrix[4];
+  __glcContextState *state = NULL;
+  GLfloat tempMatrix[4];
 
-    assert(inMatrix);
+  assert(inMatrix);
 
-    /* Check if the current thread owns a context state */
-    state = __glcGetCurrent();
-    if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
-	return;
-    }
+  /* Check if the current thread owns a context state */
+  state = __glcGetCurrent();
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
 
-    memcpy(tempMatrix, state->bitmapMatrix, 4 * sizeof(GLfloat));
+  memcpy(tempMatrix, state->bitmapMatrix, 4 * sizeof(GLfloat));
 
-    state->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0]
-      + tempMatrix[2] * inMatrix[1];
-    state->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0]
-      + tempMatrix[3] * inMatrix[1];
-    state->bitmapMatrix[2] = tempMatrix[0] * inMatrix[2]
-      + tempMatrix[2] * inMatrix[3];
-    state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2]
-      + tempMatrix[3] * inMatrix[3];
+  state->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0]
+			 + tempMatrix[2] * inMatrix[1];
+  state->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0]
+			 + tempMatrix[3] * inMatrix[1];
+  state->bitmapMatrix[2] = tempMatrix[0] * inMatrix[2]
+			 + tempMatrix[2] * inMatrix[3];
+  state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2]
+			 + tempMatrix[3] * inMatrix[3];
 }
 
 
@@ -154,11 +154,16 @@ void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
 /** \ingroup transform
  *  This command assigns the value [a b c d] to the floating point vector
  *  variable \b GLC_BITMAP_MATRIX, where \e inAngle is measured in degrees,
- *  <em>theta = inAngle * pi / 180</em> and \n
- *  <pre>[a c] = [matrix[0] matrix[2]] * [  cos(theta) sin(theta) ]</pre>
- *  <pre>[b d]   [matrix[1] matrix[3]]   [ -sin(theta) cos(theta) ]</pre>
+ *  \f$ \theta = inAngle * \pi / 180 \f$ and \n
+ *  \f$ \left [ \begin {array}{ll} a & b \\ c & d \\ \end {array} \right ]
+ *      = \left [ \begin {array}{ll} GLC\_BITMAP\_MATRIX[0] & GLC\_BITMAP\_MATRIX[2]
+ *		  \\ GLC\_BITMAP\_MATRIX[1] & GLC\_BITMAP\_MATRIX[3] \\ \end{array}
+ *	  \right ]
+ *	  \left [ \begin {array}{ll} cos \theta & sin \theta \\
+ *		  -sin \theta & cos\theta \\ \end{array} \right ]
+ *  \f$
  *  \param inAngle The angle of rotation around the Z axis, in degrees.
- *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcGetfv() with argument \b GLC_BITMAP_MATRIX
  *  \sa glcLoadIdentity()
  *  \sa glcLoadMatrix()
  *  \sa glcMultMatrix()
@@ -166,17 +171,17 @@ void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
  */
 void APIENTRY glcRotate(GLfloat inAngle)
 {
-    GLfloat tempMatrix[4];
-    GLfloat radian = inAngle * GLC_PI / 180.;
-    GLfloat sine = sin(radian);
-    GLfloat cosine = cos(radian);
+  GLfloat tempMatrix[4];
+  GLfloat radian = inAngle * GLC_PI / 180.;
+  GLfloat sine = sin(radian);
+  GLfloat cosine = cos(radian);
 
-    tempMatrix[0] = cosine;
-    tempMatrix[1] = sine;
-    tempMatrix[2] = -sine;
-    tempMatrix[3] = cosine;
+  tempMatrix[0] = cosine;
+  tempMatrix[1] = sine;
+  tempMatrix[2] = -sine;
+  tempMatrix[3] = cosine;
 
-    glcMultMatrix(tempMatrix);
+  glcMultMatrix(tempMatrix);
 }
 
 
@@ -184,12 +189,17 @@ void APIENTRY glcRotate(GLfloat inAngle)
 /** \ingroup transform
  *  This command produces a general scaling along the \b x and \b y
  *  axes, that is, it assigns the value [a b c d] to the floating point
- *  vector variable GLC_BITMAP_MATRIX, where
- *  <pre>[a c] = [matrix[0] matrix[2]] * [ inX  0  ]</pre>
- *  <pre>[b d]   [matrix[1] matrix[3]]   [  0  inY ]</pre>
+ *  vector variable \b GLC_BITMAP_MATRIX, where \n
+ *  \f$ \left [ \begin {array}{ll} a & b \\ c & d \\ \end {array} \right ]
+ *      = \left [ \begin {array}{ll} GLC\_BITMAP\_MATRIX[0] & GLC\_BITMAP\_MATRIX[2]
+ *		  \\ GLC\_BITMAP\_MATRIX[1] & GLC\_BITMAP\_MATRIX[3] \\ \end{array}
+ *	  \right ]
+ *	  \left [ \begin {array}{ll} inX & 0 \\
+ *		  0 & inY \\ \end{array} \right ]
+ *  \f$
  *  \param inX The scale factor along the \b x axis
  *  \param inY The scale factor along the \b y axis
- *  \sa glcGetfv() with argument GLC_BITMAP_MATRIX
+ *  \sa glcGetfv() with argument \b GLC_BITMAP_MATRIX
  *  \sa glcLoadIdentity()
  *  \sa glcLoadMatrix()
  *  \sa glcMultMatrix()
@@ -197,14 +207,14 @@ void APIENTRY glcRotate(GLfloat inAngle)
  */
 void APIENTRY glcScale(GLfloat inX, GLfloat inY)
 {
-    GLfloat tempMatrix[4];
+  GLfloat tempMatrix[4];
 
-    tempMatrix[0] = inX;
-    tempMatrix[1] = 0.;
-    tempMatrix[2] = 0.;
-    tempMatrix[3] = inY;
+  tempMatrix[0] = inX;
+  tempMatrix[1] = 0.;
+  tempMatrix[2] = 0.;
+  tempMatrix[3] = inY;
 
-    glcMultMatrix(tempMatrix);
+  glcMultMatrix(tempMatrix);
 }
 
 
@@ -225,8 +235,8 @@ void APIENTRY glcPushMatrixQSO(void)
   /* Check if the current thread owns a context state */
   state = __glcGetCurrent();
   if (!state) {
-	__glcRaiseError(GLC_STATE_ERROR);
-	return;
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
   }
 
   if (state->bitmapMatrixStackDepth >= GLC_MAX_MATRIX_STACK_DEPTH) {
@@ -260,7 +270,7 @@ void APIENTRY glcPopMatrixQSO(void)
   state = __glcGetCurrent();
   if (!state) {
     __glcRaiseError(GLC_STATE_ERROR);
-	return;
+    return;
   }
 
   if (state->bitmapMatrixStackDepth <= 0) {
