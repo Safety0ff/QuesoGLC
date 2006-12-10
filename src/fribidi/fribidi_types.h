@@ -27,7 +27,7 @@
 #include "qglc_config.h"
 #endif
 
-#ifdef __WIN32__
+#if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__)
 #define FRIBIDI_INT8	char
 #define FRIBIDI_INT16	short
 #define FRIBIDI_INT32	int

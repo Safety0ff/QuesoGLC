@@ -49,6 +49,11 @@
  *  or equal to the value of the variable \b GLC_MASTER_COUNT.
  */
 
+/* Microsoft Visual C++ */
+#ifdef _MSC_VER
+#define GLCAPI __declspec(dllexport)
+#endif
+
 #include "internal.h"
 #include FT_LIST_H
 

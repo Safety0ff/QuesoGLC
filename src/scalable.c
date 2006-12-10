@@ -20,6 +20,13 @@
 
 /* Draws characters of scalable fonts */
 
+/* Microsoft Visual C++ */
+#ifdef _MSC_VER
+#define GLCAPI __declspec(dllexport)
+#endif
+
+#include "internal.h"
+
 #if defined __APPLE__ && defined __MACH__
 #include <OpenGL/glu.h>
 #else
@@ -27,7 +34,6 @@
 #endif
 #include <math.h>
 
-#include "internal.h"
 #include FT_OUTLINE_H
 #include FT_LIST_H
 
@@ -501,7 +507,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
  * viewport). In such a case since the curve is roughly described some
  * intersections can occur between two contours in certain positions.
  */
-static CALLBACK void __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
+static void CALLBACK __glcCombineCallback(GLdouble coords[3], void* vertex_data[4],
 				 GLfloat weight[4], void** outData,
 				 void* inUserData)
 {
@@ -532,7 +538,7 @@ static CALLBACK void __glcCombineCallback(GLdouble coords[3], void* vertex_data[
  * tesselated polygon. This function is needed to convert the indices of the
  * vertex array into the coordinates of the vertex.
  */
-static CALLBACK void __glcVertexCallback(void* vertex_data, void* inUserData)
+static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
   GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
@@ -551,7 +557,7 @@ static CALLBACK void __glcVertexCallback(void* vertex_data, void* inUserData)
 
 
 
-static CALLBACK void __glcBeginCallback(GLenum mode, void* inUserData)
+static void CALLBACK __glcBeginCallback(GLenum mode, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
 
@@ -562,7 +568,7 @@ static CALLBACK void __glcBeginCallback(GLenum mode, void* inUserData)
 
 
 
-static CALLBACK void __glcEndCallback(void* inUserData)
+static void CALLBACK __glcEndCallback(void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
   GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
@@ -587,7 +593,7 @@ static CALLBACK void __glcEndCallback(void* inUserData)
 /* Callback function that is called by the GLU whenever an error occur during
  * the tesselation of the polygon.
  */
-static CALLBACK void __glcCallbackError(GLenum inErrorCode)
+static void CALLBACK __glcCallbackError(GLenum inErrorCode)
 {
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
@@ -766,18 +772,18 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     gluTessProperty(tess, GLU_TESS_BOUNDARY_ONLY, GL_FALSE);
 
     gluTessCallback(tess, GLU_TESS_ERROR,
-			(CALLBACK void (*) ())__glcCallbackError);
+			(void (CALLBACK *) ())__glcCallbackError);
     gluTessCallback(tess, GLU_TESS_VERTEX_DATA,
-		    (CALLBACK void (*) ())__glcVertexCallback);
+		    (void (CALLBACK *) ())__glcVertexCallback);
     gluTessCallback(tess, GLU_TESS_COMBINE_DATA,
-		    (CALLBACK void (*) ())__glcCombineCallback);
+		    (void (CALLBACK *) ())__glcCombineCallback);
     gluTessCallback(tess, GLU_TESS_BEGIN_DATA,
-		    (CALLBACK void (*) ())__glcBeginCallback);
+		    (void (CALLBACK *) ())__glcBeginCallback);
     if (inState->enableState.extrude)
       gluTessCallback(tess, GLU_TESS_END_DATA,
-		      (CALLBACK void (*) ())__glcEndCallback);
+		      (void (CALLBACK *) ())__glcEndCallback);
     else
-      gluTessCallback(tess, GLU_TESS_END, (CALLBACK void (*) ())glEnd);
+      gluTessCallback(tess, GLU_TESS_END, (void (CALLBACK *) ())glEnd);
 
     gluTessNormal(tess, 0., 0., 1.);
 

@@ -13,8 +13,12 @@
 #  define __WIN32__
 #endif
 
+#ifdef __WIN32__
+#  include <windows.h>
+#endif
+
 /* GLCAPI, part 1 (use WINGDIAPI, if defined) */
-#if defined(__WIN32__) && defined(WINGDIAPI)
+#if defined(__WIN32__) && defined(WINGDIAPI) && !defined(GLCAPI)
 #  define GLCAPI WINGDIAPI
 #endif
 

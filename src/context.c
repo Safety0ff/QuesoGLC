@@ -44,6 +44,11 @@
  * undefined.
  */
 
+/* Microsoft Visual C++ */
+#ifdef _MSC_VER
+#define GLCAPI __declspec(dllexport)
+#endif
+
 #include "internal.h"
 #include "oglyph.h"
 

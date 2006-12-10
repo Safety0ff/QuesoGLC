@@ -57,8 +57,13 @@
  *  no current GLC context.
  */
 
-#include <stdlib.h>
+/* Microsoft Visual C++ */
+#ifdef _MSC_VER
+#define GLCAPI __declspec(dllexport)
+#endif
+
 #include "internal.h"
+#include <stdlib.h>
 #include FT_LIST_H
 
 #ifdef QUESOGLC_STATIC_LIBRARY

@@ -135,7 +135,11 @@ static int __glcUtf8ToUcs1(const FcChar8* src_orig,
     }
     else {
       /* Convert to the string '\<xxx>' */
+#ifdef _MSC_VER
+      sprintf_s((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+#else
       snprintf((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+#endif
       /* Excluding the terminating '\0' character */
       *dstlen = strlen((const char*)dst) - 1;
     }
@@ -171,7 +175,11 @@ static int __glcUtf8ToUcs2(const FcChar8* src_orig,
       char* src = NULL;
       char buffer[GLC_OUT_OF_RANGE_LEN];
 
+#ifdef _MSC_VER
+      sprintf_s(buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+#else
       snprintf(buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+#endif
       for (count = 0, src = buffer; src && count < GLC_OUT_OF_RANGE_LEN;
 	   count++, *dst++ = *src++);
       *dst = 0; /* Terminating '\0' character */

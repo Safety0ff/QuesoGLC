@@ -22,6 +22,7 @@
      display lists are created by the program.
 */
 
+#include <GL/glc.h>
 #if defined __APPLE__ && defined __MACH__
 #include <OpenGL/gl.h>
 #include <GLUT/glut.h>
@@ -29,7 +30,6 @@
 #include <GL/gl.h>
 #include <GL/glut.h>
 #endif
-#include <GL/glc.h>
 
 #include <stdio.h>            /* fprintf(), stderr            */
 #include <string.h>           /* strcmp(), strcpy(), strlen() */

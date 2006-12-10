@@ -84,22 +84,19 @@
  * underlying GL implementation.
  */
 
-#if defined __APPLE__ && defined __MACH__
-#include <OpenGL/glu.h>
-#else
-#include <GL/gl.h>
-#ifdef __WIN32__
-/* GL_TEXTURE_MAX_LEVEL is defined in OpenGL 1.2 which is not supposed to be
- * available under Windows.
- */
-#ifndef GL_TEXTURE_MAX_LEVEL
-#define GL_TEXTURE_MAX_LEVEL 0x813D
-#endif
-#endif
-#include <GL/glu.h>
+/* Microsoft Visual C++ */
+#ifdef _MSC_VER
+#define GLCAPI __declspec(dllexport)
 #endif
 
 #include "internal.h"
+
+#if defined __APPLE__ && defined __MACH__
+#include <OpenGL/glu.h>
+#else
+#include <GL/glu.h>
+#endif
+
 #include "texture.h"
 #include FT_OUTLINE_H
 #include FT_LIST_H

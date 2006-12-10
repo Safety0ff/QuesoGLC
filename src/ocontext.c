@@ -20,10 +20,20 @@
 
 /* Defines the methods of an object that is intended to managed contexts */
 
-#include <sys/stat.h>
-#include <unistd.h>
+/* Microsoft Visual C++ */
+#ifdef _MSC_VER
+#define GLCAPI __declspec(dllexport)
+#endif
 
 #include "internal.h"
+
+#include <sys/stat.h>
+#ifndef __WIN32__
+#include <unistd.h>
+#else
+#include <io.h>
+#endif
+
 #include "texture.h"
 #include FT_MODULE_H
 #include FT_LIST_H
@@ -467,7 +477,11 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     return;
 
   /* Check that 'path' points to a directory that can be read */
+#ifdef __WIN32__
+  if (_access((const char*)catalog, 0)) {
+#else
   if (access((char *)catalog, R_OK) < 0) {
+#endif
     /* May be something more explicit should be done */
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(catalog);
@@ -479,7 +493,11 @@ void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
     __glcFree(catalog);
     return;
   }
+#ifdef __WIN32__
+  if (!(dirStat.st_mode & _S_IFDIR)) {
+#else
   if (!S_ISDIR(dirStat.st_mode)) {
+#endif
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(catalog);
     return;
