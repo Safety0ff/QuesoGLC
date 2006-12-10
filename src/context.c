@@ -1277,6 +1277,7 @@ void APIENTRY glcStringType(GLCenum inStringType)
  *  executed while the attribute stack depth is equal to
  *  \b GLC_MAX_ATTRIB_STACK_DEPTH_QSO.
  *  \b GLC_STACK_OVERFLOW_QSO.
+ *  \param inMask The list of state variables to be saved
  *  \sa glcPopAttribQSO()
  *  \sa glcGeti() with argument \b GLC_ATTRIB_STACK_DEPTH_QSO
  *  \sa glcGeti() with argument \b GLC_MAX_ATTRIB_STACK_DEPTH_QSO
