@@ -50,7 +50,7 @@ __glcFont* __glcFontCreate(GLint inID, GLint inMaster,
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-  This->faceDesc = __glcGetFaceDescFromPattern(pattern);
+  This->faceDesc = __glcGetFaceDescFromPattern(pattern, inState);
   FcPatternDestroy(pattern);
   if (!This->faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);

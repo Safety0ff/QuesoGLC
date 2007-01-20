@@ -480,7 +480,7 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster, __glcContextState* inStat
     FcPatternDestroy(pattern);
     return NULL;
   }
-  fontSet = FcFontList(NULL, pattern, objectSet);
+  fontSet = FcFontList(inState->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
   FcPatternDestroy(pattern);
 
@@ -553,7 +553,8 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster, __glcContextState* inStat
   return pattern;
 }
 
-__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern)
+__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
+						 __glcContextState* inState)
 {
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
@@ -566,7 +567,7 @@ __glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
-  fontSet = FcFontList(NULL, inPattern, objectSet);
+  fontSet = FcFontList(inState->config, inPattern, objectSet);
   FcObjectSetDestroy(objectSet);
 
   for (i = 0; i < fontSet->nfont; i++) {
@@ -629,7 +630,7 @@ __glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern)
   return faceDesc;
 }
 
-void __glcCreateHashTable(__glcContextState *inState)
+void __glcUpdateHashTable(__glcContextState *inState)
 {
   FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
@@ -649,7 +650,7 @@ void __glcCreateHashTable(__glcContextState *inState)
     FcPatternDestroy(pattern);
     return;
   }
-  fontSet = FcFontList(NULL, pattern, objectSet);
+  fontSet = FcFontList(inState->config, pattern, objectSet);
   FcPatternDestroy(pattern);
   FcObjectSetDestroy(objectSet);
 
@@ -726,4 +727,10 @@ void __glcCreateHashTable(__glcContextState *inState)
   }
 
   FcFontSetDestroy(fontSet);
+}
+
+void __glcCreateHashTable(__glcContextState* inState)
+{
+  GLC_ARRAY_LENGTH(inState->masterHashTable) = 0;
+  __glcUpdateHashTable(inState);
 }

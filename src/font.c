@@ -374,7 +374,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
   }
 
   /* Get the face descriptor of the face identified by the string inFace */
-  faceDesc = __glcGetFaceDescFromPattern(pattern);
+  faceDesc = __glcGetFaceDescFromPattern(pattern, inState);
   FcPatternDestroy(pattern);
   if (!faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -507,7 +507,7 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
       }
 
       /* Get the face descriptor of the face identified by the string inFace */
-      faceDesc = __glcGetFaceDescFromPattern(pattern);
+      faceDesc = __glcGetFaceDescFromPattern(pattern, state);
       FcPatternDestroy(pattern);
       if (!faceDesc) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -1103,7 +1103,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     FcPatternDestroy(pattern);
     return 0;
   }
-  fontSet = FcFontList(NULL, pattern, objectSet);
+  fontSet = FcFontList(state->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
   FcPatternDestroy(pattern);
 

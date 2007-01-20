@@ -95,6 +95,7 @@ typedef struct {
 #ifdef FT_CACHE_H
   FTC_Manager cache;
 #endif
+  FcConfig *config;
 
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */

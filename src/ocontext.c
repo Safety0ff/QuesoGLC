@@ -76,6 +76,17 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   }
 #endif
 
+  This->config = FcInitLoadConfigAndFonts();
+  if (!This->config) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
+    FT_Done_Library(This->library);
+    __glcFree(This);
+    return NULL;
+  }
+
   This->node.prev = NULL;
   This->node.next = NULL;
   This->node.data = NULL;
@@ -87,6 +98,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
     __glcFree(This);
     return NULL;
   }
@@ -99,6 +111,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
     __glcFree(This);
     return NULL;
   }
@@ -139,6 +152,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
     __glcFree(This);
     return NULL;
   }
@@ -156,6 +170,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
     __glcFree(This);
     return NULL;
   }
@@ -170,6 +185,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
     __glcFree(This);
     return NULL;
   }
@@ -185,6 +201,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
     __glcFree(This);
     return NULL;
   }
@@ -296,6 +313,7 @@ void __glcCtxDestroy(__glcContextState *This)
   FTC_Manager_Done(This->cache);
 #endif
   FT_Done_Library(This->library);
+  FcConfigDestroy(This->config);
   __glcFree(This);
 }
 
@@ -440,14 +458,14 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
       return -1;
     }
 
-    if (!FcConfigSubstitute(NULL, pattern, FcMatchPattern)) {
+    if (!FcConfigSubstitute(This->config, pattern, FcMatchPattern)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcPatternDestroy(pattern);
       FcCharSetDestroy(charSet);
       return -1;
     }
     FcDefaultSubstitute(pattern);
-    fontSet = FcFontSort(NULL, pattern, FcFalse, NULL, &result);
+    fontSet = FcFontSort(This->config, pattern, FcFalse, NULL, &result);
     FcPatternDestroy(pattern);
     FcCharSetDestroy(charSet);
     if ((!fontSet) || (result == FcResultTypeMismatch)) {

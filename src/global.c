@@ -664,15 +664,16 @@ GLint APIENTRY glcGenContext(void)
 
         if (--sepPos != begin + strlen(begin))
 	  *(sepPos++) = 0;
-	if (!FcStrSetAdd(state->catalogList, begin))
+	if (!FcStrSetAdd(state->catalogList, (const FcChar8*)begin))
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	if (!FcConfigAppFontAddDir(NULL, (const unsigned char*)begin)) {
+	if (!FcConfigAppFontAddDir(state->config, (const unsigned char*)begin)) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  FcStrSetDel(state->catalogList, begin);
+	  FcStrSetDel(state->catalogList, (const FcChar8*)begin);
 	}
 	begin = sepPos;
       } while (*sepPos);
       __glcFree(path);
+      __glcUpdateHashTable(state);
     }
     else {
       /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */

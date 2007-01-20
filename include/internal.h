@@ -183,10 +183,16 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
 				       __glcContextState* inState);
 
 /* Get a face descriptor object from a FontConfig pattern */
-__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern);
+__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
+						 __glcContextState* inState);
 
 /* Initialize the hash table that allows to convert master IDs into FontConfig
  * patterns.
  */
 void __glcCreateHashTable(__glcContextState *inState);
+
+/* Update the hash table that allows to convert master IDs into FontConfig
+ * patterns.
+ */
+void __glcUpdateHashTable(__glcContextState *inState);
 #endif /* __glc_internal_h */

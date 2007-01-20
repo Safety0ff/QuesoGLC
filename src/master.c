@@ -207,7 +207,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     FcPatternDestroy(pattern);
     return GLC_NONE;
   }
-  fontSet = FcFontList(NULL, pattern, objectSet);
+  fontSet = FcFontList(state->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
 
   /* return the requested attribute */
@@ -300,7 +300,7 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
       FcPatternDestroy(pattern);
       return GLC_NONE;
     }
-    fontSet = FcFontList(NULL, pattern, objectSet);
+    fontSet = FcFontList(state->config, pattern, objectSet);
     FcObjectSetDestroy(objectSet);
 
     charMap = __glcGetMasterCharMap(fontSet);
@@ -338,7 +338,8 @@ static FcChar8* __glcGetMasterInfoJustInTime(FcPattern* inPattern,
 					     GLCenum inAttrib)
 {
   FcChar8* result = NULL;
-  __glcFaceDescriptor* faceDesc = __glcGetFaceDescFromPattern(inPattern);
+  __glcFaceDescriptor* faceDesc = __glcGetFaceDescFromPattern(inPattern,
+							      inState);
 
   if (!faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -496,6 +497,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
   __glcCharMap* charMap = NULL;
+  __glcContextState* state = NULL;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -513,6 +515,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
    */
+  state = __glcGetCurrent();
   pattern = __glcVerifyMasterParameters(inMaster);
   if (!pattern)
     return GLC_NONE;
@@ -534,7 +537,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     FcPatternDestroy(pattern);
     return GLC_NONE;
   }
-  fontSet = FcFontList(NULL, pattern, objectSet);
+  fontSet = FcFontList(state->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
 
   if (inAttrib != GLC_FACE_COUNT) {
@@ -617,10 +620,11 @@ void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
-  if (!FcConfigAppFontAddDir(NULL, (const unsigned char*)inCatalog)) {
+  if (!FcConfigAppFontAddDir(state->config, (const unsigned char*)inCatalog)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
+  __glcUpdateHashTable(state);
 }
 
 
@@ -680,11 +684,12 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
   FcStrSetDestroy(state->catalogList);
   state->catalogList = newCatalog;
 
-  if (!FcConfigAppFontAddDir(NULL, (const unsigned char*)inCatalog)) {
+  if (!FcConfigAppFontAddDir(state->config, (const unsigned char*)inCatalog)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcStrSetDel(state->catalogList, inCatalog);
     return;
   }
+  __glcUpdateHashTable(state);
 }
 
 
@@ -744,7 +749,7 @@ void APIENTRY glcRemoveCatalog(GLint inIndex)
     return;
   }
   FcStrSetDel(state->catalogList, catalog);
-  FcConfigAppFontClear(NULL);
+  FcConfigAppFontClear(state->config);
   iterator = FcStrListCreate(state->catalogList);
   if (!iterator) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -760,7 +765,7 @@ void APIENTRY glcRemoveCatalog(GLint inIndex)
       FcStrListDone(iterator);
       return;
     }
-    if (!FcConfigAppFontAddDir(NULL, catalog)) {
+    if (!FcConfigAppFontAddDir(state->config, catalog)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcStrSetDel(newCatalog, catalog);
       FcStrSetDestroy(state->catalogList);
