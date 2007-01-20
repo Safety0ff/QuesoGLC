@@ -6,7 +6,7 @@ AC_PREREQ(2.57)
 # Init autoconf.
 # --------------
 
-AC_INIT([QuesoGLC], [0.5.0],
+AC_INIT([QuesoGLC], [0.6.0],
         [quesoglc-general@lists.sourceforge.net],
         [quesoglc])
 
