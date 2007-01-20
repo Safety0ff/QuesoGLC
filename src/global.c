@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -589,10 +589,6 @@ GLint APIENTRY glcGenContext(void)
   int newContext = 0;
   __glcContextState *state = NULL;
   FT_ListNode node = NULL;
-  FcPattern* pattern = NULL;
-  FcObjectSet* objectSet = NULL;
-  FcFontSet *fontSet = NULL;
-  int i = 0;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -621,54 +617,6 @@ GLint APIENTRY glcGenContext(void)
   FT_List_Add(&__glcCommonArea.stateList, node);
 
   __glcUnlock();
-
-  /* Use Fontconfig to get the default font files */
-  pattern = FcPatternCreate();
-  if (!pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return newContext;
-  }
-  objectSet = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_FOUNDRY,
-			       FC_SPACING, FC_CHARSET, FC_INDEX, FC_OUTLINE,
-			       NULL);
-  if (!objectSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
-    return newContext;
-  }
-  fontSet = FcFontList(NULL, pattern, objectSet);
-  FcPatternDestroy(pattern);
-  FcObjectSetDestroy(objectSet);
-
-  __glcAddFontsToContext(state, fontSet, GL_TRUE);
-
-  /* Update the catalog list */
-  for (i = 0; i < fontSet->nfont; i++) {
-    FcChar8 *fileName = NULL;
-    FcChar8 *dirName = NULL;
-
-    /* get the file name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* Get the path to file */
-    dirName = FcStrDirname(fileName);
-
-    /* Add the path to the catalog list if relevant */
-    if (!FcStrSetMember(state->catalogList, dirName)) {
-      if (!FcStrSetAdd(state->catalogList, dirName)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	FcFontSetDestroy(fontSet);
-	free(dirName);
-	return newContext;
-      }
-    }
-
-    free(dirName);
-  }
-
-  FcFontSetDestroy(fontSet);
 
   /* The environment variable GLC_PATH is an alternate way to allow QuesoGLC
    * to access to fonts catalogs/directories.
@@ -716,7 +664,12 @@ GLint APIENTRY glcGenContext(void)
 
         if (--sepPos != begin + strlen(begin))
 	  *(sepPos++) = 0;
-	__glcCtxAddMasters(state, begin, GL_TRUE);
+	if (!FcStrSetAdd(state->catalogList, begin))
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	if (!FcConfigAppFontAddDir(NULL, (const unsigned char*)begin)) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  FcStrSetDel(state->catalogList, begin);
+	}
 	begin = sepPos;
       } while (*sepPos);
       __glcFree(path);

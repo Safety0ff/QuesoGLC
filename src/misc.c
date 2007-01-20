@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -457,4 +457,273 @@ void __glcRestoreGLState(__glcGLState* inGLState)
       glDisable(GL_BLEND);
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, inGLState->textureEnvMode);
   glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
+}
+
+FcPattern* __glcGetPatternFromMasterID(GLint inMaster, __glcContextState* inState)
+{
+  FcChar32 hashValue = ((FcChar32*)GLC_ARRAY_DATA(inState->masterHashTable))[inMaster];
+  FcPattern* pattern = NULL;
+  FcObjectSet* objectSet = NULL;
+  FcFontSet *fontSet = NULL;
+  int i = 0;
+
+  /* Use Fontconfig to get the default font files */
+  pattern = FcPatternCreate();
+  if (!pattern) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
+			       NULL);
+  if (!objectSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return NULL;
+  }
+  fontSet = FcFontList(NULL, pattern, objectSet);
+  FcObjectSetDestroy(objectSet);
+  FcPatternDestroy(pattern);
+
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcChar8* family = NULL;
+    FcChar8* foundry = NULL;
+    int fixed = 0;
+    FcBool outline = FcFalse;
+    FcResult result;
+
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+    if (!outline)
+      continue;
+
+    pattern = FcPatternCreate();
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    if (!FcPatternAddString(pattern, FC_FAMILY, family)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+    if (!FcPatternAddString(pattern, FC_FOUNDRY, foundry)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+    if (!FcPatternAddInteger(pattern, FC_SPACING, fixed)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+    if (!FcPatternAddBool(pattern, FC_OUTLINE, outline)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+
+    if (hashValue == FcPatternHash(pattern))
+      break;
+
+    FcPatternDestroy(pattern);
+  }
+
+  assert(i < fontSet->nfont);
+
+  FcFontSetDestroy(fontSet);
+
+  if (!FcPatternDel(pattern, FC_SPACING)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return NULL;
+  }
+
+  return pattern;
+}
+
+__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern)
+{
+  FcObjectSet* objectSet = NULL;
+  FcFontSet *fontSet = NULL;
+  int i = 0;
+  __glcFaceDescriptor* faceDesc = NULL;
+
+  objectSet = FcObjectSetBuild(FC_STYLE, FC_CHARSET, FC_SPACING, FC_FILE,
+			       FC_INDEX, FC_OUTLINE, NULL);
+  if (!objectSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+  fontSet = FcFontList(NULL, inPattern, objectSet);
+  FcObjectSetDestroy(objectSet);
+
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcChar8 *fileName = NULL;
+    FcChar8 *styleName = NULL;
+    int fixed = 0;
+    FcCharSet *charSet = NULL;
+    int index = 0;
+    FcBool outline = FcFalse;
+    FcResult result;
+#ifdef DEBUGMODE
+    FcChar32 base = 0;
+    FcChar32 next = 0;
+    FcChar32 map[FC_CHARSET_MAP_SIZE];
+#endif
+
+    /* Check whether the glyphs are outlines */
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+    if (!outline)
+      continue;
+
+    /* get the file name */
+    result = FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName);
+    assert(result != FcResultTypeMismatch);
+    /* get the style name */
+    result = FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName);
+    assert(result != FcResultTypeMismatch);
+    /* Is this a fixed font ? */
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+    /* get the char set */
+    result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+    assert(result != FcResultTypeMismatch);
+#ifdef DEBUGMODE
+    /* Check that the char set is not empty */
+    base = FcCharSetFirstPage(charSet, map, &next);
+    assert(base != FC_CHARSET_DONE);
+#endif
+    /* get the index of the font in font file */
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index);
+    assert(result != FcResultTypeMismatch);
+
+    /* Create a face descriptor that will contain the whole description of
+     * the face (hence the name).
+     */
+    faceDesc = __glcFaceDescCreate(styleName, charSet,
+				   (fixed != FC_PROPORTIONAL), fileName,
+				   index);
+    if (!faceDesc) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+
+    break;
+  }
+
+  FcFontSetDestroy(fontSet);
+  return faceDesc;
+}
+
+void __glcCreateHashTable(__glcContextState *inState)
+{
+  FcPattern* pattern = NULL;
+  FcObjectSet* objectSet = NULL;
+  FcFontSet *fontSet = NULL;
+  int i = 0;
+
+  /* Use Fontconfig to get the default font files */
+  pattern = FcPatternCreate();
+  if (!pattern) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
+			       NULL);
+  if (!objectSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return;
+  }
+  fontSet = FcFontList(NULL, pattern, objectSet);
+  FcPatternDestroy(pattern);
+  FcObjectSetDestroy(objectSet);
+
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcChar32 hashValue = 0;
+    int j = 0;
+    int length = GLC_ARRAY_LENGTH(inState->masterHashTable);
+    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(inState->masterHashTable);
+    FcBool outline = FcFalse;
+    FcChar8* family = NULL;
+    FcChar8* foundry = NULL;
+    int fixed = 0;
+    FcResult result;
+
+    /* Check whether the glyphs are outlines */
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+    if (!outline)
+      continue;
+
+    pattern = FcPatternCreate();
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    if (!FcPatternAddString(pattern, FC_FAMILY, family)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+    if (!FcPatternAddString(pattern, FC_FOUNDRY, foundry)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+    if (!FcPatternAddInteger(pattern, FC_SPACING, fixed)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+    if (!FcPatternAddBool(pattern, FC_OUTLINE, outline)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+
+    hashValue = FcPatternHash(pattern);
+    FcPatternDestroy(pattern);
+    for (j = 0; j < length; j++) {
+      if (hashTable[j] == hashValue)
+	break;
+    }
+
+    if (j != length)
+      continue;
+
+    if (!__glcArrayAppend(inState->masterHashTable, &hashValue)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+  }
+
+  FcFontSetDestroy(fontSet);
 }

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -22,21 +22,18 @@
 #define __glc_ofont_h
 
 #include "GL/glc.h"
-#include "omaster.h"
-#include "ocontext.h"
 #include "ocharmap.h"
 #include "ofacedesc.h"
 
 typedef struct {
   GLint id;
   __glcFaceDescriptor* faceDesc;
-  __glcMaster* parent;
+  FcChar32 parentMasterID;
   __glcCharMap* charMap;
 } __glcFont;
 
-__glcFont*  __glcFontCreate(GLint id, __glcMaster *parent,
-			    __glcContextState* state);
-void __glcFontDestroy(__glcFont *This);
+__glcFont*  __glcFontCreate(GLint id, GLint inMaster, __glcContextState* inState);
+void __glcFontDestroy(__glcFont *This, __glcContextState* inState);
 __glcGlyph* __glcFontGetGlyph(__glcFont *This, GLint inCode,
 			      __glcContextState* inState);
 GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,

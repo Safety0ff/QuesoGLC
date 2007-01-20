@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -103,7 +103,7 @@ typedef struct {
   __glcStringState stringState;
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_ListRec fontList;		/* GLC_FONT_LIST */
-  FT_ListRec masterList;
+  __glcArray* masterHashTable;
   FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
   __glcArray* measurementBuffer;
   GLfloat measurementStringBuffer[12];

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -127,9 +127,10 @@ GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode);
 GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode);
 
 /* Verify that the thread has a current context and that the master identified
- * by 'inMaster' exists.
+ * by 'inMaster' exists. Returns a FontConfig pattern corresponding to the
+ * master ID 'inMaster'.
  */
-__glcMaster* __glcVerifyMasterParameters(GLint inMaster);
+FcPattern* __glcVerifyMasterParameters(GLint inMaster);
 
 /* Verify that the thread has a current context and that the font identified
  * by 'inFont' exists.
@@ -167,8 +168,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
 
 #ifdef FT_CACHE_H
 /* Callback function used by the FreeType cache manager to open a given face */
-FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary, FT_Pointer inData,
-		       FT_Face* outFace);
+FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
+		       FT_Pointer inData, FT_Face* outFace);
 #endif
 
 /* Save the GL State in a structure */
@@ -177,4 +178,15 @@ void __glcSaveGLState(__glcGLState* inGLState);
 /* Restore the GL State from a structure */
 void __glcRestoreGLState(__glcGLState* inGLState);
 
+/* Get a FontConfig pattern from a master ID */
+FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
+				       __glcContextState* inState);
+
+/* Get a face descriptor object from a FontConfig pattern */
+__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern);
+
+/* Initialize the hash table that allows to convert master IDs into FontConfig
+ * patterns.
+ */
+void __glcCreateHashTable(__glcContextState *inState);
 #endif /* __glc_internal_h */

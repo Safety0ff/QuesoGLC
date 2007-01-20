@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -166,22 +166,22 @@ void APIENTRY glcAppendFont(GLint inFont)
  * a font. __glcDeleteFont removes, if necessary, the font identified by
  * inFont from the list GLC_CURRENT_FONT_LIST and then delete the font.
  */
-static void __glcDeleteFont(__glcFont* font, __glcContextState* state)
+static void __glcDeleteFont(__glcFont* font, __glcContextState* inState)
 {
   FT_ListNode node = NULL;
 
   /* Look for the font into GLC_CURRENT_FONT_LIST */
-  node = FT_List_Find(&state->currentFontList, font);
+  node = FT_List_Find(&inState->currentFontList, font);
 
   /* If the font has been found, remove it from the list */
   if (node) {
-    FT_List_Remove(&state->currentFontList, node);
+    FT_List_Remove(&inState->currentFontList, node);
 #ifndef FT_CACHE_H
     __glcFaceDescClose(font->faceDesc);
 #endif
     __glcFree(node);
   }
-  __glcFontDestroy(font);
+  __glcFontDestroy(font, inState);
 }
 
 
@@ -356,23 +356,30 @@ void APIENTRY glcFont(GLint inFont)
 static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
 			       __glcContextState *inState)
 {
-  FT_ListNode node = NULL;
   __glcFaceDescriptor *faceDesc = NULL;
+  FcPattern *pattern = NULL;
 
-  /* Get the face descriptor of the face identified by the string inFace */
-  for (node = font->parent->faceList.head; node; node = node->next) {
-    faceDesc = (__glcFaceDescriptor*)node;
-    if (!strcmp((const char*)faceDesc->styleName, (const char*)inFace))
-      break;
+  /* TODO : Verify if the font has already the required face activated */
+
+  pattern = __glcGetPatternFromMasterID(font->parentMasterID, inState);
+  if (!pattern) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
   }
 
-  /* Face descriptor not found ? */
-  if (!node)
+  if (!FcPatternAddString(pattern, FC_STYLE, inFace)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
     return GL_FALSE;
+  }
 
-  /* Verify if the font has already the required face activated */
-  if (font->faceDesc == faceDesc)
-    return GL_TRUE;
+  /* Get the face descriptor of the face identified by the string inFace */
+  faceDesc = __glcGetFaceDescFromPattern(pattern);
+  FcPatternDestroy(pattern);
+  if (!faceDesc) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
 
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
   if (FT_List_Find(&inState->currentFontList, font)) {
@@ -402,6 +409,7 @@ static GLboolean __glcFontFace(__glcFont* font, const FcChar8* inFace,
     font->charMap = newCharMap;
   }
 
+  __glcFaceDescDestroy(font->faceDesc, inState);
   font->faceDesc = faceDesc;
 
   return GL_TRUE;
@@ -485,23 +493,34 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
      * by UinFace.
      */
     for (node = state->currentFontList.head; node; node = node->next) {
-      FT_ListNode nodeFace = NULL;
+      FcPattern* pattern = NULL;
+      __glcFaceDescriptor* faceDesc = NULL;
 
       font = (__glcFont*)node->data;
+      pattern = __glcGetPatternFromMasterID(font->parentMasterID, state);
+      assert(pattern);
 
-      /* Look for the face identified by UinFace */
-      for (nodeFace = font->parent->faceList.head; nodeFace;
-	   nodeFace = nodeFace->next) {
-	__glcFaceDescriptor *faceDesc = (__glcFaceDescriptor*)nodeFace;
-	if (!strcmp((const char*)faceDesc->styleName, (const char*)UinFace))
-	  break;
+      if (!FcPatternAddString(pattern, FC_STYLE, UinFace)) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	FcPatternDestroy(pattern);
+	return GL_FALSE;
       }
 
-      if (!nodeFace) {
+      /* Get the face descriptor of the face identified by the string inFace */
+      faceDesc = __glcGetFaceDescFromPattern(pattern);
+      FcPatternDestroy(pattern);
+      if (!faceDesc) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return GL_FALSE;
+      }
+
+      if (!faceDesc) {
 	/* No face identified by UinFace has been found in the font */
 	__glcFree(UinFace);
 	return GL_FALSE;
       }
+
+      __glcFaceDescDestroy(faceDesc, state);
     }
 
     /* Set the current face of every font of GLC_CURRENT_FONT_LIST to the face
@@ -720,7 +739,7 @@ const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib, GLint in
 
   switch(inAttrib) {
   case GLC_FACE_LIST:
-    return glcGetMasterListc(font->parent->id, inAttrib, inIndex);
+    return glcGetMasterListc(font->parentMasterID, inAttrib, inIndex);
   case GLC_CHAR_LIST:
     return __glcCharMapGetCharNameByIndex(font->charMap, inIndex, state);
   default:
@@ -811,7 +830,7 @@ const GLCchar* APIENTRY glcGetFontc(GLint inFont, GLCenum inAttrib)
 
   if (font)
     /* Those are master attributes so we call the equivalent master function */
-    return glcGetMasterc(font->parent->id, inAttrib);
+    return glcGetMasterc(font->parentMasterID, inAttrib);
   else
     return GLC_NONE;
 }
@@ -870,7 +889,7 @@ GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
   case GLC_MIN_MAPPED_CODE:
     return __glcCharMapGetMinMappedCode(font->charMap);
   case GLC_FACE_COUNT:
-    return glcGetMasteri(font->parent->id, inAttrib);
+    return glcGetMasteri(font->parentMasterID, inAttrib);
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
@@ -916,7 +935,7 @@ GLboolean APIENTRY glcIsFont(GLint inFont)
  * deletes the font identified by inFont (if any) and create a new font which
  * is added to the list GLC_FONT_LIST.
  */
-static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
+static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster,
 				    __glcContextState *inState)
 {
   FT_ListNode node = NULL;
@@ -946,6 +965,11 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
 
   /* Create a new font and add it to the list GLC_FONT_LIST */
   font = __glcFontCreate(inFont, inMaster, inState);
+  if (!font) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFree(node);
+    return 0;
+  }
   node->data = font;
   FT_List_Add(&inState->fontList, node);
 
@@ -976,13 +1000,16 @@ static GLint __glcNewFontFromMaster(GLint inFont, __glcMaster* inMaster,
 GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
   __glcContextState *state = __glcGetCurrent();
-  __glcMaster *master = __glcVerifyMasterParameters(inMaster);
+  FcPattern *pattern = __glcVerifyMasterParameters(inMaster);
+  GLint font = 0;
 
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
    */
-  if (!master)
+  if (!pattern)
     return 0;
+
+  FcPatternDestroy(pattern);
 
   /* Check if inFont is in legal bounds */
   if (inFont < 1) {
@@ -991,7 +1018,8 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
   }
 
   /* Create and return the new font */
-  return __glcNewFontFromMaster(inFont, master, state);
+  font = __glcNewFontFromMaster(inFont, inMaster, state);
+  return font;
 }
 
 
@@ -1020,9 +1048,15 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 {
   __glcContextState *state = NULL;
-  FT_ListNode node = NULL;
-  __glcMaster* master = NULL;
   FcChar8* UinFamily = NULL;
+  FcPattern* pattern = NULL;
+  FcObjectSet* objectSet = NULL;
+  FcFontSet *fontSet = NULL;
+  FcResult result;
+  int i = 0;
+  GLint font = 0;
+  FcChar32 hashValue = 0;
+  FcChar32* hashTable = NULL;
 
   assert(inFamily);
 
@@ -1039,29 +1073,68 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     return 0;
   }
 
+  pattern = FcPatternCreate();
+  if (!pattern) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0;
+  }
+
   /* Convert the family name in UTF-8 encoding */
   UinFamily = __glcConvertToUtf8(inFamily, state->stringState.stringType);
   if (!UinFamily) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
     return 0;
   }
 
-  /* Search for a master which string attribute GLC_FAMILY is inFamily */
-  for (node = state->masterList.head; node; node = node->next) {
-    master = (__glcMaster*)node;
-
-    if (!strcmp((const char*)UinFamily, (const char*)master->family))
-      break;
+  if (!FcPatternAddString(pattern, FC_FAMILY, UinFamily)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFree(UinFamily);
+    FcPatternDestroy(pattern);
+    return 0;
   }
 
   __glcFree(UinFamily);
 
-  if (node)
-    /* A master has been found, create a new font and add it to the list
-     * GLC_FONT_LIST */
-    return __glcNewFontFromMaster(inFont, master, state);
-  else {
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
+			       NULL);
+  if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
     return 0;
   }
+  fontSet = FcFontList(NULL, pattern, objectSet);
+  FcObjectSetDestroy(objectSet);
+  FcPatternDestroy(pattern);
+
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcBool outline = FcFalse;
+
+    /* Check whether the glyphs are outlines */
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+    if (!outline)
+      continue;
+  }
+
+  if (i == fontSet->nfont) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcFontSetDestroy(fontSet);
+    return 0;
+  }
+
+  hashValue = FcPatternHash(fontSet->fonts[i]);
+  hashTable = (FcChar32*)GLC_ARRAY_DATA(state->masterHashTable);
+
+  for (i = 0; i < GLC_ARRAY_LENGTH(state->masterHashTable); i++) {
+    if (hashValue == hashTable[i])
+      break;
+  }
+  assert(i < GLC_ARRAY_LENGTH(state->masterHashTable));
+
+  FcFontSetDestroy(fontSet);
+
+  /* Create and return the new font */
+  font = __glcNewFontFromMaster(inFont, i, state);
+  return font;
 }

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -466,11 +466,9 @@ GLfloat* __glcFaceDescGetAdvance(__glcFaceDescriptor* This,
 /* Use FreeType to determine in which format the face is stored in its file :
  * Type1, TrueType, OpenType, ...
  */
-GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
+FcChar8* __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
 				     __glcContextState* inState,
-				     FcChar8** inFormat,
-				     FcChar8** inFullNameSGI,
-				     FcChar8** inVersion)
+				     GLCenum inAttrib)
 {
   static FcChar8 unknown[] = "Unknown";
   static FcChar8 masterFormat1[] = "Type 1";
@@ -502,25 +500,40 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
 
   /* Is it Type 1 ? */
   if (!FT_Get_PS_Font_Info(face, &afont_info)) {
-    *inFormat = masterFormat1;
-    if (afont_info.full_name)
-      *inFullNameSGI = (FcChar8*)strdup(afont_info.full_name);
-    if (afont_info.version)
-      *inVersion = (FcChar8*)strdup(afont_info.version);
+    switch(inAttrib) {
+    case GLC_MASTER_FORMAT:
+      return masterFormat1;
+    case GLC_FULL_NAME_SGI:
+      if (afont_info.full_name)
+	return (FcChar8*)afont_info.full_name;
+    case GLC_VERSION:
+      if (afont_info.version)
+	return (FcChar8*)afont_info.version;
+    }
   }
   /* Is it BDF ? */
   else if (!FT_Get_BDF_Charset_ID(face, &acharset_encoding,
 				  &acharset_registry)) {
-    *inFormat = masterFormat2;
-    *inFullNameSGI = unknown;
-    *inVersion = unknown;
+    switch(inAttrib) {
+    case GLC_MASTER_FORMAT:
+      return masterFormat2;
+    case GLC_FULL_NAME_SGI:
+      return unknown;
+    case GLC_VERSION:
+      return unknown;
+    }
   }
 #ifdef FT_WINFONTS_H
   /* Is it Windows FNT ? */
   else if (!FT_Get_WinFNT_Header(face, &aheader)) {
-    *inFormat = masterFormat3;
-    *inFullNameSGI = unknown;
-    *inVersion = unknown;
+    switch(inAttrib) {
+    case GLC_MASTER_FORMAT:
+      return masterFormat3;
+    case GLC_FULL_NAME_SGI:
+      return unknown;
+    case GLC_VERSION:
+      return unknown;
+    }
   }
 #endif
   /* Is it TrueType/OpenType ? */
@@ -530,9 +543,14 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
     FT_SfntName aName;
 #endif
 
-    *inFormat = masterFormat4;
-    *inFullNameSGI = unknown;
-    *inVersion = unknown;
+    switch(inAttrib) {
+    case GLC_MASTER_FORMAT:
+      return masterFormat4;
+    case GLC_FULL_NAME_SGI:
+      return unknown;
+    case GLC_VERSION:
+      return unknown;
+    }
 
     /* TODO : decode the SFNT name tables in order to get full name
      * of the TrueType/OpenType fonts and their version
@@ -559,7 +577,7 @@ GLboolean __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
   /* Close the face */
   __glcFaceDescClose(This);
 #endif
-  return GL_TRUE;
+  return GLC_NONE;
 }
 
 

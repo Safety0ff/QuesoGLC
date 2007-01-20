@@ -19,8 +19,6 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/ofacedesc.h \
                     $(top_builddir)/src/ofont.c \
                     $(top_builddir)/src/ofont.h \
-                    $(top_builddir)/src/omaster.c \
-                    $(top_builddir)/src/omaster.h \
                     $(top_builddir)/src/render.c \
                     $(top_builddir)/src/scalable.c \
                     $(top_builddir)/src/transform.c \

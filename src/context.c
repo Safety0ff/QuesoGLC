@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -159,13 +159,10 @@ void APIENTRY glcDeleteGLObjects(void)
   }
 
   /* The GL objects are managed by the __glcFaceDescriptor object. Hence we
-   * parse the __glcFaceDescriptor stored in each __glcMaster.
+   * parse the __glcFaceDescriptor stored in each __glcFont.
    */
-  for(node = state->masterList.head; node; node = node->next) {
-    FT_ListNode faceNode = ((__glcMaster*)node)->faceList.head;
-    for (; faceNode; faceNode = faceNode->next)
-      __glcFaceDescDestroyGLObjects((__glcFaceDescriptor*)faceNode);
-  }
+  for(node = state->fontList.head; node; node = node->next)
+    __glcFaceDescDestroyGLObjects(((__glcFont*)(node->data))->faceDesc);
 
   /* Delete the texture used for immediate mode */
   if (state->texture.id) {
@@ -578,25 +575,20 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
     /* In order to get the display list name, we have to perform a search
      * through the list of display lists of every face descriptor.
      */
-    for (node = state->masterList.head; node; node = node->next) {
-      __glcMaster* master = (__glcMaster*)node;
-      FT_ListNode faceNode = NULL;
+    for (node = state->fontList.head; node; node = node->next) {
+      __glcFaceDescriptor* faceDesc =
+		(__glcFaceDescriptor*)(((__glcFont*)(node->data))->faceDesc);
+      FT_ListNode glyphNode = NULL;
 
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
-	FT_ListNode glyphNode = NULL;
+      for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	   glyphNode = glyphNode->next) {
+	__glcGlyph* glyph = (__glcGlyph*)glyphNode;
+	int count = __glcGlyphGetDisplayListCount(glyph);
 
-	for (glyphNode = faceDesc->glyphList.head; glyphNode;
-	     glyphNode = glyphNode->next) {
-	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
-	  int count = __glcGlyphGetDisplayListCount(glyph);
-
-	  if (inIndex < count)
-	    return __glcGlyphGetDisplayList(glyph, inIndex);
-	  else
-	    inIndex -= count;
-	}
+	if (inIndex < count)
+	  return __glcGlyphGetDisplayList(glyph, inIndex);
+	else
+	  inIndex -= count;
       }
     }
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -974,28 +966,21 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
 	 node = node->next, count++);
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    for (node = state->masterList.head; node; node = node->next) {
-      __glcMaster* master = (__glcMaster*)node;
-      FT_ListNode faceNode = NULL;
+    for (node = state->fontList.head; node; node = node->next) {
+      __glcFaceDescriptor* faceDesc =
+		(__glcFaceDescriptor*)(((__glcFont*)(node->data))->faceDesc);
+      FT_ListNode glyphNode = NULL;
 
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
-	FT_ListNode glyphNode = NULL;
+      for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	   glyphNode = glyphNode->next) {
+	__glcGlyph* glyph = (__glcGlyph*)glyphNode;
 
-	for (glyphNode = faceDesc->glyphList.head; glyphNode;
-	     glyphNode = glyphNode->next) {
-	  __glcGlyph* glyph = (__glcGlyph*)glyphNode;
-
-	  count += __glcGlyphGetDisplayListCount(glyph);
-	}
+	count += __glcGlyphGetDisplayListCount(glyph);
       }
     }
     return count;
   case GLC_MASTER_COUNT:
-    for (node = state->masterList.head, count = 0; node;
-	 node = node->next, count++);
-    return count;
+    return GLC_ARRAY_LENGTH(state->masterHashTable);
   case GLC_MEASURED_CHAR_COUNT:
     return GLC_ARRAY_LENGTH(state->measurementBuffer);
   case GLC_RENDER_STYLE:

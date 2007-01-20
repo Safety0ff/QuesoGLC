@@ -1,4 +1,12 @@
-﻿Changes made from the "0.4" release to the "0.5" release:
+Changes made from the "0.5" release to the "0.6" release:
+-----------------------------------------------------------
+
+- Removed the master object, uses FontConfig API instead. This allows to not
+  load all the masters in memory : masters are now loaded "just in time" which
+  reduces the memory footprint of quesoGLC. Furthermore, when GLC_AUTO_FONT is
+  enabled, QuesoGLC takes into account the user preferences for FontConfig.
+
+Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
 - Fixed the #include so that QuesoGLC can be built with MSVC++

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -44,6 +44,7 @@ commonArea __glcCommonArea;
  * defines the object __glcContext which is used to manage the contexts.
  */
 
+
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  */
@@ -79,8 +80,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->node.next = NULL;
   This->node.data = NULL;
 
-  This->masterList.head = NULL;
-  This->masterList.tail = NULL;
   This->catalogList = FcStrSetCreate();
   if (!This->catalogList) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -91,6 +90,19 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
+
+  This->masterHashTable = __glcArrayCreate(sizeof(FcChar32));
+  if (!This->masterHashTable) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(This->catalogList);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
+    FT_Done_Library(This->library);
+    __glcFree(This);
+    return NULL;
+  }
+  __glcCreateHashTable(This);
   This->currentFontList.head = NULL;
   This->currentFontList.tail = NULL;
   This->fontList.head = NULL;
@@ -121,11 +133,12 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->measurementBuffer = __glcArrayCreate(12 * sizeof(GLfloat));
   if (!This->measurementBuffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcArrayDestroy(This->masterHashTable);
+    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
-    FcStrSetDestroy(This->catalogList);
     __glcFree(This);
     return NULL;
   }
@@ -136,12 +149,13 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   This->vertexArray = __glcArrayCreate(2 * sizeof(GLfloat));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->measurementBuffer);
+    __glcArrayDestroy(This->masterHashTable);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
-    FcStrSetDestroy(This->catalogList);
     __glcFree(This);
     return NULL;
   }
@@ -149,12 +163,13 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   if (!This->vertexArray) {
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
+    __glcArrayDestroy(This->masterHashTable);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
-    FcStrSetDestroy(This->catalogList);
     __glcFree(This);
     return NULL;
   }
@@ -163,12 +178,13 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcArrayDestroy(This->controlPoints);
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
+    __glcArrayDestroy(This->masterHashTable);
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
-    FcStrSetDestroy(This->catalogList);
     __glcFree(This);
     return NULL;
   }
@@ -198,9 +214,16 @@ __glcContextState* __glcCtxCreate(GLint inContext)
 static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
 {
   __glcFont *font = (__glcFont*)inData;
+  /* This is wrong to get the context state there : it may be the source of
+   * possible thread bugs (if the context is changed during execution of the
+   * function). 
+   */
+  __glcContextState* state = __glcGetCurrent();
+
+  assert(state);
 
   if (font)
-    __glcFontDestroy(font);
+    __glcFontDestroy(font, state);
 }
 
 
@@ -229,10 +252,10 @@ static void __glcAtlasDestructor(FT_Memory inMemory, void* inData, void* inUser)
  */
 void __glcCtxDestroy(__glcContextState *This)
 {
-  FT_ListNode node = NULL;
-  FT_ListNode next = NULL;
-
   assert(This);
+
+  /* Destroy the list of catalogs */
+  FcStrSetDestroy(This->catalogList);
 
   /* Destroy GLC_CURRENT_FONT_LIST */
   FT_List_Finalize(&This->currentFontList, NULL,
@@ -242,16 +265,8 @@ void __glcCtxDestroy(__glcContextState *This)
   FT_List_Finalize(&This->fontList, __glcFontDestructor,
                    &__glcCommonArea.memoryManager, NULL);
 
-  /* Destroy the list of catalogs */
-  FcStrSetDestroy(This->catalogList);
-
-  /* destroy remaining masters */
-  node = This->masterList.head;
-  while (node) {
-    next = node->next;
-    __glcMasterDestroy((__glcMaster*)node, This);
-    node = next;
-  }
+  if (This->masterHashTable)
+    __glcArrayDestroy(This->masterHashTable);
 
   if (This->texture.id)
     glDeleteTextures(1, &This->texture.id);
@@ -282,467 +297,6 @@ void __glcCtxDestroy(__glcContextState *This)
 #endif
   FT_Done_Library(This->library);
   __glcFree(This);
-}
-
-
-
-/* This function parses a font set and add the font files to the masters
- * of the context 'This'. Masters are created if necessary.
- */
-void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
-			    GLboolean inAppend)
-{
-  int i = 0;
-
-  /* For each font of the font set */
-  for (i = 0; i < fontSet->nfont; i++) {
-    __glcMaster *master = NULL;
-    FcChar8 *fileName = NULL;
-    FcChar8 *vendorName = NULL;
-    FcChar8 *familyName = NULL;
-    FcChar8 *styleName = NULL;
-    FT_ListNode node = NULL;
-    FcBool outline = FcFalse;
-    int fixed = 0;
-    FcCharSet *charSet = NULL;
-    int index = 0;
-
-    /* Check whether the glyphs are outlines */
-    if (FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline)
-	== FcResultTypeMismatch)
-      continue;
-    if (!outline)
-      continue;
-
-    /* get the file name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* get the vendor name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &vendorName)
-	== FcResultTypeMismatch)
-      vendorName = NULL;
-
-    /* get the style name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* get the family name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &familyName)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* Is this a fixed font ? */
-    if (FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* get the char set */
-    if (FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet)
-	== FcResultTypeMismatch)
-      continue;
-    else {
-      /* Check that the char set is not empty */
-      FcChar32 base = 0;
-      FcChar32 next = 0;
-      FcChar32 map[FC_CHARSET_MAP_SIZE];
-
-      base = FcCharSetFirstPage(charSet, map, &next);
-      if (base == FC_CHARSET_DONE)
-        continue;
-    }
-
-    /* get the index of the font in font file */
-    if (FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* Determine if the family (i.e. "Times", "Courier", ...) is already
-     * associated to a master.
-     */
-    for (node = This->masterList.head; node; node = node->next) {
-      master = (__glcMaster*)node;
-
-      if (!strcmp((const char*)familyName, (const char*)master->family))
-	break;
-    }
-
-    if (!node) {
-      /* No master has been found. We must create one */
-      GLint id;
-
-      /* Get the master ID */
-      if (master)
-	/* master is already equal to the last master of masterList
-	 * since the master list has been parsed in the "for" loop
-	 * and no master has been found.
-	 */
-	id = master->id + 1;
-      else
-	id = 0;
-
-      /* Create a new master and add it to the current context */
-      master = __glcMasterCreate(familyName, vendorName, id,
-				 This->stringState.stringType);
-      if (!master) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	break;
-      }
-
-      FT_List_Add(&This->masterList, (FT_ListNode)master);
-    }
-
-    /* Parse the faces of the master to check that does not already exists */
-    for (node = master->faceList.head; node; node = node->next) {
-      __glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)node;
-
-      if (!strcmp((const char*)faceDesc->styleName, (const char*)styleName))
-	break;
-    }
-
-    if (!node) {
-      /* The current face in the font file is not already loaded in a
-       * master : Append (or prepend) the new face and its file name to
-       * the master.
-       */
-      __glcFaceDescriptor* faceDesc = NULL;
-      FT_ListNode newNode = NULL;
-      __glcCharMap* charMap = __glcCharMapCreate(charSet);
-
-      if (!charMap) {
-	FcFontSetDestroy(fontSet);
-	return;
-      }
-
-      /* Merge the character map of the new face with the character map of the
-       * master.
-       */
-      if (!__glcCharMapUnion(master->charList, charMap)) {
-	FcFontSetDestroy(fontSet);
-	__glcCharMapDestroy(charMap);
-	return;
-      }
-
-      __glcCharMapDestroy(charMap);
-
-      /* Create a face descriptor that will contain the whole description of
-       * the face (hence the name).
-       */
-      faceDesc = __glcFaceDescCreate(styleName, charSet,
-				     (fixed != FC_PROPORTIONAL), fileName,
-				     index);
-      if (!faceDesc) {
-	FcFontSetDestroy(fontSet);
-	return;
-      }
-
-      /* Append or prepend (depending on inAppend) the new face to the
-       * master.
-       */
-      newNode = (FT_ListNode)faceDesc;
-      newNode->data = faceDesc;
-
-      if (inAppend)
-	FT_List_Add(&master->faceList, newNode);
-      else
-	FT_List_Insert(&master->faceList, newNode);
-    }
-  }
-}
-
-
-
-/* This function is called by glcAppendCatalog and glcPrependCatalog. It has
- * been associated to the contextState class rather than the master class
- * because glcAppendCatalog and glcPrependCatalog might create several masters.
- * Moreover it associates the new masters (if any) to the current context.
- */
-void __glcCtxAddMasters(__glcContextState *This, const GLCchar* inCatalog,
-			GLboolean inAppend)
-{
-  FcConfig *config = FcConfigGetCurrent();
-  struct stat dirStat;
-  FcFontSet *fontSet = NULL;
-  FcStrSet *subDirs = NULL;
-  FcChar8* catalog = NULL;
-
-  /* Verify that the catalog has not already been appended (or prepended) */
-  if (FcStrSetMember(This->catalogList, (FcChar8*)inCatalog))
-    return;
-
-  catalog = FcStrCopyFilename((const FcChar8*)inCatalog);
-  if (!catalog)
-    return;
-
-  /* Check that 'path' points to a directory that can be read */
-#ifdef __WIN32__
-  if (_access((const char*)catalog, 0)) {
-#else
-  if (access((char *)catalog, R_OK) < 0) {
-#endif
-    /* May be something more explicit should be done */
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(catalog);
-    return;
-  }
-  /* Check that 'path' is a directory */
-  if (stat((char *)catalog, &dirStat) < 0) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(catalog);
-    return;
-  }
-#ifdef __WIN32__
-  if (!(dirStat.st_mode & _S_IFDIR)) {
-#else
-  if (!S_ISDIR(dirStat.st_mode)) {
-#endif
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(catalog);
-    return;
-  }
-
-  /* A Fontconfig object that will contain the result of directory scan */
-  fontSet = FcFontSetCreate();
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(catalog);
-    return;
-  }
-
-  /* A Fontconfig object that will contain the subdirectories of 'path' */
-  subDirs = FcStrSetCreate();
-  if (!subDirs) {
-    FcFontSetDestroy(fontSet);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(catalog);
-    return;
-  }
-
-  /* Perform the scanning of the directory */
-  if (!FcDirScan(fontSet, subDirs, NULL, FcConfigGetBlanks(config),
-		 (const unsigned char*)catalog, FcFalse)) {
-    FcFontSetDestroy(fontSet);
-    FcStrSetDestroy(subDirs);
-    __glcFree(catalog);
-    return;
-  }
-  FcStrSetDestroy(subDirs); /* Sub directories are ignored */
-  __glcFree(catalog);
-
-  /* Add the fonts found in the directory to the masters of the current
-   * context.
-   */
-  __glcAddFontsToContext(This, fontSet, inAppend);
-
-  FcFontSetDestroy(fontSet);
-
-  /* Append (or prepend) the directory name to the catalog list */
-  if (inAppend) {
-    if (!FcStrSetAddFilename(This->catalogList, (FcChar8*)inCatalog)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-  }
-  else {
-    /* In order to prepend the directory name we must create a new catalog
-     * list with the new directory first then all the catalogs of the previous
-     * list.
-     */
-    FcStrSet* newCatalogList = FcStrSetCreate();
-    FcStrList* iterator = NULL;
-
-    /* Add the new catalog first */
-    if (!FcStrSetAddFilename(newCatalogList, (FcChar8*)inCatalog)) {
-      FcStrSetDestroy(newCatalogList);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-    /* Iterate over the catalogs stored in the previous list */
-    iterator = FcStrListCreate(This->catalogList);
-    /* TODO : what if iterator can not be allocated ? Arrghh!!! Then we can not
-     * get back to the previous state of the context since the new masters and
-     * the new faces have already been added.
-     * This should be fixed one day...
-     */
-    for (catalog = FcStrListNext(iterator); catalog;
-	catalog = FcStrListNext(iterator)) {
-      /* Add the current catalog to the new list */
-      if (!FcStrSetAdd(newCatalogList, catalog)) {
-	FcStrListDone(iterator);
-	FcStrSetDestroy(newCatalogList);
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-      }
-    }
-    /* Free memory */
-    FcStrListDone(iterator);
-    FcStrSetDestroy(This->catalogList);
-    This->catalogList = newCatalogList;
-  }
-}
-
-
-
-/* This function is called by glcRemoveCatalog. It has been included in the
- * context state class for the same reasons than addMasters was.
- */
-void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex)
-{
-  int i = 0;
-  FcConfig *config = FcConfigGetCurrent();
-  FcFontSet *fontSet = NULL;
-  FcStrSet *subDirs = NULL;
-  FcStrList* iterator = NULL;
-  FcChar8* catalog = NULL;
-
-  /* Look for the catalog to be removed */
-  iterator = FcStrListCreate(This->catalogList);
-  if (!iterator) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-  for (catalog = FcStrListNext(iterator); catalog && inIndex;
-	catalog = FcStrListNext(iterator), inIndex--);
-  FcStrListDone(iterator);
-
-  /* The catalog has not been found : raise an error and return */
-  if (!catalog) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return;
-  }
-
-  /* A Fontconfig object that will contain the result of directory scan */
-  fontSet = FcFontSetCreate();
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* A Fontconfig object that will contain the subdirectories of the catalog */
-  subDirs = FcStrSetCreate();
-  if (!subDirs) {
-    FcFontSetDestroy(fontSet);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* Perform the scanning of the directory */
-  if (!FcDirScan(fontSet, subDirs, NULL, FcConfigGetBlanks(config),
-		 (const unsigned char*)catalog, FcFalse)) {
-    FcFontSetDestroy(fontSet);
-    FcStrSetDestroy(subDirs);
-    return;
-  }
-  FcStrSetDestroy(subDirs); /* Sub directories are not scanned */
-
-  /* For each font that has been found in the catalog */
-  for (i = 0; i < fontSet->nfont; i++) {
-    FT_ListNode node = NULL;
-    FT_ListNode masterNode = NULL;
-    FT_ListNode faceNode = NULL;
-    FcChar8 *fileName = NULL;
-    __glcMaster *master = NULL;
-    __glcFaceDescriptor* faceDesc = NULL;
-    __glcFont* font = NULL;
-
-    /* get the file name */
-    if (FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName)
-	== FcResultTypeMismatch)
-      continue;
-
-    /* Search the corresponding face in the masters */
-    for (masterNode = This->masterList.head; masterNode;
-	 masterNode = masterNode->next) {
-
-      master = (__glcMaster*)masterNode;
-      assert(master);
-
-      /* Search the file name of the font in the faces of the current master */
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	faceDesc = (__glcFaceDescriptor*)faceNode;
-
-	if (!strcmp((const char*)faceDesc->fileName, (const char*)fileName))
-	  break;
-      }
-
-      /* The file name has been found exit */
-      if (faceNode)
-	break;
-    }
-
-    if (!masterNode)
-      continue; /* The file is not in a master, it may have been added since
-		 * QuesoGLC has been launched !?! */
-
-    /* Look if the corresponding face is stored in the font list */
-    for (node = This->fontList.head; node; node = node->next) {
-      font = (__glcFont*)node->data;
-      assert(font);
-      if (font->faceDesc == faceDesc)
-	break;
-    }
-
-    if(node) {
-      /*A font with the corresponding face descriptor has been found */
-      assert(font->parent == master);
-
-      /* Eventually remove the font from the current font list */
-      for (node = This->currentFontList.head; node; node = node->next) {
-	if ((__glcFont*)node->data == font) {
-	  FT_List_Remove(&This->currentFontList, node);
-	  __glcFree(node);
-	  break;
-	}
-      }
-
-      glcDeleteFont(font->id);
-    }
-
-    /* Delete the face descriptor */
-    FT_List_Remove(&master->faceList, (FT_ListNode)faceDesc);
-    __glcFaceDescDestroy(faceDesc, This);
-
-    /* If the master is empty (i.e. does not contain any face) then
-     * remove it.
-     */
-    if (!master->faceList.head) {
-      FT_List_Remove(&This->masterList, masterNode);
-      __glcMasterDestroy(master, This);
-      master = NULL;
-    }
-    else {
-      /* Remove characters of the font from the char list.
-       * (Actually rebuild the master charset)
-       */
-      __glcCharMapDestroy(master->charList);
-      master->charList = __glcCharMapCreate(NULL);
-
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
-	__glcCharMap* charMap = __glcFaceDescGetCharMap(faceDesc, This);
-
-	if (!charMap) {
-	  FcFontSetDestroy(fontSet);
-	  FcStrSetDel(This->catalogList, catalog);
-	  return;
-	}
-
-	/* TODO: handle the case of failure of __glcCharMapUnion and to
-	 * be able to restore the master in a coherent state
-	 */
-	__glcCharMapUnion(master->charList, charMap);
-	__glcCharMapDestroy(charMap);
-      }
-    }
-  }
-
-  FcFontSetDestroy(fontSet);
-  FcStrSetDel(This->catalogList, catalog);
-  return;
 }
 
 
@@ -835,7 +389,17 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
    * succeeds, then append the font's ID to GLC_CURRENT_FONT_LIST.
    */
   if (This->enableState.autoFont) {
-    FT_ListNode node = NULL;
+    FcPattern* pattern = NULL;
+    FcCharSet* charSet = NULL;
+    FcFontSet* fontSet = NULL;
+    FcResult result;
+    int m = 0, f = 0;
+    FcChar8* family = NULL;
+    FcChar8* foundry = NULL;
+    int fixed = 0;
+    FcChar32 hashValue = 0;
+    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(This->masterHashTable);
+    FcChar8* style = NULL;
 
     font = __glcLookupFont(inCode, &This->fontList);
     if (font >= 0) {
@@ -847,38 +411,124 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
      * master that maps 'inCode'. If the search succeeds, it creates a font
      * from the master and appends its ID to GLC_CURRENT_FONT_LIST.
      */
-    for (node = This->masterList.head; node; node = node->next) {
-      __glcMaster* master = (__glcMaster*)node;
-      FT_ListNode faceNode = NULL;
-
-      /* Check if the corresponding character is stored in the master */
-      if (!__glcCharMapHasChar(master->charList, (FcChar32)inCode))
-        continue; /* Failed : try the next master */
-
-      /* We search for a font file that supports the requested inCode glyph */
-      for (faceNode = master->faceList.head; faceNode;
-	   faceNode = faceNode->next) {
-	__glcFaceDescriptor* faceDesc = (__glcFaceDescriptor*)faceNode;
-	__glcCharMap* charMap = __glcFaceDescGetCharMap(faceDesc, This);
-
-	if (!charMap)
-	  continue;
-
-	/* Check if the face descriptor contains the requested character */
-	if (__glcCharMapHasChar(charMap, (FcChar32)inCode)) {
-	  /* Create a new font from the face descriptor */
-	  font = glcNewFontFromMaster(glcGenFontID(), master->id);
-	  if (font) {
-	    __glcCharMapDestroy(charMap);
-	    /* Add the font to the GLC_CURRENT_FONT_LIST */
-	    glcAppendFont(font);
-	    glcFontFace(font, faceDesc->styleName);
-	    return font;
-	  }
-	}
- 	__glcCharMapDestroy(charMap);
-      }
+    charSet = FcCharSetCreate();
+    if (!charSet) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return -1;
     }
+    if (!FcCharSetAddChar(charSet, inCode)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcCharSetDestroy(charSet);
+      return -1;
+    }
+    pattern = FcPatternCreate();
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcCharSetDestroy(charSet);
+      return -1;
+    }
+    if (!FcPatternAddCharSet(pattern, FC_CHARSET, charSet)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcCharSetDestroy(charSet);
+      FcPatternDestroy(pattern);
+      return -1;
+    }
+    if (!FcPatternAddBool(pattern, FC_OUTLINE, FcTrue)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcCharSetDestroy(charSet);
+      FcPatternDestroy(pattern);
+      return -1;
+    }
+
+    if (!FcConfigSubstitute(NULL, pattern, FcMatchPattern)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcCharSetDestroy(charSet);
+      return -1;
+    }
+    FcDefaultSubstitute(pattern);
+    fontSet = FcFontSort(NULL, pattern, FcFalse, NULL, &result);
+    FcPatternDestroy(pattern);
+    FcCharSetDestroy(charSet);
+    if ((!fontSet) || (result == FcResultTypeMismatch)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return -1;
+    }
+
+    for (f = 0; f < fontSet->nfont; f++) {
+      FcBool outline = FcFalse;
+
+      result = FcPatternGetBool(fontSet->fonts[f], FC_OUTLINE, 0, &outline);
+      assert(result != FcResultTypeMismatch);
+      result = FcPatternGetCharSet(fontSet->fonts[f], FC_CHARSET, 0, &charSet);
+      assert(result != FcResultTypeMismatch);
+
+      if (outline && FcCharSetHasChar(charSet, inCode))
+	break;
+    }
+
+    if (f == fontSet->nfont) {
+      FcFontSetDestroy(fontSet);
+      return -1;
+    }
+
+    result = FcPatternGetString(fontSet->fonts[f], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[f], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[f], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternCreate();
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return -1;
+    }
+    if (!FcPatternAddString(pattern, FC_FAMILY, family)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return -1;
+    }
+    if (!FcPatternAddString(pattern, FC_FOUNDRY, foundry)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return -1;
+    }
+    if (!FcPatternAddInteger(pattern, FC_SPACING, fixed)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return -1;
+    }
+    if (!FcPatternAddBool(pattern, FC_OUTLINE, FcTrue)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcFontSetDestroy(fontSet);
+      return -1;
+    }
+
+    hashValue = FcPatternHash(pattern);
+    FcPatternDestroy(pattern);
+    for (m = 0; m < GLC_ARRAY_LENGTH(This->masterHashTable); m++) {
+      if (hashValue == hashTable[m])
+	break;
+    }
+    assert(m != GLC_ARRAY_LENGTH(This->masterHashTable));
+
+    font = glcNewFontFromMaster(glcGenFontID(), m);
+    if (font) {
+      result = FcPatternGetString(fontSet->fonts[f], FC_STYLE, 0, &style);
+      assert(result != FcResultTypeMismatch);
+      FcFontSetDestroy(fontSet);
+      glcFontFace(font, style);
+      /* Add the font to the GLC_CURRENT_FONT_LIST */
+      glcAppendFont(font);
+      return font;
+    }
+    FcFontSetDestroy(fontSet);
   }
   return -1;
 }
