@@ -1,6 +1,8 @@
 Changes made from the "0.5" release to the "0.6" release:
 -----------------------------------------------------------
 
+- QuesoGLC now uses GLEW, the OpenGL Extension Wrangler, to manage OpenGL
+  extensions.
 - Removed the master object, uses FontConfig API instead. This allows to not
   load all the masters in memory : masters are now loaded "just in time" which
   reduces the memory footprint of quesoGLC. Furthermore, when GLC_AUTO_FONT is
