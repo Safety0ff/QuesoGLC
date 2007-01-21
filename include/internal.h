@@ -29,6 +29,7 @@
 #include <assert.h>
 
 #include "GL/glew.h"
+#define GLCAPI GLEWAPI
 #include "GL/glc.h"
 #ifdef HAVE_CONFIG_H
 #include "qglc_config.h"

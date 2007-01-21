@@ -30,7 +30,8 @@ GLUT_LIBS=c:\mingw\lib\libglut.a
 #                                    #
 ######################################
 
-C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c ofacedesc.c ofont.c oglyph.c omaster.c render.c scalable.c transform.c texture.c unicode.c
+C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c \
+	  ofacedesc.c ofont.c oglyph.c render.c scalable.c transform.c texture.c unicode.c glew.c
 FRIBIDI_FILES=fribidi.c fribidi_char_type.c fribidi_types.c fribidi_mirroring.c
 TESTS=test1 test4 test5 test6 test7 testcontex testfont testmaster testrender
 EXAMPLES=glcdemo glclogo tutorial tutorial2 unicode demo
@@ -66,7 +67,7 @@ clean:
 	del tests\*.exe
 
 tests/%.exe : tests/%.c build/$(LIBRARY)
-	$(CC) $(CFLAGS) $(GLUT_FLAGS) -DQUESOGLC_VERSION=\"0.5.0\" $< -o $@ $(LIBS) $(GLUT_LIBS)
+	$(CC) $(CFLAGS) $(GLUT_FLAGS) -DQUESOGLC_VERSION=\"0.6.0\" $< -o $@ $(LIBS) $(GLUT_LIBS)
 
 build/trackball.o : examples/trackball.c
 	$(CC) -c $(CFLAGS) $< -o $@
@@ -81,7 +82,7 @@ build/%.o : src/fribidi/%.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) -Isrc/fribidi $< -o $@
 
 build/%.o : src/%.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -DQUESOGLC_VERSION=\"0.5.0\" $< -o $@
+	$(CC) -c $(CFLAGS) -DGLEW_MX -DGLEW_BUILD $(CPPFLAGS) -DQUESOGLC_VERSION=\"0.6.0\" $< -o $@
 
 build/$(LIBRARY): $(LIB_OBJECTS)
 	$(CC) -shared -o build/$(LIBRARY) -Wl,--output-def,build/glc32.def,--out-implib,build/lib$(LIB_NAME).a $(LIB_OBJECTS) $(SUBLIBRARIES)
