@@ -89,7 +89,7 @@ FcPattern* __glcVerifyMasterParameters(GLint inMaster)
 static __glcCharMap* __glcGetMasterCharMap(FcFontSet* inFontSet)
 {
   int i = 0;
-  FcResult result;
+  FcResult result = FcResultMatch;
   __glcCharMap* charMap = NULL; 
 
   charMap = __glcCharMapCreate(NULL);
@@ -170,7 +170,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
   __glcCharMap* charMap = NULL;
-  FcResult result;
+  FcResult result = FcResultMatch;
   FcChar8* string = NULL;
   GLCchar* element = NULL;
 
@@ -209,6 +209,11 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   }
   fontSet = FcFontList(state->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
+  if (!fontSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return GLC_NONE;
+  }
 
   /* return the requested attribute */
   switch(inAttrib) {
@@ -223,6 +228,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     if (!string) {
       FcFontSetDestroy(fontSet);
       FcPatternDestroy(pattern);
+      __glcCharMapDestroy(charMap);
       return GLC_NONE;
     }
     break;
@@ -302,6 +308,11 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
     }
     fontSet = FcFontList(state->config, pattern, objectSet);
     FcObjectSetDestroy(objectSet);
+    if (!fontSet) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      return GLC_NONE;
+    }
 
     charMap = __glcGetMasterCharMap(fontSet);
     if (!charMap) {
@@ -393,7 +404,7 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   GLCchar *buffer = NULL;
   FcChar8* s = NULL;
   FcPattern* pattern = NULL;
-  FcResult result;
+  FcResult result = FcResultMatch;
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -522,7 +533,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 
   if (inAttrib == GLC_IS_FIXED_PITCH) {
     /* Is this a fixed font ? */
-    FcResult result;
+    FcResult result = FcResultMatch;
     int fixed = 0;
 
     result = FcPatternGetInteger(pattern, FC_SPACING, 0, &fixed);
@@ -539,6 +550,11 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   }
   fontSet = FcFontList(state->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
+  if (!fontSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return GLC_NONE;
+  }
 
   if (inAttrib != GLC_FACE_COUNT) {
     charMap = __glcGetMasterCharMap(fontSet);

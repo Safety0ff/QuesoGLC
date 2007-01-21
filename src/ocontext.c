@@ -410,11 +410,10 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
     FcPattern* pattern = NULL;
     FcCharSet* charSet = NULL;
     FcFontSet* fontSet = NULL;
-    FcResult result;
+    FcFontSet* fontSet2 = NULL;
+    FcObjectSet* objectSet = NULL;
+    FcResult result = FcResultMatch;
     int m = 0, f = 0;
-    FcChar8* family = NULL;
-    FcChar8* foundry = NULL;
-    int fixed = 0;
     FcChar32 hashValue = 0;
     FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(This->masterHashTable);
     FcChar8* style = NULL;
@@ -439,35 +438,22 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
       FcCharSetDestroy(charSet);
       return -1;
     }
-    pattern = FcPatternCreate();
+    pattern = FcPatternBuild(NULL, FC_CHARSET, FcTypeCharSet, charSet,
+			     FC_OUTLINE, FcTypeBool, FcTrue, NULL);
+    FcCharSetDestroy(charSet);
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcCharSetDestroy(charSet);
-      return -1;
-    }
-    if (!FcPatternAddCharSet(pattern, FC_CHARSET, charSet)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcCharSetDestroy(charSet);
-      FcPatternDestroy(pattern);
-      return -1;
-    }
-    if (!FcPatternAddBool(pattern, FC_OUTLINE, FcTrue)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcCharSetDestroy(charSet);
-      FcPatternDestroy(pattern);
       return -1;
     }
 
     if (!FcConfigSubstitute(This->config, pattern, FcMatchPattern)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcPatternDestroy(pattern);
-      FcCharSetDestroy(charSet);
       return -1;
     }
     FcDefaultSubstitute(pattern);
     fontSet = FcFontSort(This->config, pattern, FcFalse, NULL, &result);
     FcPatternDestroy(pattern);
-    FcCharSetDestroy(charSet);
     if ((!fontSet) || (result == FcResultTypeMismatch)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return -1;
@@ -490,46 +476,27 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
       return -1;
     }
 
-    result = FcPatternGetString(fontSet->fonts[f], FC_FAMILY, 0, &family);
-    assert(result != FcResultTypeMismatch);
-    result = FcPatternGetString(fontSet->fonts[f], FC_FOUNDRY, 0, &foundry);
-    assert(result != FcResultTypeMismatch);
-    result = FcPatternGetInteger(fontSet->fonts[f], FC_SPACING, 0, &fixed);
-    assert(result != FcResultTypeMismatch);
-
-    pattern = FcPatternCreate();
-    if (!pattern) {
+    /* Ugly hack to extract a subset of the pattern fontSet->fonts[f]
+     * (otherwise the hash value will not match any value of the hash table).
+     */
+    objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
+				 NULL);
+    if (!objectSet) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
       return -1;
     }
-    if (!FcPatternAddString(pattern, FC_FAMILY, family)) {
+    fontSet2 = FcFontList(This->config, fontSet->fonts[f], objectSet);
+    FcObjectSetDestroy(objectSet);
+    if (!fontSet2) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcPatternDestroy(pattern);
-      FcFontSetDestroy(fontSet);
-      return -1;
-    }
-    if (!FcPatternAddString(pattern, FC_FOUNDRY, foundry)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcPatternDestroy(pattern);
-      FcFontSetDestroy(fontSet);
-      return -1;
-    }
-    if (!FcPatternAddInteger(pattern, FC_SPACING, fixed)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcPatternDestroy(pattern);
-      FcFontSetDestroy(fontSet);
-      return -1;
-    }
-    if (!FcPatternAddBool(pattern, FC_OUTLINE, FcTrue)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcPatternDestroy(pattern);
       FcFontSetDestroy(fontSet);
       return -1;
     }
 
-    hashValue = FcPatternHash(pattern);
-    FcPatternDestroy(pattern);
+    hashValue = FcPatternHash(fontSet2->fonts[0]);
+    FcFontSetDestroy(fontSet2);
+
     for (m = 0; m < GLC_ARRAY_LENGTH(This->masterHashTable); m++) {
       if (hashValue == hashTable[m])
 	break;

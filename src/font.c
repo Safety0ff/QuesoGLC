@@ -1052,7 +1052,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
-  FcResult result;
+  FcResult result = FcResultMatch;
   int i = 0;
   GLint font = 0;
   FcChar32 hashValue = 0;
@@ -1106,6 +1106,10 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   fontSet = FcFontList(state->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
   FcPatternDestroy(pattern);
+  if (!fontSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0;
+  }
 
   for (i = 0; i < fontSet->nfont; i++) {
     FcBool outline = FcFalse;
@@ -1113,8 +1117,8 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
     assert(result != FcResultTypeMismatch);
-    if (!outline)
-      continue;
+    if (outline)
+      break;
   }
 
   if (i == fontSet->nfont) {
