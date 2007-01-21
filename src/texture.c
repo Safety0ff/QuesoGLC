@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -28,15 +28,6 @@
 #if defined __APPLE__ && defined __MACH__
 #include <OpenGL/glu.h>
 #else
-#include <GL/gl.h>
-#ifdef __WIN32__
-/* GL_TEXTURE_MAX_LEVEL is defined in OpenGL 1.2 which is not supposed to be
- * available under Windows.
- */
-#ifndef GL_TEXTURE_MAX_LEVEL
-#define GL_TEXTURE_MAX_LEVEL 0x813D
-#endif
-#endif
 #include <GL/glu.h>
 #endif
 
@@ -213,7 +204,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   GLfloat width = 0, heigth = 0;
   GLint level = 0;
   GLint posX = 0, posY = 0;
-  int minSize = (inState->glCapacities & GLC_TEXTURE_LOD) ? 2 : 1;
+  int minSize = (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod) ? 2 : 1;
   GLfloat texWidth = 0, texHeigth = 0;
   GLfloat texScaleX = 0, texScaleY = 0;
 
@@ -349,7 +340,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
 
   /* Finish to build the mipmap if necessary */
   if (inState->enableState.mipmap && inDisplayListIsBuilding) {
-    if (inState->glCapacities & GLC_TEXTURE_LOD)
+    if (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
     else {
       /* The OpenGL driver does not support the extension GL_EXT_texture_lod 

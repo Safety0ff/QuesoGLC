@@ -114,7 +114,7 @@ typedef struct {
   __glcArray* controlPoints;	/* Array of control points */
   __glcArray* endContour;	/* Array of contour limits */
 
-  GLint glCapacities;		/* Capacities of the GL driver */
+  GLEWContext glewContext;	/* GLEW context for OpenGL extensions */
   __glcTexture texture;		/* Texture for immediate mode rendering */
 
   __glcTexture atlas;

@@ -206,7 +206,6 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
-  This->glCapacities = 0;
   This->texture.id = 0;
   This->texture.width = 0;
   This->texture.heigth = 0;

@@ -28,19 +28,16 @@
 #endif
 #include <assert.h>
 
+#include "GL/glew.h"
 #include "GL/glc.h"
 #ifdef HAVE_CONFIG_H
 #include "qglc_config.h"
 #endif
 #include "ofont.h"
-#include "ocontext.h"
-#include "oarray.h"
 
 #define GLC_OUT_OF_RANGE_LEN	11
 #define GLC_EPSILON		1E-6
 #define GLC_POINT_SIZE		128
-
-#define GLC_TEXTURE_LOD		1
 
 typedef struct {
   GLint code;
@@ -195,4 +192,7 @@ void __glcCreateHashTable(__glcContextState *inState);
  * patterns.
  */
 void __glcUpdateHashTable(__glcContextState *inState);
+
+/* Function for GLEW so that it can get a context */
+GLEWContext* glewGetContext(void);
 #endif /* __glc_internal_h */

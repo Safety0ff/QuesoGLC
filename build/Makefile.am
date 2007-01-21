@@ -27,6 +27,7 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/texture.h \
                     $(top_builddir)/src/texture.c \
                     $(top_builddir)/src/unicode.c \
+                    $(top_builddir)/src/glew.c \
                     $(fribidi_SOURCES)
 
 
@@ -43,7 +44,8 @@ fribidi_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
 
 libGLC_la_CPPFLAGS = -I$(top_builddir)/src \
                    -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" \
-		   -D_REENTRANT \
+                   -D_REENTRANT \
+                   -DGLEW_MX \
                    @PTHREAD_CFLAGS@ \
                    @FONTCONFIG_CFLAGS@ \
                    @FREETYPE2_CFLAGS@ \

@@ -699,3 +699,18 @@ void __glcCreateHashTable(__glcContextState* inState)
   /* Update the hash table */
   __glcUpdateHashTable(inState);
 }
+
+
+
+/* Function for GLEW so that it can get a context */
+GLEWContext* glewGetContext(void)
+{
+  __glcContextState* state = __glcGetCurrent();
+
+  if (!state) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return NULL;
+  }
+
+  return &state->glewContext;
+}

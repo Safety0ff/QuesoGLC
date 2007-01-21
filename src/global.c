@@ -523,54 +523,9 @@ void APIENTRY glcContext(GLint inContext)
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
 
-  if (version) {
-    char* duplicate = strdup(version);
-    char* begin = duplicate;
-    char* sepPos = NULL;
-    int major = 0;
-    int minor = 0;
-
-    if (!duplicate) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
-
-    sepPos = __glcFindIndexList(begin, 1, ".");
-    *sepPos = 0;
-    major = atoi(begin);
-    begin = sepPos++;
-    sepPos = __glcFindIndexList(begin, 1, ".");
-    *sepPos = 0;
-    minor = atoi(begin);
-    free(duplicate);
-
-    if ((major > 1) || ((major == 1) && (minor >= 2)))
-      state->glCapacities |= GLC_TEXTURE_LOD;
-    else {
-      duplicate = strdup(extension);
-
-      if (!duplicate) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return;
-      }
-
-      begin = duplicate;
-      do {
-	sepPos = (char *)__glcFindIndexList(begin, 1, " ");
-
-        if (--sepPos != begin + strlen(begin))
-	  *(sepPos++) = 0;
-
-	if (strcmp(begin, "GL_SGIS_texture_lod") == 0)
-	  state->glCapacities |= GLC_TEXTURE_LOD;
-
-	if (strcmp(begin, "GL_EXT_texture_lod") == 0)
-	  state->glCapacities |= GLC_TEXTURE_LOD;
-
-	begin = sepPos;
-      } while (*sepPos);
-      free(duplicate);
-    }
+  if (version && (glewInit() != GLEW_OK)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
   }
 }
 
