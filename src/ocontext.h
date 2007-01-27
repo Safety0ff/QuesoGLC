@@ -74,6 +74,12 @@ typedef struct {
   GLboolean blend;
   GLint blendSrc;
   GLint blendDst;
+  GLboolean vertexArray;
+  GLboolean normalArray;
+  GLboolean colorArray;
+  GLboolean indexArray;
+  GLboolean texCoordArray;
+  GLboolean edgeFlagArray;
 } __glcGLState;
 
 typedef struct {
@@ -113,6 +119,8 @@ typedef struct {
   __glcArray* vertexArray;	/* Array of vertices */
   __glcArray* controlPoints;	/* Array of control points */
   __glcArray* endContour;	/* Array of contour limits */
+  __glcArray* vertexIndices;	/* Array of vertex indices */
+  __glcArray* geomBatches;	/* Array of geometric batches */
 
   GLEWContext glewContext;	/* GLEW context for OpenGL extensions */
   __glcTexture texture;		/* Texture for immediate mode rendering */

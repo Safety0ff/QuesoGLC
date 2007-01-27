@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -379,10 +379,17 @@ void APIENTRY glcRenderChar(GLint inCode)
     return;
   }
 
+  /* Save the value of the parameters */
+  __glcSaveGLState(&GLState);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_INDEX_ARRAY);
+  glDisableClientState(GL_NORMAL_ARRAY);
+  glDisableClientState(GL_EDGE_FLAG_ARRAY);
+
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (state->renderState.renderStyle == GLC_TEXTURE) {
-    /* Save the value of the parameters */
-    __glcSaveGLState(&GLState);
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -456,10 +463,17 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     return;
   }
 
+  /* Save the value of the parameters */
+  __glcSaveGLState(&GLState);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_INDEX_ARRAY);
+  glDisableClientState(GL_NORMAL_ARRAY);
+  glDisableClientState(GL_EDGE_FLAG_ARRAY);
+
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (state->renderState.renderStyle == GLC_TEXTURE) {
-    /* Save the value of the parameters */
-    __glcSaveGLState(&GLState);
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -520,10 +534,17 @@ void APIENTRY glcRenderString(const GLCchar *inString)
     return;
   }
 
+  /* Save the value of the parameters */
+  __glcSaveGLState(&GLState);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_INDEX_ARRAY);
+  glDisableClientState(GL_NORMAL_ARRAY);
+  glDisableClientState(GL_EDGE_FLAG_ARRAY);
+
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (state->renderState.renderStyle == GLC_TEXTURE) {
-    /* Save the value of the parameters */
-    __glcSaveGLState(&GLState);
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);

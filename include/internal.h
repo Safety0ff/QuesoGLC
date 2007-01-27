@@ -45,6 +45,13 @@ typedef struct {
   GLCchar* name;
 } __glcDataCodeFromName;
 
+typedef struct {
+  GLenum mode;
+  GLint length;
+  GLuint start;
+  GLuint end;
+} __glcGeomBatch;
+
 /* Callback function type that is called by __glcProcessChar().
  * It allows to unify the character processing before the rendering or the
  * measurement of a character : __glcProcessChar() is called first (see below)

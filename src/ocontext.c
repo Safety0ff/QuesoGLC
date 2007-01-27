@@ -206,6 +206,43 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
+  This->vertexIndices = __glcArrayCreate(sizeof(GLuint));
+  if (!This->vertexIndices) {
+    __glcArrayDestroy(This->controlPoints);
+    __glcArrayDestroy(This->vertexArray);
+    __glcArrayDestroy(This->measurementBuffer);
+    __glcArrayDestroy(This->masterHashTable);
+    __glcArrayDestroy(This->endContour);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(This->catalogList);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
+    FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
+    __glcFree(This);
+    return NULL;
+  }
+
+  This->geomBatches = __glcArrayCreate(sizeof(__glcGeomBatch));
+  if (!This->geomBatches) {
+    __glcArrayDestroy(This->controlPoints);
+    __glcArrayDestroy(This->vertexArray);
+    __glcArrayDestroy(This->measurementBuffer);
+    __glcArrayDestroy(This->masterHashTable);
+    __glcArrayDestroy(This->endContour);
+    __glcArrayDestroy(This->vertexIndices);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(This->catalogList);
+#ifdef FT_CACHE_H
+    FTC_Manager_Done(This->cache);
+#endif
+    FT_Done_Library(This->library);
+    FcConfigDestroy(This->config);
+    __glcFree(This);
+    return NULL;
+  }
+
   This->texture.id = 0;
   This->texture.width = 0;
   This->texture.heigth = 0;
@@ -307,6 +344,12 @@ void __glcCtxDestroy(__glcContextState *This)
 
   if (This->endContour)
     __glcArrayDestroy(This->endContour);
+
+  if (This->vertexIndices)
+    __glcArrayDestroy(This->vertexIndices);
+
+  if (This->geomBatches)
+    __glcArrayDestroy(This->geomBatches);
 
 #ifdef FT_CACHE_H
   FTC_Manager_Done(This->cache);

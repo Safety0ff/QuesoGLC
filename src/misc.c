@@ -443,6 +443,12 @@ void __glcSaveGLState(__glcGLState* inGLState)
   glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
   glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
+  inGLState->vertexArray = glIsEnabled(GL_VERTEX_ARRAY);
+  inGLState->normalArray = glIsEnabled(GL_NORMAL_ARRAY);
+  inGLState->colorArray = glIsEnabled(GL_COLOR_ARRAY);
+  inGLState->indexArray = glIsEnabled(GL_INDEX_ARRAY);
+  inGLState->texCoordArray = glIsEnabled(GL_TEXTURE_COORD_ARRAY);
+  inGLState->edgeFlagArray = glIsEnabled(GL_EDGE_FLAG_ARRAY);
 }
 
 
@@ -454,9 +460,21 @@ void __glcRestoreGLState(__glcGLState* inGLState)
   if (!inGLState->texture2D)
     glDisable(GL_TEXTURE_2D);
   if (!inGLState->blend)
-      glDisable(GL_BLEND);
+    glDisable(GL_BLEND);
   glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, inGLState->textureEnvMode);
   glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
+  if (!inGLState->vertexArray)
+    glDisableClientState(GL_VERTEX_ARRAY);
+  if (inGLState->normalArray)
+    glEnableClientState(GL_NORMAL_ARRAY);
+  if (inGLState->colorArray)
+    glEnableClientState(GL_COLOR_ARRAY);
+  if (inGLState->indexArray)
+    glEnableClientState(GL_INDEX_ARRAY);
+  if (inGLState->texCoordArray)
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  if (inGLState->edgeFlagArray)
+    glEnableClientState(GL_EDGE_FLAG_ARRAY);
 }
 
 
