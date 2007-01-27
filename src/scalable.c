@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -54,11 +54,16 @@ typedef struct {
   GLboolean displayListIsBuilding;	/* Is a display list planned to be
 					   built ? */
   GLboolean extrude;
-  GLenum mode;
-  __glcArray* vertexBuffer;
+  __glcArray* vertexIndices;
+  __glcArray* geomBatch;
 }__glcRendererData;
 
-
+typedef struct {
+  GLenum mode;
+  GLint length;
+  GLuint start;
+  GLuint end;
+} __glcGeomBatch;
 
 /* Transform the object coordinates in the array 'inCoord' in screen
  * coordinates. The function updates 'inCoord' according to :
@@ -516,8 +521,8 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3], void* vertex_data[
   /* Evil hack for 32/64 bits compatibility */
   union {
     void* ptr;
-    int i;
-  } intInPtr;
+    GLuint i;
+  } uintInPtr;
 
   /* Compute the new vertex and append it to the vertex array */
   vertex[0] = (GLfloat)coords[0];
@@ -528,8 +533,8 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3], void* vertex_data[
   }
 
   /* Returns the index of the new vertex in the vertex array */
-  intInPtr.i = GLC_ARRAY_LENGTH(data->vertexArray)-1;
-  *outData = intInPtr.ptr;
+  uintInPtr.i = GLC_ARRAY_LENGTH(data->vertexArray)-1;
+  *outData = uintInPtr.ptr;
 }
 
 
@@ -541,18 +546,23 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3], void* vertex_data[
 static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
+  __glcGeomBatch *geomBatch = ((__glcGeomBatch*)GLC_ARRAY_DATA(data->geomBatch));
   /* Evil hack for 32/64 bits compatibility */
   union {
     void* ptr;
-    int i;
-  } intInPtr;
+    GLuint i;
+  } uintInPtr;
 
-  intInPtr.ptr = vertex_data;
-  glVertex2fv(vertexArray[intInPtr.i]);
+  geomBatch += GLC_ARRAY_LENGTH(data->geomBatch) - 1;
 
-  if (data->extrude)
-    __glcArrayAppend(data->vertexBuffer, &intInPtr.i);
+  uintInPtr.ptr = vertex_data;
+  geomBatch->start = (uintInPtr.i < geomBatch->start) ? uintInPtr.i : geomBatch->start;
+  geomBatch->end = (uintInPtr.i > geomBatch->end) ? uintInPtr.i : geomBatch->end;
+  if (!__glcArrayAppend(data->vertexIndices, &uintInPtr.i)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+  geomBatch->length++;
 }
 
 
@@ -560,32 +570,17 @@ static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
 static void CALLBACK __glcBeginCallback(GLenum mode, void* inUserData)
 {
   __glcRendererData *data = (__glcRendererData*)inUserData;
+  __glcGeomBatch geomBatch;
 
-  data->mode = mode;
-  glBegin(mode);
-  glNormal3f(0.f, 0.f, 1.f);
-}
+  geomBatch.mode = mode;
+  geomBatch.length = 0;
+  geomBatch.start = 0xffffffff;
+  geomBatch.end = 0;
 
-
-
-static void CALLBACK __glcEndCallback(void* inUserData)
-{
-  __glcRendererData *data = (__glcRendererData*)inUserData;
-  GLfloat(*vertexArray)[2] = (GLfloat(*)[2])GLC_ARRAY_DATA(data->vertexArray);
-  int* vertexBuffer = (int*)GLC_ARRAY_DATA(data->vertexBuffer);
-  int i = 0;
-
-  glEnd();
-
-  glBegin(data->mode);
-  glNormal3f(0.f, 0.f, -1.f);
-
-  for (i = 0; i < GLC_ARRAY_LENGTH(data->vertexBuffer); i++)
-    glVertex3f(vertexArray[vertexBuffer[i]][0], vertexArray[vertexBuffer[i]][1], -1.f);
-
-  glEnd();
-
-  GLC_ARRAY_LENGTH(data->vertexBuffer) = 0;
+  if (!__glcArrayAppend(data->geomBatch, &geomBatch)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
 }
 
 
@@ -650,15 +645,17 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
   rendererData.displayListIsBuilding = inDisplayListIsBuilding;
   rendererData.extrude = inState->enableState.extrude;
-  if (inState->enableState.extrude) {
-    rendererData.vertexBuffer = __glcArrayCreate(sizeof(int));
-    if (!rendererData.vertexBuffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
-    }
+  rendererData.vertexIndices = __glcArrayCreate(sizeof(GLuint));
+  if (!rendererData.vertexIndices) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
   }
-  else
-    rendererData.vertexBuffer = NULL;
+  rendererData.geomBatch = __glcArrayCreate(sizeof(__glcGeomBatch));
+  if (!rendererData.geomBatch) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcArrayDestroy(rendererData.vertexIndices);
+    return;
+  }
 
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
@@ -715,8 +712,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
-    if (inState->enableState.extrude)
-      __glcArrayDestroy(rendererData.vertexBuffer);
+    __glcArrayDestroy(rendererData.vertexIndices);
+    __glcArrayDestroy(rendererData.geomBatch);
     return;
   }
 
@@ -725,8 +722,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
     GLC_ARRAY_LENGTH(inState->endContour) = 0;
-    if (inState->enableState.extrude)
-      __glcArrayDestroy(rendererData.vertexBuffer);
+    __glcArrayDestroy(rendererData.vertexIndices);
+    __glcArrayDestroy(rendererData.geomBatch);
     return;
   }
 
@@ -748,24 +745,33 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       __glcRaiseError(GLC_RESOURCE_ERROR);
       GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
       GLC_ARRAY_LENGTH(inState->endContour) = 0;
-      if (inState->enableState.extrude)
-	__glcArrayDestroy(rendererData.vertexBuffer);
+      __glcArrayDestroy(rendererData.vertexIndices);
+      __glcArrayDestroy(rendererData.geomBatch);
       return;
     }
 
     glNewList(inGlyph->displayList[index], GL_COMPILE_AND_EXECUTE);
   }
 
+  glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_INDEX_ARRAY);
+  glDisableClientState(GL_NORMAL_ARRAY);
+
   if (inRenderMode == GLC_TRIANGLE) {
     /* Tesselate the polygon defined by the contour returned by
      * FT_Outline_Decompose().
      */
     GLUtesselator *tess = gluNewTess();
-    int i = 0, j = 0;
-    int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
+    GLuint i = 0, j = 0;
+    GLuint* endContour = (GLuint*)GLC_ARRAY_DATA(rendererData.endContour);
     GLfloat (*vertexArray)[2] =
       (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
     GLdouble coords[3] = {0., 0., 0.};
+    GLuint *vertexIndices = NULL;
+    __glcGeomBatch *geomBatch = NULL;
 
     /* Initialize the GLU tesselator */
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
@@ -779,11 +785,6 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 		    (void (CALLBACK *) ())__glcCombineCallback);
     gluTessCallback(tess, GLU_TESS_BEGIN_DATA,
 		    (void (CALLBACK *) ())__glcBeginCallback);
-    if (inState->enableState.extrude)
-      gluTessCallback(tess, GLU_TESS_END_DATA,
-		      (void (CALLBACK *) ())__glcEndCallback);
-    else
-      gluTessCallback(tess, GLU_TESS_END, (void (CALLBACK *) ())glEnd);
 
     gluTessNormal(tess, 0., 0., 1.);
 
@@ -794,15 +795,15 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       /* Evil hack for 32/64 bits compatibility */
       union {
 	void* ptr;
-	int i;
-      } intInPtr;
+	GLuint i;
+      } uintInPtr;
 
       gluTessBeginContour(tess);
       for (j = endContour[i]; j < endContour[i+1]; j++) {
 	coords[0] = (GLdouble)vertexArray[j][0];
 	coords[1] = (GLdouble)vertexArray[j][1];
-	intInPtr.i = j;
-	gluTessVertex(tess, coords, intInPtr.ptr);
+	uintInPtr.i = j;
+	gluTessVertex(tess, coords, uintInPtr.ptr);
       }
       gluTessEndContour(tess);
     }
@@ -812,6 +813,26 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     /* Free memory */
     gluDeleteTess(tess);
+
+    glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
+
+    glNormal3f(0.f, 0.f, 1.f);
+    vertexIndices = (GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
+    geomBatch = (__glcGeomBatch*)GLC_ARRAY_DATA(rendererData.geomBatch);
+
+    for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatch); i++) {
+      glDrawElements(geomBatch[i].mode, geomBatch[i].length,
+			GL_UNSIGNED_INT, (void*)vertexIndices);
+      if (inState->enableState.extrude) {
+	glTranslatef(0.0f, 0.0f, -1.0f);
+	glNormal3f(0.f, 0.f, -1.f);
+	glDrawElements(geomBatch[i].mode, geomBatch[i].length,
+			GL_UNSIGNED_INT, (void*)vertexIndices);
+	glTranslatef(0.0f, 0.0f, 1.0f);
+	glNormal3f(0.f, 0.f, 1.f);
+      }
+      vertexIndices += geomBatch[i].length;
+    }
 
     /* For extruded glyphes : close the contours */
     if (inState->enableState.extrude) {
@@ -862,20 +883,14 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     int i = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
 
-    glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_INDEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
     glNormal3f(0., 0., 1.);
     glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
       glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);
-
-    glPopClientAttrib();
   }
+
+  glPopClientAttrib();
 
   /* Take into account the advance of the glyph */
   glTranslatef(face->glyph->advance.x * rendererData.scale_x,
@@ -886,6 +901,6 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
   GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inState->endContour) = 0;
-  if (inState->enableState.extrude)
-    __glcArrayDestroy(rendererData.vertexBuffer);
+  __glcArrayDestroy(rendererData.vertexIndices);
+  __glcArrayDestroy(rendererData.geomBatch);
 }

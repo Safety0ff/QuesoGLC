@@ -1,6 +1,7 @@
 Changes made from the "0.5" release to the "0.6" release:
 -----------------------------------------------------------
 
+- Vertex arrays are now used to render characters in GLC_TRIANGLE mode.
 - QuesoGLC now uses GLEW, the OpenGL Extension Wrangler, to manage OpenGL
   extensions.
 - Removed the master object, uses FontConfig API instead. This allows to not
