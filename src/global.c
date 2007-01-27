@@ -41,7 +41,7 @@
  *  When the ID of a GLC context is stored in the GLC context ID variable of a
  *  client thread, the context is said to be current to the thread. It is not
  *  possible for a GLC context to be current simultaneously to multiple
- *  threads.With the exception of the per-thread GLC error code and context ID
+ *  threads. With the exception of the per-thread GLC error code and context ID
  *  variables, all of the GLC state variables that are used during the
  *  execution of a GLC command are stored in the issuing thread's current GLC
  *  context. To make a context current, call glcContext().
@@ -412,6 +412,15 @@ void APIENTRY glcDeleteContext(GLint inContext)
  *  Call \e glcContext with \e inContext set to zero to release a thread's
  *  current context.
  *
+ *  When a GLCcontext is made current to a thread, GLC issues the commands
+ *  \code
+ *  glGetString(GL_VERSION);
+ *  glGetString(GL_EXTENSIONS);
+ *  \endcode
+ *  and stores the returned strings. If there is no GL context current to the
+ *  thread, the result of the above GL commands is undefined and so is the
+ *  result of glcContext().
+ *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inContext is not zero
  *  and is not the ID of one of the client's GLC contexts. \n
  *  The command raises \b GLC_STATE_ERROR if \e inContext is the ID of a GLC
@@ -520,13 +529,17 @@ void APIENTRY glcContext(GLint inContext)
 
   __glcUnlock();
 
+  /* If the current context was released then there is no need to check OpenGL
+   * extensions.
+   */
+  if (!currentState)
+    return;
+
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
 
-  if (version && (glewInit() != GLEW_OK)) {
+  if (version && extension && (glewInit() != GLEW_OK))
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
 }
 
 
