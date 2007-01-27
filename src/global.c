@@ -532,7 +532,7 @@ void APIENTRY glcContext(GLint inContext)
   /* If the current context was released then there is no need to check OpenGL
    * extensions.
    */
-  if (!currentState)
+  if (!inContext)
     return;
 
   version = (char *)glGetString(GL_VERSION);
