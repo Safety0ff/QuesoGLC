@@ -283,30 +283,17 @@ static int __glcdeCasteljau(FT_Vector *inVecTo, FT_Vector **inControl,
     GLfloat abx = controlPoint[inOrder][5] - ax;
     GLfloat aby = controlPoint[inOrder][6] - ay;
 
-    /* Normalize AB (the segment that joins the first and the last vertex of
-     * the curve).
-     */
-    GLfloat normab = sqrt(abx * abx + aby * aby);
-    abx /= normab;
-    aby /= normab;
-
     /* For each control point, compute its chordal distance that is its
      * distance from the segment AB
      */
     for (i = 1; i < inOrder; i++) {
-      GLfloat cpx = controlPoint[i][5] - ax;
-      GLfloat cpy = controlPoint[i][6] - ay;
-      GLfloat s = cpx * abx + cpy * aby;
-      GLfloat projx = s * abx - cpx;
-      GLfloat projy = s * aby - cpy;
+      GLfloat s = (controlPoint[i][5] - ax) * aby - (controlPoint[i][6] - ay) * abx;
+      GLfloat d = s * s;
 
-      /* Compute the chordal distance */
-      GLfloat distance = projx * projx + projy * projy;
-
-      dmax = distance > dmax ? distance : dmax;
+      dmax = d > dmax ? d : dmax;
     }
 
-    if (dmax < data->tolerance) {
+    if (dmax < data->tolerance * (abx * abx + aby *aby)) {
       arc++; /* Process the next arc */
       controlPoint = ((GLfloat(*)[7])GLC_ARRAY_DATA(data->controlPoints))
 	+ arc * inOrder;
