@@ -590,7 +590,7 @@ GLint APIENTRY glcGenContext(void)
    * to access to fonts catalogs/directories.
    */
   /*Check if the GLC_PATH environment variable is exported */
-  if (getenv("GLC_PATH")) {
+  if (getenv("GLC_CATALOG_LIST") || getenv("GLC_PATH")) {
     char *path = NULL;
     char *begin = NULL;
     char *sepPos = NULL;
@@ -630,7 +630,7 @@ GLint APIENTRY glcGenContext(void)
       do {
 	sepPos = (char *)__glcFindIndexList(begin, 1, separator);
 
-        if (--sepPos != begin + strlen(begin))
+        if (*sepPos)
 	  *(sepPos++) = 0;
 	if (!FcStrSetAdd(state->catalogList, (const FcChar8*)begin))
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
