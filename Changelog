@@ -20,6 +20,8 @@ Changes made from the "0.5" release to the "0.6" release:
   into account.
 - Prevented advance past end of string during conversion between logical order
   and visual order so that zero length strings are handled properly.
+- Removed NULL dereference after FcPatternGetString().
+- Fixed texture atlas coordinate calculation.
 
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
