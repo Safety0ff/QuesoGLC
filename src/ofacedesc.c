@@ -114,7 +114,11 @@ void __glcFaceDescDestroy(__glcFaceDescriptor* This, __glcContextState* inState)
     node = next;
   }
 
-#ifdef FT_CACHE_H
+#if defined(FT_CACHE_H) \
+  && (FREETYPE_MAJOR > 2 \
+     || (FREETYPE_MAJOR == 2 \
+         && (FREETYPE_MINOR > 1 \
+             || (FREETYPE_MINOR == 1 && FREETYPE_PATCH >= 8))))
   /* In order to make sure its ID is removed from the FreeType cache */
   FTC_Manager_RemoveFaceID(inState->cache, (FTC_FaceID)This);
 #endif
@@ -264,7 +268,13 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
   FT_Face face = NULL;
   FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
 #ifdef FT_CACHE_H
+# if FREETYPE_MAJOR == 2 \
+     && (FREETYPE_MINOR < 1 \
+         || (FREETYPE_MINOR == 1 && FREETYPE_PATCH < 8))
+  FTC_FontRec font;
+# else
   FTC_ScalerRec scaler;
+# endif
   FT_Size size = NULL;
 #endif
 
@@ -276,6 +286,22 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
 
   /* Open the face */
 #ifdef FT_CACHE_H
+# if FREETYPE_MAJOR == 2 \
+     && (FREETYPE_MINOR < 1 \
+         || (FREETYPE_MINOR == 1 && FREETYPE_PATCH < 8))
+  font.face_id = (FTC_FaceID)This;
+  font.pix_width = (FT_UShort) (inScaleX *
+      (inState->renderState.resolution < GLC_EPSILON ?
+       72. : inState->renderState.resolution) / 72.);
+  font.pix_height = (FT_UShort) (inScaleY *
+      (inState->renderState.resolution < GLC_EPSILON ?
+       72. : inState->renderState.resolution) / 72.);
+
+  if (FTC_Manager_Lookup_Size(inState->cache, &font, &face, &size)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+# else
   scaler.face_id = (FTC_FaceID)This;
   scaler.width = (FT_F26Dot6)(inScaleX * 64.);
   scaler.height = (FT_F26Dot6)(inScaleY * 64.);
@@ -289,6 +315,7 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
   }
 
   face = size->face;
+# endif /* FREETYPE_MAJOR */
 #else
   face = __glcFaceDescOpen(This, inState);
   if (!face) {

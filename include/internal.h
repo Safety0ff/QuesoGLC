@@ -175,6 +175,13 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
 /* Callback function used by the FreeType cache manager to open a given face */
 FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 		       FT_Pointer inData, FT_Face* outFace);
+
+/* Rename FTC_Manager_LookupFace for old freetype versions */
+# if FREETYPE_MAJOR == 2 \
+     && (FREETYPE_MINOR < 1 \
+         || (FREETYPE_MINOR == 1 && FREETYPE_PATCH < 8))
+#   define FTC_Manager_LookupFace FTC_Manager_Lookup_Face
+# endif
 #endif
 
 /* Save the GL State in a structure */
