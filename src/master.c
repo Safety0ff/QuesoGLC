@@ -440,11 +440,12 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   case GLC_FULL_NAME_SGI:
   case GLC_MASTER_FORMAT:
     s = __glcGetMasterInfoJustInTime(pattern, state, inAttrib);
-    if (!s) {
-      FcPatternDestroy(pattern);
-      return GLC_NONE;
-    }
     break;
+  }
+
+  if (!s) {
+    FcPatternDestroy(pattern);
+    return GLC_NONE;
   }
 
   /* Convert the string and store it in the context buffer */

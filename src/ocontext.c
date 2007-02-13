@@ -549,8 +549,8 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
     if (font) {
       result = FcPatternGetString(fontSet->fonts[f], FC_STYLE, 0, &style);
       assert(result != FcResultTypeMismatch);
-      FcFontSetDestroy(fontSet);
       glcFontFace(font, style);
+      FcFontSetDestroy(fontSet);
       /* Add the font to the GLC_CURRENT_FONT_LIST */
       glcAppendFont(font);
       return font;
