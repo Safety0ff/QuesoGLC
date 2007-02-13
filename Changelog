@@ -11,6 +11,16 @@ Changes made from the "0.5" release to the "0.6" release:
   reduces the memory footprint of quesoGLC. Furthermore, when GLC_AUTO_FONT is
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
+* Brandon Casey
+- Modified autoconf files so they build with version 2.57.
+- Made QuesoGLC compile with Freetype library older than 2.1.8.
+- Changed __glcFindIndexList() semantics to return address of separator
+  occurrence.
+- Fixed a test so that the GLC_CATALOG_LIST environment variable is now taken
+  into account.
+- Prevented advance past end of string during conversion between logical order
+  and visual order so that zero length strings are handled properly.
+
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
 
