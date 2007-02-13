@@ -49,7 +49,6 @@ void* __glcRealloc(void *ptr, size_t size)
 GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
 			    const GLCchar* inSeparator)
 {
-    GLuint i = 0;
     GLuint occurence = 0;
     char *s = (char *)inString;
     char *sep = (char *)inSeparator;
@@ -57,18 +56,15 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
     if (!inIndex)
 	return (GLCchar *)inString;
 
-    /* TODO use Unicode instead of ASCII */
-    for (i=0; i<=strlen(s); i++) {
-	if (s[i] == *sep)
-	    occurence++;
-	if (occurence == inIndex) {
-	    i++;
-	    break;
-	}
+    for (; *s != '\0'; s++) {
+        if (*s == *sep) {
+            occurence++;
+            if (occurence == inIndex)
+                break;
+        }
     }
 
-
-    return (GLCchar *)&s[i];
+    return (GLCchar *) s;
 }
 
 
