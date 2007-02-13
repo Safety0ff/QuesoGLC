@@ -251,8 +251,9 @@ void __glcRenderCharTexture(__glcFont* inFont,
     texHeigth = inState->atlas.heigth;
     texScaleX = (GLfloat)GLC_TEXTURE_SIZE;
     texScaleY = (GLfloat)GLC_TEXTURE_SIZE;
-    posY = (atlasNode->position / inState->atlasWidth) * GLC_TEXTURE_SIZE;
+    posY = (atlasNode->position / inState->atlasWidth);
     posX = (atlasNode->position - posY * inState->atlasWidth) * GLC_TEXTURE_SIZE;
+    posY *= GLC_TEXTURE_SIZE;
   }
   else {
     pixmap.width = __glcNextPowerOf2(((boundingBox.xMax - boundingBox.xMin) >> 6)
