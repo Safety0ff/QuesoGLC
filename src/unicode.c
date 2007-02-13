@@ -609,7 +609,7 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
     break;
   }
 
-  visualString = string + length + 1;
+  visualString = string + length;
   if (!fribidi_log2vis(string, length, &base, visualString, NULL, NULL, NULL)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -716,7 +716,7 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
     break;
   }
 
-  visualString = string + inCount + 1;
+  visualString = string + inCount;
   if (!fribidi_log2vis(string, inCount, &base, visualString, NULL, NULL, NULL)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
