@@ -198,6 +198,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   FT_Face face = NULL;
   FT_Outline outline;
   FT_BBox boundingBox;
+  FT_BBox mipmapBoundingBox;
   FT_Bitmap pixmap;
   FT_Matrix matrix;
   GLuint texture = 0;
@@ -236,11 +237,6 @@ void __glcRenderCharTexture(__glcFont* inFont,
   FT_Outline_Get_CBox(&outline, &boundingBox);
 
   /* Compute the size of the pixmap where the glyph will be rendered */
-  boundingBox.xMin = boundingBox.xMin & -64;	/* floor(xMin) */
-  boundingBox.yMin = boundingBox.yMin & -64;	/* floor(yMin) */
-  boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
-  boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
-
   if (inDisplayListIsBuilding) {
     __glcAtlasElement* atlasNode = (__glcAtlasElement*)inGlyph->textureObject;
 
@@ -256,10 +252,10 @@ void __glcRenderCharTexture(__glcFont* inFont,
     posY *= GLC_TEXTURE_SIZE;
   }
   else {
-    pixmap.width = __glcNextPowerOf2(((boundingBox.xMax - boundingBox.xMin) >> 6)
-				     + 1);
-    pixmap.rows = __glcNextPowerOf2(((boundingBox.yMax - boundingBox.yMin) >> 6)
-				    + 1);
+    pixmap.width = __glcNextPowerOf2(
+            (boundingBox.xMax - boundingBox.xMin + 63) >> 6); /* ceil() */
+    pixmap.rows = __glcNextPowerOf2(
+            (boundingBox.yMax - boundingBox.yMin + 63) >> 6); /* ceil() */
     if (!__glcTextureGetImmediate(inState, pixmap.width, pixmap.rows))
       return;
 
@@ -297,6 +293,10 @@ void __glcRenderCharTexture(__glcFont* inFont,
   matrix.xx = 32768; /* 0.5 in FT_Fixed type */
   matrix.yy = 32768;
 
+  /* Make a copy of the bounding box for use when creating mipmaps */
+  mipmapBoundingBox.xMin = boundingBox.xMin;
+  mipmapBoundingBox.yMin = boundingBox.yMin;
+
   /* Iterate on the powers of 2 in order to build the mipmap */
   while ((pixmap.width > minSize) && (pixmap.rows > minSize)) {
     /* fill the pixmap buffer with the background color */
@@ -305,8 +305,8 @@ void __glcRenderCharTexture(__glcFont* inFont,
     /* translate the outline to match (0,0) with the glyph's lower left
      * corner
      */
-    FT_Outline_Translate(&outline, -((boundingBox.xMin >> level) & -64),
-			 -((boundingBox.yMin >> level) & -64));
+    FT_Outline_Translate(&outline, -mipmapBoundingBox.xMin,
+			 -mipmapBoundingBox.yMin);
 
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
@@ -327,8 +327,8 @@ void __glcRenderCharTexture(__glcFont* inFont,
       break;
 
     /* restore the outline initial position */
-    FT_Outline_Translate(&outline, ((boundingBox.xMin >> level) & -64),
-			 ((boundingBox.yMin >> level) & -64));
+    FT_Outline_Translate(&outline, mipmapBoundingBox.xMin,
+			 mipmapBoundingBox.yMin);
 
     level++; /* Next level of mipmap */
     pixmap.width >>= 1;
@@ -337,6 +337,9 @@ void __glcRenderCharTexture(__glcFont* inFont,
 
     /* For the next level of mipmap, the character size must divided by 2. */
     FT_Outline_Transform(&outline, &matrix);
+
+    /* Get the bounding box of the transformed glyph */
+    FT_Outline_Get_CBox(&outline, &mipmapBoundingBox);
   }
 
   /* Finish to build the mipmap if necessary */

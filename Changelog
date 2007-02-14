@@ -22,6 +22,8 @@ Changes made from the "0.5" release to the "0.6" release:
   and visual order so that zero length strings are handled properly.
 - Removed NULL dereference after FcPatternGetString().
 - Fixed texture atlas coordinate calculation.
+- Improved texture rendering by optimizing the bounding box coordinates
+  calculation.
 
 Changes made from the "0.4" release to the "0.5" release:
 -----------------------------------------------------------
