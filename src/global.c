@@ -361,6 +361,16 @@ GLint APIENTRY glcGetCurrentContext(void)
  *  deleted during the execution of the next glcContext() command that causes
  *  it not to be current to any client thread.
  *
+ *  \note glcDeleteContext() does not destroy the GL objects associated with
+ *  the context \e inContext. Indeed for performance reasons, GLC does not keep
+ *  track of the GL context that contains the GL objects associated with the
+ *  the GLC context that is destroyed. Even if GLC would keep track of the GL
+ *  context, it could lead GLC to temporarily change the GL context, delete the
+ *  GL objects, then restore the correct GL context. In order not to adversely
+ *  impact the performance of most of programs, it is the responsability of the
+ *  user to call glcDeleteGLObjects() on a GLC context that is intended to be
+ *  destroyed.
+ *
  *  The command raises \b GLC_PARAMETER_ERROR if \e inContext is not the ID of
  *  one of the client's GLC contexts.
  *  \param inContext The ID of the context to be deleted

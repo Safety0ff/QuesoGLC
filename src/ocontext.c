@@ -277,27 +277,14 @@ static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
 
 
 
-/* This function is called from FT_List_Finalize() to destroy all
- * atlas elements and update the glyphs accordingly
- */
-static void __glcAtlasDestructor(FT_Memory inMemory, void* inData, void* inUser)
-{
-  __glcAtlasElement* element = (__glcAtlasElement*)inData;
-  __glcGlyph* glyph = NULL;
-
-  assert(element);
-
-  glyph = element->glyph;
-  if (glyph)
-    __glcGlyphDestroyTexture(glyph);
-}
-
-
-
-/* Destructor of the object : it first destroys all the objects (whether they
- * are internal GLC objects or GL textures or GL display lists) that have been
- * created during the life of the context. Then it releases the memory occupied
- * by the GLC state struct.
+/* Destructor of the object : it first destroys all the GLC objects that have
+ * been created during the life of the context. Then it releases the memory
+ * occupied by the GLC state struct.
+ * It does not destroy GL objects associated with the GLC context since we can
+ * not be sure that the current GL context is the GL context that contains the
+ * GL objects designated by the GLC context that we are destroying. This could
+ * happen if the user calls glcDeleteContext() after the GL context has been
+ * destroyed of after the user has changed the current GL context.
  */
 void __glcCtxDestroy(__glcContextState *This)
 {
@@ -317,13 +304,7 @@ void __glcCtxDestroy(__glcContextState *This)
   if (This->masterHashTable)
     __glcArrayDestroy(This->masterHashTable);
 
-  if (This->texture.id)
-    glDeleteTextures(1, &This->texture.id);
-
-  if (This->atlas.id)
-    glDeleteTextures(1, &This->atlas.id);
-
-  FT_List_Finalize(&This->atlasList, __glcAtlasDestructor,
+  FT_List_Finalize(&This->atlasList, NULL,
 		   &__glcCommonArea.memoryManager, NULL);
 
   if (This->bufferSize)

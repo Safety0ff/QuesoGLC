@@ -1,6 +1,11 @@
 Changes made from the "0.5" release to the "0.6" release:
 -----------------------------------------------------------
 
+- glcDeleteContext() does not destroy GL objects anymore. This is done because
+  we can not be sure that the GL context that is current (if any) is the one
+  that contains the GL objects associated to the GLC context that we are
+  destroying. Documentation is updated accordingly. (Issue pointed out by
+  Brandon Casey).
 - Removed some calls to __glcGetCurrent() that could cause operations to be
   performed on the wrong context or to fail when they should succeed (issue
   pointed out by Brandon Casey).
