@@ -729,7 +729,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
      * FT_Outline_Decompose().
      */
     GLUtesselator *tess = gluNewTess();
-    GLuint i = 0, j = 0;
+    GLuint j = 0;
+    int i = 0;
     GLuint* endContour = (GLuint*)GLC_ARRAY_DATA(rendererData.endContour);
     GLfloat (*vertexArray)[2] =
       (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
