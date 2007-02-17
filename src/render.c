@@ -132,10 +132,10 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
   boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-  pixmap.width = (boundingBox.xMax - boundingBox.xMin) >> 6;
-  pixmap.rows = (boundingBox.yMax - boundingBox.yMin) >> 6;
-  pixmap.pitch = ((pixmap.width + 4) >> 3) + 1;	/* 1 bit / pixel */
+  /* Calculate pitch to upper 8 byte boundary for 1 bit / pixel, i.e. ceil() */
+  pixmap.pitch = (boundingBox.xMax - boundingBox.xMin + 511) >> 9;
   pixmap.width = pixmap.pitch << 3;
+  pixmap.rows = (boundingBox.yMax - boundingBox.yMin) >> 6;
 
   /* Fill the pixmap descriptor and the pixmap buffer */
   pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
