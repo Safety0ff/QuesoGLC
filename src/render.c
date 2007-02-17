@@ -152,8 +152,8 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   pixmap.pitch = - pixmap.pitch;
 
   /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -(boundingBox.xMin & -64),
-		       -(boundingBox.yMin & -64));
+  FT_Outline_Translate(&outline, -boundingBox.xMin,
+		       -boundingBox.yMin);
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
@@ -214,7 +214,17 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
 
     if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
 			    scale_y))
-      glTranslatef(-kerning[0] / scale_x, -kerning[1] / scale_y, 0.);
+    {
+        if (inState->renderState.renderStyle == GLC_BITMAP)
+            glBitmap(0, 0, 0, 0,
+                     kerning[0] * inState->bitmapMatrix[0] / scale_x
+                     + kerning[1] * inState->bitmapMatrix[2] / scale_y,
+                     kerning[0] * inState->bitmapMatrix[1] / scale_x
+                     + kerning[1] * inState->bitmapMatrix[3] / scale_y,
+                     NULL);
+        else
+            glTranslatef(kerning[0] / scale_x, kerning[1] / scale_y, 0.);
+    }
   }
 
   /* Get and load the glyph which unicode code is identified by inCode */

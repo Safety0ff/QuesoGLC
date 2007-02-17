@@ -20,6 +20,7 @@ Changes made from the "0.5" release to the "0.6" release:
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
 * Brandon Casey
+- Fixed kerning measurement and rendering calculations
 - Modified autoconf files so they build with version 2.57.
 - Made QuesoGLC compile with Freetype library older than 2.1.8.
 - Changed __glcFindIndexList() semantics to return address of separator

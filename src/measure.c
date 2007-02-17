@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -192,17 +192,17 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   outVec[2] += temp[0] / GLC_POINT_SIZE;
   outVec[3] += temp[1] / GLC_POINT_SIZE;
 
+  outVec[12] = 0.;
+  outVec[13] = 0.;
   if (inPrevCode && inState->enableState.kerning) {
     GLfloat kerning[2];
 
     if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
 			    scale_y))
+    {
       outVec[12] = kerning[0] / GLC_POINT_SIZE;
       outVec[13] = kerning[1] / GLC_POINT_SIZE;
-  }
-  else {
-    outVec[12] = 0.;
-    outVec[13] = 0.;
+    }
   }
 
   /* Transforms the values into the screen coordinate system if necessary */
@@ -599,8 +599,8 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
     }
     else {
       /* Takes the kerning into account */
-      outVec[2] -= metrics[12];
-      outVec[3] -= metrics[13];
+      outVec[2] += metrics[12];
+      outVec[3] += metrics[13];
       outVec[0] = outVec[2];
       outVec[1] = outVec[3];
     }
