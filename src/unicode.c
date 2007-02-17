@@ -140,8 +140,8 @@ static int __glcUtf8ToUcs1(const FcChar8* src_orig,
 #else
       snprintf((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
 #endif
-      /* Excluding the terminating '\0' character */
-      *dstlen = strlen((const char*)dst) - 1;
+
+      *dstlen = strlen((const char*)dst);
     }
   }
   return src_shift;
@@ -180,7 +180,7 @@ static int __glcUtf8ToUcs2(const FcChar8* src_orig,
 #else
       snprintf(buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
 #endif
-      for (count = 0, src = buffer; src && count < GLC_OUT_OF_RANGE_LEN;
+      for (count = 0, src = buffer; *src && count < GLC_OUT_OF_RANGE_LEN;
 	   count++, *dst++ = *src++);
       *dst = 0; /* Terminating '\0' character */
       *dstlen = count;
