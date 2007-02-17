@@ -20,6 +20,16 @@ Changes made from the "0.5" release to the "0.6" release:
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
 * Brandon Casey
+- Fixed parameter type of __glcTextureGetImmediate() (GLsizei instead of
+  GLuint).
+- Replaced floating point multiplication by bits shifting.
+- Enabled FT_OUTLINE_HIGH_PRECISION when building mipmaps.
+- Avoided signed/unsigned comparison.
+- Arranged extension strings in GLC_EXTENSIONS alphabetically (as per Section
+  2.5 of GLC Specification Version 0.2 - 27 Oct 1996).
+- Fixed Unicode functions (strlen() does not take into account the trailing
+  '\0' character and a pointer was not dereferenced).
+- Merged pitch and width rounding calculations.
 - Fixed kerning measurement and rendering calculations
 - Modified autoconf files so they build with version 2.57.
 - Made QuesoGLC compile with Freetype library older than 2.1.8.
