@@ -52,7 +52,8 @@ __glcGlyph* __glcFaceDescGetGlyph(__glcFaceDescriptor* This, GLint inCode,
 FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
 			       __glcContextState* inState, GLfloat inScaleX,
 			       GLfloat inScaleY, FT_ULong inGlyphIndex);
-void __glcFaceDescDestroyGLObjects(__glcFaceDescriptor* This);
+void __glcFaceDescDestroyGLObjects(__glcFaceDescriptor* This,
+				   __glcContextState* inState);
 __glcCharMap* __glcFaceDescGetCharMap(__glcFaceDescriptor* This,
 				      __glcContextState* inState);
 GLfloat* __glcFaceDescGetBoundingBox(__glcFaceDescriptor* This,

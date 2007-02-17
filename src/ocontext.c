@@ -267,11 +267,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
 static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
 {
   __glcFont *font = (__glcFont*)inData;
-  /* This is wrong to get the context state there : it may be the source of
-   * possible thread bugs (if the context is changed during execution of the
-   * function). 
-   */
-  __glcContextState* state = __glcGetCurrent();
+  __glcContextState* state = (__glcContextState*)inUser;
 
   assert(state);
 
@@ -316,7 +312,7 @@ void __glcCtxDestroy(__glcContextState *This)
 
   /* Destroy GLC_FONT_LIST */
   FT_List_Finalize(&This->fontList, __glcFontDestructor,
-                   &__glcCommonArea.memoryManager, NULL);
+                   &__glcCommonArea.memoryManager, This);
 
   if (This->masterHashTable)
     __glcArrayDestroy(This->masterHashTable);

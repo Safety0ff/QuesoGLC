@@ -1,6 +1,9 @@
 Changes made from the "0.5" release to the "0.6" release:
 -----------------------------------------------------------
 
+- Removed some calls to __glcGetCurrent() that could cause operations to be
+  performed on the wrong context or to fail when they should succeed (issue
+  pointed out by Brandon Casey).
 - Removed glPush/PopClientAttrib() and use glIsEnabled() instead since that is
   much faster.
 - Vertex arrays are now used to render characters in GLC_TRIANGLE mode.

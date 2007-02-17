@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -35,9 +35,9 @@ typedef struct {
 } __glcGlyph;
 
 __glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
-void __glcGlyphDestroy(__glcGlyph* This);
+void __glcGlyphDestroy(__glcGlyph* This, __glcContextState* inState);
 void __glcGlyphDestroyTexture(__glcGlyph* This);
-void __glcGlyphDestroyGLObjects(__glcGlyph* This);
+void __glcGlyphDestroyGLObjects(__glcGlyph* This, __glcContextState* inState);
 int __glcGlyphGetDisplayListCount(__glcGlyph* This);
 GLuint __glcGlyphGetDisplayList(__glcGlyph* This, int inCount);
 #endif

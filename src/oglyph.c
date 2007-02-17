@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -63,9 +63,9 @@ __glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
 
 
 /* Destructor of the object */
-void __glcGlyphDestroy(__glcGlyph* This)
+void __glcGlyphDestroy(__glcGlyph* This, __glcContextState* inState)
 {
-  __glcGlyphDestroyGLObjects(This);
+  __glcGlyphDestroyGLObjects(This, inState);
   __glcFree(This);
 }
 
@@ -84,10 +84,10 @@ void __glcGlyphDestroyTexture(__glcGlyph* This)
 /* This function destroys the display lists and the texture objects that
  * are associated with a glyph.
  */
-void __glcGlyphDestroyGLObjects(__glcGlyph* This)
+void __glcGlyphDestroyGLObjects(__glcGlyph* This, __glcContextState* inState)
 {
   if (This->displayList[0]) {
-    __glcDeleteAtlasElement((__glcAtlasElement*)This->textureObject, __glcGetCurrent());
+    __glcDeleteAtlasElement((__glcAtlasElement*)This->textureObject, inState);
     __glcGlyphDestroyTexture(This);
   }
 

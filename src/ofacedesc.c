@@ -110,7 +110,7 @@ void __glcFaceDescDestroy(__glcFaceDescriptor* This, __glcContextState* inState)
   node = This->glyphList.head;
   while (node) {
     next = node->next;
-    __glcGlyphDestroy((__glcGlyph*)node);
+    __glcGlyphDestroy((__glcGlyph*)node, inState);
     node = next;
   }
 
@@ -349,14 +349,15 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
 
 
 /* Destroy the GL objects of every glyph of the face */
-void __glcFaceDescDestroyGLObjects(__glcFaceDescriptor* This)
+void __glcFaceDescDestroyGLObjects(__glcFaceDescriptor* This,
+				   __glcContextState* inState)
 {
   FT_ListNode node = NULL;
 
   for (node = This->glyphList.head; node; node = node->next) {
     __glcGlyph* glyph = (__glcGlyph*)node;
 
-    __glcGlyphDestroyGLObjects(glyph);
+    __glcGlyphDestroyGLObjects(glyph, inState);
   }
 }
 

@@ -162,7 +162,7 @@ void APIENTRY glcDeleteGLObjects(void)
    * parse the __glcFaceDescriptor stored in each __glcFont.
    */
   for(node = state->fontList.head; node; node = node->next)
-    __glcFaceDescDestroyGLObjects(((__glcFont*)(node->data))->faceDesc);
+    __glcFaceDescDestroyGLObjects(((__glcFont*)(node->data))->faceDesc, state);
 
   /* Delete the texture used for immediate mode */
   if (state->texture.id) {
