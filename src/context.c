@@ -688,9 +688,9 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
-  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
-    " GLC_QSO_hinting GLC_QSO_extrude GLC_QSO_kerning GLC_QSO_matrix_stack"
-    " GLC_QSO_attrib_stack";
+  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_attrib_stack"
+    " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
+    " GLC_QSO_utf8 GLC_SGI_full_name";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 
