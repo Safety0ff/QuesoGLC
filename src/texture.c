@@ -52,7 +52,8 @@ static int __glcNextPowerOf2(int value)
 
 
 
-void __glcDeleteAtlasElement(__glcAtlasElement* This, __glcContextState* inState)
+void __glcDeleteAtlasElement(__glcAtlasElement* This,
+			     __glcContextState* inState)
 {
   FT_List_Remove(&inState->atlasList, (FT_ListNode)This);
   inState->atlasCount--;
@@ -61,7 +62,8 @@ void __glcDeleteAtlasElement(__glcAtlasElement* This, __glcContextState* inState
 
 
 
-static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState, __glcGlyph* inGlyph)
+static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState,
+					      __glcGlyph* inGlyph)
 {
   __glcAtlasElement* atlasNode = NULL;
 
@@ -143,12 +145,14 @@ static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState, __glcG
 
 
 
-static GLboolean __glcTextureGetImmediate(__glcContextState* inState, GLuint inWidth, GLuint inHeight)
+static GLboolean __glcTextureGetImmediate(__glcContextState* inState,
+					  GLsizei inWidth, GLsizei inHeight)
 {
   GLint format = 0;
 
   if (inState->texture.id) {
-    if ((inWidth > inState->texture.width) || (inHeight > inState->texture.heigth)) {
+    if ((inWidth > inState->texture.width)
+	|| (inHeight > inState->texture.heigth)) {
       glDeleteTextures(1, &inState->texture.id);
       inState->texture.id = 0;
       inState->texture.width = 0;
@@ -213,7 +217,8 @@ void __glcRenderCharTexture(__glcFont* inFont,
   face = inFont->faceDesc->face;
   assert(face);
 #else
-  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)inFont->faceDesc, &face)) {
+  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)inFont->faceDesc,
+			     &face)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
@@ -225,10 +230,10 @@ void __glcRenderCharTexture(__glcFont* inFont,
     if (!__glcTextureAtlasGetPosition(inState, inGlyph))
       return;
 
-    matrix.xx = (FT_Fixed)(GLC_TEXTURE_SIZE * 65536. / scale_x);
+    matrix.xx = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / scale_x);
     matrix.xy = 0;
     matrix.yx = 0;
-    matrix.yy = (FT_Fixed)(GLC_TEXTURE_SIZE * 65536. / scale_y);
+    matrix.yy = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / scale_y);
 
     FT_Outline_Transform(&outline, &matrix);
   }
@@ -248,8 +253,10 @@ void __glcRenderCharTexture(__glcFont* inFont,
     texScaleX = (GLfloat)GLC_TEXTURE_SIZE;
     texScaleY = (GLfloat)GLC_TEXTURE_SIZE;
     posY = (atlasNode->position / inState->atlasWidth);
-    posX = (atlasNode->position - posY * inState->atlasWidth) * GLC_TEXTURE_SIZE;
+    posX = (atlasNode->position - posY*inState->atlasWidth) * GLC_TEXTURE_SIZE;
     posY *= GLC_TEXTURE_SIZE;
+
+    outline.flags |= FT_OUTLINE_HIGH_PRECISION;
   }
   else {
     pixmap.width = __glcNextPowerOf2(
