@@ -106,14 +106,14 @@
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
 static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
-				  __glcContextState* inState, GLfloat scale_x,
+				  __GLCcontext* inContext, GLfloat scale_x,
 				  GLfloat scale_y)
 {
   FT_Matrix matrix;
   FT_Outline outline;
   FT_BBox boundingBox;
   FT_Bitmap pixmap;
-  GLfloat *transform = inState->bitmapMatrix;
+  GLfloat *transform = inContext->bitmapMatrix;
 
   /* compute glyph dimensions */
   matrix.xx = (FT_Fixed)(transform[0] * 65536. / scale_x);
@@ -156,7 +156,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 		       -boundingBox.yMin);
 
   /* render the glyph */
-  if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
+  if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
     __glcFree(pixmap.buffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -189,38 +189,39 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
  * 'inCode' must be given in UCS-4 format
  */
 static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
-			    __glcContextState* inState, void* inData,
+			    __GLCcontext* inContext, void* inData,
 			    GLboolean inMultipleChars)
 {
+  GLC_DISCARD_ARG(inData);
+  GLC_DISCARD_ARG(inMultipleChars);
   GLfloat transformMatrix[16];
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
-  __glcGlyph* glyph = NULL;
+  __GLCglyph* glyph = NULL;
   GLboolean displayListIsBuilding = GL_FALSE;
-  __glcFont* font = __glcVerifyFontParameters(inFont);
+  __GLCfont* font = __glcVerifyFontParameters(inFont);
   FT_Face face = NULL;
 
   if (!font)
     return NULL;
 
-  displayListIsBuilding = __glcGetScale(inState, transformMatrix, &scale_x,
+  displayListIsBuilding = __glcGetScale(inContext, transformMatrix, &scale_x,
   					&scale_y);
 
   if ((scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
 
-  if (inPrevCode && inState->enableState.kerning) {
+  if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
 
-    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
-			    scale_y))
-    {
-        if (inState->renderState.renderStyle == GLC_BITMAP)
+    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inContext,
+			    scale_x, scale_y)) {
+        if (inContext->renderState.renderStyle == GLC_BITMAP)
             glBitmap(0, 0, 0, 0,
-                     kerning[0] * inState->bitmapMatrix[0] / scale_x
-                     + kerning[1] * inState->bitmapMatrix[2] / scale_y,
-                     kerning[0] * inState->bitmapMatrix[1] / scale_x
-                     + kerning[1] * inState->bitmapMatrix[3] / scale_y,
+                     kerning[0] * inContext->bitmapMatrix[0] / scale_x
+                     + kerning[1] * inContext->bitmapMatrix[2] / scale_y,
+                     kerning[0] * inContext->bitmapMatrix[1] / scale_x
+                     + kerning[1] * inContext->bitmapMatrix[3] / scale_y,
                      NULL);
         else
             glTranslatef(kerning[0] / scale_x, kerning[1] / scale_y, 0.);
@@ -228,17 +229,21 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   }
 
   /* Get and load the glyph which unicode code is identified by inCode */
-  glyph = __glcFontGetGlyph(font, inCode, inState);
+  glyph = __glcFontGetGlyph(font, inCode, inContext);
 
   /* Renders the display lists if they exist and if GLC_GL_OBJECTS is enabled
    * then return.
    */
-  if (inState->enableState.glObjects) {
-    switch(inState->renderState.renderStyle) {
+  if (inContext->enableState.glObjects) {
+    switch(inContext->renderState.renderStyle) {
     case GLC_TEXTURE:
       if (glyph->displayList[0]) {
 	glCallList(glyph->displayList[0]);
-	FT_List_Up(&inState->atlasList, (FT_ListNode)glyph->textureObject);
+	/* The glyph is put at the head of the atlas list, so that we keep track
+	 * of glyphes that are used often in order not to remove those ones from
+	 * the atlas when it is full.
+	 */
+	FT_List_Up(&inContext->atlasList, (FT_ListNode)glyph->textureObject);
 	return NULL;
       }
       break;
@@ -249,11 +254,11 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
       }
       break;
     case GLC_TRIANGLE:
-      if ((!inState->enableState.extrude) && glyph->displayList[2]) {
+      if ((!inContext->enableState.extrude) && glyph->displayList[2]) {
 	glCallList(glyph->displayList[2]);
 	return NULL;
       }
-      if (inState->enableState.extrude && glyph->displayList[3]) {
+      if (inContext->enableState.extrude && glyph->displayList[3]) {
 	glCallList(glyph->displayList[3]);
 	return NULL;
       }
@@ -264,16 +269,17 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
 #ifndef FT_CACHE_H
   face = font->faceDesc->face;
 #else
-  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)font->faceDesc, &face)) {
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)font->faceDesc,
+			     &face)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 #endif
 
-  __glcFaceDescLoadFreeTypeGlyph(font->faceDesc, inState, scale_x, scale_y,
+  __glcFaceDescLoadFreeTypeGlyph(font->faceDesc, inContext, scale_x, scale_y,
                         glyph->index);
 
-  if ((inState->renderState.renderStyle != GLC_BITMAP)
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
       && (!displayListIsBuilding)) {
     FT_Outline outline;
     FT_Vector* vector = NULL;
@@ -336,22 +342,22 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
    * checks if a display list that draws the desired glyph has already been
    * defined
    */
-  switch(inState->renderState.renderStyle) {
+  switch(inContext->renderState.renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(face->glyph, inState, scale_x,
+    __glcRenderCharBitmap(face->glyph, inContext, scale_x,
 			  scale_y);
     break;
   case GLC_TEXTURE:
-      __glcRenderCharTexture(font, inState, displayListIsBuilding,
+      __glcRenderCharTexture(font, inContext, displayListIsBuilding,
 			     scale_x, scale_y, glyph);
     break;
   case GLC_LINE:
-      __glcRenderCharScalable(font, inState, GLC_LINE,
+      __glcRenderCharScalable(font, inContext, GLC_LINE,
 			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
   case GLC_TRIANGLE:
-      __glcRenderCharScalable(font, inState, GLC_TRIANGLE,
+      __glcRenderCharScalable(font, inContext, GLC_TRIANGLE,
 			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
@@ -378,13 +384,13 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
  */
 void APIENTRY glcRenderChar(GLint inCode)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   GLint code = 0;
-  __glcGLState GLState;
+  __GLCglState GLState;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
@@ -399,27 +405,27 @@ void APIENTRY glcRenderChar(GLint inCode)
   glDisableClientState(GL_EDGE_FLAG_ARRAY);
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (state->renderState.renderStyle == GLC_TEXTURE) {
+  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (state->enableState.glObjects && state->atlas.id)
-      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-    else if (!state->enableState.glObjects && state->texture.id)
-      glBindTexture(GL_TEXTURE_2D, state->texture.id);
+    if (ctx->enableState.glObjects && ctx->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
+    else if (!ctx->enableState.glObjects && ctx->texture.id)
+      glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
   }
 
   /* Get the character code converted to the UCS-4 format */
-  code = __glcConvertGLintToUcs4(state, inCode);
+  code = __glcConvertGLintToUcs4(ctx, inCode);
   if (code < 0)
     return;
 
-  __glcProcessChar(state, code, 0, __glcRenderChar, NULL);
+  __glcProcessChar(ctx, code, 0, __glcRenderChar, NULL);
 
   /* Restore the values of the texture parameters if needed */
-  if (state->renderState.renderStyle == GLC_TEXTURE)
+  if (ctx->renderState.renderStyle == GLC_TEXTURE)
     __glcRestoreGLState(&GLState);
 }
 
@@ -441,10 +447,10 @@ void APIENTRY glcRenderChar(GLint inCode)
 void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
   GLint i = 0;
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FcChar32* UinString = NULL;
   FcChar32* ptr = NULL;
-  __glcGLState GLState;
+  __GLCglState GLState;
   GLint prevCode = 0;
 
   /* Check if inCount is positive */
@@ -454,8 +460,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   }
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
@@ -467,7 +473,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertCountedStringToVisualUcs4(state, inString, inCount);
+  UinString = __glcConvertCountedStringToVisualUcs4(ctx, inString, inCount);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -483,27 +489,27 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   glDisableClientState(GL_EDGE_FLAG_ARRAY);
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (state->renderState.renderStyle == GLC_TEXTURE) {
+  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (state->enableState.glObjects && state->atlas.id)
-      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-    else if (!state->enableState.glObjects && state->texture.id)
-      glBindTexture(GL_TEXTURE_2D, state->texture.id);
+    if (ctx->enableState.glObjects && ctx->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
+    else if (!ctx->enableState.glObjects && ctx->texture.id)
+      glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
   }
 
   /* Render the string */
   ptr = UinString;
   for (i = 0; i < inCount; i++) {
-    __glcProcessChar(state, *ptr, prevCode, __glcRenderChar, NULL);
+    __glcProcessChar(ctx, *ptr, prevCode, __glcRenderChar, NULL);
     prevCode = *(ptr++);
   }
 
   /* Restore the values of the texture parameters if needed */
-  if (state->renderState.renderStyle == GLC_TEXTURE)
+  if (ctx->renderState.renderStyle == GLC_TEXTURE)
     __glcRestoreGLState(&GLState);
 }
 
@@ -518,15 +524,15 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
  */
 void APIENTRY glcRenderString(const GLCchar *inString)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FcChar32* UinString = NULL;
   FcChar32* ptr = NULL;
-  __glcGLState GLState;
+  __GLCglState GLState;
   GLint prevCode = 0;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
@@ -538,7 +544,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertToVisualUcs4(state, inString);
+  UinString = __glcConvertToVisualUcs4(ctx, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -554,27 +560,27 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   glDisableClientState(GL_EDGE_FLAG_ARRAY);
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (state->renderState.renderStyle == GLC_TEXTURE) {
+  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
     /* Set the new values of the parameters */
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (state->enableState.glObjects && state->atlas.id)
-      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-    else if (!state->enableState.glObjects && state->texture.id)
-      glBindTexture(GL_TEXTURE_2D, state->texture.id);
+    if (ctx->enableState.glObjects && ctx->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
+    else if (!ctx->enableState.glObjects && ctx->texture.id)
+      glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
   }
 
   /* Render the string */
   ptr = UinString;
   while (*ptr) {
-    __glcProcessChar(state, *ptr, prevCode, __glcRenderChar, NULL);
+    __glcProcessChar(ctx, *ptr, prevCode, __glcRenderChar, NULL);
     prevCode = *(ptr++);
   }
 
   /* Restore the values of the texture parameters if needed */
-  if (state->renderState.renderStyle == GLC_TEXTURE)
+  if (ctx->renderState.renderStyle == GLC_TEXTURE)
     __glcRestoreGLState(&GLState);
 }
 
@@ -609,7 +615,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
  */
 void APIENTRY glcRenderStyle(GLCenum inStyle)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check if inStyle has a legal value */
   switch(inStyle) {
@@ -624,14 +630,14 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
   }
 
   /* Check if the current thread owns a current state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
   /* Stores the rendering style */
-  state->renderState.renderStyle = inStyle;
+  ctx->renderState.renderStyle = inStyle;
   return;
 }
 
@@ -648,22 +654,22 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
  */
 void APIENTRY glcReplacementCode(GLint inCode)
 {
-  __glcContextState *state = __glcGetCurrent();
+  __GLCcontext *ctx = __glcGetCurrent();
   GLint code = 0;
 
   /* Check if the current thread owns a current state */
-  if (!state) {
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
   /* Get the replacement character converted to the UCS-4 format */
-  code = __glcConvertGLintToUcs4(state, inCode);
+  code = __glcConvertGLintToUcs4(ctx, inCode);
   if (code < 0)
     return;
 
   /* Stores the replacement code */
-  state->stringState.replacementCode = code;
+  ctx->stringState.replacementCode = code;
   return;
 }
 
@@ -681,16 +687,16 @@ void APIENTRY glcReplacementCode(GLint inCode)
  */
 void APIENTRY glcResolution(GLfloat inVal)
 {
-  __glcContextState *state = __glcGetCurrent();
+  __GLCcontext *ctx = __glcGetCurrent();
 
   /* Check if the current thread owns a current state */
-  if (!state) {
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
   /* Stores the resolution */
-  state->renderState.resolution = inVal;
+  ctx->renderState.resolution = inVal;
 
   return;
 }

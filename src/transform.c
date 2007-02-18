@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -69,19 +69,19 @@
  */
 void APIENTRY glcLoadIdentity(void)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  state->bitmapMatrix[0] = 1.;
-  state->bitmapMatrix[1] = 0.;
-  state->bitmapMatrix[2] = 0.;
-  state->bitmapMatrix[3] = 1.;
+  ctx->bitmapMatrix[0] = 1.;
+  ctx->bitmapMatrix[1] = 0.;
+  ctx->bitmapMatrix[2] = 0.;
+  ctx->bitmapMatrix[3] = 1.;
 }
 
 
@@ -99,18 +99,18 @@ void APIENTRY glcLoadIdentity(void)
  */
 void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   assert(inMatrix);
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  memcpy(state->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
+  memcpy(ctx->bitmapMatrix, inMatrix, 4 * sizeof(GLfloat));
 }
 
 
@@ -129,27 +129,27 @@ void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
  */
 void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   GLfloat tempMatrix[4];
 
   assert(inMatrix);
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  memcpy(tempMatrix, state->bitmapMatrix, 4 * sizeof(GLfloat));
+  memcpy(tempMatrix, ctx->bitmapMatrix, 4 * sizeof(GLfloat));
 
-  state->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0]
+  ctx->bitmapMatrix[0] = tempMatrix[0] * inMatrix[0]
 			 + tempMatrix[2] * inMatrix[1];
-  state->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0]
+  ctx->bitmapMatrix[1] = tempMatrix[1] * inMatrix[0]
 			 + tempMatrix[3] * inMatrix[1];
-  state->bitmapMatrix[2] = tempMatrix[0] * inMatrix[2]
+  ctx->bitmapMatrix[2] = tempMatrix[0] * inMatrix[2]
 			 + tempMatrix[2] * inMatrix[3];
-  state->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2]
+  ctx->bitmapMatrix[3] = tempMatrix[1] * inMatrix[2]
 			 + tempMatrix[3] * inMatrix[3];
 }
 
@@ -234,23 +234,23 @@ void APIENTRY glcScale(GLfloat inX, GLfloat inY)
  */
 void APIENTRY glcPushMatrixQSO(void)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  if (state->bitmapMatrixStackDepth >= GLC_MAX_MATRIX_STACK_DEPTH) {
+  if (ctx->bitmapMatrixStackDepth >= GLC_MAX_MATRIX_STACK_DEPTH) {
     __glcRaiseError(GLC_STACK_OVERFLOW_QSO);
     return;
   }
 
-  memcpy(state->bitmapMatrix+4, state->bitmapMatrix, 4*sizeof(GLfloat));
-  state->bitmapMatrix += 4;
-  state->bitmapMatrixStackDepth++;
+  memcpy(ctx->bitmapMatrix+4, ctx->bitmapMatrix, 4*sizeof(GLfloat));
+  ctx->bitmapMatrix += 4;
+  ctx->bitmapMatrixStackDepth++;
   return;
 }
 
@@ -268,21 +268,21 @@ void APIENTRY glcPushMatrixQSO(void)
  */
 void APIENTRY glcPopMatrixQSO(void)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  if (state->bitmapMatrixStackDepth <= 1) {
+  if (ctx->bitmapMatrixStackDepth <= 1) {
     __glcRaiseError(GLC_STACK_UNDERFLOW_QSO);
     return;
   }
 
-  state->bitmapMatrix -= 4;
-  state->bitmapMatrixStackDepth--;
+  ctx->bitmapMatrix -= 4;
+  ctx->bitmapMatrixStackDepth--;
   return;
 }

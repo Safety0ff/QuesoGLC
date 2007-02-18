@@ -81,7 +81,7 @@ pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
  */
 static void __glcLock(void)
 {
-  threadArea *area = NULL;
+  __GLCthreadArea *area = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
@@ -104,7 +104,7 @@ static void __glcLock(void)
  */
 static void __glcUnlock(void)
 {
-  threadArea *area = NULL;
+  __GLCthreadArea *area = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
@@ -125,14 +125,14 @@ static void __glcUnlock(void)
  */
 static void __glcFreeThreadArea(void *keyValue)
 {
-  threadArea *area = (threadArea*)keyValue;
-  __glcContextState *state = NULL;
+  __GLCthreadArea *area = (__GLCthreadArea*)keyValue;
+  __GLCcontext *ctx = NULL;
 
   if (area) {
     /* Release the context which is current to the thread, if any */
-    state = area->currentContext;
-    if (state)
-      state->isCurrent = GL_FALSE;
+    ctx = area->currentContext;
+    if (ctx)
+      ctx->isCurrent = GL_FALSE;
     free(area); /* DO NOT use __glcFree() !!! */
   }
 }
@@ -159,10 +159,10 @@ void _fini(void)
   __glcLock();
 
   /* destroy remaining contexts */
-  node = __glcCommonArea.stateList.head;
+  node = __glcCommonArea.contextList.head;
   while (node) {
     FT_ListNode next = node->next;
-    __glcCtxDestroy((__glcContextState*)node);
+    __glcCtxDestroy((__GLCcontext*)node);
     node = next;
   }
 
@@ -195,17 +195,21 @@ void _fini(void)
  */
 static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
 {
+  GLC_DISCARD_ARG(inMemory);
   return __glcMalloc(inSize);
 }
 
 static void __glcFreeFunc(FT_Memory inMemory, void *inBlock)
 {
+  GLC_DISCARD_ARG(inMemory);
   __glcFree(inBlock);
 }
 
 static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
 			      long inNewSize, void* inBlock)
 {
+  GLC_DISCARD_ARG(inMemory);
+  GLC_DISCARD_ARG(inCurSize);
   return __glcRealloc(inBlock, inNewSize);
 }
 
@@ -247,10 +251,10 @@ void _init(void)
   __glcCommonArea.memoryManager.realloc = __glcReallocFunc;
 
   /* Initialize the list of context states */
-  __glcCommonArea.stateList.head = NULL;
-  __glcCommonArea.stateList.tail = NULL;
+  __glcCommonArea.contextList.head = NULL;
+  __glcCommonArea.contextList.tail = NULL;
 
-  /* Initialize the mutex for access to the stateList array */
+  /* Initialize the mutex for access to the contextList array */
 #ifdef __WIN32__
   InitializeCriticalSection(&__glcCommonArea.section);
 #else
@@ -291,17 +295,17 @@ BOOL WINAPI DllMain(HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
 
 
 /* Get the context state corresponding to a given context ID */
-static __glcContextState* __glcGetState(GLint inContext)
+static __GLCcontext* __glcGetContext(GLint inContext)
 {
   FT_ListNode node = NULL;
 
   __glcLock();
-  for (node = __glcCommonArea.stateList.head; node; node = node->next)
-    if (((__glcContextState*)node)->id == inContext) break;
+  for (node = __glcCommonArea.contextList.head; node; node = node->next)
+    if (((__GLCcontext*)node)->id == inContext) break;
 
   __glcUnlock();
 
-  return (__glcContextState*)node;
+  return (__GLCcontext*)node;
 }
 
 
@@ -323,7 +327,7 @@ GLboolean APIENTRY glcIsContext(GLint inContext)
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
-  return (__glcGetState(inContext) ? GL_TRUE : GL_FALSE);
+  return (__glcGetContext(inContext) ? GL_TRUE : GL_FALSE);
 }
 
 
@@ -339,17 +343,17 @@ GLboolean APIENTRY glcIsContext(GLint inContext)
  */
 GLint APIENTRY glcGetCurrentContext(void)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
-  state = __glcGetCurrent();
-  if (!state)
+  ctx = __glcGetCurrent();
+  if (!ctx)
     return 0;
   else
-    return state->id;
+    return ctx->id;
 }
 
 
@@ -381,7 +385,7 @@ GLint APIENTRY glcGetCurrentContext(void)
  */
 void APIENTRY glcDeleteContext(GLint inContext)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -391,21 +395,21 @@ void APIENTRY glcDeleteContext(GLint inContext)
   __glcLock();
 
   /* verify if the context exists */
-  state = __glcGetState(inContext);
+  ctx = __glcGetContext(inContext);
 
-  if (!state) {
+  if (!ctx) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     __glcUnlock();
     return;
   }
 
-  if (state->isCurrent)
+  if (ctx->isCurrent)
     /* The context is current to a thread : just mark for deletion */
-    state->pendingDelete = GL_TRUE;
+    ctx->pendingDelete = GL_TRUE;
   else {
     /* Remove the context from the context list then destroy it */
-    FT_List_Remove(&__glcCommonArea.stateList, (FT_ListNode)state);
-    __glcCtxDestroy(state);
+    FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)ctx);
+    __glcCtxDestroy(ctx);
   }
 
   __glcUnlock();
@@ -448,9 +452,9 @@ void APIENTRY glcContext(GLint inContext)
 {
   char *version = NULL;
   char *extension = NULL;
-  __glcContextState *currentState = NULL;
-  __glcContextState *state = NULL;
-  threadArea *area = NULL;
+  __GLCcontext *currentState = NULL;
+  __GLCcontext *ctx = NULL;
+  __GLCthreadArea *area = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
@@ -468,9 +472,9 @@ void APIENTRY glcContext(GLint inContext)
 
   if (inContext) {
     /* verify that the context exists */
-    state = __glcGetState(inContext);
+    ctx = __glcGetContext(inContext);
 
-    if (!state) {
+    if (!ctx) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       __glcUnlock();
       return;
@@ -491,7 +495,7 @@ void APIENTRY glcContext(GLint inContext)
     }
 
     /* Is the context already current to a thread ? */
-    if (state->isCurrent) {
+    if (ctx->isCurrent) {
       /* If the context is current to another thread => ERROR ! */
       if (!currentState)
 	__glcRaiseError(GLC_STATE_ERROR);
@@ -512,8 +516,8 @@ void APIENTRY glcContext(GLint inContext)
       currentState->isCurrent = GL_FALSE;
 
     /* Make the context current to the thread */
-    area->currentContext = state;
-    state->isCurrent = GL_TRUE;
+    area->currentContext = ctx;
+    ctx->isCurrent = GL_TRUE;
   }
   else {
     /* inContext is null, the current thread must release its context if any */
@@ -532,7 +536,7 @@ void APIENTRY glcContext(GLint inContext)
   /* execute pending deletion if any */
   if (currentState) {
     if (currentState->pendingDelete) {
-      FT_List_Remove(&__glcCommonArea.stateList, (FT_ListNode)currentState);
+      FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)currentState);
       __glcCtxDestroy(currentState);
     }
   }
@@ -565,7 +569,7 @@ void APIENTRY glcContext(GLint inContext)
 GLint APIENTRY glcGenContext(void)
 {
   int newContext = 0;
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
@@ -576,23 +580,23 @@ GLint APIENTRY glcGenContext(void)
   __glcLock();
 
   /* Search for the first context ID that is unused */
-  state = (__glcContextState*)__glcCommonArea.stateList.tail;
-  if (!state)
+  ctx = (__GLCcontext*)__glcCommonArea.contextList.tail;
+  if (!ctx)
     newContext = 1;
   else
-    newContext = state->id + 1;
+    newContext = ctx->id + 1;
 
   /* Create a new context */
-  state = __glcCtxCreate(newContext);
-  if (!state) {
+  ctx = __glcCtxCreate(newContext);
+  if (!ctx) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcUnlock();
     return 0;
   }
 
-  node = (FT_ListNode)state;
-  node->data = state;
-  FT_List_Add(&__glcCommonArea.stateList, node);
+  node = (FT_ListNode)ctx;
+  node->data = ctx;
+  FT_List_Add(&__glcCommonArea.contextList, node);
 
   __glcUnlock();
 
@@ -642,16 +646,16 @@ GLint APIENTRY glcGenContext(void)
 
         if (*sepPos)
 	  *(sepPos++) = 0;
-	if (!FcStrSetAdd(state->catalogList, (const FcChar8*)begin))
+	if (!FcStrSetAdd(ctx->catalogList, (const FcChar8*)begin))
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	if (!FcConfigAppFontAddDir(state->config, (const unsigned char*)begin)) {
+	if (!FcConfigAppFontAddDir(ctx->config, (const unsigned char*)begin)) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  FcStrSetDel(state->catalogList, (const FcChar8*)begin);
+	  FcStrSetDel(ctx->catalogList, (const FcChar8*)begin);
 	}
 	begin = sepPos;
       } while (*sepPos);
       __glcFree(path);
-      __glcUpdateHashTable(state);
+      __glcUpdateHashTable(ctx);
     }
     else {
       /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */
@@ -690,7 +694,7 @@ GLint* APIENTRY glcGetAllContexts(void)
    * thread or not).
    */
   __glcLock();
-  for (node = __glcCommonArea.stateList.head, count = 0; node;
+  for (node = __glcCommonArea.contextList.head, count = 0; node;
        node = node->next, count++);
 
   /* Allocate memory to store the array */
@@ -705,8 +709,8 @@ GLint* APIENTRY glcGetAllContexts(void)
   contextArray[count] = 0;
 
   /* Copy the context IDs to the array */
-  for (node = __glcCommonArea.stateList.tail; node;node = node->prev)
-    contextArray[--count] = ((__glcContextState*)node)->id;
+  for (node = __glcCommonArea.contextList.tail; node;node = node->prev)
+    contextArray[--count] = ((__GLCcontext*)node)->id;
 
   __glcUnlock();
 
@@ -746,7 +750,7 @@ GLint* APIENTRY glcGetAllContexts(void)
 GLCenum APIENTRY glcGetError(void)
 {
   GLCenum error = GLC_NONE;
-  threadArea * area = NULL;
+  __GLCthreadArea * area = NULL;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);

@@ -18,10 +18,18 @@
  */
 /* $Id$ */
 
+/** \file
+ * header of the object __GLCglyph which caches all the data needed for a given
+ * glyph : display list, texture, bounding box, advance, index in the font
+ * file, etc.
+ */
+
 #ifndef __glc_oglyph_h
 #define __glc_oglyph_h
 
-typedef struct {
+typedef struct __GLCglyphRec __GLCglyph;
+
+struct __GLCglyphRec {
   FT_ListNodeRec node;
 
   FT_ULong index;
@@ -32,12 +40,12 @@ typedef struct {
   /* Measurement infos */
   GLfloat boundingBox[4];
   GLfloat advance[2];
-} __glcGlyph;
+};
 
-__glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
-void __glcGlyphDestroy(__glcGlyph* This, __glcContextState* inState);
-void __glcGlyphDestroyTexture(__glcGlyph* This);
-void __glcGlyphDestroyGLObjects(__glcGlyph* This, __glcContextState* inState);
-int __glcGlyphGetDisplayListCount(__glcGlyph* This);
-GLuint __glcGlyphGetDisplayList(__glcGlyph* This, int inCount);
+__GLCglyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
+void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext);
+void __glcGlyphDestroyTexture(__GLCglyph* This);
+void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext);
+int __glcGlyphGetDisplayListCount(__GLCglyph* This);
+GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount);
 #endif

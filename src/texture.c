@@ -18,6 +18,10 @@
  */
 /* $Id$ */
 
+/** \file
+ *  defines the routines used to render characters with textures.
+ */
+
 /* Microsoft Visual C++ */
 #ifdef _MSC_VER
 #define GLCAPI __declspec(dllexport)
@@ -38,6 +42,7 @@
 #define GLC_TEXTURE_SIZE 64
 
 
+
 /* Compute the lower power of 2 that is greater than value. It is used to
  * determine the smaller texture than can contain a glyph.
  */
@@ -52,27 +57,42 @@ static int __glcNextPowerOf2(int value)
 
 
 
-void __glcDeleteAtlasElement(__glcAtlasElement* This,
-			     __glcContextState* inState)
+/* This function is called when a glyph is destroyed, so that it is removed from
+ * the atlas list if relevant.
+ */
+void __glcDeleteAtlasElement(__GLCatlasElement* This,
+			     __GLCcontext* inContext)
 {
-  FT_List_Remove(&inState->atlasList, (FT_ListNode)This);
-  inState->atlasCount--;
+  FT_List_Remove(&inContext->atlasList, (FT_ListNode)This);
+  inContext->atlasCount--;
   free(This);
 }
 
 
 
-static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState,
-					      __glcGlyph* inGlyph)
+/* This function get some room in the texture atlas for a new glyph 'inGlyph'.
+ * Eventually it creates the texture atlas, if it does not exist yet.
+ */
+static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
+					      __GLCglyph* inGlyph)
 {
-  __glcAtlasElement* atlasNode = NULL;
+  __GLCatlasElement* atlasNode = NULL;
 
-  if (!inState->atlas.id) {
-    int size = 1024;
+  /* Test if the atlas already exists. If not, create it. */
+  if (!inContext->atlas.id) {
+    int size = 1024; /* Initial try with a 1024x1024 texture */
     int i = 0;
     GLint format = 0;
     GLint level = 0;
 
+    /* Not all gfx card are able to use 1024x1024 textures (especially old ones
+     * like 3dfx's). Moreover, the texture memory may be scarce when our texture
+     * will be created, so we try several texture sizes : first 1024x1024 then
+     * if it fails, we try 512x512 then 256x256. All gfx cards support 256x256
+     * textures so if it fails with this texture size, that is because we ran
+     * out of texture memory. In such a case, there is nothing we can do, so the
+     * routine aborts with GLC_RESOURCE_ERROR raised.
+     */
     for (i = 0; i < 3; i++) {
       glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, size,
 		   size, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
@@ -84,21 +104,31 @@ static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState,
       size >>= 1;
     }
 
+    /* Out of texture memory : abortion */
     if (i == 3) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GL_FALSE;
     }
 
-    glGenTextures(1, &inState->atlas.id);
-    inState->atlas.width = size;
-    inState->atlas.heigth = size;
-    inState->atlasWidth = size / GLC_TEXTURE_SIZE;
-    inState->atlasHeight = size / GLC_TEXTURE_SIZE;
-    inState->atlasCount = 0;
-    glBindTexture(GL_TEXTURE_2D, inState->atlas.id);
+    /* Create the texture atlas structure. The texture is divided in small
+     * square areas of GLC_TEXTURE_SIZE x GLC_TEXTURE_SIZE, each of which will
+     * contain a different glyph.
+     * TODO: Allow the user to change GLC_TEXTURE_SIZE rather than using a fixed
+     * value.
+     */
+    glGenTextures(1, &inContext->atlas.id);
+    inContext->atlas.width = size;
+    inContext->atlas.heigth = size;
+    inContext->atlasWidth = size / GLC_TEXTURE_SIZE;
+    inContext->atlasHeight = size / GLC_TEXTURE_SIZE;
+    inContext->atlasCount = 0;
+    glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA8, size,
 		 size, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
 
+    /* Create the mipmap structure of the texture atlas, no matter if GLC_MIPMAP
+     * is enabled or not.
+     */
     while (size > 1) {
       size >>= 1;
       level++;
@@ -106,7 +136,10 @@ static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState,
 		   size, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
     }
 
-    if (inState->enableState.mipmap)
+    /* Use trilinear filtering if GLC_MIPMAP is enabled.
+     * Otherwise use bilinear filtering.
+     */
+    if (inContext->enableState.mipmap)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		      GL_LINEAR_MIPMAP_LINEAR);
     else
@@ -116,27 +149,47 @@ static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   }
-  else
-    glBindTexture(GL_TEXTURE_2D, inState->atlas.id);
+  else {
+    /* The texture atlas is already created. The corresponding texture is bound
+     * to the current GL context.
+     */
+    glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
+  }
 
-  if (inState->atlasCount == inState->atlasWidth * inState->atlasHeight) {
-    atlasNode = (__glcAtlasElement*)inState->atlasList.tail;
+  /* At this stage, we want to get a free area in the texture atlas in order to
+   * store a new glyph. Two situations may occur : the atlas is full or not
+   */
+  if (inContext->atlasCount == inContext->atlasWidth * inContext->atlasHeight) {
+    /* The texture atlas is full. We must release an area to re-use it.
+     * We get the glyph that has not been used for a long time (that is the
+     * tail element of atlasList).
+     */
+    atlasNode = (__GLCatlasElement*)inContext->atlasList.tail;
     assert(atlasNode);
+    /* Release the texture area of the glyph */
     __glcGlyphDestroyTexture(atlasNode->glyph);
-    FT_List_Up(&inState->atlasList, (FT_ListNode)atlasNode);
+    /* Put the texture area at the head of the list otherwise we will use the
+     * same texture element over and over again each time that we need to
+     * release a texture area.
+     */
+    FT_List_Up(&inContext->atlasList, (FT_ListNode)atlasNode);
   }
   else {
-    atlasNode = (__glcAtlasElement*)__glcMalloc(sizeof(__glcAtlasElement));
+    /* The texture atlas is not full. We create a new texture area and we store
+     * its definition in atlas list.
+     */
+    atlasNode = (__GLCatlasElement*)__glcMalloc(sizeof(__GLCatlasElement));
     if (!atlasNode) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GL_FALSE;
     }
 
     atlasNode->node.data = atlasNode;
-    atlasNode->position = inState->atlasCount++;
-    FT_List_Insert(&inState->atlasList, (FT_ListNode)atlasNode);
+    atlasNode->position = inContext->atlasCount++;
+    FT_List_Insert(&inContext->atlasList, (FT_ListNode)atlasNode);
   }
 
+  /* Update the etxture element */
   atlasNode->glyph = inGlyph;
   inGlyph->textureObject = atlasNode;
 
@@ -145,21 +198,29 @@ static GLboolean __glcTextureAtlasGetPosition(__glcContextState* inState,
 
 
 
-static GLboolean __glcTextureGetImmediate(__glcContextState* inState,
+/* For immediate rendering mode (that is when GLC_GL_OBJECTS is disabled), this
+ * function returns a texture that will store the glyph that is intended to be
+ * rendered. If the texture does not exist yet, it is created.
+ */
+static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
 					  GLsizei inWidth, GLsizei inHeight)
 {
   GLint format = 0;
 
-  if (inState->texture.id) {
-    if ((inWidth > inState->texture.width)
-	|| (inHeight > inState->texture.heigth)) {
-      glDeleteTextures(1, &inState->texture.id);
-      inState->texture.id = 0;
-      inState->texture.width = 0;
-      inState->texture.heigth = 0;
+  /* Check if a texture exists to store the glyph */
+  if (inContext->texture.id) {
+    /* Check if the texture size is large enough to store the glyph */
+    if ((inWidth > inContext->texture.width)
+	|| (inHeight > inContext->texture.heigth)) {
+      /* The texture is not large enough so we destroy the current texture */
+      glDeleteTextures(1, &inContext->texture.id);
+      inContext->texture.id = 0;
+      inContext->texture.width = 0;
+      inContext->texture.heigth = 0;
     }
     else {
-      glBindTexture(GL_TEXTURE_2D, inState->texture.id);
+      /* The texture is large enough : it is bound to the current GL context */
+      glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
       return GL_TRUE;
     }
   }
@@ -169,35 +230,44 @@ static GLboolean __glcTextureGetImmediate(__glcContextState* inState,
 	       inHeight, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
   glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
 			   &format);
+  /* TODO: If the texture creation fails, try with a smaller size */
   if (!format) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;
   }
 
   /* Create a texture object and make it current */
-  glGenTextures(1, &inState->texture.id);
-  glBindTexture(GL_TEXTURE_2D, inState->texture.id);
+  glGenTextures(1, &inContext->texture.id);
+  glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA8, inWidth,
 	       inHeight, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
+  /* For immediate mode rendering, always use bilinear filtering even if
+   * GLC_MIPMAP is enabled : we have determined the size of the glyph when it
+   * will be rendered on the screen and the texture size has been defined
+   * accordingly. Hence the mipmap levels would not be used, so there is no
+   * point in spending time to compute them.
+   */
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-  inState->texture.width = inWidth;
-  inState->texture.heigth = inHeight;
+  inContext->texture.width = inWidth;
+  inContext->texture.heigth = inHeight;
 
   return GL_TRUE;
 }
 
+
+
 /* Internal function that renders glyph in textures :
  * 'inCode' must be given in UCS-4 format
  */
-void __glcRenderCharTexture(__glcFont* inFont,
-			    __glcContextState* inState,
+void __glcRenderCharTexture(__GLCfont* inFont,
+			    __GLCcontext* inContext,
 			    GLboolean inDisplayListIsBuilding,
 			    GLfloat scale_x, GLfloat scale_y,
-			    __glcGlyph* inGlyph)
+			    __GLCglyph* inGlyph)
 {
   FT_Face face = NULL;
   FT_Outline outline;
@@ -217,7 +287,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   face = inFont->faceDesc->face;
   assert(face);
 #else
-  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)inFont->faceDesc,
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)inFont->faceDesc,
 			     &face)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -227,7 +297,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   outline = face->glyph->outline;
 
   if (inDisplayListIsBuilding) {
-    if (!__glcTextureAtlasGetPosition(inState, inGlyph))
+    if (!__glcTextureAtlasGetPosition(inContext, inGlyph))
       return;
 
     matrix.xx = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / scale_x);
@@ -243,17 +313,17 @@ void __glcRenderCharTexture(__glcFont* inFont,
 
   /* Compute the size of the pixmap where the glyph will be rendered */
   if (inDisplayListIsBuilding) {
-    __glcAtlasElement* atlasNode = (__glcAtlasElement*)inGlyph->textureObject;
+    __GLCatlasElement* atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
 
     pixmap.width = GLC_TEXTURE_SIZE;
     pixmap.rows = GLC_TEXTURE_SIZE;
-    texture = inState->atlas.id;
-    texWidth = inState->atlas.width;
-    texHeigth = inState->atlas.heigth;
+    texture = inContext->atlas.id;
+    texWidth = inContext->atlas.width;
+    texHeigth = inContext->atlas.heigth;
     texScaleX = (GLfloat)GLC_TEXTURE_SIZE;
     texScaleY = (GLfloat)GLC_TEXTURE_SIZE;
-    posY = (atlasNode->position / inState->atlasWidth);
-    posX = (atlasNode->position - posY*inState->atlasWidth) * GLC_TEXTURE_SIZE;
+    posY = (atlasNode->position / inContext->atlasWidth);
+    posX = (atlasNode->position - posY*inContext->atlasWidth)*GLC_TEXTURE_SIZE;
     posY *= GLC_TEXTURE_SIZE;
 
     outline.flags |= FT_OUTLINE_HIGH_PRECISION;
@@ -263,12 +333,12 @@ void __glcRenderCharTexture(__glcFont* inFont,
             (boundingBox.xMax - boundingBox.xMin + 63) >> 6); /* ceil() */
     pixmap.rows = __glcNextPowerOf2(
             (boundingBox.yMax - boundingBox.yMin + 63) >> 6); /* ceil() */
-    if (!__glcTextureGetImmediate(inState, pixmap.width, pixmap.rows))
+    if (!__glcTextureGetImmediate(inContext, pixmap.width, pixmap.rows))
       return;
 
-    texture = inState->texture.id;
-    texWidth = inState->texture.width;
-    texHeigth = inState->texture.heigth;
+    texture = inContext->texture.id;
+    texWidth = inContext->texture.width;
+    texHeigth = inContext->texture.heigth;
     texScaleX = scale_x;
     texScaleY = scale_y;
     posX = 0;
@@ -316,7 +386,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
 			 -mipmapBoundingBox.yMin);
 
     /* render the glyph */
-    if (FT_Outline_Get_Bitmap(inState->library, &outline, &pixmap)) {
+    if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
       glPopClientAttrib();
       __glcFree(pixmap.buffer);
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -330,7 +400,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
     /* A mipmap is built only if a display list is currently building
      * otherwise it adds useless computations
      */
-    if (!(inState->enableState.mipmap && inDisplayListIsBuilding))
+    if (!(inContext->enableState.mipmap && inDisplayListIsBuilding))
       break;
 
     /* restore the outline initial position */
@@ -350,7 +420,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   }
 
   /* Finish to build the mipmap if necessary */
-  if (inState->enableState.mipmap && inDisplayListIsBuilding) {
+  if (inContext->enableState.mipmap && inDisplayListIsBuilding) {
     if (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
     else {
@@ -379,7 +449,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   /* Add the new texture to the texture list and the new display list
    * to the list of display lists
    */
-  if (inState->enableState.glObjects) {
+  if (inContext->enableState.glObjects) {
     inGlyph->displayList[0] = glGenLists(1);
     if (!inGlyph->displayList[0]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -416,7 +486,7 @@ void __glcRenderCharTexture(__glcFont* inFont,
   glTranslatef(face->glyph->advance.x / 64. / scale_x,
 	       face->glyph->advance.y / 64. / scale_y, 0.);
 
-  if (inState->enableState.glObjects) {
+  if (inContext->enableState.glObjects) {
     /* Finish display list creation */
     glEndList();
   }

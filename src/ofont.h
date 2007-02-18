@@ -18,31 +18,35 @@
  */
 /* $Id$ */
 
+/** \file
+ * header of the object __GLCfont which manage the fonts
+ */
+
 #ifndef __glc_ofont_h
 #define __glc_ofont_h
 
-#include "GL/glc.h"
-#include "ocharmap.h"
 #include "ofacedesc.h"
 
-typedef struct {
-  GLint id;
-  __glcFaceDescriptor* faceDesc;
-  FcChar32 parentMasterID;
-  __glcCharMap* charMap;
-} __glcFont;
+typedef struct __GLCfontRec  __GLCfont;
 
-__glcFont*  __glcFontCreate(GLint id, GLint inMaster, __glcContextState* inState);
-void __glcFontDestroy(__glcFont *This, __glcContextState* inState);
-__glcGlyph* __glcFontGetGlyph(__glcFont *This, GLint inCode,
-			      __glcContextState* inState);
-GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
-				 GLfloat* outVec, __glcContextState* inState,
+struct __GLCfontRec {
+  GLint id;
+  __GLCfaceDescriptor* faceDesc;
+  FcChar32 parentMasterID;
+  __GLCcharMap* charMap;
+};
+
+__GLCfont*  __glcFontCreate(GLint id, GLint inMaster, __GLCcontext* inContext);
+void __glcFontDestroy(__GLCfont *This, __GLCcontext* inContext);
+__GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
+			      __GLCcontext* inContext);
+GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
+				 GLfloat* outVec, __GLCcontext* inContext,
 				 GLfloat inScaleX, GLfloat inScaleY);
-GLfloat* __glcFontGetAdvance(__glcFont *This, GLint inCode, GLfloat* outVec,
-			     __glcContextState* inState,
+GLfloat* __glcFontGetAdvance(__GLCfont *This, GLint inCode, GLfloat* outVec,
+			     __GLCcontext* inContext,
 			     GLfloat inScaleX, GLfloat inScaleY);
-GLfloat* __glcFontGetKerning(__glcFont* This, GLint inCode, GLint inPrevCode,
-			     GLfloat* outVec, __glcContextState* inState,
+GLfloat* __glcFontGetKerning(__GLCfont* This, GLint inCode, GLint inPrevCode,
+			     GLfloat* outVec, __GLCcontext* inContext,
 			     GLfloat inScaleX, GLfloat inScaleY);
 #endif /* __glc_ofont_h */

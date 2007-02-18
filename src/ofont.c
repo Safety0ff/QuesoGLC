@@ -20,28 +20,30 @@
 
 /* Defines the methods of an object that is intended to managed fonts */
 
+/** \file
+ * defines the object __GLCfont which manage the fonts
+ */
+
 #include "internal.h"
 
-/** \file
- * defines the object __glcFont which manage the fonts
- */
+
 
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  * The user must give the master 'inParent' which the font will instantiate.
  */
-__glcFont* __glcFontCreate(GLint inID, GLint inMaster,
-			   __glcContextState* inState)
+__GLCfont* __glcFontCreate(GLint inID, GLint inMaster,
+			   __GLCcontext* inContext)
 {
-  __glcFont *This = NULL;
-  FcPattern* pattern = __glcGetPatternFromMasterID(inMaster, inState);
+  __GLCfont *This = NULL;
+  FcPattern* pattern = __glcGetPatternFromMasterID(inMaster, inContext);
 
-  assert(inState);
+  assert(inContext);
 
   if (!pattern)
     return NULL;
 
-  This = (__glcFont*)__glcMalloc(sizeof(__glcFont));
+  This = (__GLCfont*)__glcMalloc(sizeof(__GLCfont));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -50,7 +52,7 @@ __glcFont* __glcFontCreate(GLint inID, GLint inMaster,
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-  This->faceDesc = __glcGetFaceDescFromPattern(pattern, inState);
+  This->faceDesc = __glcGetFaceDescFromPattern(pattern, inContext);
   FcPatternDestroy(pattern);
   if (!This->faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -58,10 +60,10 @@ __glcFont* __glcFontCreate(GLint inID, GLint inMaster,
     return NULL;
   }
 
-  This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inState);
+  This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inContext);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescDestroy(This->faceDesc, inState);
+    __glcFaceDescDestroy(This->faceDesc, inContext);
     __glcFree(This);
     return NULL;
   }
@@ -75,13 +77,13 @@ __glcFont* __glcFontCreate(GLint inID, GLint inMaster,
 
 
 /* Destructor of the object */
-void __glcFontDestroy(__glcFont *This, __glcContextState* inState)
+void __glcFontDestroy(__GLCfont *This, __GLCcontext* inContext)
 {
   if (This->charMap)
     __glcCharMapDestroy(This->charMap);
 
   if (This->faceDesc)
-    __glcFaceDescDestroy(This->faceDesc, inState);
+    __glcFaceDescDestroy(This->faceDesc, inContext);
 
   __glcFree(This);
 }
@@ -91,15 +93,15 @@ void __glcFontDestroy(__glcFont *This, __glcContextState* inState)
 /* Extract from the font the glyph which corresponds to the character code
  * 'inCode'.
  */
-__glcGlyph* __glcFontGetGlyph(__glcFont *This, GLint inCode,
-			      __glcContextState* inState)
+__GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
+			      __GLCcontext* inContext)
 {
   /* Try to get the glyph from the character map */
-  __glcGlyph* glyph = __glcCharMapGetGlyph(This->charMap, inCode);
+  __GLCglyph* glyph = __glcCharMapGetGlyph(This->charMap, inCode);
 
   if (!glyph) {
     /* If it fails, we must extract the glyph from the face */
-    glyph = __glcFaceDescGetGlyph(This->faceDesc, inCode, inState);
+    glyph = __glcFaceDescGetGlyph(This->faceDesc, inCode, inContext);
     if (!glyph) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return NULL;
@@ -117,12 +119,12 @@ __glcGlyph* __glcFontGetGlyph(__glcFont *This, GLint inCode,
  * inScaleY. The result is returned in outVec. 'inCode' contains the character
  * code for which the bounding box is requested.
  */
-GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
-				 GLfloat* outVec, __glcContextState* inState,
+GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
+				 GLfloat* outVec, __GLCcontext* inContext,
 				 GLfloat inScaleX, GLfloat inScaleY)
 {
   /* Get the glyph from the font */
-  __glcGlyph* glyph = __glcFontGetGlyph(This, inCode, inState);
+  __GLCglyph* glyph = __glcFontGetGlyph(This, inCode, inContext);
 
   assert(outVec);
 
@@ -141,7 +143,7 @@ GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
   /* Otherwise, we must extract the bounding box from the face file */
   if (!__glcFaceDescGetBoundingBox(This->faceDesc, glyph->index,
 				   glyph->boundingBox, inScaleX, inScaleY,
-				   inState)) {
+				   inContext)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
@@ -157,12 +159,12 @@ GLfloat* __glcFontGetBoundingBox(__glcFont *This, GLint inCode,
  * inScaleY. The result is returned in outVec. 'inCode' contains the character
  * code for which the advance is requested.
  */
-GLfloat* __glcFontGetAdvance(__glcFont* This, GLint inCode, GLfloat* outVec,
-			     __glcContextState* inState, GLfloat inScaleX,
+GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
+			     __GLCcontext* inContext, GLfloat inScaleX,
 			     GLfloat inScaleY)
 {
   /* Get the glyph from the font */
-  __glcGlyph* glyph = __glcFontGetGlyph(This, inCode, inState);
+  __GLCglyph* glyph = __glcFontGetGlyph(This, inCode, inContext);
 
   assert(outVec);
 
@@ -179,7 +181,7 @@ GLfloat* __glcFontGetAdvance(__glcFont* This, GLint inCode, GLfloat* outVec,
 
   /* Otherwise, we must extract the advance from the face file */
   if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
-			       inScaleX, inScaleY, inState)) {
+			       inScaleX, inScaleY, inContext)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
@@ -196,16 +198,16 @@ GLfloat* __glcFontGetAdvance(__glcFont* This, GLint inCode, GLfloat* outVec,
  * the current character code and 'inPrevCode' the character code of the
  * previously displayed character.
  */
-GLfloat* __glcFontGetKerning(__glcFont* This, GLint inCode, GLint inPrevCode,
-			     GLfloat* outVec, __glcContextState* inState,
+GLfloat* __glcFontGetKerning(__GLCfont* This, GLint inCode, GLint inPrevCode,
+			     GLfloat* outVec, __GLCcontext* inContext,
 			     GLfloat inScaleX, GLfloat inScaleY)
 {
-  __glcGlyph* glyph = __glcFontGetGlyph(This, inCode, inState);
-  __glcGlyph* prevGlyph = __glcFontGetGlyph(This, inPrevCode, inState);
+  __GLCglyph* glyph = __glcFontGetGlyph(This, inCode, inContext);
+  __GLCglyph* prevGlyph = __glcFontGetGlyph(This, inPrevCode, inContext);
 
   if (!glyph || !prevGlyph)
     return NULL;
 
   return __glcFaceDescGetKerning(This->faceDesc, glyph->index, prevGlyph->index,
-				 inScaleX, inScaleY, outVec, inState);
+				 inScaleX, inScaleY, outVec, inContext);
 }

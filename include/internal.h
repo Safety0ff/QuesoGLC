@@ -18,6 +18,10 @@
  */
 /* $Id$ */
 
+/** \file
+ *  header of all private functions that are used throughout the library.
+ */
+
 #ifndef __glc_internal_h
 #define __glc_internal_h
 
@@ -40,17 +44,22 @@
 #define GLC_EPSILON		1E-6
 #define GLC_POINT_SIZE		128
 
-typedef struct {
+#define GLC_DISCARD_ARG(arg) (void)(arg)
+
+typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
+typedef struct __GLCgeomBatchRec __GLCgeomBatch;
+
+struct __GLCdataCodeFromNameRec {
   GLint code;
   GLCchar* name;
-} __glcDataCodeFromName;
+};
 
-typedef struct {
+struct __GLCgeomBatchRec {
   GLenum mode;
   GLint length;
   GLuint start;
   GLuint end;
-} __glcGeomBatch;
+};
 
 /* Callback function type that is called by __glcProcessChar().
  * It allows to unify the character processing before the rendering or the
@@ -60,7 +69,7 @@ typedef struct {
  * __glcRenderChar() for rendering and __glcGetCharMetric() for measurement.
  */
 typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
-				      GLint inFont, __glcContextState* inState,
+				      GLint inFont, __GLCcontext* inContext,
 				      void* inProcessCharData,
 				      GLboolean inMultipleChars);
 
@@ -69,20 +78,20 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
  * character sequence is issued if necessary.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__glcContextState *inState, GLint inCode,
+void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
 		       GLint inPrevCode, __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData);
 
 /* Render scalable characters using either the GLC_LINE style or the
  * GLC_TRIANGLE style
  */
-extern void __glcRenderCharScalable(__glcFont* inFont,
-				    __glcContextState* inState,
+extern void __glcRenderCharScalable(__GLCfont* inFont,
+				    __GLCcontext* inContext,
 				    GLCenum inRenderMode,
 				    GLboolean inDisplayListIsBuilding,
 				    GLfloat* inTransformMatrix,
 				    GLfloat scale_x, GLfloat scale_y,
-				    __glcGlyph* inGlyph);
+				    __GLCglyph* inGlyph);
 
 /* QuesoGLC own memory management routines */
 extern void* __glcMalloc(size_t size);
@@ -94,7 +103,7 @@ extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
 				   const GLCchar* inSeparator);
 
 /* Arrays that contain the Unicode name of characters */
-extern const __glcDataCodeFromName __glcCodeFromNameArray[];
+extern const __GLCdataCodeFromName __glcCodeFromNameArray[];
 extern const GLint __glcNameFromCodeArray[];
 extern const GLint __glcMaxCode;
 extern const GLint __glcCodeFromNameSize;
@@ -110,7 +119,7 @@ extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
 				   const GLint inStringType);
 
 /* Duplicate a UTF-8 string to the context buffer */
-extern GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
+extern GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 					     const FcChar8* inString,
 					     const GLint inStringType);
 
@@ -123,13 +132,13 @@ FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
  * stored in a GLint. This function is needed since the GLC specs store
  * individual character codes in GLint whatever is their string type.
  */
-GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode);
+GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode);
 
 /* Convert a character encoded in the current string type to the UCS-4 format.
  * This function is needed since the GLC specs store individual character
  * codes in GLint whatever is their string type.
  */
-GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode);
+GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode);
 
 /* Verify that the thread has a current context and that the master identified
  * by 'inMaster' exists. Returns a FontConfig pattern corresponding to the
@@ -140,34 +149,34 @@ FcPattern* __glcVerifyMasterParameters(GLint inMaster);
 /* Verify that the thread has a current context and that the font identified
  * by 'inFont' exists.
  */
-__glcFont* __glcVerifyFontParameters(GLint inFont);
+__GLCfont* __glcVerifyFontParameters(GLint inFont);
 
 /* Return a struct which contains thread specific info */
-threadArea* __glcGetThreadArea(void);
+__GLCthreadArea* __glcGetThreadArea(void);
 
 /* Raise an error */
 void __glcRaiseError(GLCenum inError);
 
 /* Return the current context state */
-__glcContextState* __glcGetCurrent(void);
+__GLCcontext* __glcGetCurrent(void);
 
 /* Compute an optimal size for the glyph to be rendered on the screen (if no
  * display list is currently building).
  */
-GLboolean __glcGetScale(__glcContextState* inState,
+GLboolean __glcGetScale(__GLCcontext* inContext,
 			GLfloat* outTransformMatrix, GLfloat* outScaleX,
 			GLfloat* outScaleY);
 
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
+FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
 				   const GLCchar* inString);
 
 /* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4
  * format and return a copy of the converted string in visual order.
  */
-FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
+FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
 						const GLCchar* inString,
 						const GLint inCount);
 
@@ -185,28 +194,28 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 #endif
 
 /* Save the GL State in a structure */
-void __glcSaveGLState(__glcGLState* inGLState);
+void __glcSaveGLState(__GLCglState* inGLState);
 
 /* Restore the GL State from a structure */
-void __glcRestoreGLState(__glcGLState* inGLState);
+void __glcRestoreGLState(__GLCglState* inGLState);
 
 /* Get a FontConfig pattern from a master ID */
 FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
-				       __glcContextState* inState);
+				       __GLCcontext* inContext);
 
 /* Get a face descriptor object from a FontConfig pattern */
-__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
-						 __glcContextState* inState);
+__GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
+						 __GLCcontext* inContext);
 
 /* Initialize the hash table that allows to convert master IDs into FontConfig
  * patterns.
  */
-void __glcCreateHashTable(__glcContextState *inState);
+void __glcCreateHashTable(__GLCcontext *inContext);
 
 /* Update the hash table that allows to convert master IDs into FontConfig
  * patterns.
  */
-void __glcUpdateHashTable(__glcContextState *inState);
+void __glcUpdateHashTable(__GLCcontext *inContext);
 
 /* Function for GLEW so that it can get a context */
 GLEWContext* glewGetContext(void);

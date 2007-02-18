@@ -18,31 +18,32 @@
  */
 /* $Id$ */
 
-#include "internal.h"
-
-#define GLC_ARRAY_BLOCK_SIZE 16
-
-
 /** \file
- * defines the object __glcArray which is an array which size can grow as some
+ * defines the object __GLCarray which is an array which size can grow as some
  * new elements are added to it.
  */
 
 /* This object heavily uses the realloc() which means that it must not be
  * assumed that the data are always stored at the same address. The safer way
  * to handle that is to *always* assume the address of the data has changed
- * *every* time a method of __glcArray is called ; whatever the method is.
+ * *every* time a method of __GLCarray is called ; whatever the method is.
  */
+
+#include "internal.h"
+
+#define GLC_ARRAY_BLOCK_SIZE 16
+
+
 
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  * The user must give the size of an element of the array.
  */
-__glcArray* __glcArrayCreate(int inElementSize)
+__GLCarray* __glcArrayCreate(int inElementSize)
 {
-  __glcArray* This = NULL;
+  __GLCarray* This = NULL;
 
-  This = (__glcArray*)__glcMalloc(sizeof(__glcArray));
+  This = (__GLCarray*)__glcMalloc(sizeof(__GLCarray));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -65,7 +66,7 @@ __glcArray* __glcArrayCreate(int inElementSize)
 
 
 /* Destructor of the object */
-void __glcArrayDestroy(__glcArray* This)
+void __glcArrayDestroy(__GLCarray* This)
 {
   if (This->data) {
     assert(This->allocated);
@@ -81,7 +82,7 @@ void __glcArrayDestroy(__glcArray* This)
  * NULL if it fails and raises an error accordingly. However the original
  * array is not lost and is kept untouched.
  */
-static __glcArray* __glcArrayUpdateSize(__glcArray* This)
+static __GLCarray* __glcArrayUpdateSize(__GLCarray* This)
 {
   char* data = NULL;
 
@@ -102,7 +103,7 @@ static __glcArray* __glcArrayUpdateSize(__glcArray* This)
 /* Append a value to the array. The function may allocate some more room if
  * necessary
  */
-__glcArray* __glcArrayAppend(__glcArray* This, void* inValue)
+__GLCarray* __glcArrayAppend(__GLCarray* This, void* inValue)
 {
   /* Update the room if needed */
   if (This->length == This->allocated) {
@@ -123,7 +124,7 @@ __glcArray* __glcArrayAppend(__glcArray* This, void* inValue)
 /* Insert a value in the array at the rank inRank. The function may allocate
  * some more room if necessary
  */
-__glcArray* __glcArrayInsert(__glcArray* This, int inRank, void* inValue)
+__GLCarray* __glcArrayInsert(__GLCarray* This, int inRank, void* inValue)
 {
   /* Update the room if needed */
   if (This->length == This->allocated) {
@@ -148,7 +149,7 @@ __glcArray* __glcArrayInsert(__glcArray* This, int inRank, void* inValue)
 /* Remove an element from the array. For permformance reasons, this function
  * does not release memory.
  */
-void __glcArrayRemove(__glcArray* This, int inRank)
+void __glcArrayRemove(__GLCarray* This, int inRank)
 {
   if (inRank < This->length-1)
     memmove(This->data + inRank * This->elementSize,
@@ -167,7 +168,7 @@ void __glcArrayRemove(__glcArray* This, int inRank)
  * several times in a row.
  * This function is used to optimize performance in certain configurations.
  */
-char* __glcArrayInsertCell(__glcArray* This, int inRank, int inCells)
+char* __glcArrayInsertCell(__GLCarray* This, int inRank, int inCells)
 {
   char* newCell = NULL;
 

@@ -18,23 +18,30 @@
  */
 /* $Id$ */
 
+/** \file
+ * header of the object __GLCarray which is an array which size can grow as
+ * some new elements are added to it.
+ */
+
 #ifndef __glc_oarray_h
 #define __glc_oarray_h
 
 #define GLC_ARRAY_DATA(array) (array)->data
 #define GLC_ARRAY_LENGTH(array) (array)->length
 
-typedef struct {
+typedef struct __GLCarrayRec __GLCarray;
+
+struct __GLCarrayRec {
   char* data;
   int allocated;
   int length;
   int elementSize;
-} __glcArray;
+};
 
-__glcArray* __glcArrayCreate(int inElementSize);
-void __glcArrayDestroy(__glcArray* This);
-__glcArray* __glcArrayAppend(__glcArray* This, void* inValue);
-__glcArray* __glcArrayInsert(__glcArray* This, int inRank, void* inValue);
-void __glcArrayRemove(__glcArray* This, int inRank);
-char* __glcArrayInsertCell(__glcArray* This, int inRank, int inCells);
+__GLCarray* __glcArrayCreate(int inElementSize);
+void __glcArrayDestroy(__GLCarray* This);
+__GLCarray* __glcArrayAppend(__GLCarray* This, void* inValue);
+__GLCarray* __glcArrayInsert(__GLCarray* This, int inRank, void* inValue);
+void __glcArrayRemove(__GLCarray* This, int inRank);
+char* __glcArrayInsertCell(__GLCarray* This, int inRank, int inCells);
 #endif

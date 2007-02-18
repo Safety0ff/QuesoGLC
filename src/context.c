@@ -86,7 +86,7 @@
  */
 void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check parameters */
   if (inOpcode != GLC_OP_glcUnmappedCode) {
@@ -95,13 +95,13 @@ void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  state->stringState.callback = inFunc;
+  ctx->stringState.callback = inFunc;
 }
 
 
@@ -120,16 +120,16 @@ void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
  */
 void APIENTRY glcDataPointer(GLvoid *inPointer)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  state->stringState.dataPointer = inPointer;
+  ctx->stringState.dataPointer = inPointer;
 }
 
 
@@ -148,28 +148,28 @@ void APIENTRY glcDataPointer(GLvoid *inPointer)
  */
 void APIENTRY glcDeleteGLObjects(void)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  /* The GL objects are managed by the __glcFaceDescriptor object. Hence we
-   * parse the __glcFaceDescriptor stored in each __glcFont.
+  /* The GL objects are managed by the __GLCfaceDescriptor object. Hence we
+   * parse the __GLCfaceDescriptor stored in each __GLCfont.
    */
-  for(node = state->fontList.head; node; node = node->next)
-    __glcFaceDescDestroyGLObjects(((__glcFont*)(node->data))->faceDesc, state);
+  for(node = ctx->fontList.head; node; node = node->next)
+    __glcFaceDescDestroyGLObjects(((__GLCfont*)(node->data))->faceDesc, ctx);
 
   /* Delete the texture used for immediate mode */
-  if (state->texture.id) {
-    glDeleteTextures(1, &state->texture.id);
-    state->texture.id = 0;
-    state->texture.width = 0;
-    state->texture.heigth = 0;
+  if (ctx->texture.id) {
+    glDeleteTextures(1, &ctx->texture.id);
+    ctx->texture.id = 0;
+    ctx->texture.width = 0;
+    ctx->texture.heigth = 0;
   }
 }
 
@@ -177,11 +177,11 @@ void APIENTRY glcDeleteGLObjects(void)
 
 /* This internal function is used by both glcEnable/glcDisable since they
  * actually do the same job : put a value into a member of the
- * __glcContextState struct. The only difference is the value that it puts.
+ * __GLCcontext struct. The only difference is the value that it puts.
  */
 static void __glcChangeState(GLCenum inAttrib, GLboolean value)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameters. */
   assert((value == GL_TRUE) || (value == GL_FALSE));
@@ -200,8 +200,8 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
@@ -209,18 +209,18 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   /* Assigns the value to the member identified by inAttrib */
   switch(inAttrib) {
   case GLC_AUTO_FONT:
-    state->enableState.autoFont = value;
+    ctx->enableState.autoFont = value;
     break;
   case GLC_GL_OBJECTS:
-    state->enableState.glObjects = value;
+    ctx->enableState.glObjects = value;
     break;
   case GLC_MIPMAP:
-    state->enableState.mipmap = value;
-    if (state->atlas.id) {
+    ctx->enableState.mipmap = value;
+    if (ctx->atlas.id) {
       GLint boundTexture = 0;
       glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
-      glBindTexture(GL_TEXTURE_2D, state->atlas.id);
-      if (state->enableState.mipmap)
+      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
+      if (ctx->enableState.mipmap)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 			GL_LINEAR_MIPMAP_LINEAR);
       else
@@ -230,13 +230,13 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
     }
     break;
   case GLC_HINTING_QSO:
-    state->enableState.hinting = value;
+    ctx->enableState.hinting = value;
     break;
   case GLC_EXTRUDE_QSO:
-    state->enableState.extrude = value;
+    ctx->enableState.extrude = value;
     break;
   case GLC_KERNING_QSO:
-    state->enableState.kerning = value;
+    ctx->enableState.kerning = value;
     break;
   }
 }
@@ -333,7 +333,7 @@ void APIENTRY glcEnable(GLCenum inAttrib)
  */
 GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameters */
   if (inOpcode != GLC_OP_glcUnmappedCode) {
@@ -342,13 +342,13 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
-  return state->stringState.callback;
+  return ctx->stringState.callback;
 }
 
 
@@ -386,7 +386,7 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
  */
 const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FcStrList* iterator = NULL;
   FcChar8* catalog = NULL;
   GLCchar* buffer = NULL;
@@ -410,14 +410,14 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
   /* Get the string at offset inIndex */
-  iterator = FcStrListCreate(state->catalogList);
+  iterator = FcStrListCreate(ctx->catalogList);
   if (!iterator) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
@@ -451,7 +451,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
    */
   length = strlen((const char*) catalog) + 1;
 
-  buffer = __glcCtxQueryBuffer(state, length * sizeof(char));
+  buffer = __glcCtxQueryBuffer(ctx, length * sizeof(char));
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
@@ -514,7 +514,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
  */
 GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
   /* Check parameters */
@@ -541,8 +541,8 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
@@ -552,21 +552,21 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
    */
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
-    for (node = state->currentFontList.head; inIndex && node;
+    for (node = ctx->currentFontList.head; inIndex && node;
          node = node->next, inIndex--);
 
     if (node)
-      return ((__glcFont*)node->data)->id;
+      return ((__GLCfont*)node->data)->id;
     else {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
     }
   case GLC_FONT_LIST:
-    for (node = state->fontList.head; inIndex && node;
+    for (node = ctx->fontList.head; inIndex && node;
          node = node->next, inIndex--);
 
     if (node)
-      return ((__glcFont*)node->data)->id;
+      return ((__GLCfont*)node->data)->id;
     else {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return 0;
@@ -575,14 +575,14 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
     /* In order to get the display list name, we have to perform a search
      * through the list of display lists of every face descriptor.
      */
-    for (node = state->fontList.head; node; node = node->next) {
-      __glcFaceDescriptor* faceDesc =
-		(__glcFaceDescriptor*)(((__glcFont*)(node->data))->faceDesc);
+    for (node = ctx->fontList.head; node; node = node->next) {
+      __GLCfaceDescriptor* faceDesc =
+		(__GLCfaceDescriptor*)(((__GLCfont*)(node->data))->faceDesc);
       FT_ListNode glyphNode = NULL;
 
       for (glyphNode = faceDesc->glyphList.head; glyphNode;
 	   glyphNode = glyphNode->next) {
-	__glcGlyph* glyph = (__glcGlyph*)glyphNode;
+	__GLCglyph* glyph = (__GLCglyph*)glyphNode;
 	int count = __glcGlyphGetDisplayListCount(glyph);
 
 	if (inIndex < count)
@@ -596,14 +596,14 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
   case GLC_TEXTURE_OBJECT_LIST:
     switch(inIndex) {
       case 1:
-	if (state->texture.id)
-	  return state->texture.id;
-	if (state->atlas.id)
-	  return state->atlas.id;
+	if (ctx->texture.id)
+	  return ctx->texture.id;
+	if (ctx->atlas.id)
+	  return ctx->atlas.id;
 	break;
       case 2:
-	if ((state->texture.id) && (state->atlas.id))
-	  return state->atlas.id;
+	if ((ctx->texture.id) && (ctx->atlas.id))
+	  return ctx->atlas.id;
 	break;
       default:
 	break;
@@ -639,7 +639,7 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
  */
 GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameter */
   if (inAttrib != GLC_DATA_POINTER) {
@@ -648,13 +648,13 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
 
-  return state->stringState.dataPointer;
+  return ctx->stringState.dataPointer;
 }
 
 
@@ -694,7 +694,7 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
   static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameters */
   switch(inAttrib) {
@@ -708,8 +708,8 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
@@ -717,14 +717,14 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   /* Translate the string to the relevant Unicode format */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
-    return __glcConvertFromUtf8ToBuffer(state, __glcExtensions,
-					state->stringState.stringType);
+    return __glcConvertFromUtf8ToBuffer(ctx, __glcExtensions,
+					ctx->stringState.stringType);
   case GLC_RELEASE:
-    return __glcConvertFromUtf8ToBuffer(state, (GLCchar*)__glcRelease,
-					state->stringState.stringType);
+    return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcRelease,
+					ctx->stringState.stringType);
   case GLC_VENDOR:
-    return __glcConvertFromUtf8ToBuffer(state, __glcVendor,
-					state->stringState.stringType);
+    return __glcConvertFromUtf8ToBuffer(ctx, __glcVendor,
+					ctx->stringState.stringType);
   default:
     return GLC_NONE;
   }
@@ -755,7 +755,7 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
  */
 GLfloat APIENTRY glcGetf(GLCenum inAttrib)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameter */
   if (inAttrib != GLC_RESOLUTION) {
@@ -764,13 +764,13 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0.f;
   }
 
-  return state->renderState.resolution;
+  return ctx->renderState.resolution;
 }
 
 
@@ -802,7 +802,7 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
  */
 GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   assert(outVec);
 
@@ -813,13 +813,13 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
 
-  memcpy(outVec, state->bitmapMatrix, 4 * sizeof(GLfloat));
+  memcpy(outVec, ctx->bitmapMatrix, 4 * sizeof(GLfloat));
 
   return outVec;
 }
@@ -908,7 +908,7 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  */
 GLint APIENTRY glcGeti(GLCenum inAttrib)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
   GLint count = 0;
   FcStrList* iterator = NULL;
@@ -939,8 +939,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
   }
@@ -948,7 +948,7 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
-    iterator = FcStrListCreate(state->catalogList);
+    iterator = FcStrListCreate(ctx->catalogList);
     if (!iterator) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GLC_NONE;
@@ -958,52 +958,52 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
     FcStrListDone(iterator);
     return count;
   case GLC_CURRENT_FONT_COUNT:
-    for (node = state->currentFontList.head, count = 0; node;
+    for (node = ctx->currentFontList.head, count = 0; node;
 	 node = node->next, count++);
     return count;
   case GLC_FONT_COUNT:
-    for (count = 0, node = state->fontList.head; node;
+    for (count = 0, node = ctx->fontList.head; node;
 	 node = node->next, count++);
     return count;
   case GLC_LIST_OBJECT_COUNT:
-    for (node = state->fontList.head; node; node = node->next) {
-      __glcFaceDescriptor* faceDesc =
-		(__glcFaceDescriptor*)(((__glcFont*)(node->data))->faceDesc);
+    for (node = ctx->fontList.head; node; node = node->next) {
+      __GLCfaceDescriptor* faceDesc =
+		(__GLCfaceDescriptor*)(((__GLCfont*)(node->data))->faceDesc);
       FT_ListNode glyphNode = NULL;
 
       for (glyphNode = faceDesc->glyphList.head; glyphNode;
 	   glyphNode = glyphNode->next) {
-	__glcGlyph* glyph = (__glcGlyph*)glyphNode;
+	__GLCglyph* glyph = (__GLCglyph*)glyphNode;
 
 	count += __glcGlyphGetDisplayListCount(glyph);
       }
     }
     return count;
   case GLC_MASTER_COUNT:
-    return GLC_ARRAY_LENGTH(state->masterHashTable);
+    return GLC_ARRAY_LENGTH(ctx->masterHashTable);
   case GLC_MEASURED_CHAR_COUNT:
-    return GLC_ARRAY_LENGTH(state->measurementBuffer);
+    return GLC_ARRAY_LENGTH(ctx->measurementBuffer);
   case GLC_RENDER_STYLE:
-    return state->renderState.renderStyle;
+    return ctx->renderState.renderStyle;
   case GLC_REPLACEMENT_CODE:
     /* Return the replacement character converted to the current string type */
-    return __glcConvertUcs4ToGLint(state, state->stringState.replacementCode);
+    return __glcConvertUcs4ToGLint(ctx, ctx->stringState.replacementCode);
   case GLC_STRING_TYPE:
-    return state->stringState.stringType;
+    return ctx->stringState.stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    count += (state->texture.id ? 1: 0);
-    count += (state->atlas.id ? 1:0);
+    count += (ctx->texture.id ? 1: 0);
+    count += (ctx->atlas.id ? 1:0);
     return count;
   case GLC_VERSION_MAJOR:
     return __glcCommonArea.versionMajor;
   case GLC_VERSION_MINOR:
     return __glcCommonArea.versionMinor;
   case GLC_MATRIX_STACK_DEPTH_QSO:     /* QuesoGLC extension */
-    return state->bitmapMatrixStackDepth;
+    return ctx->bitmapMatrixStackDepth;
   case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
     return GLC_MAX_MATRIX_STACK_DEPTH;
   case GLC_ATTRIB_STACK_DEPTH_QSO:     /* QuesoGLC extension */
-    return state->attribStackDepth;
+    return ctx->attribStackDepth;
   case GLC_MAX_ATTRIB_STACK_DEPTH_QSO: /* QuesoGLC extension */
     return GLC_MAX_ATTRIB_STACK_DEPTH;
   }
@@ -1026,7 +1026,7 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
  */
 GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameters */
   switch(inAttrib) {
@@ -1043,8 +1043,8 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GL_FALSE;
   }
@@ -1052,17 +1052,17 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_AUTO_FONT:
-    return state->enableState.autoFont;
+    return ctx->enableState.autoFont;
   case GLC_GL_OBJECTS:
-    return state->enableState.glObjects;
+    return ctx->enableState.glObjects;
   case GLC_MIPMAP:
-    return state->enableState.mipmap;
+    return ctx->enableState.mipmap;
   case GLC_HINTING_QSO:
-    return state->enableState.hinting;
+    return ctx->enableState.hinting;
   case GLC_EXTRUDE_QSO:
-    return state->enableState.extrude;
+    return ctx->enableState.extrude;
   case GLC_KERNING_QSO:
-    return state->enableState.kerning;
+    return ctx->enableState.kerning;
   }
 
   return GL_FALSE;
@@ -1124,7 +1124,7 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
  */
 void APIENTRY glcStringType(GLCenum inStringType)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   /* Check the parameters */
   switch(inStringType) {
@@ -1139,13 +1139,13 @@ void APIENTRY glcStringType(GLCenum inStringType)
   }
 
   /* Check if the thread has a current context */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  state->stringState.stringType = inStringType;
+  ctx->stringState.stringType = inStringType;
   return;
 }
 
@@ -1274,36 +1274,36 @@ void APIENTRY glcStringType(GLCenum inStringType)
  */
 void APIENTRY glcPushAttribQSO(GLbitfield inMask)
 {
-  __glcContextState *state = NULL;
-  __glcAttribStackLevel *level = NULL;
+  __GLCcontext *ctx = NULL;
+  __GLCattribStackLevel *level = NULL;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  if (state->attribStackDepth >= GLC_MAX_ATTRIB_STACK_DEPTH) {
+  if (ctx->attribStackDepth >= GLC_MAX_ATTRIB_STACK_DEPTH) {
     __glcRaiseError(GLC_STACK_OVERFLOW_QSO);
     return;
   }
 
-  level = &state->attribStack[state->attribStackDepth++];
+  level = &ctx->attribStack[ctx->attribStackDepth++];
   level->attribBits = 0;
 
   if (inMask & GLC_ENABLE_BIT_QSO) {
-    memcpy(&level->enableState, &state->enableState, sizeof(__glcEnableState));
+    memcpy(&level->enableState, &ctx->enableState, sizeof(__GLCenableState));
     level->attribBits |= GLC_ENABLE_BIT_QSO;
   }
 
   if (inMask & GLC_RENDER_BIT_QSO) {
-    memcpy(&level->renderState, &state->renderState, sizeof(__glcRenderState));
+    memcpy(&level->renderState, &ctx->renderState, sizeof(__GLCrenderState));
     level->attribBits |= GLC_RENDER_BIT_QSO;
   }
 
   if (inMask & GLC_STRING_BIT_QSO) {
-    memcpy(&level->stringState, &state->stringState, sizeof(__glcStringState));
+    memcpy(&level->stringState, &ctx->stringState, sizeof(__GLCstringState));
     level->attribBits |= GLC_STRING_BIT_QSO;
   }
 
@@ -1328,33 +1328,33 @@ void APIENTRY glcPushAttribQSO(GLbitfield inMask)
  */
 void APIENTRY glcPopAttribQSO(void)
 {
-  __glcContextState *state = NULL;
-  __glcAttribStackLevel *level = NULL;
+  __GLCcontext *ctx = NULL;
+  __GLCattribStackLevel *level = NULL;
   GLbitfield mask;
 
   /* Check if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
   }
 
-  if (state->attribStackDepth <= 0) {
+  if (ctx->attribStackDepth <= 0) {
     __glcRaiseError(GLC_STACK_UNDERFLOW_QSO);
     return;
   }
 
-  level = &state->attribStack[--state->attribStackDepth];
+  level = &ctx->attribStack[--ctx->attribStackDepth];
   mask = level->attribBits;
 
   if (mask & GLC_ENABLE_BIT_QSO)
-    memcpy(&state->enableState, &level->enableState, sizeof(__glcEnableState));
+    memcpy(&ctx->enableState, &level->enableState, sizeof(__GLCenableState));
 
   if (mask & GLC_RENDER_BIT_QSO)
-    memcpy(&state->renderState, &level->renderState, sizeof(__glcRenderState));
+    memcpy(&ctx->renderState, &level->renderState, sizeof(__GLCrenderState));
 
   if (mask & GLC_STRING_BIT_QSO)
-    memcpy(&state->stringState, &level->stringState, sizeof(__glcStringState));
+    memcpy(&ctx->stringState, &level->stringState, sizeof(__GLCstringState));
 
   if (mask & GLC_GL_ATTRIB_BIT_QSO)
     __glcRestoreGLState(&level->glState);

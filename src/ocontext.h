@@ -18,6 +18,10 @@
  */
 /* $Id$ */
 
+/** \file
+ * header of the object __GLCcontext which is used to manage the contexts.
+ */
+
 #ifndef __glc_ocontext_h
 #define __glc_ocontext_h
 
@@ -40,34 +44,44 @@
 #define GLC_MAX_MATRIX_STACK_DEPTH	32
 #define GLC_MAX_ATTRIB_STACK_DEPTH	16
 
-typedef struct {
+typedef struct __GLCcontextRec __GLCcontext;
+typedef struct __GLCtextureRec __GLCtexture;
+typedef struct __GLCenableStateRec __GLCenableState;
+typedef struct __GLCrenderStateRec __GLCrenderState;
+typedef struct __GLCstringStateRec __GLCstringState;
+typedef struct __GLCglStateRec __GLCglState;
+typedef struct __GLCattribStackLevelRec  __GLCattribStackLevel;
+typedef struct __GLCthreadAreaRec __GLCthreadArea;
+typedef struct __GLCcommonAreaRec  __GLCcommonArea;
+
+struct __GLCtextureRec {
   GLuint id;
   GLsizei width;
   GLsizei heigth;
-} __glcTexture;
+};
 
-typedef struct {
+struct __GLCenableStateRec {
   GLboolean autoFont;		/* GLC_AUTO_FONT */
   GLboolean glObjects;		/* GLC_GLOBJECTS */
   GLboolean mipmap;		/* GLC_MIPMAP */
   GLboolean hinting;		/* GLC_HINTING_QSO */
   GLboolean extrude;		/* GLC_EXTRUDE_QSO */
   GLboolean kerning;		/* GLC_KERNING_QSO */
-} __glcEnableState;
+};
 
-typedef struct {
+struct __GLCrenderStateRec {
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
-} __glcRenderState;
+};
 
-typedef struct {
+struct __GLCstringStateRec {
   GLint replacementCode;	/* GLC_REPLACEMENT_CODE */
   GLint stringType;		/* GLC_STRING_TYPE */
   GLCfunc callback;		/* Callback function GLC_OP_glcUnmappedCode */
   GLvoid* dataPointer;		/* GLC_DATA_POINTER */
-} __glcStringState;
+};
 
-typedef struct {
+struct __GLCglStateRec {
   GLboolean texture2D;
   GLint textureID;
   GLint textureEnvMode;
@@ -80,17 +94,17 @@ typedef struct {
   GLboolean indexArray;
   GLboolean texCoordArray;
   GLboolean edgeFlagArray;
-} __glcGLState;
+};
 
-typedef struct {
+struct __GLCattribStackLevelRec {
   GLbitfield attribBits;
-  __glcEnableState enableState;
-  __glcRenderState renderState;
-  __glcStringState stringState;
-  __glcGLState glState;
-} __glcAttribStackLevel;
+  __GLCenableState enableState;
+  __GLCrenderState renderState;
+  __GLCstringState stringState;
+  __GLCglState glState;
+};
 
-typedef struct {
+struct __GLCcontextRec {
   FT_ListNodeRec node;
 
   GLboolean isCurrent;
@@ -105,27 +119,27 @@ typedef struct {
 
   GLint id;			/* Context ID */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */
-  __glcEnableState enableState;
-  __glcRenderState renderState;
-  __glcStringState stringState;
+  __GLCenableState enableState;
+  __GLCrenderState renderState;
+  __GLCstringState stringState;
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_ListRec fontList;		/* GLC_FONT_LIST */
-  __glcArray* masterHashTable;
+  __GLCarray* masterHashTable;
   FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
-  __glcArray* measurementBuffer;
+  __GLCarray* measurementBuffer;
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;
   GLint lastFontID;
-  __glcArray* vertexArray;	/* Array of vertices */
-  __glcArray* controlPoints;	/* Array of control points */
-  __glcArray* endContour;	/* Array of contour limits */
-  __glcArray* vertexIndices;	/* Array of vertex indices */
-  __glcArray* geomBatches;	/* Array of geometric batches */
+  __GLCarray* vertexArray;	/* Array of vertices */
+  __GLCarray* controlPoints;	/* Array of control points */
+  __GLCarray* endContour;	/* Array of contour limits */
+  __GLCarray* vertexIndices;	/* Array of vertex indices */
+  __GLCarray* geomBatches;	/* Array of geometric batches */
 
   GLEWContext glewContext;	/* GLEW context for OpenGL extensions */
-  __glcTexture texture;		/* Texture for immediate mode rendering */
+  __GLCtexture texture;		/* Texture for immediate mode rendering */
 
-  __glcTexture atlas;
+  __GLCtexture atlas;
   FT_ListRec atlasList;
   int atlasWidth;
   int atlasHeight;
@@ -135,23 +149,23 @@ typedef struct {
   GLfloat bitmapMatrixStack[4*GLC_MAX_MATRIX_STACK_DEPTH];
   GLint bitmapMatrixStackDepth;
 
-  __glcAttribStackLevel attribStack[GLC_MAX_ATTRIB_STACK_DEPTH];
+  __GLCattribStackLevel attribStack[GLC_MAX_ATTRIB_STACK_DEPTH];
   GLint attribStackDepth;
-} __glcContextState;
+};
 
-typedef struct {
-  __glcContextState* currentContext;
+struct __GLCthreadAreaRec {
+  __GLCcontext* currentContext;
   GLCenum errorState;
   GLint lockState;
   FT_ListRec exceptionStack;
   __glcException failedTry;
-} threadArea;
+};
 
-typedef struct {
+struct __GLCcommonAreaRec {
   GLint versionMajor;		/* GLC_VERSION_MAJOR */
   GLint versionMinor;		/* GLC_VERSION_MINOR */
 
-  FT_ListRec stateList;
+  FT_ListRec contextList;
 #ifndef __WIN32__
   pthread_mutex_t mutex;	/* For concurrent accesses to the common
 				   area */
@@ -168,22 +182,22 @@ typedef struct {
    * However, this has not happened yet so we still rely on FT_MemoryRec_ ...
    */
   struct FT_MemoryRec_ memoryManager;
-} commonArea;
+};
 
-extern commonArea __glcCommonArea;
+extern __GLCcommonArea __glcCommonArea;
 
 #ifdef QUESOGLC_STATIC_LIBRARY
 extern pthread_once_t initLibraryOnce;
 #endif
 
-__glcContextState* __glcCtxCreate(GLint inContext);
-void __glcCtxDestroy(__glcContextState *This);
-void __glcCtxAddMasters(__glcContextState *This, const GLCchar* catalog,
+__GLCcontext* __glcCtxCreate(GLint inContext);
+void __glcCtxDestroy(__GLCcontext *This);
+void __glcCtxAddMasters(__GLCcontext *This, const GLCchar* catalog,
 			GLboolean append);
-void __glcCtxRemoveMasters(__glcContextState *This, GLint inIndex);
-GLint __glcCtxGetFont(__glcContextState *This, GLint code);
-GLCchar* __glcCtxQueryBuffer(__glcContextState *This, int inSize);
-void __glcAddFontsToContext(__glcContextState *This, FcFontSet *fontSet,
+void __glcCtxRemoveMasters(__GLCcontext *This, GLint inIndex);
+GLint __glcCtxGetFont(__GLCcontext *This, GLint code);
+GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize);
+void __glcAddFontsToContext(__GLCcontext *This, FcFontSet *fontSet,
 			    GLboolean inAppend);
 
 #endif /* __glc_ocontext_h */

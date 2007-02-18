@@ -20,25 +20,27 @@
 
 /* Defines the methods of an object that is intended to managed glyphs */
 
-#include "internal.h"
-#include "texture.h"
-
 /** \file
- * defines the object __glcGlyph which caches all the data needed for a given
+ * defines the object __GLCglyph which caches all the data needed for a given
  * glyph : display list, texture, bounding box, advance, index in the font
  * file, etc.
  */
+
+#include "internal.h"
+#include "texture.h"
+
+
 
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  * The user must give the index of the glyph in the font file and its Unicode
  * codepoint.
  */
-__glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
+__GLCglyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
 {
-  __glcGlyph* This = NULL;
+  __GLCglyph* This = NULL;
 
-  This = (__glcGlyph*)__glcMalloc(sizeof(__glcGlyph));
+  This = (__GLCglyph*)__glcMalloc(sizeof(__GLCglyph));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -63,16 +65,16 @@ __glcGlyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
 
 
 /* Destructor of the object */
-void __glcGlyphDestroy(__glcGlyph* This, __glcContextState* inState)
+void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext)
 {
-  __glcGlyphDestroyGLObjects(This, inState);
+  __glcGlyphDestroyGLObjects(This, inContext);
   __glcFree(This);
 }
 
 
 
 /* Remove all GL objects related to the texture of the glyph */
-void __glcGlyphDestroyTexture(__glcGlyph* This)
+void __glcGlyphDestroyTexture(__GLCglyph* This)
 {
   glDeleteLists(This->displayList[0], 1);
   This->displayList[0] = 0;
@@ -84,10 +86,10 @@ void __glcGlyphDestroyTexture(__glcGlyph* This)
 /* This function destroys the display lists and the texture objects that
  * are associated with a glyph.
  */
-void __glcGlyphDestroyGLObjects(__glcGlyph* This, __glcContextState* inState)
+void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 {
   if (This->displayList[0]) {
-    __glcDeleteAtlasElement((__glcAtlasElement*)This->textureObject, inState);
+    __glcDeleteAtlasElement((__GLCatlasElement*)This->textureObject, inContext);
     __glcGlyphDestroyTexture(This);
   }
 
@@ -106,7 +108,7 @@ void __glcGlyphDestroyGLObjects(__glcGlyph* This, __glcContextState* inState)
 
 
 /* Returns the number of display that has been built for a glyph */
-int __glcGlyphGetDisplayListCount(__glcGlyph* This)
+int __glcGlyphGetDisplayListCount(__GLCglyph* This)
 {
   int i = 0;
   int count = 0;
@@ -124,7 +126,7 @@ int __glcGlyphGetDisplayListCount(__glcGlyph* This)
 /* Returns the ID of the inCount-th display list that has been built for a
  * glyph.
  */
-GLuint __glcGlyphGetDisplayList(__glcGlyph* This, int inCount)
+GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
 {
   int i = 0;
 

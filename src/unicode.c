@@ -18,7 +18,12 @@
  */
 /* $Id$ */
 
-/* This file defines miscellaneous utility routines used for Unicode management */
+/* This file defines miscellaneous utility routines used for Unicode management
+ */
+
+/** \file
+ *  defines the routines used to manipulate Unicode strings and characters
+ */
 
 #include <fribidi/fribidi.h>
 
@@ -280,7 +285,7 @@ FcChar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
 /* Convert 'inString' from the UTF-8 format and return a copy of the
  * converted string in the context buffer.
  */
-GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
+GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 				      const FcChar8* inString,
 				      const GLint inStringType)
 {
@@ -423,9 +428,9 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__glcContextState* This,
  * stored in a GLint. If the code can not be converted to the current string
  * type a GLC_PARAMETER_ERROR is issued.
  */
-GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
+GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode)
 {
-  switch(inState->stringState.stringType) {
+  switch(inContext->stringState.stringType) {
   case GLC_UCS2:
     /* Check that inCode can be stored in UCS-2 format */
     if (inCode <= 65535)
@@ -450,7 +455,7 @@ GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
 #ifdef DEBUGMODE
       int len = FcUcs4ToUtf8((FcChar32)inCode, buffer);
 #endif
-      assert(len <= sizeof(GLint));
+      assert((size_t)len <= sizeof(GLint));
 
       return *((GLint*)buffer);
     }
@@ -465,7 +470,7 @@ GLint __glcConvertUcs4ToGLint(__glcContextState *inState, GLint inCode)
  * This function is needed since the GLC specs store individual character codes
  * in GLint which may cause problems for the UTF-8 format.
  */
-GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
+GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode)
 {
   GLint code = inCode;
   FcBlanks* blanks = NULL;
@@ -476,7 +481,7 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
   }
 
   /* If the current string type is GLC_UTF8_QSO then converts to GLC_UCS4 */
-  if (inState->stringState.stringType == GLC_UTF8_QSO) {
+  if (inContext->stringState.stringType == GLC_UTF8_QSO) {
     /* Convert the codepoint in UCS4 format and check if it is ill-formed or
      * not
      */
@@ -487,7 +492,7 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
   }
 
   /* Treat all blank characters as '\0' */
-  blanks = FcConfigGetBlanks(inState->config);
+  blanks = FcConfigGetBlanks(inContext->config);
   if (blanks) {
     if (FcBlanksIsMember(blanks, code))
       return 0;
@@ -501,7 +506,7 @@ GLint __glcConvertGLintToUcs4(__glcContextState *inState, GLint inCode)
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
+FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
 				   const GLCchar* inString)
 {
   FcChar32* string = NULL;
@@ -511,7 +516,7 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
 
   assert(inString);
 
-  switch(inState->stringState.stringType) {
+  switch(inContext->stringState.stringType) {
   case GLC_UCS1:
     {
       FcChar8* ucs1 = (FcChar8*)inString;
@@ -520,7 +525,8 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
       length = strlen((const char*)ucs1);
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(length+1)*sizeof(FcChar32));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(length+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -540,7 +546,8 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
       for (ucs2 = (FcChar16*)inString; *ucs2; ucs2++, length++);
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(length+1)*sizeof(FcChar32));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(length+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -560,7 +567,8 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
       for (ucs4 = (FcChar32*)inString; *ucs4; ucs4++, length++);
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(length+1)*sizeof(int));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(length+1)*sizeof(int));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -592,7 +600,8 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
       }
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(length+1)*sizeof(FcChar32));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(length+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -623,7 +632,7 @@ FcChar32* __glcConvertToVisualUcs4(__glcContextState* inState,
 /* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4
  * format and return a copy of the converted string in visual order.
  */
-FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
+FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
 						const GLCchar* inString,
 						const GLint inCount)
 {
@@ -633,7 +642,7 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
 
   assert(inString);
 
-  switch(inState->stringState.stringType) {
+  switch(inContext->stringState.stringType) {
   case GLC_UCS1:
     {
       FcChar8* ucs1 = (FcChar8*)inString;
@@ -641,7 +650,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
       GLint i = 0;
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(inCount+1)*sizeof(FcChar32));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(inCount+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -662,7 +672,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
       GLint i = 0;
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(inCount+1)*sizeof(FcChar32));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(inCount+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -680,7 +691,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
   case GLC_UCS4:
     {
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(inCount+1)*sizeof(int));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(inCount+1)*sizeof(int));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -698,7 +710,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
       GLint i = 0;
 
       /* Allocate the room to store the final string */
-      string = (FcChar32*)__glcCtxQueryBuffer(inState, 2*(inCount+1)*sizeof(FcChar32));
+      string = (FcChar32*)__glcCtxQueryBuffer(inContext,
+					      2*(inCount+1)*sizeof(FcChar32));
       if (!string) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return NULL;
@@ -717,7 +730,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__glcContextState* inState,
   }
 
   visualString = string + inCount;
-  if (!fribidi_log2vis(string, inCount, &base, visualString, NULL, NULL, NULL)) {
+  if (!fribidi_log2vis(string, inCount, &base, visualString, NULL, NULL,
+		       NULL)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }

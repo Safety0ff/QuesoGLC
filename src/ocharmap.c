@@ -18,28 +18,30 @@
  */
 /* $Id$ */
 
-#include <fontconfig/fontconfig.h>
-
-#include "internal.h"
-
 /** \file
- * defines the object __glcCharMap which manage the charmaps of both the fonts
+ * defines the object __GLCcharMap which manage the charmaps of both the fonts
  * and the masters. One of the purpose of this object is to encapsulate the
  * FcCharSet structure from Fontconfig and to add it some more functionalities.
  * It also allows to centralize the character map management for easier
  * maintenance.
  */
 
+#include <fontconfig/fontconfig.h>
+
+#include "internal.h"
+
+
+
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  * The user must give the initial FcCharSet of the font or the master (which
  * may be NULL) in which case the character map will be empty.
  */
-__glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet)
+__GLCcharMap* __glcCharMapCreate(FcCharSet* inCharSet)
 {
-  __glcCharMap* This = NULL;
+  __GLCcharMap* This = NULL;
 
-  This = (__glcCharMap*)__glcMalloc(sizeof(__glcCharMap));
+  This = (__GLCcharMap*)__glcMalloc(sizeof(__GLCcharMap));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -57,7 +59,7 @@ __glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet)
   }
 
   /* The array 'map' will contain the actual character map */
-  This->map = __glcArrayCreate(sizeof(__glcCharMapElement));
+  This->map = __glcArrayCreate(sizeof(__GLCcharMapElement));
   if (!This->map) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcCharSetDestroy(This->charSet);
@@ -71,7 +73,7 @@ __glcCharMap* __glcCharMapCreate(FcCharSet* inCharSet)
 
 
 /* Destructor of the object */
-void __glcCharMapDestroy(__glcCharMap* This)
+void __glcCharMapDestroy(__GLCcharMap* This)
 {
   if (This->map)
     __glcArrayDestroy(This->map);
@@ -86,17 +88,18 @@ void __glcCharMapDestroy(__glcCharMap* This)
 /* Add a given character to the character map. Afterwards, the character map
  * will associate the glyph 'inGlyph' to the Unicode codepoint 'inCode'.
  */
-void __glcCharMapAddChar(__glcCharMap* This, GLint inCode, __glcGlyph* inGlyph)
+void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
 {
-  __glcCharMapElement* element = NULL;
-  __glcCharMapElement* newElement = NULL;
+  __GLCcharMapElement* element = NULL;
+  __GLCcharMapElement* newElement = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
+  assert(inCode > 0);
 
   /* Characters are stored by ascending order of their mapped code */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
@@ -108,11 +111,11 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode, __glcGlyph* inGlyph)
     /* If the character map already contains the new character then update the
      * glyph then return.
      */
-    if (element[middle].mappedCode == inCode) {
+    if (element[middle].mappedCode == (FT_ULong)inCode) {
       element[middle].glyph = inGlyph;
       return;
     }
-    else if (element[middle].mappedCode > inCode)
+    else if (element[middle].mappedCode > (FT_ULong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -121,11 +124,11 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode, __glcGlyph* inGlyph)
   /* If we have reached the end of the array then updated the rank 'middle'
    * accordingly.
    */
-  if ((end >= 0) && (element[middle].mappedCode < inCode))
+  if ((end >= 0) && (element[middle].mappedCode < (FT_ULong)inCode))
     middle++;
 
   /* Insert the new character in the character map */
-  newElement = (__glcCharMapElement*)__glcArrayInsertCell(This->map, middle, 1);
+  newElement = (__GLCcharMapElement*)__glcArrayInsertCell(This->map, middle, 1);
   if (!newElement)
     return;
 
@@ -137,16 +140,17 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode, __glcGlyph* inGlyph)
 
 
 /* Remove a character from the character map */
-void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
+void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
 {
-  __glcCharMapElement* element = NULL;
+  __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
+  assert(inCode > 0);
 
   /* Characters are stored by ascending order of their mapped code */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
@@ -156,11 +160,11 @@ void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
   while (start <= end) {
     middle = (start + end) >> 1;
     /* When the character is found remove it from the array and return */
-    if (element[middle].mappedCode == inCode) {
+    if (element[middle].mappedCode == (FT_ULong)inCode) {
       __glcArrayRemove(This->map, middle);
       break;
     }
-    else if (element[middle].mappedCode > inCode)
+    else if (element[middle].mappedCode > (FT_ULong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -174,19 +178,20 @@ void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode)
  * can return 'LATIN CAPITAL LETTER B' whereas inCode contained 65 (which is
  * the Unicode code point of 'LATIN CAPITAL LETTER A'.
  */
-GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
-				 __glcContextState* inState)
+GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
+				 __GLCcontext* inContext)
 {
   GLCchar *buffer = NULL;
   FcChar8* name = NULL;
-  __glcCharMapElement* element = NULL;
+  __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
+  assert(inCode > 0);
 
   /* Characters are stored by ascending order of their mapped code */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
@@ -195,11 +200,11 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
    */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (element[middle].mappedCode == inCode) {
+    if (element[middle].mappedCode == (FT_ULong)inCode) {
       inCode = element[middle].glyph->codepoint;
       break;
     }
-    else if (element[middle].mappedCode > inCode)
+    else if (element[middle].mappedCode > (FT_ULong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -216,8 +221,8 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
   }
 
   /* Convert the Unicode to the current string type */
-  buffer = __glcConvertFromUtf8ToBuffer(inState, name,
-					inState->stringState.stringType);
+  buffer = __glcConvertFromUtf8ToBuffer(inContext, name,
+					inContext->stringState.stringType);
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GLC_NONE;
@@ -229,16 +234,17 @@ GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
 
 
 /* Get the glyph corresponding to codepoint 'inCode' */
-__glcGlyph* __glcCharMapGetGlyph(__glcCharMap* This, GLint inCode)
+__GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode)
 {
-  __glcCharMapElement* element = NULL;
+  __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
+  assert(inCode > 0);
 
   /* Characters are stored by ascending order of their mapped code */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
@@ -247,10 +253,10 @@ __glcGlyph* __glcCharMapGetGlyph(__glcCharMap* This, GLint inCode)
    */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (element[middle].mappedCode == inCode)
+    if (element[middle].mappedCode == (FT_ULong)inCode)
       /* When the character is found return the corresponding glyph */
       return element[middle].glyph;
-    else if (element[middle].mappedCode > inCode)
+    else if (element[middle].mappedCode > (FT_ULong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -263,16 +269,17 @@ __glcGlyph* __glcCharMapGetGlyph(__glcCharMap* This, GLint inCode)
 
 
 /* Check if a character is in the character map */
-GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
+GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode)
 {
-  __glcCharMapElement* element = NULL;
+  __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
+  assert(inCode > 0);
 
   /* Characters are stored by ascending order of their mapped code */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
 
   end = GLC_ARRAY_LENGTH(This->map) - 1;
 
@@ -280,9 +287,9 @@ GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode)
   while (start <= end) {
     middle = (start + end) >> 1;
     /* The character has been found : return GL_TRUE */
-    if (element[middle].mappedCode == inCode)
+    if (element[middle].mappedCode == (FT_ULong)inCode)
       return GL_TRUE;
-    else if (element[middle].mappedCode > inCode)
+    else if (element[middle].mappedCode > (FT_ULong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -310,11 +317,13 @@ static FcChar32 __glcCharSetPopCount(FcChar32 c1)
 /* Get the name of the character which is stored at rank 'inIndex' in the
  * FcCharSet of the face.
  */
-GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
-					__glcContextState* inState)
+GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
+					__GLCcontext* inContext)
 {
   int i = 0;
   int j = 0;
+
+  assert(inIndex > 0);
 
   /* In Fontconfig the map in FcCharSet is organized as an array of integers.
    * Each integer corresponds to a page of 32 characters (since it uses 32 bits
@@ -342,12 +351,12 @@ GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
       value = __glcCharSetPopCount(map[i]);
 
       /* Check if the character we are looking for is in the current page */
-      if (count + value >= inIndex + 1) {
+      if (count + value >= (FcChar32)inIndex + 1) {
 	for (j = 0; j < 32; j++) {
 	  /* Parse the page bit by bit */
 	  if ((map[i] >> j) & 1) count++; /* A character is set at bit j */
 	  /* Check if we have reached the rank inIndex */
-	  if (count == inIndex + 1) {
+	  if (count == (FcChar32)inIndex + 1) {
 	    /* Get the character name */
 	    FcChar8* name = __glcNameFromCode(base + (i << 5) + j);
 	    GLCchar* buffer = NULL;
@@ -358,8 +367,8 @@ GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 	    }
 
 	    /* Performs the conversion to the current string type */
-	    buffer = __glcConvertFromUtf8ToBuffer(inState, name,
-					inState->stringState.stringType);
+	    buffer = __glcConvertFromUtf8ToBuffer(inContext, name,
+					inContext->stringState.stringType);
 	    if (!buffer) {
 	      __glcRaiseError(GLC_RESOURCE_ERROR);
 	      return GLC_NONE;
@@ -386,7 +395,7 @@ GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
 
 
 /* Return the number of characters in the character map */
-GLint __glcCharMapGetCount(__glcCharMap* This)
+GLint __glcCharMapGetCount(__GLCcharMap* This)
 {
   return FcCharSetCount(This->charSet);
 }
@@ -394,15 +403,15 @@ GLint __glcCharMapGetCount(__glcCharMap* This)
 
 
 /* Get the maximum mapped code of a character set */
-GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This)
+GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
 {
   FcChar32 base = 0;
   FcChar32 next = 0;
   FcChar32 prev_base = 0;
   FcChar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
-  int maxMappedCode = 0;
-  __glcCharMapElement* element = NULL;
+  FT_ULong maxMappedCode = 0;
+  __GLCcharMapElement* element = NULL;
   int length = 0;
 
   assert(This->map);
@@ -438,7 +447,7 @@ GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This)
   /* Check that a code greater than the one found in the FcCharSet is not
    * stored in the array 'map'.
    */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
   length = GLC_ARRAY_LENGTH(This->map);
 
   /* Return the greater of the code of both the FcCharSet and the array 'map'*/
@@ -452,14 +461,14 @@ GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This)
 
 
 /* Get the minimum mapped code of a character set */
-GLint __glcCharMapGetMinMappedCode(__glcCharMap* This)
+GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
 {
   FcChar32 base = 0;
   FcChar32 next = 0;
   FcChar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
-  int minMappedCode = 0;
-  __glcCharMapElement* element = NULL;
+  FT_ULong minMappedCode = 0;
+  __GLCcharMapElement* element = NULL;
   int length = 0;
 
   assert(This->map);
@@ -488,7 +497,7 @@ GLint __glcCharMapGetMinMappedCode(__glcCharMap* This)
   /* Check that a code lower than the one found in the FcCharSet is not
    * stored in the array 'map'.
    */
-  element = (__glcCharMapElement*)GLC_ARRAY_DATA(This->map);
+  element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
   length = GLC_ARRAY_LENGTH(This->map);
 
   /* Return the lower of the code of both the FcCharSet and the array 'map'*/
@@ -502,7 +511,7 @@ GLint __glcCharMapGetMinMappedCode(__glcCharMap* This)
 
 
 /* Merge the character map 'inCharMap' in the character map 'This' */
-GLboolean __glcCharMapUnion(__glcCharMap* This, __glcCharMap* inCharMap)
+GLboolean __glcCharMapUnion(__GLCcharMap* This, __GLCcharMap* inCharMap)
 {
   FcCharSet* result = NULL;
 

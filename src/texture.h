@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -18,23 +18,28 @@
  */
 /* $Id$ */
 
+/** \file
+ *  header of the routines used to render characters with textures.
+ */
+
 #ifndef __glc_texture_h
 #define __glc_texture_h
 
-#include "oglyph.h"
 #include "ofont.h"
 
-typedef struct {
+typedef struct __GLCatlasElementRec __GLCatlasElement;
+
+struct __GLCatlasElementRec {
   FT_ListNodeRec node;
 
   int position;
-  __glcGlyph* glyph;
-} __glcAtlasElement;
+  __GLCglyph* glyph;
+};
 
-void __glcDeleteAtlasElement(__glcAtlasElement* This, __glcContextState* inState);
-void __glcRenderCharTexture(__glcFont* inFont,
-			    __glcContextState* inState,
+void __glcDeleteAtlasElement(__GLCatlasElement* This, __GLCcontext* inContext);
+void __glcRenderCharTexture(__GLCfont* inFont,
+			    __GLCcontext* inContext,
 			    GLboolean inDisplayListIsBuilding,
 			    GLfloat scale_x, GLfloat scale_y,
-			    __glcGlyph* inGlyph);
+			    __GLCglyph* inGlyph);
 #endif

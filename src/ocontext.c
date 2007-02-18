@@ -18,7 +18,9 @@
  */
 /* $Id$ */
 
-/* Defines the methods of an object that is intended to managed contexts */
+/** \file
+ * defines the object __GLCcontext which is used to manage the contexts.
+ */
 
 /* Microsoft Visual C++ */
 #ifdef _MSC_VER
@@ -38,26 +40,23 @@
 #include FT_MODULE_H
 #include FT_LIST_H
 
-commonArea __glcCommonArea;
+__GLCcommonArea __glcCommonArea;
 
-/** \file
- * defines the object __glcContext which is used to manage the contexts.
- */
 
 
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  */
-__glcContextState* __glcCtxCreate(GLint inContext)
+__GLCcontext* __glcCtxCreate(GLint inContext)
 {
-  __glcContextState *This = NULL;
+  __GLCcontext *This = NULL;
 
-  This = (__glcContextState*)__glcMalloc(sizeof(__glcContextState));
+  This = (__GLCcontext*)__glcMalloc(sizeof(__GLCcontext));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
-  memset(This, 0, sizeof(__glcContextState));
+  memset(This, 0, sizeof(__GLCcontext));
 
   if (FT_New_Library(&__glcCommonArea.memoryManager, &This->library)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -225,7 +224,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
-  This->geomBatches = __glcArrayCreate(sizeof(__glcGeomBatch));
+  This->geomBatches = __glcArrayCreate(sizeof(__GLCgeomBatch));
   if (!This->geomBatches) {
     __glcArrayDestroy(This->controlPoints);
     __glcArrayDestroy(This->vertexArray);
@@ -267,13 +266,14 @@ __glcContextState* __glcCtxCreate(GLint inContext)
  */
 static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
 {
-  __glcFont *font = (__glcFont*)inData;
-  __glcContextState* state = (__glcContextState*)inUser;
+  GLC_DISCARD_ARG(inMemory);
+  __GLCfont *font = (__GLCfont*)inData;
+  __GLCcontext* ctx = (__GLCcontext*)inUser;
 
-  assert(state);
+  assert(ctx);
 
   if (font)
-    __glcFontDestroy(font, state);
+    __glcFontDestroy(font, ctx);
 }
 
 
@@ -287,7 +287,7 @@ static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
  * happen if the user calls glcDeleteContext() after the GL context has been
  * destroyed of after the user has changed the current GL context.
  */
-void __glcCtxDestroy(__glcContextState *This)
+void __glcCtxDestroy(__GLCcontext *This)
 {
   assert(This);
 
@@ -348,7 +348,7 @@ static GLint __glcLookupFont(GLint inCode, FT_List fontList)
   FT_ListNode node = NULL;
 
   for (node = fontList->head; node; node = node->next) {
-    __glcFont* font = (__glcFont*)node->data;
+    __GLCfont* font = (__GLCfont*)node->data;
 
     /* Check if the character identified by inCode exists in the font */
     if (__glcCharMapHasChar(font->charMap, inCode))
@@ -364,32 +364,32 @@ static GLint __glcLookupFont(GLint inCode, FT_List fontList)
  * 'inCode' must be given in UCS-4 format.
  */
 static GLboolean __glcCallCallbackFunc(GLint inCode,
-				       __glcContextState *inState)
+				       __GLCcontext *inContext)
 {
   GLCfunc callbackFunc = NULL;
   GLboolean result = GL_FALSE;
   GLint aCode = 0;
 
   /* Recursivity is not allowed */
-  if (inState->isInCallbackFunc)
+  if (inContext->isInCallbackFunc)
     return GL_FALSE;
 
-  callbackFunc = inState->stringState.callback;
+  callbackFunc = inContext->stringState.callback;
   if (!callbackFunc)
     return GL_FALSE;
 
   /* Convert the character code back to the current string type */
-  aCode = __glcConvertUcs4ToGLint(inState, inCode);
+  aCode = __glcConvertUcs4ToGLint(inContext, inCode);
   /* Check if the character has been converted */
   if (aCode < 0)
     return GL_FALSE;
 
-  inState->isInCallbackFunc = GL_TRUE;
+  inContext->isInCallbackFunc = GL_TRUE;
   /* Call the callback function with the character converted to the current
    * string type.
    */
   result = (*callbackFunc)(aCode);
-  inState->isInCallbackFunc = GL_FALSE;
+  inContext->isInCallbackFunc = GL_FALSE;
 
   return result;
 }
@@ -402,7 +402,7 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
  * to GLC_CURRENT_FONT_LIST. If the attempt fails the function returns zero.
  * 'inCode' must be given in UCS-4 format.
  */
-GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
+GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
 {
   GLint font = 0;
 
@@ -551,7 +551,7 @@ GLint __glcCtxGetFont(__glcContextState *This, GLint inCode)
  * is provided to reduce its size so it should be freed and re-allocated
  * manually in case of emergency ;-)
  */
-GLCchar* __glcCtxQueryBuffer(__glcContextState *This, int inSize)
+GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize)
 {
   if (inSize > This->bufferSize) {
     This->buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);

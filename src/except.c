@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -18,14 +18,10 @@
  */
 /* $Id$ */
 
-/* This file defines the functions needed for cleanup stack exception handling
- * (CSEH) which concept is described in details at
+/** \file
+ * defines the functions needed for cleanup stack exception handling  (CSEH)
+ * which concept is described in details at
  * http://www.freetype.org/david/reliable-c.html
- */
-
-/* Unhandled exceptions (when area->exceptionStack.tail == NULL)
- * still need to be implemented. Such situations can occur if an exception
- * is thrown out of a try/catch block.
  */
 
 #include "internal.h"
@@ -36,31 +32,41 @@
 #include FT_FREETYPE_H
 #include FT_LIST_H
 
-typedef struct {
+/* Unhandled exceptions (when area->exceptionStack.tail == NULL)
+ * still need to be implemented. Such situations can occur if an exception
+ * is thrown out of a try/catch block.
+ */
+
+typedef struct __GLCcleanupStackNodeRec __GLCcleanupStackNode;
+typedef struct __GLCexceptContextRec __GLCexceptContext;
+
+struct __GLCcleanupStackNodeRec {
   FT_ListNodeRec node;
 
   void (*destructor) (void *);
   void *data;
-} __glcCleanupStackNode;
+};
 
-typedef struct {
+struct __GLCexceptContextRec {
   FT_ListNodeRec node;
 
   __glcException exception;
   FT_ListRec cleanupStack;
   jmp_buf env;
-} __glcExceptContext;
+};
+
+
 
 /* Create a context for exception handling */
 jmp_buf* __glcExceptionCreateContext(void)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
  
   area = __glcGetThreadArea();
   assert(area);
 
-  xContext = (__glcExceptContext*)malloc(sizeof(__glcExceptContext));
+  xContext = (__GLCexceptContext*)malloc(sizeof(__GLCexceptContext));
   if (!xContext) {
     area->failedTry = GLC_MEMORY_EXC;
     return NULL;
@@ -73,16 +79,18 @@ jmp_buf* __glcExceptionCreateContext(void)
   return &xContext->env;
 }
 
+
+
 /* Destroy the last context for exception handling */
 void __glcExceptionReleaseContext(void)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
 
-  xContext = (__glcExceptContext*)area->exceptionStack.tail;
+  xContext = (__GLCexceptContext*)area->exceptionStack.tail;
   assert(xContext);
   /* The cleanup stack must be empty */
   assert(!xContext->cleanupStack.head);
@@ -92,20 +100,22 @@ void __glcExceptionReleaseContext(void)
   free(xContext);
 }
 
+
+
 /* Keep track of data to be destroyed in case of */
 void __glcExceptionPush(void (*destructor)(void*), void *data)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
-  __glcCleanupStackNode *stackNode = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
+  __GLCcleanupStackNode *stackNode = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
 
-  xContext = (__glcExceptContext*)area->exceptionStack.tail;
+  xContext = (__GLCexceptContext*)area->exceptionStack.tail;
   assert(xContext);
 
-  stackNode = (__glcCleanupStackNode*) malloc(sizeof(__glcCleanupStackNode));
+  stackNode = (__GLCcleanupStackNode*) malloc(sizeof(__GLCcleanupStackNode));
   if (!stackNode) {
     destructor(data);
     THROW(GLC_MEMORY_EXC);
@@ -116,22 +126,24 @@ void __glcExceptionPush(void (*destructor)(void*), void *data)
   FT_List_Add(&xContext->cleanupStack, (FT_ListNode)stackNode);
 }
 
+
+
 /* Remove the last entry of the cleanup stack, eventually destroying the
  * corresponding data if destroy != 0
  */
 void __glcExceptionPop(int destroy)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
-  __glcCleanupStackNode *stackNode = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
+  __GLCcleanupStackNode *stackNode = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
 
-  xContext = (__glcExceptContext*)area->exceptionStack.tail;
+  xContext = (__GLCexceptContext*)area->exceptionStack.tail;
   assert(xContext);
 
-  stackNode = (__glcCleanupStackNode*)xContext->cleanupStack.tail;
+  stackNode = (__GLCcleanupStackNode*)xContext->cleanupStack.tail;
   assert(stackNode);
 
   if (destroy) {
@@ -143,23 +155,25 @@ void __glcExceptionPop(int destroy)
   free(stackNode);
 }
 
+
+
 /* Empty the cleanup stack and destroy the corresponding data if
  * destroy != 0
  */
 void __glcExceptionUnwind(int destroy)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
   FT_ListNode next = NULL;
-  __glcCleanupStackNode *stackNode = NULL;
+  __GLCcleanupStackNode *stackNode = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
 
-  xContext = (__glcExceptContext*)area->exceptionStack.tail;
+  xContext = (__GLCexceptContext*)area->exceptionStack.tail;
   assert(xContext);
 
-  stackNode = (__glcCleanupStackNode*)xContext->cleanupStack.head;
+  stackNode = (__GLCcleanupStackNode*)xContext->cleanupStack.head;
 
   while (stackNode) {
     next = stackNode->node.next;
@@ -169,34 +183,38 @@ void __glcExceptionUnwind(int destroy)
       stackNode->destructor(stackNode->data);
     }
     free(stackNode);
-    stackNode = (__glcCleanupStackNode*)next;
+    stackNode = (__GLCcleanupStackNode*)next;
   }
 
   xContext->cleanupStack.head = NULL;
   xContext->cleanupStack.tail = NULL;
 }
 
+
+
 /* Throw an exception */
 jmp_buf* __glcExceptionThrow(__glcException exception)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
 
-  xContext = (__glcExceptContext*)area->exceptionStack.tail;
+  xContext = (__GLCexceptContext*)area->exceptionStack.tail;
   assert(xContext);
 
   xContext->exception = exception;
   return &xContext->env;
 }
 
+
+
 /* Rethrow an exception that has already been catched */
 __glcException __glcExceptionCatch(void)
 {
-  threadArea *area = NULL;
-  __glcExceptContext *xContext = NULL;
+  __GLCthreadArea *area = NULL;
+  __GLCexceptContext *xContext = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
@@ -208,7 +226,7 @@ __glcException __glcExceptionCatch(void)
     return exc;
   }
 
-  xContext = (__glcExceptContext*)area->exceptionStack.tail;
+  xContext = (__GLCexceptContext*)area->exceptionStack.tail;
   assert(xContext);
 
   return xContext->exception;

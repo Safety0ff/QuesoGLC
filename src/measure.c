@@ -18,7 +18,7 @@
  */
 /* $Id$ */
 
-/* \file
+/** \file
  * defines the so-called "Measurement commands" described in chapter 3.10 of
  * the GLC specs.
  */
@@ -86,7 +86,7 @@ static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
  * 'inCode' must be given in UCS-4 format
  */
 static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
-				__glcContextState* inState, void* inData,
+				__GLCcontext* inContext, void* inData,
 				GLboolean inMultipleChars)
 {
   GLfloat* outVec = (GLfloat*)inData;
@@ -97,12 +97,12 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   GLfloat scale_y = GLC_POINT_SIZE;
   GLfloat transformMatrix[16];
   GLfloat temp[4];
-  __glcFont* font = __glcVerifyFontParameters(inFont);
+  __GLCfont* font = __glcVerifyFontParameters(inFont);
 
   /* Get the scale factors in X and Y direction from the transformation
    * matrix
    */
-  __glcGetScale(inState, transformMatrix, &scale_x, &scale_y);
+  __glcGetScale(inContext, transformMatrix, &scale_x, &scale_y);
 
   /* Exit if the font is undefined or if one of the scale factors is almost
    * zero (that is the matrix transforms the glyph so that its height or length
@@ -112,7 +112,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
       || (fabs(scale_y) < GLC_EPSILON))
     return NULL;
 
-  if (inMultipleChars && (inState->renderState.renderStyle == GLC_BITMAP)) {
+  if (inMultipleChars && (inContext->renderState.renderStyle == GLC_BITMAP)) {
     /* If a string (or several characters) is to be measured, it will be easier
      * to perform the calculations in the glyph coordinate system than in the
      * screen coordinate system. In order to get the values that already stored
@@ -121,7 +121,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
      * Note that the inverse of the transformation exists since we have already
      * checked that the scale factors are not zero.
      */
-    GLfloat* matrix = inState->bitmapMatrix;
+    GLfloat* matrix = inContext->bitmapMatrix;
     GLfloat inverseMatrix[4];
     GLfloat norm = 0.;
     GLfloat determinant = matrix[0] * matrix[3]	- matrix[1] * matrix[2];
@@ -158,7 +158,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
     outVec[3] -= outVec[13];
   }
 
-  __glcFontGetBoundingBox(font, inCode, temp, inState, scale_x, scale_y);
+  __glcFontGetBoundingBox(font, inCode, temp, inContext, scale_x, scale_y);
   /* Take into account the advance of the glyphs that have already been
    * measured.
    */
@@ -187,18 +187,18 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   outVec[11] = outVec[9];
 
   /* Get the advance of the glyph */
-  __glcFontGetAdvance(font, inCode, temp, inState, scale_x, scale_y);
+  __glcFontGetAdvance(font, inCode, temp, inContext, scale_x, scale_y);
   /* Update the global advance accordingly */
   outVec[2] += temp[0] / GLC_POINT_SIZE;
   outVec[3] += temp[1] / GLC_POINT_SIZE;
 
   outVec[12] = 0.;
   outVec[13] = 0.;
-  if (inPrevCode && inState->enableState.kerning) {
+  if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
 
-    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inState, scale_x,
-			    scale_y))
+    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inContext,
+			    scale_x, scale_y))
     {
       outVec[12] = kerning[0] / GLC_POINT_SIZE;
       outVec[13] = kerning[1] / GLC_POINT_SIZE;
@@ -206,9 +206,9 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   }
 
   /* Transforms the values into the screen coordinate system if necessary */
-  if (inState->renderState.renderStyle == GLC_BITMAP) {
+  if (inContext->renderState.renderStyle == GLC_BITMAP) {
     for (i = 0; i < 7; i++)
-      __glcTransformVector(&outVec[2*i], inState->bitmapMatrix);
+      __glcTransformVector(&outVec[2*i], inContext->bitmapMatrix);
   }
 
   return outVec;
@@ -238,7 +238,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
 GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
 				   GLfloat *outVec)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   GLint code = 0;
   GLfloat vector[14];
 
@@ -254,14 +254,14 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   }
 
   /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
 
   /* Get the character code converted to the UCS-4 format */
-  code = __glcConvertGLintToUcs4(state, inCode);
+  code = __glcConvertGLintToUcs4(ctx, inCode);
   if (code < 0)
     return NULL;
 
@@ -269,7 +269,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
    * or issue the replacement code or the character sequence \<xxx> and call
    * __glcGetCharMetric()
    */
-  if (__glcProcessChar(state, code, 0, __glcGetCharMetric, vector)) {
+  if (__glcProcessChar(ctx, code, 0, __glcGetCharMetric, vector)) {
     switch(inMetric) {
     case GLC_BASELINE:
       memcpy(outVec, vector, 4 * sizeof(GLfloat));
@@ -312,7 +312,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
  */
 GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   GLfloat advance_x = 0., advance_y = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
   FT_ListNode node = NULL;
 
@@ -329,8 +329,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   }
 
   /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
@@ -338,11 +338,11 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   /* For each font in GLC_CURRENT_FONT_LIST find the maximum values of the
    * advance width of the bounding boxes.
    */
-  for (node = state->currentFontList.head; node; node = node->next) {
+  for (node = ctx->currentFontList.head; node; node = node->next) {
     GLfloat temp[6];
-    __glcFont* font = (__glcFont*)node->data;
+    __GLCfont* font = (__GLCfont*)node->data;
 
-    if (!__glcFaceDescGetMaxMetric(font->faceDesc, temp, state))
+    if (!__glcFaceDescGetMaxMetric(font->faceDesc, temp, ctx))
       return NULL;
 
     advance_x = temp[0] > advance_x ? temp[0] : advance_x;
@@ -360,8 +360,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     outVec[1] = 0.;
     outVec[2] = advance_x;
     outVec[3] = advance_y;
-    if (state->renderState.renderStyle == GLC_BITMAP)
-      __glcTransformVector(&outVec[2], state->bitmapMatrix);
+    if (ctx->renderState.renderStyle == GLC_BITMAP)
+      __glcTransformVector(&outVec[2], ctx->bitmapMatrix);
     return outVec;
   case GLC_BOUNDS:
     outVec[0] = xl;
@@ -372,11 +372,11 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     outVec[5] = yt;
     outVec[6] = xl;
     outVec[7] = yt;
-    if (state->renderState.renderStyle == GLC_BITMAP) {
+    if (ctx->renderState.renderStyle == GLC_BITMAP) {
       int i = 0;
 
       for (i = 0; i < 4; i++)
-	__glcTransformVector(&outVec[2*i], state->bitmapMatrix);
+	__glcTransformVector(&outVec[2*i], ctx->bitmapMatrix);
     }
     return outVec;
   }
@@ -441,7 +441,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 				GLfloat *outVec)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   GLfloat (*measurementBuffer)[12] = NULL;
 
   assert(outVec);
@@ -457,17 +457,17 @@ GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
   }
 
   /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
 
-  measurementBuffer = (GLfloat(*)[12])GLC_ARRAY_DATA(state->measurementBuffer);
+  measurementBuffer = (GLfloat(*)[12])GLC_ARRAY_DATA(ctx->measurementBuffer);
 
   /* Verify that inIndex is in legal bounds */
   if ((inIndex < 0)
-      || (inIndex >= GLC_ARRAY_LENGTH(state->measurementBuffer))) {
+      || (inIndex >= GLC_ARRAY_LENGTH(ctx->measurementBuffer))) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
@@ -510,7 +510,7 @@ GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
  */
 GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
 
   assert(outVec);
 
@@ -525,8 +525,8 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
   }
 
   /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
@@ -534,10 +534,10 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
   /* Copy the values requested by the client in outVec */
   switch(inMetric) {
   case GLC_BASELINE:
-    memcpy(outVec, state->measurementStringBuffer, 4*sizeof(GLfloat));
+    memcpy(outVec, ctx->measurementStringBuffer, 4*sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
-    memcpy(outVec, &state->measurementStringBuffer[4], 8*sizeof(GLfloat));
+    memcpy(outVec, &ctx->measurementStringBuffer[4], 8*sizeof(GLfloat));
     return outVec;
   }
 
@@ -550,7 +550,7 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
  * It is called by both glcMeasureString() and glcMeasureCountedString()
  * The string inString is encoded in UCS4 and is stored in visual order.
  */
-static GLint __glcMeasureCountedString(__glcContextState *inState,
+static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 				GLboolean inMeasureChars, GLint inCount,
 				const FcChar32* inString)
 {
@@ -558,17 +558,17 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
   GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 			 0.};
   const FcChar32* ptr = NULL;
-  const GLint storeRenderStyle = inState->renderState.renderStyle;
+  const GLint storeRenderStyle = inContext->renderState.renderStyle;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
-  GLfloat* outVec = inState->measurementStringBuffer;
+  GLfloat* outVec = inContext->measurementStringBuffer;
   GLint prevCode = 0;
 
-  if (inState->renderState.renderStyle == GLC_BITMAP) {
+  if (inContext->renderState.renderStyle == GLC_BITMAP) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
-      * with the GLC_MATRIX, state->renderStyle must not be GLC_BITMAP
+      * with the GLC_MATRIX, ctx->renderStyle must not be GLC_BITMAP
       */
-    inState->renderState.renderStyle = 0;
+    inContext->renderState.renderStyle = 0;
   }
 
   memset(outVec, 0, 12*sizeof(GLfloat));
@@ -578,12 +578,12 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
    */
   ptr = inString;
   for (i = 0; i < inCount; i++) {
-    __glcProcessChar(inState, *ptr, prevCode, __glcGetCharMetric, metrics);
+    __glcProcessChar(inContext, *ptr, prevCode, __glcGetCharMetric, metrics);
     prevCode = *(ptr++);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)
-      __glcArrayAppend(inState->measurementBuffer, metrics);
+      __glcArrayAppend(inContext->measurementBuffer, metrics);
 
     /* Initialize outVec if we are processing the first character of the string
      */
@@ -628,19 +628,19 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
    * style is GLC_BITMAP.
    */
   if (storeRenderStyle == GLC_BITMAP) {
-    inState->renderState.renderStyle = storeRenderStyle;
+    inContext->renderState.renderStyle = storeRenderStyle;
     for (i = 0; i < 6; i++)
-      __glcTransformVector(&inState->measurementStringBuffer[2*i],
-			   inState->bitmapMatrix);
+      __glcTransformVector(&inContext->measurementStringBuffer[2*i],
+			   inContext->bitmapMatrix);
     if (inMeasureChars) {
       GLfloat (*measurementBuffer)[12] =
-	(GLfloat(*)[12])GLC_ARRAY_DATA(inState->measurementBuffer);
+	(GLfloat(*)[12])GLC_ARRAY_DATA(inContext->measurementBuffer);
       int j = 0;
 
       for (i = 0; i < inCount; i++) {
 	for (j = 0; j < 6; j++)
 	  __glcTransformVector(&measurementBuffer[i][2*j],
-			       inState->bitmapMatrix);
+			       inContext->bitmapMatrix);
       }
     }
   }
@@ -682,7 +682,7 @@ static GLint __glcMeasureCountedString(__glcContextState *inState,
 GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 			      const GLCchar* inString)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   GLint count = 0;
   FcChar32* UinString = NULL;
 
@@ -693,8 +693,8 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   }
 
   /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
@@ -703,13 +703,13 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   if (!inString)
     return 0;
 
-  UinString = __glcConvertCountedStringToVisualUcs4(state, inString, inCount);
+  UinString = __glcConvertCountedStringToVisualUcs4(ctx, inString, inCount);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
   }
 
-  count = __glcMeasureCountedString(state, inMeasureChars, inCount, UinString);
+  count = __glcMeasureCountedString(ctx, inMeasureChars, inCount, UinString);
 
   return count;
 }
@@ -733,17 +733,18 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
  *  \sa glcGetStringCharMetric()
  *  \sa glcGetStringMetric()
  */
-GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inString)
+GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
+				const GLCchar* inString)
 {
-  __glcContextState *state = NULL;
+  __GLCcontext *ctx = NULL;
   FcChar32* UinString = NULL;
   GLint count = 0;
   GLint len = 0;
   FcChar32* ucs4 = NULL;
 
   /* Verify if the current thread owns a context state */
-  state = __glcGetCurrent();
-  if (!state) {
+  ctx = __glcGetCurrent();
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
@@ -752,7 +753,7 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inStrin
   if (!inString)
     return 0;
 
-  UinString = __glcConvertToVisualUcs4(state, inString);
+  UinString = __glcConvertToVisualUcs4(ctx, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
@@ -765,7 +766,7 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars, const GLCchar* inStrin
   for (ucs4 = UinString, len = 0; *ucs4; ucs4++, len++);
 
 
-  count = __glcMeasureCountedString(state, inMeasureChars, len, UinString);
+  count = __glcMeasureCountedString(ctx, inMeasureChars, len, UinString);
 
   return count;
 }

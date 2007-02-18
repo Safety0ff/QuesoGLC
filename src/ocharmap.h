@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -18,6 +18,11 @@
  */
 /* $Id$ */
 
+/** \file
+ * header of the object __GLCcharMap which manage the charmaps of both the fonts
+ * and the masters.
+ */
+
 #ifndef __glc_ocharmap_h
 #define __glc_ocharmap_h
 
@@ -25,34 +30,35 @@
 #include FT_FREETYPE_H
 #include <fontconfig/fontconfig.h>
 
-#include "GL/glc.h"
 #include "ocontext.h"
-#include "oarray.h"
 #include "oglyph.h"
 
-typedef struct {
+typedef struct __GLCcharMapElementRec __GLCcharMapElement;
+typedef struct __GLCcharMapRec __GLCcharMap;
+
+struct __GLCcharMapElementRec {
   FT_ULong mappedCode;
-  __glcGlyph* glyph;
-} __glcCharMapElement;
+  __GLCglyph* glyph;
+};
 
-typedef struct {
+struct __GLCcharMapRec {
   FcCharSet* charSet;
-  __glcArray* map;
-} __glcCharMap;
+  __GLCarray* map;
+};
 
-__glcCharMap* __glcCharMapCreate(FcCharSet* inFaceDesc);
-void __glcCharMapDestroy(__glcCharMap* This);
-void __glcCharMapAddChar(__glcCharMap* This, GLint inCode,
-			 __glcGlyph* inGlyph);
-void __glcCharMapRemoveChar(__glcCharMap* This, GLint inCode);
-GLCchar* __glcCharMapGetCharName(__glcCharMap* This, GLint inCode,
-				 __glcContextState* inState);
-__glcGlyph* __glcCharMapGetGlyph(__glcCharMap* This, GLint inCode);
-GLboolean __glcCharMapHasChar(__glcCharMap* This, GLint inCode);
-GLCchar* __glcCharMapGetCharNameByIndex(__glcCharMap* This, GLint inIndex,
-					__glcContextState* inState);
-GLint __glcCharMapGetCount(__glcCharMap* This);
-GLint __glcCharMapGetMaxMappedCode(__glcCharMap* This);
-GLint __glcCharMapGetMinMappedCode(__glcCharMap* This);
-GLboolean __glcCharMapUnion(__glcCharMap* This, __glcCharMap* inCharMap);
+__GLCcharMap* __glcCharMapCreate(FcCharSet* inFaceDesc);
+void __glcCharMapDestroy(__GLCcharMap* This);
+void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode,
+			 __GLCglyph* inGlyph);
+void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode);
+GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
+				 __GLCcontext* inContext);
+__GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode);
+GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode);
+GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
+					__GLCcontext* inContext);
+GLint __glcCharMapGetCount(__GLCcharMap* This);
+GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This);
+GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This);
+GLboolean __glcCharMapUnion(__GLCcharMap* This, __GLCcharMap* inCharMap);
 #endif

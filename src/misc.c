@@ -18,7 +18,9 @@
  */
 /* $Id$ */
 
-/* This file defines miscellaneous utility routines used throughout the lib */
+/** \file
+ * defines miscellaneous utility routines used throughout QuesoGLC.
+ */
 
 #include <math.h>
 
@@ -72,24 +74,24 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
 /* Each thread has to store specific informations so they can be retrieved
  * later. __glcGetThreadArea() returns a struct which contains thread specific
  * info for GLC.
- * If the 'threadArea' of the current thread does not exist, it is created and
- * initialized.
+ * If the '__GLCthreadArea' of the current thread does not exist, it is created
+ * and initialized.
  * IMPORTANT NOTE : __glcGetThreadArea() must never use __glcMalloc() and
  *    __glcFree() since those functions could use the exceptContextStack
  *    before it is initialized.
  */
-threadArea* __glcGetThreadArea(void)
+__GLCthreadArea* __glcGetThreadArea(void)
 {
-  threadArea *area = NULL;
+  __GLCthreadArea *area = NULL;
 
 #ifdef __WIN32__
-  area = (threadArea*)TlsGetValue(__glcCommonArea.threadKey);
+  area = (__GLCthreadArea*)TlsGetValue(__glcCommonArea.threadKey);
 #else
-  area = (threadArea*)pthread_getspecific(__glcCommonArea.threadKey);
+  area = (__GLCthreadArea*)pthread_getspecific(__glcCommonArea.threadKey);
 #endif
 
   if (!area) {
-    area = (threadArea*)malloc(sizeof(threadArea));
+    area = (__GLCthreadArea*)malloc(sizeof(__GLCthreadArea));
     if (!area)
       return NULL;
 
@@ -120,7 +122,7 @@ threadArea* __glcGetThreadArea(void)
 void __glcRaiseError(GLCenum inError)
 {
   GLCenum error = GLC_NONE;
-  threadArea *area = NULL;
+  __GLCthreadArea *area = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
@@ -137,9 +139,9 @@ void __glcRaiseError(GLCenum inError)
 
 
 /* Get the current context of the issuing thread */
-__glcContextState* __glcGetCurrent(void)
+__GLCcontext* __glcGetCurrent(void)
 {
-  threadArea *area = NULL;
+  __GLCthreadArea *area = NULL;
 
   area = __glcGetThreadArea();
   assert(area);
@@ -154,7 +156,7 @@ __glcContextState* __glcGetCurrent(void)
  * are issued if necessary.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__glcContextState *inState, GLint inCode,
+void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
 		       GLint inPrevCode, __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData)
 {
@@ -162,10 +164,10 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
   GLint font = 0;
 
   /* Get a font that maps inCode */
-  font = __glcCtxGetFont(inState, inCode);
+  font = __glcCtxGetFont(inContext, inCode);
   if (font >= 0) {
     /* A font has been found */
-    return inProcessCharFunc(inCode, inPrevCode, font, inState,
+    return inProcessCharFunc(inCode, inPrevCode, font, inContext,
 			     inProcessCharData, GL_FALSE);
   }
 
@@ -177,10 +179,10 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
    * finds a font that maps the replacement code, we now render the character
    * that the replacement code is mapped to
    */
-  repCode = inState->stringState.replacementCode;
-  font = __glcCtxGetFont(inState, repCode);
+  repCode = inContext->stringState.replacementCode;
+  font = __glcCtxGetFont(inContext, repCode);
   if (repCode && font)
-    return inProcessCharFunc(repCode, inPrevCode, font, inState,
+    return inProcessCharFunc(repCode, inPrevCode, font, inContext,
 			     inProcessCharData, GL_FALSE);
   else {
     /* If we get there, we failed to render both the character that inCode maps
@@ -197,31 +199,31 @@ void* __glcProcessChar(__glcContextState *inState, GLint inCode,
     GLint n = 0;
 
     /* Check if a font maps to '\', '<' and '>'. */
-    if (!__glcCtxGetFont(inState, '\\') || !__glcCtxGetFont(inState, '<')
-	|| !__glcCtxGetFont(inState, '>'))
+    if (!__glcCtxGetFont(inContext, '\\') || !__glcCtxGetFont(inContext, '<')
+	|| !__glcCtxGetFont(inContext, '>'))
       return NULL;
 
     /* Check if a font maps hexadecimal digits */
     sprintf(buf,"%X", (int)inCode);
     n = strlen(buf);
     for (i = 0; i < n; i++) {
-      if (!__glcCtxGetFont(inState, buf[i]))
+      if (!__glcCtxGetFont(inContext, buf[i]))
 	return NULL;
     }
 
     /* Render the '\<hexcode>' sequence */
-    inProcessCharFunc('\\', inPrevCode, __glcCtxGetFont(inState, '\\'), inState,
-			   inProcessCharData, GL_FALSE);
-    inProcessCharFunc('<', '\\', __glcCtxGetFont(inState, '<'), inState,
-			   inProcessCharData, GL_TRUE);
+    inProcessCharFunc('\\', inPrevCode, __glcCtxGetFont(inContext, '\\'),
+		      inContext, inProcessCharData, GL_FALSE);
+    inProcessCharFunc('<', '\\', __glcCtxGetFont(inContext, '<'), inContext,
+		      inProcessCharData, GL_TRUE);
     inPrevCode = '<';
     for (i = 0; i < n; i++) {
-      inProcessCharFunc(buf[i], inPrevCode, __glcCtxGetFont(inState, buf[i]),
-			inState, inProcessCharData, GL_TRUE);
+      inProcessCharFunc(buf[i], inPrevCode, __glcCtxGetFont(inContext, buf[i]),
+			inContext, inProcessCharData, GL_TRUE);
       inPrevCode = buf[i];
     }
-    return inProcessCharFunc('>', inPrevCode, __glcCtxGetFont(inState, '>'),
-			     inState, inProcessCharData, GL_TRUE);
+    return inProcessCharFunc('>', inPrevCode, __glcCtxGetFont(inContext, '>'),
+			     inContext, inProcessCharData, GL_TRUE);
   }
 }
 
@@ -328,7 +330,7 @@ static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 /* Compute an optimal size for the glyph to be rendered on the screen if no
  * display list is planned to be built.
  */
-GLboolean __glcGetScale(__glcContextState* inState,
+GLboolean __glcGetScale(__GLCcontext* inContext,
 			GLfloat* outTransformMatrix, GLfloat* outScaleX,
 			GLfloat* outScaleY)
 {
@@ -338,9 +340,9 @@ GLboolean __glcGetScale(__glcContextState* inState,
 
   /* Check if a display list is currently building */
   glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  displayListIsBuilding = listIndex || inState->enableState.glObjects;
+  displayListIsBuilding = listIndex || inContext->enableState.glObjects;
 
-  if (inState->renderState.renderStyle != GLC_BITMAP) {
+  if (inContext->renderState.renderStyle != GLC_BITMAP) {
     /* Compute the matrix that transforms object space coordinates to viewport
      * coordinates. If we plan to use object space coordinates, this matrix is
      * set to identity.
@@ -355,7 +357,7 @@ GLboolean __glcGetScale(__glcContextState* inState,
 
     __glcMultMatrices(modelviewMatrix, projectionMatrix, outTransformMatrix);
 
-    if ((!displayListIsBuilding) && inState->enableState.hinting) {
+    if ((!displayListIsBuilding) && inContext->enableState.hinting) {
       GLfloat rs[16], m[16];
       /* Get the scale factors in each X, Y and Z direction */
       GLfloat sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
@@ -397,7 +399,7 @@ GLboolean __glcGetScale(__glcContextState* inState,
   }
   else {
     GLfloat determinant = 0., norm = 0.;
-    GLfloat *transform = inState->bitmapMatrix;
+    GLfloat *transform = inContext->bitmapMatrix;
 
     /* Compute the norm of the transformation matrix */
     for (i = 0; i < 4; i++) {
@@ -414,7 +416,7 @@ GLboolean __glcGetScale(__glcContextState* inState,
       return displayListIsBuilding;
     }
 
-    if (inState->enableState.hinting) {
+    if (inContext->enableState.hinting) {
       *outScaleX = sqrt(transform[0]*transform[0]+transform[1]*transform[1]);
       *outScaleY = sqrt(transform[2]*transform[2]+transform[3]*transform[3]);
     }
@@ -430,7 +432,7 @@ GLboolean __glcGetScale(__glcContextState* inState,
 
 
 /* Save the GL State in a structure */
-void __glcSaveGLState(__glcGLState* inGLState)
+void __glcSaveGLState(__GLCglState* inGLState)
 {
   inGLState->texture2D = glIsEnabled(GL_TEXTURE_2D);
   inGLState->blend = glIsEnabled(GL_BLEND);
@@ -450,7 +452,7 @@ void __glcSaveGLState(__glcGLState* inGLState)
 
 
 /* Restore the GL State from a structure */
-void __glcRestoreGLState(__glcGLState* inGLState)
+void __glcRestoreGLState(__GLCglState* inGLState)
 {
   glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
   if (!inGLState->texture2D)
@@ -477,10 +479,10 @@ void __glcRestoreGLState(__glcGLState* inGLState)
 
 /* Get a FontConfig pattern from a master ID */
 FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
-				       __glcContextState* inState)
+				       __GLCcontext* inContext)
 {
   FcChar32 hashValue =
-		((FcChar32*)GLC_ARRAY_DATA(inState->masterHashTable))[inMaster];
+	((FcChar32*)GLC_ARRAY_DATA(inContext->masterHashTable))[inMaster];
   FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
@@ -500,7 +502,7 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
     FcPatternDestroy(pattern);
     return NULL;
   }
-  fontSet = FcFontList(inState->config, pattern, objectSet);
+  fontSet = FcFontList(inContext->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
   FcPatternDestroy(pattern);
   if (!fontSet) {
@@ -548,13 +550,13 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
 
 
 /* Get a face descriptor object from a FontConfig pattern */
-__glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
-						 __glcContextState* inState)
+__GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
+						 __GLCcontext* inContext)
 {
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
   int i = 0;
-  __glcFaceDescriptor* faceDesc = NULL;
+  __GLCfaceDescriptor* faceDesc = NULL;
 
   objectSet = FcObjectSetBuild(FC_STYLE, FC_CHARSET, FC_SPACING, FC_FILE,
 			       FC_INDEX, FC_OUTLINE, NULL);
@@ -562,7 +564,7 @@ __glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
-  fontSet = FcFontList(inState->config, inPattern, objectSet);
+  fontSet = FcFontList(inContext->config, inPattern, objectSet);
   FcObjectSetDestroy(objectSet);
   if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -613,9 +615,8 @@ __glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
     /* Create a face descriptor that will contain the whole description of
      * the face (hence the name).
      */
-    faceDesc = __glcFaceDescCreate(styleName, charSet,
-				   (fixed != FC_PROPORTIONAL), fileName,
-				   index);
+    faceDesc = __glcFaceDescCreate(styleName, (fixed != FC_PROPORTIONAL),
+				   fileName, index);
     if (!faceDesc) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
@@ -634,7 +635,7 @@ __glcFaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
 /* Update the hash table that allows to convert master IDs into FontConfig
  * patterns.
  */
-void __glcUpdateHashTable(__glcContextState *inState)
+void __glcUpdateHashTable(__GLCcontext *inContext)
 {
   FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
@@ -654,7 +655,7 @@ void __glcUpdateHashTable(__glcContextState *inState)
     FcPatternDestroy(pattern);
     return;
   }
-  fontSet = FcFontList(inState->config, pattern, objectSet);
+  fontSet = FcFontList(inContext->config, pattern, objectSet);
   FcPatternDestroy(pattern);
   FcObjectSetDestroy(objectSet);
   if (!fontSet) {
@@ -668,8 +669,8 @@ void __glcUpdateHashTable(__glcContextState *inState)
   for (i = 0; i < fontSet->nfont; i++) {
     FcChar32 hashValue = 0;
     int j = 0;
-    int length = GLC_ARRAY_LENGTH(inState->masterHashTable);
-    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(inState->masterHashTable);
+    int length = GLC_ARRAY_LENGTH(inContext->masterHashTable);
+    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
     FcBool outline = FcFalse;
     FcResult result = FcResultMatch;
 
@@ -691,7 +692,7 @@ void __glcUpdateHashTable(__glcContextState *inState)
       continue;
 
     /* Register the font (i.e. append its hash value to the hash table) */
-    if (!__glcArrayAppend(inState->masterHashTable, &hashValue)) {
+    if (!__glcArrayAppend(inContext->masterHashTable, &hashValue)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
       return;
@@ -706,12 +707,12 @@ void __glcUpdateHashTable(__glcContextState *inState)
 /* Initialize the hash table that allows to convert master IDs into FontConfig
  * patterns.
  */
-void __glcCreateHashTable(__glcContextState* inState)
+void __glcCreateHashTable(__GLCcontext* inContext)
 {
   /* Empties the hash table */
-  GLC_ARRAY_LENGTH(inState->masterHashTable) = 0;
+  GLC_ARRAY_LENGTH(inContext->masterHashTable) = 0;
   /* Update the hash table */
-  __glcUpdateHashTable(inState);
+  __glcUpdateHashTable(inContext);
 }
 
 
@@ -719,12 +720,12 @@ void __glcCreateHashTable(__glcContextState* inState)
 /* Function for GLEW so that it can get a context */
 GLEWContext* glewGetContext(void)
 {
-  __glcContextState* state = __glcGetCurrent();
+  __GLCcontext* ctx = __glcGetCurrent();
 
-  if (!state) {
+  if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
   }
 
-  return &state->glewContext;
+  return &ctx->glewContext;
 }

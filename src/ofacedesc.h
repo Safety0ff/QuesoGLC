@@ -18,10 +18,18 @@
  */
 /* $Id$ */
 
+/** \file
+ * header of the object __glcFaceDesc that contains the description of a face.
+ */
+
 #ifndef __glc_ofacedesc_h
 #define __glc_ofacedesc_h
 
-typedef struct {
+#include "ocharmap.h"
+
+typedef struct __GLCfaceDescriptorRec __GLCfaceDescriptor;
+
+struct __GLCfaceDescriptorRec {
   FT_ListNodeRec node;
   FcChar8* styleName;
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
@@ -32,45 +40,44 @@ typedef struct {
   int faceRefCount;
 #endif
   FT_ListRec glyphList;
-} __glcFaceDescriptor;
+};
 
 
-__glcFaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
-					 FcCharSet* inCharSet,
+__GLCfaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
 					 GLboolean inIsFixedPitch,
 					 FcChar8* inFileName,
 					 FT_Long inIndexInFile);
-void __glcFaceDescDestroy(__glcFaceDescriptor* This,
-			  __glcContextState* inState);
+void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
+			  __GLCcontext* inContext);
 #ifndef FT_CACHE_H
-FT_Face __glcFaceDescOpen(__glcFaceDescriptor* This,
-			  __glcContextState* inState);
-void __glcFaceDescClose(__glcFaceDescriptor* This);
+FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
+			  __GLCcontext* inContext);
+void __glcFaceDescClose(__GLCfaceDescriptor* This);
 #endif
-__glcGlyph* __glcFaceDescGetGlyph(__glcFaceDescriptor* This, GLint inCode,
-				  __glcContextState* inState);
-FT_Face __glcFaceDescLoadFreeTypeGlyph(__glcFaceDescriptor* This,
-			       __glcContextState* inState, GLfloat inScaleX,
+__GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
+				  __GLCcontext* inContext);
+FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
+			       __GLCcontext* inContext, GLfloat inScaleX,
 			       GLfloat inScaleY, FT_ULong inGlyphIndex);
-void __glcFaceDescDestroyGLObjects(__glcFaceDescriptor* This,
-				   __glcContextState* inState);
-__glcCharMap* __glcFaceDescGetCharMap(__glcFaceDescriptor* This,
-				      __glcContextState* inState);
-GLfloat* __glcFaceDescGetBoundingBox(__glcFaceDescriptor* This,
+void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
+				   __GLCcontext* inContext);
+__GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
+				      __GLCcontext* inContext);
+GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
 				     FT_ULong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,
-				     __glcContextState* inState);
-GLfloat* __glcFaceDescGetAdvance(__glcFaceDescriptor* This,
+				     __GLCcontext* inContext);
+GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 FT_ULong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
-				 __glcContextState* inState);
-FcChar8* __glcFaceDescGetFontFormat(__glcFaceDescriptor* This,
-				    __glcContextState* inState,
+				 __GLCcontext* inContext);
+FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
+				    __GLCcontext* inContext,
 				    GLCenum inAttrib);
-GLfloat* __glcFaceDescGetMaxMetric(__glcFaceDescriptor* This, GLfloat* outVec,
-				   __glcContextState* inState);
-GLfloat* __glcFaceDescGetKerning(__glcFaceDescriptor* This,
+GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
+				   __GLCcontext* inContext);
+GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
 				 FT_UInt inGlyphIndex, FT_UInt inPrevGlyphIndex,
 				 GLfloat inScaleX, GLfloat inScaleY,
-				 GLfloat* outVec, __glcContextState* inState);
+				 GLfloat* outVec, __GLCcontext* inContext);
 #endif /* __glc_ofacedesc_h */

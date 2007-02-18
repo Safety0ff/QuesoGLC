@@ -18,7 +18,9 @@
  */
 /* $Id$ */
 
-/* Draws characters of scalable fonts */
+/** \file
+ * defines the routines used to render characters with lines and triangles.
+ */
 
 /* Microsoft Visual C++ */
 #ifdef _MSC_VER
@@ -39,14 +41,16 @@
 
 #define GLC_MAX_ITER	50
 
-typedef struct {
+typedef struct __GLCrendererDataRec __GLCrendererData;
+
+struct __GLCrendererDataRec {
   FT_Vector pen;			/* Current coordinates */
   GLfloat tolerance;			/* Chordal tolerance */
-  __glcArray* vertexArray;		/* Array of vertices */
-  __glcArray* controlPoints;		/* Array of control points */
-  __glcArray* endContour;		/* Array of contour limits */
-  __glcArray* vertexIndices;		/* Array of vertex indices */
-  __glcArray* geomBatches;		/* Array of geometric batches */
+  __GLCarray* vertexArray;		/* Array of vertices */
+  __GLCarray* controlPoints;		/* Array of control points */
+  __GLCarray* endContour;		/* Array of contour limits */
+  __GLCarray* vertexIndices;		/* Array of vertex indices */
+  __GLCarray* geomBatches;		/* Array of geometric batches */
   GLfloat scale_x;			/* Scale to convert grid point.. */
   GLfloat scale_y;			/* ..coordinates into pixels */
   GLfloat* transformMatrix;		/* Transformation matrix from the
@@ -56,7 +60,9 @@ typedef struct {
   GLboolean displayListIsBuilding;	/* Is a display list planned to be
 					   built ? */
   GLboolean extrude;
-}__glcRendererData;
+};
+
+
 
 /* Transform the object coordinates in the array 'inCoord' in screen
  * coordinates. The function updates 'inCoord' according to :
@@ -65,7 +71,7 @@ typedef struct {
  * inCoord[5..6] contains the viewport coordinates
  */
 static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
-					 __glcRendererData* inData)
+					 __GLCrendererData* inData)
 {
   GLfloat x = inCoord[0] * inData->transformMatrix[0]
 	     + inCoord[1] * inData->transformMatrix[4]
@@ -120,7 +126,7 @@ static int __glcdeCasteljauConic(const FT_Vector **inVector, void *inUserData)
 static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
 #endif
 {
-  __glcRendererData *data = (__glcRendererData *) inUserData;
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
   GLfloat(*controlPoint)[5] = NULL;
   GLint nArc = 1, arc = 0, rank = 0;
   GLfloat xMin = 0., xMax = 0., yMin =0., yMax = 0., zMin = 0., zMax = 0.;
@@ -360,7 +366,7 @@ static int __glcdeCasteljauCubic(const FT_Vector **inVector, void *inUserData)
 static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
 #endif
 {
-  __glcRendererData *data = (__glcRendererData *) inUserData;
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
   GLfloat(*controlPoint)[5] = NULL;
   GLint nArc = 1, arc = 0, rank = 0;
   GLfloat xMin = 0., xMax = 0., yMin =0., yMax = 0., zMin = 0., zMax = 0.;
@@ -629,7 +635,7 @@ static int __glcMoveTo(const FT_Vector *inVecTo, void* inUserData)
 static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
 #endif
 {
-  __glcRendererData *data = (__glcRendererData *) inUserData;
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
 
   /* We don't need to store the point where the pen is since glyphs are defined
    * by closed loops (i.e. the first point and the last point are the same) and
@@ -658,7 +664,7 @@ static int __glcLineTo(const FT_Vector *inVecTo, void* inUserData)
 static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 #endif
 {
-  __glcRendererData *data = (__glcRendererData *) inUserData;
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
   GLfloat vertex[2];
 
   vertex[0] = (GLfloat) data->pen.x * data->scale_x;
@@ -690,7 +696,7 @@ static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
 {
   FT_Vector* vector[2];
 #endif
-  __glcRendererData *data = (__glcRendererData *) inUserData;
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
   int error = 0;
 
   vector[0] = inVecControl;
@@ -720,7 +726,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 {
   FT_Vector* vector[3];
 #endif
-  __glcRendererData *data = (__glcRendererData *) inUserData;
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
   int error = 0;
 
   vector[0] = inVecControl1;
@@ -744,7 +750,9 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3],
 				 void* vertex_data[4], GLfloat weight[4],
 				 void** outData, void* inUserData)
 {
-  __glcRendererData *data = (__glcRendererData*)inUserData;
+  GLC_DISCARD_ARG(vertex_data);
+  GLC_DISCARD_ARG(weight);
+  __GLCrendererData *data = (__GLCrendererData*)inUserData;
   GLfloat vertex[2];
   /* Evil hack for 32/64 bits compatibility */
   union {
@@ -773,8 +781,9 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3],
  */
 static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
 {
-  __glcRendererData *data = (__glcRendererData*)inUserData;
-  __glcGeomBatch *geomBatch = ((__glcGeomBatch*)GLC_ARRAY_DATA(data->geomBatches));
+  __GLCrendererData *data = (__GLCrendererData*)inUserData;
+  __GLCgeomBatch *geomBatch =
+			((__GLCgeomBatch*)GLC_ARRAY_DATA(data->geomBatches));
   /* Evil hack for 32/64 bits compatibility */
   union {
     void* ptr;
@@ -784,8 +793,10 @@ static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
   geomBatch += GLC_ARRAY_LENGTH(data->geomBatches) - 1;
 
   uintInPtr.ptr = vertex_data;
-  geomBatch->start = (uintInPtr.i < geomBatch->start) ? uintInPtr.i : geomBatch->start;
-  geomBatch->end = (uintInPtr.i > geomBatch->end) ? uintInPtr.i : geomBatch->end;
+  geomBatch->start = (uintInPtr.i < geomBatch->start) ? uintInPtr.i :
+							geomBatch->start;
+  geomBatch->end = (uintInPtr.i > geomBatch->end) ? uintInPtr.i :
+						    geomBatch->end;
   if (!__glcArrayAppend(data->vertexIndices, &uintInPtr.i)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -797,8 +808,8 @@ static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
 
 static void CALLBACK __glcBeginCallback(GLenum mode, void* inUserData)
 {
-  __glcRendererData *data = (__glcRendererData*)inUserData;
-  __glcGeomBatch geomBatch;
+  __GLCrendererData *data = (__GLCrendererData*)inUserData;
+  __GLCgeomBatch geomBatch;
 
   geomBatch.mode = mode;
   geomBatch.length = 0;
@@ -818,6 +829,7 @@ static void CALLBACK __glcBeginCallback(GLenum mode, void* inUserData)
  */
 static void CALLBACK __glcCallbackError(GLenum inErrorCode)
 {
+  GLC_DISCARD_ARG(inErrorCode);
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
@@ -830,16 +842,16 @@ static void CALLBACK __glcCallbackError(GLenum inErrorCode)
  * contour defines a polygon that is tesselated in triangles by the GLU library
  * before being rendered.
  */
-void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
+void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 			     GLCenum inRenderMode,
 			     GLboolean inDisplayListIsBuilding,
 			     GLfloat* inTransformMatrix, GLfloat scale_x,
 			     GLfloat scale_y,
-			     __glcGlyph* inGlyph)
+			     __GLCglyph* inGlyph)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs outlineInterface;
-  __glcRendererData rendererData;
+  __GLCrendererData rendererData;
   static GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
 				       1., 0., 0., 0., 0., 1.};
   FT_Face face = NULL;
@@ -847,7 +859,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 #ifndef FT_CACHE_H
   face = inFont->faceDesc->face;
 #else
-  if (FTC_Manager_LookupFace(inState->cache, (FTC_FaceID)inFont->faceDesc,
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)inFont->faceDesc,
 			     &face)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -868,14 +880,14 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   rendererData.scale_x = 1./64./scale_x;
   rendererData.scale_y = 1./64./scale_y;
 
-  rendererData.vertexArray = inState->vertexArray;
-  rendererData.controlPoints = inState->controlPoints;
-  rendererData.endContour = inState->endContour;
-  rendererData.vertexIndices = inState->vertexIndices;
-  rendererData.geomBatches = inState->geomBatches;
+  rendererData.vertexArray = inContext->vertexArray;
+  rendererData.controlPoints = inContext->controlPoints;
+  rendererData.endContour = inContext->endContour;
+  rendererData.vertexIndices = inContext->vertexIndices;
+  rendererData.geomBatches = inContext->geomBatches;
 
   rendererData.displayListIsBuilding = inDisplayListIsBuilding;
-  rendererData.extrude = inState->enableState.extrude;
+  rendererData.extrude = inContext->enableState.extrude;
 
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
@@ -894,7 +906,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     rendererData.transformMatrix[5] *= rendererData.halfHeight;
     rendererData.transformMatrix[13] *= rendererData.halfHeight;
 
-    if (inState->enableState.extrude) {
+    if (inContext->enableState.extrude) {
       int i = 0;
 
       rendererData.transformMatrix[8] *= rendererData.halfWidth;
@@ -930,25 +942,25 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   /* Parse the outline of the glyph */
   if (FT_Outline_Decompose(outline, &outlineInterface, &rendererData)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
-    GLC_ARRAY_LENGTH(inState->endContour) = 0;
-    GLC_ARRAY_LENGTH(inState->vertexIndices) = 0;
-    GLC_ARRAY_LENGTH(inState->geomBatches) = 0;
+    GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
+    GLC_ARRAY_LENGTH(inContext->endContour) = 0;
+    GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
+    GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
     return;
   }
 
   if (!__glcArrayAppend(rendererData.endContour,
 			&GLC_ARRAY_LENGTH(rendererData.vertexArray))) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
-    GLC_ARRAY_LENGTH(inState->endContour) = 0;
-    GLC_ARRAY_LENGTH(inState->vertexIndices) = 0;
-    GLC_ARRAY_LENGTH(inState->geomBatches) = 0;
+    GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
+    GLC_ARRAY_LENGTH(inContext->endContour) = 0;
+    GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
+    GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
     return;
   }
 
   /* Prepare the display list compilation if needed */
-  if (inState->enableState.glObjects) {
+  if (inContext->enableState.glObjects) {
     int index = 0;
 
     switch(inRenderMode) {
@@ -956,17 +968,17 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       index = 1;
       break;
     case GLC_TRIANGLE:
-      index = inState->enableState.extrude ? 3 : 2;
+      index = inContext->enableState.extrude ? 3 : 2;
       break;
     }
 
     inGlyph->displayList[index] = glGenLists(1);
     if (!inGlyph->displayList[index]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
-      GLC_ARRAY_LENGTH(inState->endContour) = 0;
-      GLC_ARRAY_LENGTH(inState->vertexIndices) = 0;
-      GLC_ARRAY_LENGTH(inState->geomBatches) = 0;
+      GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
+      GLC_ARRAY_LENGTH(inContext->endContour) = 0;
+      GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
+      GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
       return;
     }
 
@@ -985,7 +997,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
       (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
     GLdouble coords[3] = {0., 0., 0.};
     GLuint *vertexIndices = NULL;
-    __glcGeomBatch *geomBatch = NULL;
+    __GLCgeomBatch *geomBatch = NULL;
 
     /* Initialize the GLU tesselator */
     gluTessProperty(tess, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_ODD);
@@ -1032,12 +1044,12 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 
     glNormal3f(0.f, 0.f, 1.f);
     vertexIndices = (GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
-    geomBatch = (__glcGeomBatch*)GLC_ARRAY_DATA(rendererData.geomBatches);
+    geomBatch = (__GLCgeomBatch*)GLC_ARRAY_DATA(rendererData.geomBatches);
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
       glDrawElements(geomBatch[i].mode, geomBatch[i].length,
 			GL_UNSIGNED_INT, (void*)vertexIndices);
-      if (inState->enableState.extrude) {
+      if (inContext->enableState.extrude) {
 	glTranslatef(0.0f, 0.0f, -1.0f);
 	glNormal3f(0.f, 0.f, -1.f);
 	glDrawElements(geomBatch[i].mode, geomBatch[i].length,
@@ -1049,7 +1061,7 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
     }
 
     /* For extruded glyphes : close the contours */
-    if (inState->enableState.extrude) {
+    if (inContext->enableState.extrude) {
       GLfloat ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f;
       GLfloat nx = 0.f, ny = 0.f, length = 0.f;
 
@@ -1085,7 +1097,8 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
 	length = sqrt(nx * nx + ny * ny);
 	glNormal3f(nx / length, ny / length, 0.f);
 	glVertex2fv(vertexArray[endContour[i]]);
-	glVertex3f(vertexArray[endContour[i]][0], vertexArray[endContour[i]][1], -1.f);
+	glVertex3f(vertexArray[endContour[i]][0], vertexArray[endContour[i]][1],
+		   -1.f);
 	glEnd();
       }
     }
@@ -1108,11 +1121,11 @@ void __glcRenderCharScalable(__glcFont* inFont, __glcContextState* inState,
   glTranslatef(face->glyph->advance.x * rendererData.scale_x,
 	       face->glyph->advance.y * rendererData.scale_y, 0.);
 
-  if (inState->enableState.glObjects)
+  if (inContext->enableState.glObjects)
     glEndList();
 
-  GLC_ARRAY_LENGTH(inState->vertexArray) = 0;
-  GLC_ARRAY_LENGTH(inState->endContour) = 0;
-  GLC_ARRAY_LENGTH(inState->vertexIndices) = 0;
-  GLC_ARRAY_LENGTH(inState->geomBatches) = 0;
+  GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
+  GLC_ARRAY_LENGTH(inContext->endContour) = 0;
+  GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
+  GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
 }
