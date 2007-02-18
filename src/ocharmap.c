@@ -125,7 +125,7 @@ void __glcCharMapAddChar(__glcCharMap* This, GLint inCode, __glcGlyph* inGlyph)
     middle++;
 
   /* Insert the new character in the character map */
-  newElement = (__glcCharMapElement*)__glcArrayInsertCell(This->map, middle);
+  newElement = (__glcCharMapElement*)__glcArrayInsertCell(This->map, middle, 1);
   if (!newElement)
     return;
 

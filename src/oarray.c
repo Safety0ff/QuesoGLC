@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -162,14 +162,18 @@ void __glcArrayRemove(__glcArray* This, int inRank)
 /* Insert some room in the array at rank 'inRank' and leave it as is.
  * The difference between __glcArrayInsertCell() and __glcArrayInsert() is that
  * __glcArrayInsert() copy a value in the new element array while
- * __glcArrayInsertCell() does not.
+ * __glcArrayInsertCell() does not. Moreover __glcArrayInsertCell() can insert
+ * several cells in a row which is faster than calling __glcArrayInsert()
+ * several times in a row.
  * This function is used to optimize performance in certain configurations.
  */
-char* __glcArrayInsertCell(__glcArray* This, int inRank)
+char* __glcArrayInsertCell(__glcArray* This, int inRank, int inCells)
 {
   char* newCell = NULL;
 
-  if (This->length == This->allocated) {
+  assert(inCells < GLC_ARRAY_BLOCK_SIZE);
+
+  if ((This->length + inCells) > This->allocated) {
     if (!__glcArrayUpdateSize(This))
       return NULL;
   }
@@ -177,10 +181,10 @@ char* __glcArrayInsertCell(__glcArray* This, int inRank)
   newCell = This->data + inRank * This->elementSize;
 
   if (This->length > inRank)
-    memmove(newCell + This->elementSize, newCell,
+    memmove(newCell + inCells * This->elementSize, newCell,
 	   (This->length - inRank) * This->elementSize);
 
-  This->length++;
+  This->length += inCells;
 
   return newCell;
 }

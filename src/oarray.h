@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -36,5 +36,5 @@ void __glcArrayDestroy(__glcArray* This);
 __glcArray* __glcArrayAppend(__glcArray* This, void* inValue);
 __glcArray* __glcArrayInsert(__glcArray* This, int inRank, void* inValue);
 void __glcArrayRemove(__glcArray* This, int inRank);
-char* __glcArrayInsertCell(__glcArray* This, int inRank);
+char* __glcArrayInsertCell(__glcArray* This, int inRank, int inCells);
 #endif

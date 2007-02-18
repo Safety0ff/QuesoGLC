@@ -68,7 +68,8 @@ __glcContextState* __glcCtxCreate(GLint inContext)
   FT_Add_Default_Modules(This->library);
 
 #ifdef FT_CACHE_H
-  if (FTC_Manager_New(This->library, 0, 0, 0, __glcFileOpen, NULL, &This->cache)) {
+  if (FTC_Manager_New(This->library, 0, 0, 0, __glcFileOpen, NULL,
+		      &This->cache)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FT_Done_Library(This->library);
     __glcFree(This);
@@ -174,7 +175,7 @@ __glcContextState* __glcCtxCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
-  This->controlPoints = __glcArrayCreate(7 * sizeof(GLfloat));
+  This->controlPoints = __glcArrayCreate(5 * sizeof(GLfloat));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
