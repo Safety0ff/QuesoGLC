@@ -27,8 +27,6 @@
 
 #include "ofacedesc.h"
 
-typedef struct __GLCfontRec  __GLCfont;
-
 struct __GLCfontRec {
   GLint id;
   __GLCfaceDescriptor* faceDesc;
@@ -36,7 +34,8 @@ struct __GLCfontRec {
   __GLCcharMap* charMap;
 };
 
-__GLCfont*  __glcFontCreate(GLint id, GLint inMaster, __GLCcontext* inContext);
+__GLCfont*  __glcFontCreate(GLint id, FcPattern* inPattern,
+			    __GLCcontext* inContext);
 void __glcFontDestroy(__GLCfont *This, __GLCcontext* inContext);
 __GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
 			      __GLCcontext* inContext);

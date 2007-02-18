@@ -85,9 +85,9 @@ static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
  * identified by 'inFont'.
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
-				__GLCcontext* inContext, void* inData,
-				GLboolean inMultipleChars)
+static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
+				__GLCfont* inFont, __GLCcontext* inContext,
+				void* inData, GLboolean inMultipleChars)
 {
   GLfloat* outVec = (GLfloat*)inData;
   GLint i = 0;
@@ -97,7 +97,8 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   GLfloat scale_y = GLC_POINT_SIZE;
   GLfloat transformMatrix[16];
   GLfloat temp[4];
-  __GLCfont* font = __glcVerifyFontParameters(inFont);
+
+  assert(inFont);
 
   /* Get the scale factors in X and Y direction from the transformation
    * matrix
@@ -108,7 +109,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
    * zero (that is the matrix transforms the glyph so that its height or length
    * is zero).
    */
-  if ((!font) || (fabs(scale_x) < GLC_EPSILON)
+  if ((fabs(scale_x) < GLC_EPSILON)
       || (fabs(scale_y) < GLC_EPSILON))
     return NULL;
 
@@ -158,7 +159,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
     outVec[3] -= outVec[13];
   }
 
-  __glcFontGetBoundingBox(font, inCode, temp, inContext, scale_x, scale_y);
+  __glcFontGetBoundingBox(inFont, inCode, temp, inContext, scale_x, scale_y);
   /* Take into account the advance of the glyphs that have already been
    * measured.
    */
@@ -187,7 +188,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   outVec[11] = outVec[9];
 
   /* Get the advance of the glyph */
-  __glcFontGetAdvance(font, inCode, temp, inContext, scale_x, scale_y);
+  __glcFontGetAdvance(inFont, inCode, temp, inContext, scale_x, scale_y);
   /* Update the global advance accordingly */
   outVec[2] += temp[0] / GLC_POINT_SIZE;
   outVec[3] += temp[1] / GLC_POINT_SIZE;
@@ -197,7 +198,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode, GLint inFont,
   if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
 
-    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inContext,
+    if (__glcFontGetKerning(inFont, inCode, inPrevCode, kerning, inContext,
 			    scale_x, scale_y))
     {
       outVec[12] = kerning[0] / GLC_POINT_SIZE;

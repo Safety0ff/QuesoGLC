@@ -69,7 +69,8 @@ struct __GLCgeomBatchRec {
  * __glcRenderChar() for rendering and __glcGetCharMetric() for measurement.
  */
 typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
-				      GLint inFont, __GLCcontext* inContext,
+				      __GLCfont* inFont,
+				      __GLCcontext* inContext,
 				      void* inProcessCharData,
 				      GLboolean inMultipleChars);
 
@@ -150,6 +151,30 @@ FcPattern* __glcVerifyMasterParameters(GLint inMaster);
  * by 'inFont' exists.
  */
 __GLCfont* __glcVerifyFontParameters(GLint inFont);
+
+/* Do the actual job of glcAppendFont(). This function can be called as an
+ * internal version of glcAppendFont() where the current GLC context is already
+ * determined and the font ID has been resolved in its corresponding __GLCfont
+ * object.
+ */
+void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont);
+
+/* This internal function deletes the font identified by inFont (if any) and
+ * creates a new font based on the pattern 'inPattern'. The resulting font is
+ * added to the list GLC_FONT_LIST.
+ */
+__GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
+				  FcPattern* inPattern,
+				  __GLCcontext *inContext);
+
+/* This internal function tries to open the face file which name is identified
+ * by 'inFace'. If it succeeds, it closes the previous face and stores the new
+ * face attributes in the __GLCfont object identified by inFont. Otherwise,
+ * it leaves the font 'inFont' unchanged. GL_TRUE or GL_FALSE are returned
+ * to indicate if the function succeeded or not.
+ */
+GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
+			__GLCcontext *inContext);
 
 /* Return a struct which contains thread specific info */
 __GLCthreadArea* __glcGetThreadArea(void);

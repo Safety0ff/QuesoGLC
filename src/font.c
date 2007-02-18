@@ -107,6 +107,35 @@ __GLCfont* __glcVerifyFontParameters(GLint inFont)
 
 
 
+/* Do the actual job of glcAppendFont(). This function can be called as an
+ * internal version of glcAppendFont() where the current GLC context is already
+ * determined and the font ID has been resolved in its corresponding __GLCfont
+ * object.
+ */
+void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont)
+{
+  FT_ListNode node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
+
+  if (!node) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+#ifndef FT_CACHE_H
+  if (!__glcFaceDescOpen(inFont->faceDesc, inContext)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFree(node);
+    return;
+  }
+#endif
+
+  /* Add the font to GLC_CURRENT_FONT_LIST */
+  node->data = inFont;
+  FT_List_Add(&inContext->currentFontList, node);
+}
+
+
+
 /** \ingroup font
  *  This command appends \e inFont to the list \b GLC_CURRENT_FONT_LIST.
  *
@@ -124,7 +153,6 @@ __GLCfont* __glcVerifyFontParameters(GLint inFont)
 void APIENTRY glcAppendFont(GLint inFont)
 {
   __GLCcontext *ctx = __glcGetCurrent();
-  FT_ListNode node = NULL;
   __GLCfont *font = __glcVerifyFontParameters(inFont);
 
   /* Verify that the thread has a current context and that the font identified
@@ -139,25 +167,7 @@ void APIENTRY glcAppendFont(GLint inFont)
     return;
   }
 
-  node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
-  if (!node) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-#ifndef FT_CACHE_H
-  if (!__glcFaceDescOpen(font->faceDesc, ctx)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(node);
-    return;
-  }
-#endif
-
-  /* Add the font to GLC_CURRENT_FONT_LIST */
-  node->data = font;
-  FT_List_Add(&ctx->currentFontList, node);
-
-  return;
+  __glcAppendFont(ctx, font);
 }
 
 
@@ -353,8 +363,8 @@ void APIENTRY glcFont(GLint inFont)
  * it leaves the font 'inFont' unchanged. GL_TRUE or GL_FALSE are returned
  * to indicate if the function succeeded or not.
  */
-static GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
-			       __GLCcontext *inContext)
+GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
+			__GLCcontext *inContext)
 {
   __GLCfaceDescriptor *faceDesc = NULL;
   FcPattern *pattern = NULL;
@@ -934,52 +944,41 @@ GLboolean APIENTRY glcIsFont(GLint inFont)
 
 
 
-/* This internal function checks the validity of the parameter inMaster,
- * deletes the font identified by inFont (if any) and create a new font which
- * is added to the list GLC_FONT_LIST.
+/* This internal function deletes the font identified by inFont (if any) and
+ * creates a new font based on the pattern 'inPattern'. The resulting font is
+ * added to the list GLC_FONT_LIST.
  */
-static GLint __glcNewFontFromMaster(GLint inFont, GLint inMaster,
-				    __GLCcontext *inContext)
+__GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
+				  FcPattern* inPattern, __GLCcontext *inContext)
 {
   FT_ListNode node = NULL;
-  __GLCfont *font = NULL;
-
-  /* Look for the font which ID is inFont in the GLC_FONT_LIST */
-  for (node = inContext->fontList.head; node; node = node->next) {
-    font = (__GLCfont*)node->data;
-    if (font->id == inFont)
-      break;
-  }
-
-  /* No font with an ID equal to inFont has been found */
-  if (!node)
-    font = NULL;
+  __GLCfont* font = NULL;
 
   /* Create a new entry for GLC_FONT_LIST */
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
   if (!node) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return 0;
+    return NULL;
   }
 
-  if (font)
+  if (inFont)
     /* Delete the font */
-    __glcDeleteFont(font, inContext);
+    __glcDeleteFont(inFont, inContext);
 
   /* Create a new font and add it to the list GLC_FONT_LIST */
-  font = __glcFontCreate(inFont, inMaster, inContext);
+  font = __glcFontCreate(inFontID, inPattern, inContext);
   if (!font) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
-    return 0;
+    return NULL;
   }
   node->data = font;
   FT_List_Add(&inContext->fontList, node);
 
   /* Update the last font ID (see glcGenFontID())*/
-  if (inFont >= inContext->lastFontID)
-    inContext->lastFontID = inFont + 1;
-  return inFont;
+  if (inFontID >= inContext->lastFontID)
+    inContext->lastFontID = inFontID + 1;
+  return font;
 }
 
 
@@ -1004,7 +1003,8 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
   __GLCcontext *ctx = __glcGetCurrent();
   FcPattern *pattern = __glcVerifyMasterParameters(inMaster);
-  GLint font = 0;
+  __GLCfont *font = NULL;
+  FT_ListNode node = NULL;
 
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
@@ -1012,17 +1012,27 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
   if (!pattern)
     return 0;
 
-  FcPatternDestroy(pattern);
-
   /* Check if inFont is in legal bounds */
   if (inFont < 1) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
   }
 
+  /* Look for the font which ID is inFont in the GLC_FONT_LIST */
+  for (node = ctx->fontList.head; node; node = node->next) {
+    font = (__GLCfont*)node->data;
+    if (font->id == inFont)
+      break;
+  }
+
+  /* No font with an ID equal to inFont has been found */
+  if (!node)
+    font = NULL;
+
   /* Create and return the new font */
-  font = __glcNewFontFromMaster(inFont, inMaster, ctx);
-  return font;
+  font = __glcNewFontFromMaster(font, inFont, pattern, ctx);
+  FcPatternDestroy(pattern);
+  return font->id;
 }
 
 
@@ -1057,9 +1067,8 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   FcFontSet *fontSet = NULL;
   FcResult result = FcResultMatch;
   int i = 0;
-  GLint font = 0;
-  FcChar32 hashValue = 0;
-  FcChar32* hashTable = NULL;
+  __GLCfont *font = NULL;
+  FT_ListNode node = NULL;
 
   assert(inFamily);
 
@@ -1130,18 +1139,19 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     return 0;
   }
 
-  hashValue = FcPatternHash(fontSet->fonts[i]);
-  hashTable = (FcChar32*)GLC_ARRAY_DATA(ctx->masterHashTable);
-
-  for (i = 0; i < GLC_ARRAY_LENGTH(ctx->masterHashTable); i++) {
-    if (hashValue == hashTable[i])
+  /* Look for the font which ID is inFont in the GLC_FONT_LIST */
+  for (node = ctx->fontList.head; node; node = node->next) {
+    font = (__GLCfont*)node->data;
+    if (font->id == inFont)
       break;
   }
-  assert(i < GLC_ARRAY_LENGTH(ctx->masterHashTable));
 
-  FcFontSetDestroy(fontSet);
+  /* No font with an ID equal to inFont has been found */
+  if (!node)
+    font = NULL;
 
   /* Create and return the new font */
-  font = __glcNewFontFromMaster(inFont, i, ctx);
-  return font;
+  font = __glcNewFontFromMaster(font, inFont, fontSet->fonts[i], ctx);
+  FcFontSetDestroy(fontSet);
+  return font->id;
 }

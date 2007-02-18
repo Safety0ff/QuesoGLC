@@ -53,6 +53,7 @@ typedef struct __GLCglStateRec __GLCglState;
 typedef struct __GLCattribStackLevelRec  __GLCattribStackLevel;
 typedef struct __GLCthreadAreaRec __GLCthreadArea;
 typedef struct __GLCcommonAreaRec  __GLCcommonArea;
+typedef struct __GLCfontRec __GLCfont;
 
 struct __GLCtextureRec {
   GLuint id;
@@ -195,7 +196,7 @@ void __glcCtxDestroy(__GLCcontext *This);
 void __glcCtxAddMasters(__GLCcontext *This, const GLCchar* catalog,
 			GLboolean append);
 void __glcCtxRemoveMasters(__GLCcontext *This, GLint inIndex);
-GLint __glcCtxGetFont(__GLCcontext *This, GLint code);
+__GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint code);
 GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize);
 void __glcAddFontsToContext(__GLCcontext *This, FcFontSet *fontSet,
 			    GLboolean inAppend);

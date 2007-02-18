@@ -161,11 +161,11 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
 		       void* inProcessCharData)
 {
   GLint repCode = 0;
-  GLint font = 0;
+  __GLCfont* font = NULL;
 
   /* Get a font that maps inCode */
   font = __glcCtxGetFont(inContext, inCode);
-  if (font >= 0) {
+  if (font) {
     /* A font has been found */
     return inProcessCharFunc(inCode, inPrevCode, font, inContext,
 			     inProcessCharData, GL_FALSE);

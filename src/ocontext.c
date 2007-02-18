@@ -339,11 +339,11 @@ void __glcCtxDestroy(__GLCcontext *This)
 
 
 
-/* Return the ID of the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'
- * If there is no such font, the function returns zero.
+/* Return the first font in GLC_CURRENT_FONT_LIST that maps 'inCode'.
+ * If there is no such font, the function returns NULL.
  * 'inCode' must be given in UCS-4 format.
  */
-static GLint __glcLookupFont(GLint inCode, FT_List fontList)
+static __GLCfont* __glcLookupFont(GLint inCode, FT_List fontList)
 {
   FT_ListNode node = NULL;
 
@@ -352,9 +352,9 @@ static GLint __glcLookupFont(GLint inCode, FT_List fontList)
 
     /* Check if the character identified by inCode exists in the font */
     if (__glcCharMapHasChar(font->charMap, inCode))
-      return font->id;
+      return font;
   }
-  return -1;
+  return NULL;
 }
 
 
@@ -402,14 +402,14 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
  * to GLC_CURRENT_FONT_LIST. If the attempt fails the function returns zero.
  * 'inCode' must be given in UCS-4 format.
  */
-GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
+__GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint inCode)
 {
-  GLint font = 0;
+  __GLCfont* font = NULL;
 
   /* Look for a font in the current font list */
   font = __glcLookupFont(inCode, &This->currentFontList);
   /* If a font has been found return */
-  if (font >= 0)
+  if (font)
     return font;
 
   /* If a callback function is defined for GLC_OP_glcUnmappedCode then call it.
@@ -418,7 +418,7 @@ GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
    */
   if (__glcCallCallbackFunc(inCode, This)) {
     font = __glcLookupFont(inCode, &This->currentFontList);
-    if (font >= 0)
+    if (font)
       return font;
   }
 
@@ -433,14 +433,12 @@ GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
     FcFontSet* fontSet2 = NULL;
     FcObjectSet* objectSet = NULL;
     FcResult result = FcResultMatch;
-    int m = 0, f = 0;
-    FcChar32 hashValue = 0;
-    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(This->masterHashTable);
+    int f = 0;
     FcChar8* style = NULL;
 
     font = __glcLookupFont(inCode, &This->fontList);
-    if (font >= 0) {
-      glcAppendFont(font);
+    if (font) {
+      __glcAppendFont(This, font);
       return font;
     }
 
@@ -451,32 +449,32 @@ GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
     charSet = FcCharSetCreate();
     if (!charSet) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      return -1;
+      return NULL;
     }
     if (!FcCharSetAddChar(charSet, inCode)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcCharSetDestroy(charSet);
-      return -1;
+      return NULL;
     }
     pattern = FcPatternBuild(NULL, FC_CHARSET, FcTypeCharSet, charSet,
 			     FC_OUTLINE, FcTypeBool, FcTrue, NULL);
     FcCharSetDestroy(charSet);
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      return -1;
+      return NULL;
     }
 
     if (!FcConfigSubstitute(This->config, pattern, FcMatchPattern)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcPatternDestroy(pattern);
-      return -1;
+      return NULL;
     }
     FcDefaultSubstitute(pattern);
     fontSet = FcFontSort(This->config, pattern, FcFalse, NULL, &result);
     FcPatternDestroy(pattern);
     if ((!fontSet) || (result == FcResultTypeMismatch)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      return -1;
+      return NULL;
     }
 
     for (f = 0; f < fontSet->nfont; f++) {
@@ -493,7 +491,7 @@ GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
 
     if (f == fontSet->nfont) {
       FcFontSetDestroy(fontSet);
-      return -1;
+      return NULL;
     }
 
     /* Ugly hack to extract a subset of the pattern fontSet->fonts[f]
@@ -504,38 +502,31 @@ GLint __glcCtxGetFont(__GLCcontext *This, GLint inCode)
     if (!objectSet) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
-      return -1;
+      return NULL;
     }
     fontSet2 = FcFontList(This->config, fontSet->fonts[f], objectSet);
     FcObjectSetDestroy(objectSet);
     if (!fontSet2) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
-      return -1;
+      return NULL;
     }
 
-    hashValue = FcPatternHash(fontSet2->fonts[0]);
+    font = __glcNewFontFromMaster(NULL, glcGenFontID(), fontSet2->fonts[0],
+				  This);
     FcFontSetDestroy(fontSet2);
-
-    for (m = 0; m < GLC_ARRAY_LENGTH(This->masterHashTable); m++) {
-      if (hashValue == hashTable[m])
-	break;
-    }
-    assert(m != GLC_ARRAY_LENGTH(This->masterHashTable));
-
-    font = glcNewFontFromMaster(glcGenFontID(), m);
     if (font) {
       result = FcPatternGetString(fontSet->fonts[f], FC_STYLE, 0, &style);
       assert(result != FcResultTypeMismatch);
-      glcFontFace(font, style);
+      __glcFontFace(font, style, This);
       FcFontSetDestroy(fontSet);
       /* Add the font to the GLC_CURRENT_FONT_LIST */
-      glcAppendFont(font);
+      __glcAppendFont(This, font);
       return font;
     }
     FcFontSetDestroy(fontSet);
   }
-  return -1;
+  return NULL;
 }
 
 

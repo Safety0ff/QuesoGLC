@@ -188,7 +188,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
+static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 			    __GLCcontext* inContext, void* inData,
 			    GLboolean inMultipleChars)
 {
@@ -199,11 +199,9 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   GLfloat scale_y = GLC_POINT_SIZE;
   __GLCglyph* glyph = NULL;
   GLboolean displayListIsBuilding = GL_FALSE;
-  __GLCfont* font = __glcVerifyFontParameters(inFont);
   FT_Face face = NULL;
 
-  if (!font)
-    return NULL;
+  assert(inFont);
 
   displayListIsBuilding = __glcGetScale(inContext, transformMatrix, &scale_x,
   					&scale_y);
@@ -214,7 +212,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
 
-    if (__glcFontGetKerning(font, inCode, inPrevCode, kerning, inContext,
+    if (__glcFontGetKerning(inFont, inCode, inPrevCode, kerning, inContext,
 			    scale_x, scale_y)) {
         if (inContext->renderState.renderStyle == GLC_BITMAP)
             glBitmap(0, 0, 0, 0,
@@ -229,7 +227,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   }
 
   /* Get and load the glyph which unicode code is identified by inCode */
-  glyph = __glcFontGetGlyph(font, inCode, inContext);
+  glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
   /* Renders the display lists if they exist and if GLC_GL_OBJECTS is enabled
    * then return.
@@ -267,16 +265,16 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
   }
 
 #ifndef FT_CACHE_H
-  face = font->faceDesc->face;
+  face = inFont->faceDesc->face;
 #else
-  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)font->faceDesc,
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)inFont->faceDesc,
 			     &face)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 #endif
 
-  __glcFaceDescLoadFreeTypeGlyph(font->faceDesc, inContext, scale_x, scale_y,
+  __glcFaceDescLoadFreeTypeGlyph(inFont->faceDesc, inContext, scale_x, scale_y,
                         glyph->index);
 
   if ((inContext->renderState.renderStyle != GLC_BITMAP)
@@ -348,16 +346,16 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLint inFont,
 			  scale_y);
     break;
   case GLC_TEXTURE:
-      __glcRenderCharTexture(font, inContext, displayListIsBuilding,
+      __glcRenderCharTexture(inFont, inContext, displayListIsBuilding,
 			     scale_x, scale_y, glyph);
     break;
   case GLC_LINE:
-      __glcRenderCharScalable(font, inContext, GLC_LINE,
+      __glcRenderCharScalable(inFont, inContext, GLC_LINE,
 			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
   case GLC_TRIANGLE:
-      __glcRenderCharScalable(font, inContext, GLC_TRIANGLE,
+      __glcRenderCharScalable(inFont, inContext, GLC_TRIANGLE,
 			      displayListIsBuilding, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
