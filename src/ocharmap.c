@@ -96,7 +96,7 @@ void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
-  assert(inCode > 0);
+  assert(inCode >= 0);
 
   /* Characters are stored by ascending order of their mapped code */
   element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
@@ -147,7 +147,7 @@ void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
-  assert(inCode > 0);
+  assert(inCode >= 0);
 
   /* Characters are stored by ascending order of their mapped code */
   element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
@@ -188,7 +188,7 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
-  assert(inCode > 0);
+  assert(inCode >= 0);
 
   /* Characters are stored by ascending order of their mapped code */
   element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
@@ -241,7 +241,7 @@ __GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode)
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
-  assert(inCode > 0);
+  assert(inCode >= 0);
 
   /* Characters are stored by ascending order of their mapped code */
   element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
@@ -276,7 +276,7 @@ GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode)
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
-  assert(inCode > 0);
+  assert(inCode >= 0);
 
   /* Characters are stored by ascending order of their mapped code */
   element = (__GLCcharMapElement*)GLC_ARRAY_DATA(This->map);
@@ -323,7 +323,7 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
   int i = 0;
   int j = 0;
 
-  assert(inIndex > 0);
+  assert(inIndex >= 0);
 
   /* In Fontconfig the map in FcCharSet is organized as an array of integers.
    * Each integer corresponds to a page of 32 characters (since it uses 32 bits
