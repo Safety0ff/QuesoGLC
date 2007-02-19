@@ -281,7 +281,6 @@ void __glcRenderCharTexture(__GLCfont* inFont,
   GLint posX = 0, posY = 0;
   int minSize = (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod) ? 2 : 1;
   GLfloat texWidth = 0, texHeigth = 0;
-  GLfloat texScaleX = 0, texScaleY = 0;
 
 #ifndef FT_CACHE_H
   face = inFont->faceDesc->face;
@@ -320,8 +319,6 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     texture = inContext->atlas.id;
     texWidth = inContext->atlas.width;
     texHeigth = inContext->atlas.heigth;
-    texScaleX = (GLfloat)GLC_TEXTURE_SIZE;
-    texScaleY = (GLfloat)GLC_TEXTURE_SIZE;
     posY = (atlasNode->position / inContext->atlasWidth);
     posX = (atlasNode->position - posY*inContext->atlasWidth)*GLC_TEXTURE_SIZE;
     posY *= GLC_TEXTURE_SIZE;
@@ -339,8 +336,6 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     texture = inContext->texture.id;
     texWidth = inContext->texture.width;
     texHeigth = inContext->texture.heigth;
-    texScaleX = scale_x;
-    texScaleY = scale_y;
     posX = 0;
     posY = 0;
   }
@@ -446,6 +441,10 @@ void __glcRenderCharTexture(__GLCfont* inFont,
 
   glPopClientAttrib();
 
+  /* Compute the size of the glyph */
+  width = (GLfloat)((boundingBox.xMax - boundingBox.xMin) / 64.);
+  heigth = (GLfloat)((boundingBox.yMax - boundingBox.yMin) / 64.);
+
   /* Add the new texture to the texture list and the new display list
    * to the list of display lists
    */
@@ -459,35 +458,34 @@ void __glcRenderCharTexture(__GLCfont* inFont,
 
     /* Create the display list */
     glNewList(inGlyph->displayList[0], GL_COMPILE_AND_EXECUTE);
-  }
+    glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
 
-  /* Compute the size of the glyph */
-  width = (GLfloat)((boundingBox.xMax - boundingBox.xMin) / 64.);
-  heigth = (GLfloat)((boundingBox.yMax - boundingBox.yMin) / 64.);
+    /* Modify the bouding box dimensions to compensate the glScalef() */
+    boundingBox.xMin *= scale_x / GLC_TEXTURE_SIZE;
+    boundingBox.xMax *= scale_x / GLC_TEXTURE_SIZE;
+    boundingBox.yMin *= scale_y / GLC_TEXTURE_SIZE;
+    boundingBox.yMax *= scale_y / GLC_TEXTURE_SIZE;
+  }
 
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glNormal3f(0., 0., 1.);
   glTexCoord2f(posX / texWidth, posY / texHeigth);
-  glVertex2f(boundingBox.xMin / 64. / texScaleX, 
-	     boundingBox.yMin / 64. / texScaleY);
+  glVertex2i(boundingBox.xMin, boundingBox.yMin);
   glTexCoord2f((posX + width) / texWidth, posY / texHeigth);
-  glVertex2f(boundingBox.xMax / 64. / texScaleX,
-	     boundingBox.yMin / 64. / texScaleY);
+  glVertex2i(boundingBox.xMax, boundingBox.yMin);
   glTexCoord2f((posX + width) / texWidth, (posY + heigth) / texHeigth);
-  glVertex2f(boundingBox.xMax / 64. / texScaleX,
-	     boundingBox.yMax / 64. / texScaleY);
+  glVertex2i(boundingBox.xMax, boundingBox.yMax);
   glTexCoord2f(posX / texWidth, (posY + heigth) / texHeigth);
-  glVertex2f(boundingBox.xMin / 64. / texScaleX,
-	     boundingBox.yMax / 64. / texScaleY);
+  glVertex2i(boundingBox.xMin, boundingBox.yMax);
   glEnd();
 
   /* Store the glyph advance in the display list */
-  glTranslatef(face->glyph->advance.x / 64. / scale_x,
-	       face->glyph->advance.y / 64. / scale_y, 0.);
+  glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 
   if (inContext->enableState.glObjects) {
     /* Finish display list creation */
+    glScalef(64. * scale_x, 64. * scale_y, 1.);
     glEndList();
   }
 

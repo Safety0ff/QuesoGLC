@@ -200,6 +200,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
   __GLCglyph* glyph = NULL;
   GLboolean displayListIsBuilding = GL_FALSE;
   FT_Face face = NULL;
+  GLfloat sx64 = 0., sy64 = 0.;
 
   assert(inFont);
 
@@ -277,6 +278,9 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
   __glcFaceDescLoadFreeTypeGlyph(inFont->faceDesc, inContext, scale_x, scale_y,
                         glyph->index);
 
+  sx64 = 64. * scale_x;
+  sy64 = 64. * scale_y;
+
   if ((inContext->renderState.renderStyle != GLC_BITMAP)
       && (!displayListIsBuilding)) {
     FT_Outline outline;
@@ -284,27 +288,41 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
     GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
     GLfloat xMax = -1E20, yMax = -1E20, zMax = -1E20;
 
+    /* coordinates are given in 26.6 fixed point integer hence we
+     * divide the scale by 2^6
+     */
+    glScalef(1. / sx64, 1. / sy64, 1.);
+
     /* If the outline contains no point then the glyph represents a space
      * character and there is no need to continue the process of rendering.
      */
     outline = face->glyph->outline;
     if (!outline.n_points) {
       /* Update the advance and return */
-      glTranslatef(face->glyph->advance.x / 64. / scale_x,
-		  face->glyph->advance.y / 64. / scale_y, 0.);
+      glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 #ifndef FT_CACHE_H
       __glcFaceDescClose(font->faceDesc);
 #endif
+      glScalef(sx64, sy64, 1.);
       return NULL;
     }
+
+    transformMatrix[0] /= sx64;
+    transformMatrix[1] /= sx64;
+    transformMatrix[2] /= sx64;
+    transformMatrix[3] /= sx64;
+    transformMatrix[4] /= sy64;
+    transformMatrix[5] /= sy64;
+    transformMatrix[6] /= sy64;
+    transformMatrix[7] /= sy64;
 
     /* Compute the bounding box of the control points of the glyph in the
      * observer coordinates.
      */
     for (vector = outline.points; vector < outline.points + outline.n_points;
 	 vector++) {
-      GLfloat vx = vector->x / 64. / scale_x;
-      GLfloat vy = vector->y / 64. / scale_y;
+      GLfloat vx = vector->x;
+      GLfloat vy = vector->y;
       GLfloat w = vx * transformMatrix[3] + vy * transformMatrix[7]
 		  + transformMatrix[15];
       GLfloat x = (vx * transformMatrix[0] + vy * transformMatrix[4]
@@ -327,11 +345,11 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
      */
     if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
 	|| (zMin > 1.) || (zMax < -1.)) {
-      glTranslatef(face->glyph->advance.x / 64. / scale_x,
-		  face->glyph->advance.y / 64. / scale_y, 0.);
+      glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 #ifndef FT_CACHE_H
       __glcFaceDescClose(font->faceDesc);
 #endif
+      glScalef(sx64, sy64, 1.);
       return NULL;
     }
   }
@@ -366,6 +384,9 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 #ifndef FT_CACHE_H
   __glcFaceDescClose(font->faceDesc);
 #endif
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && (!displayListIsBuilding))
+    glScalef(sx64, sy64, 1.);
   return NULL;
 }
 

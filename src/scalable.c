@@ -51,8 +51,6 @@ struct __GLCrendererDataRec {
   __GLCarray* endContour;		/* Array of contour limits */
   __GLCarray* vertexIndices;		/* Array of vertex indices */
   __GLCarray* geomBatches;		/* Array of geometric batches */
-  GLfloat scale_x;			/* Scale to convert grid point.. */
-  GLfloat scale_y;			/* ..coordinates into pixels */
   GLfloat* transformMatrix;		/* Transformation matrix from the
 					   object space to the viewport */
   GLfloat halfWidth;
@@ -142,8 +140,8 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
   }
 
   /* Append the control points to the vertex array */
-  cp[0] = (GLfloat) data->pen.x * data->scale_x;
-  cp[1] = (GLfloat) data->pen.y * data->scale_y;
+  cp[0] = (GLfloat) data->pen.x;
+  cp[1] = (GLfloat) data->pen.y;
   z = __glcComputePixelCoordinates(cp, data);
 
   /* Compute the bounding box dimensions in the viewport coordinates */
@@ -192,8 +190,8 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
   /* Build the array of the control points */
   for (iter = 0; iter < 2; iter++) {
     cp += 5;
-    cp[0] = (GLfloat) inVector[iter]->x * data->scale_x;
-    cp[1] = (GLfloat) inVector[iter]->y * data->scale_y;
+    cp[0] = (GLfloat) inVector[iter]->x;
+    cp[1] = (GLfloat) inVector[iter]->y;
     z = __glcComputePixelCoordinates(cp, data);
 
     /* Update the bounding box dimensions in the viewport coordinates */
@@ -355,7 +353,7 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
 
 
 
-/* __glcdeCasteljauCubic : 
+/* __glcdeCasteljauCubic :
  *   renders cubic Bezier curves using the de Casteljau subdivision algorithm
  *
  * See also remarks about __glcdeCasteljauConic.
@@ -383,8 +381,8 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
 
 
   /* Append the control points to the vertex array */
-  cp[0] = (GLfloat) data->pen.x * data->scale_x;
-  cp[1] = (GLfloat) data->pen.y * data->scale_y;
+  cp[0] = (GLfloat) data->pen.x;
+  cp[1] = (GLfloat) data->pen.y;
   z = __glcComputePixelCoordinates(cp, data);
 
   /* Compute the bounding box dimensions in the viewport coordinates */
@@ -433,8 +431,8 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
   /* Build the array of the control points */
   for (iter = 0; iter < 3; iter++) {
     cp += 5;
-    cp[0] = (GLfloat) inVector[iter]->x * data->scale_x;
-    cp[1] = (GLfloat) inVector[iter]->y * data->scale_y;
+    cp[0] = (GLfloat) inVector[iter]->x;
+    cp[1] = (GLfloat) inVector[iter]->y;
     z = __glcComputePixelCoordinates(cp, data);
 
     /* Update the bounding box dimensions in the viewport coordinates */
@@ -667,8 +665,8 @@ static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
   __GLCrendererData *data = (__GLCrendererData *) inUserData;
   GLfloat vertex[2];
 
-  vertex[0] = (GLfloat) data->pen.x * data->scale_x;
-  vertex[1] = (GLfloat) data->pen.y * data->scale_y;
+  vertex[0] = (GLfloat) data->pen.x;
+  vertex[1] = (GLfloat) data->pen.y;
   if (!__glcArrayAppend(data->vertexArray, vertex)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 1;
@@ -852,9 +850,11 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   FT_Outline *outline = NULL;
   FT_Outline_Funcs outlineInterface;
   __GLCrendererData rendererData;
-  static GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
+  GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
 				       1., 0., 0., 0., 0., 1.};
   FT_Face face = NULL;
+  GLfloat sx64 = 64. * scale_x;
+  GLfloat sy64 = 64. * scale_y;
 
 #ifndef FT_CACHE_H
   face = inFont->faceDesc->face;
@@ -874,11 +874,6 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   outlineInterface.line_to = __glcLineTo;
   outlineInterface.conic_to = __glcConicTo;
   outlineInterface.cubic_to = __glcCubicTo;
-
-  /* grid_coordinate is given in 26.6 fixed point integer hence we
-     divide the scale by 2^6 */
-  rendererData.scale_x = 1./64./scale_x;
-  rendererData.scale_y = 1./64./scale_y;
 
   rendererData.vertexArray = inContext->vertexArray;
   rendererData.controlPoints = inContext->controlPoints;
@@ -933,10 +928,12 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
      * de Casteljau algorithm.
      */
     rendererData.tolerance = 0.005 * sqrt(scale_x*scale_x + scale_y*scale_y)
-      * face->units_per_EM * rendererData.scale_x * rendererData.scale_y;
+      * face->units_per_EM / sx64 / sy64;
     rendererData.halfWidth = 0.5;
     rendererData.halfHeight = 0.5;
     rendererData.transformMatrix = identityMatrix;
+    rendererData.transformMatrix[0] /= sx64;
+    rendererData.transformMatrix[5] /= sy64;
   }
 
   /* Parse the outline of the glyph */
@@ -983,6 +980,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     }
 
     glNewList(inGlyph->displayList[index], GL_COMPILE_AND_EXECUTE);
+    glScalef(1./sx64, 1./sy64, 1.);
   }
 
   if (inRenderMode == GLC_TRIANGLE) {
@@ -1118,11 +1116,12 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   }
 
   /* Take into account the advance of the glyph */
-  glTranslatef(face->glyph->advance.x * rendererData.scale_x,
-	       face->glyph->advance.y * rendererData.scale_y, 0.);
+  glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 
-  if (inContext->enableState.glObjects)
+  if (inContext->enableState.glObjects) {
+    glScalef(sx64, sy64, 1.);
     glEndList();
+  }
 
   GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inContext->endContour) = 0;
