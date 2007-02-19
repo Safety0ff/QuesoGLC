@@ -1,6 +1,24 @@
 Changes made from the "0.5" release to the "0.6" release:
 -----------------------------------------------------------
 
+* Bertrand Coconnier:
+
+- Optimized the rendering code so that the conversion from 26.6 fixed point
+  coordinates to GLfloat is partially done by the GPU by using glScalef().
+- Cleaned up some internal transactions between private functions in order to
+  prevent back and forth translation between a font ID and its corresponding
+  structure __GLCfont.
+- Code cleanup :
+  * Fixed the signed/unsigned comparisons
+  * Removed unused function parameters
+  * Renamed the structure __GLC* instead of __glc* for more consistency with
+    Mesa.
+  * Added some comments
+- Fixed the computing of the bounding box of a glyph when GLC_EXTRUDE_QSO is
+  enabled.
+- Optimized the de Casteljau algorithm by splitting it into 2 specialized
+  subroutines (one for conic Bezier curves and the other for cubic Bezier
+  curves).
 - glcDeleteContext() does not destroy GL objects anymore. This is done because
   we can not be sure that the GL context that is current (if any) is the one
   that contains the GL objects associated to the GLC context that we are
@@ -19,7 +37,8 @@ Changes made from the "0.5" release to the "0.6" release:
   reduces the memory footprint of quesoGLC. Furthermore, when GLC_AUTO_FONT is
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
-* Brandon Casey
+* Brandon Casey:
+
 - Fixed parameter type of __glcTextureGetImmediate() (GLsizei instead of
   GLuint).
 - Replaced floating point multiplication by bits shifting.
