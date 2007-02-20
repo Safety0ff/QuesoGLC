@@ -221,6 +221,10 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
     else {
       /* The texture is large enough : it is bound to the current GL context */
       glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
+
+      if (GLEW_ARB_pixel_buffer_object && inContext->texture.bufferObjectID)
+	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
+			inContext->texture.bufferObjectID);
       return GL_TRUE;
     }
   }
@@ -254,6 +258,22 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
 
   inContext->texture.width = inWidth;
   inContext->texture.heigth = inHeight;
+
+  if (GLEW_ARB_pixel_buffer_object) {
+    /* Create a PBO, if none exists yet */
+    if (!inContext->texture.bufferObjectID) {
+      glGenBuffersARB(1, &inContext->texture.bufferObjectID);
+      if (!inContext->texture.bufferObjectID) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return GL_TRUE;
+      }
+    }
+    /* Bind the buffer and define/update its size */
+    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
+		    inContext->texture.bufferObjectID);
+    glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, inWidth * inHeight, NULL,
+		    GL_STREAM_DRAW_ARB);
+  }
 
   return GL_TRUE;
 }
@@ -345,10 +365,13 @@ void __glcRenderCharTexture(__GLCfont* inFont,
   /* Fill the pixmap descriptor and the pixmap buffer */
   pixmap.pixel_mode = ft_pixel_mode_grays; /* Anti-aliased rendering */
   pixmap.num_grays = 256;
-  pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
-  if (!pixmap.buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
+
+  if (!inContext->texture.bufferObjectID || inDisplayListIsBuilding) {
+    pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
+    if (!pixmap.buffer) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
   }
 
   /* Flip the picture */
@@ -371,6 +394,14 @@ void __glcRenderCharTexture(__GLCfont* inFont,
 
   /* Iterate on the powers of 2 in order to build the mipmap */
   while ((pixmap.width > minSize) && (pixmap.rows > minSize)) {
+    if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding) {
+      pixmap.buffer = (GLubyte *)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
+						GL_WRITE_ONLY);
+      if (!pixmap.buffer) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
+    }
     /* fill the pixmap buffer with the background color */
     memset(pixmap.buffer, 0, - pixmap.rows * pixmap.pitch);
 
@@ -386,6 +417,11 @@ void __glcRenderCharTexture(__GLCfont* inFont,
       __glcFree(pixmap.buffer);
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
+    }
+
+    if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding) {
+      glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
+      pixmap.buffer = NULL;
     }
 
     glTexSubImage2D(GL_TEXTURE_2D, level, posX >> level, posY >> level,
@@ -424,7 +460,11 @@ void __glcRenderCharTexture(__GLCfont* inFont,
        * Here the smaller mipmap levels will be transparent, no glyph will be
        * rendered.
        * TODO: Use gluScaleImage() to render the last levels.
+       * Here we do not take the GL_ARB_pixel_buffer_object into account
+       * because there are few chances that a gfx card that supports PBO, does
+       * not support texture levels.
        */
+      assert(!GLEW_ARB_pixel_buffer_object);
       memset(pixmap.buffer, 0, pixmap.width * pixmap.rows);
       while ((pixmap.width > 0) || (pixmap.rows > 0)) {
 	glTexSubImage2D(GL_TEXTURE_2D, level, posX >> level, posY >> level,

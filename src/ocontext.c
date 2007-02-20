@@ -246,6 +246,7 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
   This->texture.id = 0;
   This->texture.width = 0;
   This->texture.heigth = 0;
+  This->texture.bufferObjectID = 0;
 
   This->atlas.id = 0;
   This->atlas.width = 0;

@@ -441,6 +441,9 @@ void __glcSaveGLState(__GLCglState* inGLState)
   glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
   glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
+  if (GLEW_ARB_pixel_buffer_object)
+    glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING_ARB,
+		  &inGLState->bufferObjectID);
   inGLState->vertexArray = glIsEnabled(GL_VERTEX_ARRAY);
   inGLState->normalArray = glIsEnabled(GL_NORMAL_ARRAY);
   inGLState->colorArray = glIsEnabled(GL_COLOR_ARRAY);
@@ -455,6 +458,8 @@ void __glcSaveGLState(__GLCglState* inGLState)
 void __glcRestoreGLState(__GLCglState* inGLState)
 {
   glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
+  if (GLEW_ARB_pixel_buffer_object)
+    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, inGLState->bufferObjectID);
   if (!inGLState->texture2D)
     glDisable(GL_TEXTURE_2D);
   if (!inGLState->blend)

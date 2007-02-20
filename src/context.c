@@ -171,6 +171,12 @@ void APIENTRY glcDeleteGLObjects(void)
     ctx->texture.width = 0;
     ctx->texture.heigth = 0;
   }
+
+  /* Delete the pixel buffer object */
+  if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID) {
+    glDeleteBuffersARB(1, &ctx->texture.bufferObjectID);
+    ctx->texture.bufferObjectID = 0;
+  }
 }
 
 

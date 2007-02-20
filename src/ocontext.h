@@ -59,6 +59,7 @@ struct __GLCtextureRec {
   GLuint id;
   GLsizei width;
   GLsizei heigth;
+  GLuint bufferObjectID;
 };
 
 struct __GLCenableStateRec {
@@ -86,6 +87,7 @@ struct __GLCglStateRec {
   GLboolean texture2D;
   GLint textureID;
   GLint textureEnvMode;
+  GLint bufferObjectID;
   GLboolean blend;
   GLint blendSrc;
   GLint blendDst;

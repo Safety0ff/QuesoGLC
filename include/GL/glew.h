@@ -1953,6 +1953,20 @@ typedef void (GLAPIENTRY * PFNGLUNIFORMMATRIX4X3FVPROC) (GLint location, GLsizei
 
 #endif /* GL_VERSION_2_1 */
 
+/* ----------------------- GL_ARB_pixel_buffer_object ---------------------- */
+
+#ifndef GL_ARB_pixel_buffer_object
+#define GL_ARB_pixel_buffer_object 1
+
+#define GL_PIXEL_PACK_BUFFER_ARB 0x88EB
+#define GL_PIXEL_UNPACK_BUFFER_ARB 0x88EC
+#define GL_PIXEL_PACK_BUFFER_BINDING_ARB 0x88ED
+#define GL_PIXEL_UNPACK_BUFFER_BINDING_ARB 0x88EF
+
+#define GLEW_ARB_pixel_buffer_object GLEW_GET_VAR(__GLEW_ARB_pixel_buffer_object)
+
+#endif /* GL_ARB_pixel_buffer_object */
+
 /* ---------------------- GL_ARB_vertex_buffer_object ---------------------- */
 
 #ifndef GL_ARB_vertex_buffer_object
@@ -2297,6 +2311,7 @@ GLEW_VAR_EXPORT GLboolean __GLEW_VERSION_1_4;
 GLEW_VAR_EXPORT GLboolean __GLEW_VERSION_1_5;
 GLEW_VAR_EXPORT GLboolean __GLEW_VERSION_2_0;
 GLEW_VAR_EXPORT GLboolean __GLEW_VERSION_2_1;
+GLEW_VAR_EXPORT GLboolean __GLEW_ARB_pixel_buffer_object;
 GLEW_VAR_EXPORT GLboolean __GLEW_ARB_vertex_buffer_object;
 GLEW_VAR_EXPORT GLboolean __GLEW_SGIS_texture_lod;
 

@@ -459,6 +459,7 @@ GLboolean __GLEW_VERSION_1_4 = GL_FALSE;
 GLboolean __GLEW_VERSION_1_5 = GL_FALSE;
 GLboolean __GLEW_VERSION_2_0 = GL_FALSE;
 GLboolean __GLEW_VERSION_2_1 = GL_FALSE;
+GLboolean __GLEW_ARB_pixel_buffer_object = GL_FALSE;
 GLboolean __GLEW_ARB_vertex_buffer_object = GL_FALSE;
 GLboolean __GLEW_SGIS_texture_lod = GL_FALSE;
 
@@ -749,6 +750,10 @@ static GLboolean _glewInit_GL_VERSION_2_1 (GLEW_CONTEXT_ARG_DEF_INIT)
 
 #endif /* GL_VERSION_2_1 */
 
+#ifdef GL_ARB_pixel_buffer_object
+
+#endif /* GL_ARB_pixel_buffer_object */
+
 #ifdef GL_ARB_vertex_buffer_object
 
 static GLboolean _glewInit_GL_ARB_vertex_buffer_object (GLEW_CONTEXT_ARG_DEF_INIT)
@@ -904,6 +909,9 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #ifdef GL_VERSION_2_1
   if (glewExperimental || GLEW_VERSION_2_1) GLEW_VERSION_2_1 = !_glewInit_GL_VERSION_2_1(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif /* GL_VERSION_2_1 */
+#ifdef GL_ARB_pixel_buffer_object
+  GLEW_ARB_pixel_buffer_object = glewGetExtension("GL_ARB_pixel_buffer_object");
+#endif /* GL_ARB_pixel_buffer_object */
 #ifdef GL_ARB_vertex_buffer_object
   GLEW_ARB_vertex_buffer_object = glewGetExtension("GL_ARB_vertex_buffer_object");
   if (glewExperimental || GLEW_ARB_vertex_buffer_object) GLEW_ARB_vertex_buffer_object = !_glewInit_GL_ARB_vertex_buffer_object(GLEW_CONTEXT_ARG_VAR_INIT);
@@ -1264,6 +1272,13 @@ GLboolean glewIsSupported (const char* name)
       }
       if (_glewStrSame2(&pos, &len, (const GLubyte*)"ARB_", 4))
       {
+#ifdef GL_ARB_pixel_buffer_object
+        if (_glewStrSame3(&pos, &len, (const GLubyte*)"pixel_buffer_object", 19))
+        {
+          ret = GLEW_ARB_pixel_buffer_object;
+          continue;
+        }
+#endif
 #ifdef GL_ARB_vertex_buffer_object
         if (_glewStrSame3(&pos, &len, (const GLubyte*)"vertex_buffer_object", 20))
         {
