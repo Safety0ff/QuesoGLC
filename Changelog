@@ -3,6 +3,15 @@ Changes made from the "0.5" release to the "0.6" release:
 
 * Bertrand Coconnier:
 
+- Changed __glcSaveGLState() and __glcRestoreGLState() so that only a minimal
+  part of the GL state is saved before the rendering commands are issued.
+- Removed redundancy in the calls to glBindTexture() when the GLC_TEXTURE
+  rendering mode is used.
+- Removed the visibility test based on bounding boxes since it slowed down
+  everything and the user can perform this test himself by using measurement
+  commands.
+- Modified immediate texture rendering to take advantage of pixel buffer
+  objects (PBO) whenever the gfx card supports them.
 - Optimized the rendering code so that the conversion from 26.6 fixed point
   coordinates to GLfloat is partially done by the GPU by using glScalef().
 - Cleaned up some internal transactions between private functions in order to
@@ -34,7 +43,7 @@ Changes made from the "0.5" release to the "0.6" release:
   extensions.
 - Removed the master object, uses FontConfig API instead. This allows to not
   load all the masters in memory : masters are now loaded "just in time" which
-  reduces the memory footprint of quesoGLC. Furthermore, when GLC_AUTO_FONT is
+  reduces the memory footprint of QuesoGLC. Furthermore, when GLC_AUTO_FONT is
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
 * Brandon Casey:
