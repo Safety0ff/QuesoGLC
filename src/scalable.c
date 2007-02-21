@@ -66,9 +66,8 @@ struct __GLCrendererDataRec {
  * coordinates. The function updates 'inCoord' according to :
  * inCoord[0..1] contains the 2D glyph coordinates in the object space
  * inCoord[2..4] contains the 2D homogeneous coordinates in observer space
- * inCoord[5..6] contains the viewport coordinates
  */
-static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
+static void __glcComputePixelCoordinates(GLfloat* inCoord,
 					 __GLCrendererData* inData)
 {
   GLfloat x = inCoord[0] * inData->transformMatrix[0]
@@ -77,13 +76,10 @@ static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
   GLfloat y = inCoord[0] * inData->transformMatrix[1]
 	     + inCoord[1] * inData->transformMatrix[5]
 	     + inData->transformMatrix[13];
-  GLfloat z = inCoord[0] * inData->transformMatrix[2]
-	     + inCoord[1] * inData->transformMatrix[6]
-	     + inData->transformMatrix[14];
   GLfloat w = inCoord[0] * inData->transformMatrix[3]
 	     + inCoord[1] * inData->transformMatrix[7]
 	     + inData->transformMatrix[15];
-  GLfloat norm = x * x + y * y + z * z;
+  GLfloat norm = x * x + y * y;
 
   /* If w is very small compared to x, y and z this probably means that the
    * transformation matrix is ill-conditioned (i.e. its determinant is
@@ -97,8 +93,6 @@ static GLfloat __glcComputePixelCoordinates(GLfloat* inCoord,
   inCoord[2] = x;
   inCoord[3] = y;
   inCoord[4] = w;
-
-  return z;
 }
 
 
@@ -127,8 +121,6 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
   __GLCrendererData *data = (__GLCrendererData *) inUserData;
   GLfloat(*controlPoint)[5] = NULL;
   GLint nArc = 1, arc = 0, rank = 0;
-  GLfloat xMin = 0., xMax = 0., yMin =0., yMax = 0., zMin = 0., zMax = 0.;
-  GLfloat x = 0., y = 0., z = 0., zs = 0.;
   int iter = 0;
   GLfloat* cp = (GLfloat*)__glcArrayInsertCell(data->controlPoints,
 			GLC_ARRAY_LENGTH(data->controlPoints), 3);
@@ -142,42 +134,7 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
   /* Append the control points to the vertex array */
   cp[0] = (GLfloat) data->pen.x;
   cp[1] = (GLfloat) data->pen.y;
-  z = __glcComputePixelCoordinates(cp, data);
-
-  /* Compute the bounding box dimensions in the viewport coordinates */
-  xMin = cp[2] / cp[4];
-  xMax = xMin;
-  yMin = cp[3] / cp[4];
-  yMax = yMin;
-  /* Keep track of the z coordinate to check if the glyph is outside the
-   * frustrum or not.
-   */
-  zMin = z / cp[4];
-  zMax = zMin;
-
-  if (data->extrude) {
-    GLfloat x1 = cp[2] - data->transformMatrix[8];
-    GLfloat y1 = cp[3] - data->transformMatrix[9];
-    GLfloat z1 = z - data->transformMatrix[10];
-    GLfloat w1 = cp[4] - data->transformMatrix[11];
-    GLfloat norm1 = x1 * x1 + y1 * y1 + z1 * z1;
-
-    if (w1 * w1 < norm1 * GLC_EPSILON * GLC_EPSILON) {
-      /* Ugly hack to handle the singularity of w */
-      w1 = sqrt(norm1) * GLC_EPSILON;
-    }
-
-    x1 /= w1;
-    y1 /= w1;
-    z1 /= w1;
-
-    xMin = (x1 < xMin ? x1 : xMin);
-    xMax = (x1 > xMax ? x1 : xMax);
-    yMin = (y1 < yMin ? y1 : yMin);
-    yMax = (y1 > yMax ? y1 : yMax);
-    zMin = (z1 < zMin ? z1 : zMin);
-    zMax = (z1 > zMax ? z1 : zMax);
-  }
+  __glcComputePixelCoordinates(cp, data);
 
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
@@ -192,42 +149,7 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
     cp += 5;
     cp[0] = (GLfloat) inVector[iter]->x;
     cp[1] = (GLfloat) inVector[iter]->y;
-    z = __glcComputePixelCoordinates(cp, data);
-
-    /* Update the bounding box dimensions in the viewport coordinates */
-    x = cp[2] / cp[4];
-    y = cp[3] / cp[4];
-    zs = z / cp[4];
-    xMin = (x < xMin ? x : xMin);
-    xMax = (x > xMax ? x : xMax);
-    yMin = (y < yMin ? y : yMin);
-    yMax = (y > yMax ? y : yMax);
-    zMin = (zs < zMin ? zs : zMin);
-    zMax = (zs > zMax ? zs : zMax);
-
-    if (data->extrude) {
-      GLfloat x1 = cp[2] - data->transformMatrix[8];
-      GLfloat y1 = cp[3] - data->transformMatrix[9];
-      GLfloat z1 = z - data->transformMatrix[10];
-      GLfloat w1 = cp[4] - data->transformMatrix[11];
-      GLfloat norm1 = x1 * x1 + y1 * y1 + z1 * z1;
-
-      if (w1 * w1 < norm1 * GLC_EPSILON * GLC_EPSILON) {
-	/* Ugly hack to handle the singularity of w */
-	w1 = sqrt(norm1) * GLC_EPSILON;
-      }
-
-      x1 /= w1;
-      y1 /= w1;
-      z1 /= w1;
-
-      xMin = (x1 < xMin ? x1 : xMin);
-      xMax = (x1 > xMax ? x1 : xMax);
-      yMin = (y1 < yMin ? y1 : yMin);
-      yMax = (y1 > yMax ? y1 : yMax);
-      zMin = (z1 < zMin ? z1 : zMin);
-      zMax = (z1 > zMax ? z1 : zMax);
-    }
+    __glcComputePixelCoordinates(cp, data);
   }
 
   /* controlPoint[] must be computed there because
@@ -235,25 +157,6 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
    * in __glcArrayInsert().
    */
   controlPoint = (GLfloat(*)[5])GLC_ARRAY_DATA(data->controlPoints);
-
-  if (!data->displayListIsBuilding) {
-    /* If the bounding box of the bezier curve lies outside the viewport then
-     * the bezier curve is replaced by a piecewise linear curve that joins the
-     * control points
-     */
-    if ((xMin > data->halfWidth) || (xMax < -data->halfWidth)
-        || (yMin > data->halfHeight) || (yMax < -data->halfHeight)
-	|| (zMin > 1.) || (zMax < -1.)) {
-      if (!__glcArrayAppend(data->vertexArray, controlPoint[1])) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
-	GLC_ARRAY_LENGTH(data->vertexArray) = rank;
-	return 1;
-      }
-      GLC_ARRAY_LENGTH(data->controlPoints) = 0;
-      return 0;
-    }
-  }
 
   /* Here the de Casteljau algorithm begins */
   for (iter = 0; (iter < GLC_MAX_ITER) && (arc != nArc); iter++) {
@@ -367,8 +270,6 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
   __GLCrendererData *data = (__GLCrendererData *) inUserData;
   GLfloat(*controlPoint)[5] = NULL;
   GLint nArc = 1, arc = 0, rank = 0;
-  GLfloat xMin = 0., xMax = 0., yMin =0., yMax = 0., zMin = 0., zMax = 0.;
-  GLfloat x = 0., y = 0., z = 0., zs = 0.;
   int iter = 0;
   GLfloat* cp = (GLfloat*)__glcArrayInsertCell(data->controlPoints,
 			GLC_ARRAY_LENGTH(data->controlPoints), 4);
@@ -383,42 +284,7 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
   /* Append the control points to the vertex array */
   cp[0] = (GLfloat) data->pen.x;
   cp[1] = (GLfloat) data->pen.y;
-  z = __glcComputePixelCoordinates(cp, data);
-
-  /* Compute the bounding box dimensions in the viewport coordinates */
-  xMin = cp[2] / cp[4];
-  xMax = xMin;
-  yMin = cp[3] / cp[4];
-  yMax = yMin;
-  /* Keep track of the z coordinate to check if the glyph is outside the
-   * frustrum or not.
-   */
-  zMin = z / cp[4];
-  zMax = zMin;
-
-  if (data->extrude) {
-    GLfloat x1 = cp[2] - data->transformMatrix[8];
-    GLfloat y1 = cp[3] - data->transformMatrix[9];
-    GLfloat z1 = z - data->transformMatrix[10];
-    GLfloat w1 = cp[4] - data->transformMatrix[11];
-    GLfloat norm1 = x1 * x1 + y1 * y1 + z1 * z1;
-
-    if (w1 * w1 < norm1 * GLC_EPSILON * GLC_EPSILON) {
-      /* Ugly hack to handle the singularity of w */
-      w1 = sqrt(norm1) * GLC_EPSILON;
-    }
-
-    x1 /= w1;
-    y1 /= w1;
-    z1 /= w1;
-
-    xMin = (x1 < xMin ? x1 : xMin);
-    xMax = (x1 > xMax ? x1 : xMax);
-    yMin = (y1 < yMin ? y1 : yMin);
-    yMax = (y1 > yMax ? y1 : yMax);
-    zMin = (z1 < zMin ? z1 : zMin);
-    zMax = (z1 > zMax ? z1 : zMax);
-  }
+  __glcComputePixelCoordinates(cp, data);
 
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
@@ -433,69 +299,13 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
     cp += 5;
     cp[0] = (GLfloat) inVector[iter]->x;
     cp[1] = (GLfloat) inVector[iter]->y;
-    z = __glcComputePixelCoordinates(cp, data);
-
-    /* Update the bounding box dimensions in the viewport coordinates */
-    x = cp[2] / cp[4];
-    y = cp[3] / cp[4];
-    zs = z / cp[4];
-    xMin = (x < xMin ? x : xMin);
-    xMax = (x > xMax ? x : xMax);
-    yMin = (y < yMin ? y : yMin);
-    yMax = (y > yMax ? y : yMax);
-    zMin = (zs < zMin ? zs : zMin);
-    zMax = (zs > zMax ? zs : zMax);
-
-    if (data->extrude) {
-      GLfloat x1 = cp[2] - data->transformMatrix[8];
-      GLfloat y1 = cp[3] - data->transformMatrix[9];
-      GLfloat z1 = z - data->transformMatrix[10];
-      GLfloat w1 = cp[4] - data->transformMatrix[11];
-      GLfloat norm1 = x1 * x1 + y1 * y1 + z1 * z1;
-
-      if (w1 * w1 < norm1 * GLC_EPSILON * GLC_EPSILON) {
-	/* Ugly hack to handle the singularity of w */
-	w1 = sqrt(norm1) * GLC_EPSILON;
-      }
-
-      x1 /= w1;
-      y1 /= w1;
-      z1 /= w1;
-
-      xMin = (x1 < xMin ? x1 : xMin);
-      xMax = (x1 > xMax ? x1 : xMax);
-      yMin = (y1 < yMin ? y1 : yMin);
-      yMax = (y1 > yMax ? y1 : yMax);
-      zMin = (z1 < zMin ? z1 : zMin);
-      zMax = (z1 > zMax ? z1 : zMax);
-    }
+    __glcComputePixelCoordinates(cp, data);
   }
 
   /* controlPoint[] must be computed there because data->controlPoints->data
    * may have been modified by a realloc() in __glcArrayInsert()
    */
   controlPoint = (GLfloat(*)[5])GLC_ARRAY_DATA(data->controlPoints);
-
-  if (!data->displayListIsBuilding) {
-    /* If the bounding box of the bezier curve lies outside the viewport then
-     * the bezier curve is replaced by a piecewise linear curve that joins the
-     * control points
-     */
-    if ((xMin > data->halfWidth) || (xMax < -data->halfWidth)
-        || (yMin > data->halfHeight) || (yMax < -data->halfHeight)
-	|| (zMin > 1.) || (zMax < -1.)) {
-      for (iter = 1; iter < 3; iter++) {
-	if (!__glcArrayAppend(data->vertexArray, controlPoint[iter])) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  GLC_ARRAY_LENGTH(data->controlPoints) = 0;
-	  GLC_ARRAY_LENGTH(data->vertexArray) = rank;
-	  return 1;
-	}
-      }
-      GLC_ARRAY_LENGTH(data->controlPoints) = 0;
-      return 0;
-    }
-  }
 
   /* Here the de Casteljau algorithm begins */
   for (iter = 0; (iter < GLC_MAX_ITER) && (arc != nArc); iter++) {
@@ -894,12 +704,16 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     rendererData.halfWidth = viewport[2] * 0.5;
     rendererData.halfHeight = viewport[3] * 0.5;
     rendererData.transformMatrix = inTransformMatrix;
-    rendererData.transformMatrix[0] *= rendererData.halfWidth;
-    rendererData.transformMatrix[4] *= rendererData.halfWidth;
+    rendererData.transformMatrix[0] *= rendererData.halfWidth / sx64;
+    rendererData.transformMatrix[4] *= rendererData.halfWidth / sy64;
     rendererData.transformMatrix[12] *= rendererData.halfWidth;
-    rendererData.transformMatrix[1] *= rendererData.halfHeight;
-    rendererData.transformMatrix[5] *= rendererData.halfHeight;
+    rendererData.transformMatrix[1] *= rendererData.halfHeight / sx64;
+    rendererData.transformMatrix[5] *= rendererData.halfHeight / sy64;
     rendererData.transformMatrix[13] *= rendererData.halfHeight;
+    rendererData.transformMatrix[2] /= sx64;
+    rendererData.transformMatrix[3] /= sx64;
+    rendererData.transformMatrix[6] /= sy64;
+    rendererData.transformMatrix[7] /= sy64;
 
     if (inContext->enableState.extrude) {
       int i = 0;

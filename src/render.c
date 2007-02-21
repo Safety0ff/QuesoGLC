@@ -283,75 +283,25 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 
   if ((inContext->renderState.renderStyle != GLC_BITMAP)
       && (!displayListIsBuilding)) {
-    FT_Outline outline;
-    FT_Vector* vector = NULL;
-    GLfloat xMin = 1E20, yMin = 1E20, zMin = 1E20;
-    GLfloat xMax = -1E20, yMax = -1E20, zMax = -1E20;
+    FT_Outline outline= face->glyph->outline;
+
+    /* If the outline contains no point then the glyph represents a space
+     * character and there is no need to continue the process of rendering.
+     */
+    if (!outline.n_points) {
+      /* Update the advance and return */
+      glTranslatef(face->glyph->advance.x / sx64, face->glyph->advance.y / sy64,
+		   0.);
+#ifndef FT_CACHE_H
+      __glcFaceDescClose(font->faceDesc);
+#endif
+      return NULL;
+    }
 
     /* coordinates are given in 26.6 fixed point integer hence we
      * divide the scale by 2^6
      */
     glScalef(1. / sx64, 1. / sy64, 1.);
-
-    /* If the outline contains no point then the glyph represents a space
-     * character and there is no need to continue the process of rendering.
-     */
-    outline = face->glyph->outline;
-    if (!outline.n_points) {
-      /* Update the advance and return */
-      glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
-#ifndef FT_CACHE_H
-      __glcFaceDescClose(font->faceDesc);
-#endif
-      glScalef(sx64, sy64, 1.);
-      return NULL;
-    }
-
-    transformMatrix[0] /= sx64;
-    transformMatrix[1] /= sx64;
-    transformMatrix[2] /= sx64;
-    transformMatrix[3] /= sx64;
-    transformMatrix[4] /= sy64;
-    transformMatrix[5] /= sy64;
-    transformMatrix[6] /= sy64;
-    transformMatrix[7] /= sy64;
-
-    /* Compute the bounding box of the control points of the glyph in the
-     * observer coordinates.
-     */
-    for (vector = outline.points; vector < outline.points + outline.n_points;
-	 vector++) {
-      GLfloat vx = vector->x;
-      GLfloat vy = vector->y;
-      GLfloat w = vx * transformMatrix[3] + vy * transformMatrix[7]
-		  + transformMatrix[15];
-      GLfloat x = (vx * transformMatrix[0] + vy * transformMatrix[4]
-		   + transformMatrix[12]) / w;
-      GLfloat y = (vx * transformMatrix[1] + vy * transformMatrix[5]
-		   + transformMatrix[13]) / w;
-      GLfloat z = (vx * transformMatrix[2] + vy * transformMatrix[6]
-		   + transformMatrix[14]) / w;
-
-      xMin = (x < xMin ? x : xMin);
-      xMax = (x > xMax ? x : xMax);
-      yMin = (y < yMin ? y : yMin);
-      yMax = (y > yMax ? y : yMax);
-      zMin = (z < zMin ? z : zMin);
-      zMax = (z > zMax ? z : zMax);
-    }
-
-    /* If the bounding box of the glyph lies out of viewport then skip the
-     * glyph
-     */
-    if ((xMin > 1.) || (xMax < -1.) || (yMin > 1.) || (yMax < -1.)
-	|| (zMin > 1.) || (zMax < -1.)) {
-      glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
-#ifndef FT_CACHE_H
-      __glcFaceDescClose(font->faceDesc);
-#endif
-      glScalef(sx64, sy64, 1.);
-      return NULL;
-    }
   }
 
   /* Call the appropriate function depending on the rendering mode. It first
@@ -414,14 +364,18 @@ void APIENTRY glcRenderChar(GLint inCode)
     return;
   }
 
-  /* Save the value of the parameters */
-  __glcSaveGLState(&GLState);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_INDEX_ARRAY);
-  glDisableClientState(GL_NORMAL_ARRAY);
-  glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  /* Save the value of the GL parameters */
+  __glcSaveGLState(&GLState, ctx, GL_FALSE);
+
+  if (ctx->renderState.renderStyle == GLC_LINE ||
+      ctx->renderState.renderStyle == GLC_TRIANGLE) {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  }
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (ctx->renderState.renderStyle == GLC_TEXTURE) {
@@ -432,8 +386,12 @@ void APIENTRY glcRenderChar(GLint inCode)
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     if (ctx->enableState.glObjects && ctx->atlas.id)
       glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
-    else if (!ctx->enableState.glObjects && ctx->texture.id)
+    else if (!ctx->enableState.glObjects && ctx->texture.id) {
       glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
+      if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
+	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
+			ctx->texture.bufferObjectID);
+    }
   }
 
   /* Get the character code converted to the UCS-4 format */
@@ -443,9 +401,8 @@ void APIENTRY glcRenderChar(GLint inCode)
 
   __glcProcessChar(ctx, code, 0, __glcRenderChar, NULL);
 
-  /* Restore the values of the texture parameters if needed */
-  if (ctx->renderState.renderStyle == GLC_TEXTURE)
-    __glcRestoreGLState(&GLState);
+  /* Restore the values of the GL state if needed */
+  __glcRestoreGLState(&GLState, ctx, GL_FALSE);
 }
 
 
@@ -498,14 +455,18 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     return;
   }
 
-  /* Save the value of the parameters */
-  __glcSaveGLState(&GLState);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_INDEX_ARRAY);
-  glDisableClientState(GL_NORMAL_ARRAY);
-  glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  /* Save the value of the GL parameters */
+  __glcSaveGLState(&GLState, ctx, GL_FALSE);
+
+  if (ctx->renderState.renderStyle == GLC_LINE ||
+      ctx->renderState.renderStyle == GLC_TRIANGLE) {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  }
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (ctx->renderState.renderStyle == GLC_TEXTURE) {
@@ -516,8 +477,12 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     if (ctx->enableState.glObjects && ctx->atlas.id)
       glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
-    else if (!ctx->enableState.glObjects && ctx->texture.id)
+    else if (!ctx->enableState.glObjects && ctx->texture.id) {
       glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
+      if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
+	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
+			ctx->texture.bufferObjectID);
+    }
   }
 
   /* Render the string */
@@ -527,9 +492,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     prevCode = *(ptr++);
   }
 
-  /* Restore the values of the texture parameters if needed */
-  if (ctx->renderState.renderStyle == GLC_TEXTURE)
-    __glcRestoreGLState(&GLState);
+  /* Restore the values of the GL state if needed */
+  __glcRestoreGLState(&GLState, ctx, GL_FALSE);
 }
 
 
@@ -569,14 +533,18 @@ void APIENTRY glcRenderString(const GLCchar *inString)
     return;
   }
 
-  /* Save the value of the parameters */
-  __glcSaveGLState(&GLState);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_INDEX_ARRAY);
-  glDisableClientState(GL_NORMAL_ARRAY);
-  glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  /* Save the value of the GL parameters */
+  __glcSaveGLState(&GLState, ctx, GL_FALSE);
+
+  if (ctx->renderState.renderStyle == GLC_LINE ||
+      ctx->renderState.renderStyle == GLC_TRIANGLE) {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  }
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (ctx->renderState.renderStyle == GLC_TEXTURE) {
@@ -587,8 +555,12 @@ void APIENTRY glcRenderString(const GLCchar *inString)
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     if (ctx->enableState.glObjects && ctx->atlas.id)
       glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
-    else if (!ctx->enableState.glObjects && ctx->texture.id)
+    else if (!ctx->enableState.glObjects && ctx->texture.id) {
       glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
+      if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
+	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
+			ctx->texture.bufferObjectID);
+    }
   }
 
   /* Render the string */
@@ -598,9 +570,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
     prevCode = *(ptr++);
   }
 
-  /* Restore the values of the texture parameters if needed */
-  if (ctx->renderState.renderStyle == GLC_TEXTURE)
-    __glcRestoreGLState(&GLState);
+  /* Restore the values of the GL state if needed */
+  __glcRestoreGLState(&GLState, ctx, GL_FALSE);
 }
 
 

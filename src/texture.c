@@ -149,12 +149,6 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   }
-  else {
-    /* The texture atlas is already created. The corresponding texture is bound
-     * to the current GL context.
-     */
-    glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
-  }
 
   /* At this stage, we want to get a free area in the texture atlas in order to
    * store a new glyph. Two situations may occur : the atlas is full or not
@@ -189,7 +183,7 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
     FT_List_Insert(&inContext->atlasList, (FT_ListNode)atlasNode);
   }
 
-  /* Update the etxture element */
+  /* Update the texture element */
   atlasNode->glyph = inGlyph;
   inGlyph->textureObject = atlasNode;
 
@@ -219,15 +213,15 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
       inContext->texture.heigth = 0;
     }
     else {
-      /* The texture is large enough : it is bound to the current GL context */
-      glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
-
-      if (GLEW_ARB_pixel_buffer_object && inContext->texture.bufferObjectID)
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
-			inContext->texture.bufferObjectID);
+      /* The texture is large enough, it is already bound to the current
+       * GL context.
+       */
       return GL_TRUE;
     }
   }
+
+  if (GLEW_ARB_pixel_buffer_object)
+    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
   /* Check if a new texture can be created */
   glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, inWidth,
@@ -265,6 +259,9 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
       glGenBuffersARB(1, &inContext->texture.bufferObjectID);
       if (!inContext->texture.bufferObjectID) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
+	/* Even though we failed to create a PBO ID, the rendering of the glyph
+	 * can be processed without PBO, so we return GL_TRUE.
+	 */
 	return GL_TRUE;
       }
     }

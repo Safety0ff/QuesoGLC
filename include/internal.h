@@ -219,10 +219,12 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 #endif
 
 /* Save the GL State in a structure */
-void __glcSaveGLState(__GLCglState* inGLState);
+void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
+		      GLboolean inAll);
 
 /* Restore the GL State from a structure */
-void __glcRestoreGLState(__GLCglState* inGLState);
+void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
+			 GLboolean inAll);
 
 /* Get a FontConfig pattern from a master ID */
 FcPattern* __glcGetPatternFromMasterID(GLint inMaster,

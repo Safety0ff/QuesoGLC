@@ -1314,7 +1314,7 @@ void APIENTRY glcPushAttribQSO(GLbitfield inMask)
   }
 
   if (inMask & GLC_GL_ATTRIB_BIT_QSO) {
-    __glcSaveGLState(&level->glState);
+    __glcSaveGLState(&level->glState, ctx, GL_TRUE);
     level->attribBits |= GLC_GL_ATTRIB_BIT_QSO;
   }
 
@@ -1363,7 +1363,7 @@ void APIENTRY glcPopAttribQSO(void)
     memcpy(&ctx->stringState, &level->stringState, sizeof(__GLCstringState));
 
   if (mask & GLC_GL_ATTRIB_BIT_QSO)
-    __glcRestoreGLState(&level->glState);
+    __glcRestoreGLState(&level->glState, ctx, GL_TRUE);
 
   return;
 }

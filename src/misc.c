@@ -432,52 +432,68 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
 
 
 /* Save the GL State in a structure */
-void __glcSaveGLState(__GLCglState* inGLState)
+void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
+		      GLboolean inAll)
 {
-  inGLState->texture2D = glIsEnabled(GL_TEXTURE_2D);
-  inGLState->blend = glIsEnabled(GL_BLEND);
-  glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
-		&inGLState->textureEnvMode);
-  glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
-  glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
-  if (GLEW_ARB_pixel_buffer_object)
-    glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING_ARB,
-		  &inGLState->bufferObjectID);
-  inGLState->vertexArray = glIsEnabled(GL_VERTEX_ARRAY);
-  inGLState->normalArray = glIsEnabled(GL_NORMAL_ARRAY);
-  inGLState->colorArray = glIsEnabled(GL_COLOR_ARRAY);
-  inGLState->indexArray = glIsEnabled(GL_INDEX_ARRAY);
-  inGLState->texCoordArray = glIsEnabled(GL_TEXTURE_COORD_ARRAY);
-  inGLState->edgeFlagArray = glIsEnabled(GL_EDGE_FLAG_ARRAY);
+  if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE) {
+    inGLState->texture2D = glIsEnabled(GL_TEXTURE_2D);
+    inGLState->blend = glIsEnabled(GL_BLEND);
+    glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+		  &inGLState->textureEnvMode);
+    glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
+    glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
+    if (GLEW_ARB_pixel_buffer_object && 
+	(inAll || !inContext->enableState.glObjects))
+      glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING_ARB,
+		    &inGLState->bufferObjectID);
+  }
+
+  if (inAll || inContext->renderState.renderStyle == GLC_LINE ||
+       inContext->renderState.renderStyle == GLC_TRIANGLE) {
+    inGLState->vertexArray = glIsEnabled(GL_VERTEX_ARRAY);
+    inGLState->normalArray = glIsEnabled(GL_NORMAL_ARRAY);
+    inGLState->colorArray = glIsEnabled(GL_COLOR_ARRAY);
+    inGLState->indexArray = glIsEnabled(GL_INDEX_ARRAY);
+    inGLState->texCoordArray = glIsEnabled(GL_TEXTURE_COORD_ARRAY);
+    inGLState->edgeFlagArray = glIsEnabled(GL_EDGE_FLAG_ARRAY);
+  }
 }
 
 
 
 /* Restore the GL State from a structure */
-void __glcRestoreGLState(__GLCglState* inGLState)
+void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
+			 GLboolean inAll)
 {
-  glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
-  if (GLEW_ARB_pixel_buffer_object)
-    glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, inGLState->bufferObjectID);
-  if (!inGLState->texture2D)
-    glDisable(GL_TEXTURE_2D);
-  if (!inGLState->blend)
-    glDisable(GL_BLEND);
-  glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, inGLState->textureEnvMode);
-  glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
-  if (!inGLState->vertexArray)
-    glDisableClientState(GL_VERTEX_ARRAY);
-  if (inGLState->normalArray)
-    glEnableClientState(GL_NORMAL_ARRAY);
-  if (inGLState->colorArray)
-    glEnableClientState(GL_COLOR_ARRAY);
-  if (inGLState->indexArray)
-    glEnableClientState(GL_INDEX_ARRAY);
-  if (inGLState->texCoordArray)
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-  if (inGLState->edgeFlagArray)
-    glEnableClientState(GL_EDGE_FLAG_ARRAY);
+  if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE) {
+    glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
+    if (GLEW_ARB_pixel_buffer_object && 
+	(inAll || !inContext->enableState.glObjects))
+      glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, inGLState->bufferObjectID);
+    if (!inGLState->texture2D)
+      glDisable(GL_TEXTURE_2D);
+    if (!inGLState->blend)
+      glDisable(GL_BLEND);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, inGLState->textureEnvMode);
+    glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
+  }
+
+  if (inAll || inContext->renderState.renderStyle == GLC_LINE ||
+       inContext->renderState.renderStyle == GLC_TRIANGLE) {
+    if (!inGLState->vertexArray)
+      glDisableClientState(GL_VERTEX_ARRAY);
+    if (inGLState->normalArray)
+      glEnableClientState(GL_NORMAL_ARRAY);
+    if (inGLState->colorArray)
+      glEnableClientState(GL_COLOR_ARRAY);
+    if (inGLState->indexArray)
+      glEnableClientState(GL_INDEX_ARRAY);
+    if (inGLState->texCoordArray)
+      glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    if (inGLState->edgeFlagArray)
+      glEnableClientState(GL_EDGE_FLAG_ARRAY);
+  }
 }
 
 
