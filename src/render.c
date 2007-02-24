@@ -217,13 +217,13 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 			    scale_x, scale_y)) {
         if (inContext->renderState.renderStyle == GLC_BITMAP)
             glBitmap(0, 0, 0, 0,
-                     kerning[0] * inContext->bitmapMatrix[0] / scale_x
-                     + kerning[1] * inContext->bitmapMatrix[2] / scale_y,
-                     kerning[0] * inContext->bitmapMatrix[1] / scale_x
-                     + kerning[1] * inContext->bitmapMatrix[3] / scale_y,
+                     kerning[0] * inContext->bitmapMatrix[0] 
+                     + kerning[1] * inContext->bitmapMatrix[2],
+                     kerning[0] * inContext->bitmapMatrix[1]
+                     + kerning[1] * inContext->bitmapMatrix[3],
                      NULL);
         else
-            glTranslatef(kerning[0] / scale_x, kerning[1] / scale_y, 0.);
+            glTranslatef(kerning[0], kerning[1], 0.);
     }
   }
 

@@ -448,10 +448,10 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
   /* Transform the bounding box according to the conversion from FT_F26Dot6 to
    * GLfloat and the size in points of the glyph.
    */
-  outVec[0] = (GLfloat) boundBox.xMin / GLC_POINT_SIZE / 64.;
-  outVec[2] = (GLfloat) boundBox.xMax / GLC_POINT_SIZE / 64.;
-  outVec[1] = (GLfloat) boundBox.yMin / GLC_POINT_SIZE / 64.;
-  outVec[3] = (GLfloat) boundBox.yMax / GLC_POINT_SIZE / 64.;
+  outVec[0] = (GLfloat) boundBox.xMin / 64. / inScaleX;
+  outVec[2] = (GLfloat) boundBox.xMax / 64. / inScaleX;
+  outVec[1] = (GLfloat) boundBox.yMin / 64. / inScaleY;
+  outVec[3] = (GLfloat) boundBox.yMax / 64. / inScaleY;
 
   FT_Done_Glyph(glyph);
 #ifndef FT_CACHE_H
@@ -482,8 +482,8 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
   /* Transform the advance according to the conversion from FT_F26Dot6 to
    * GLfloat.
    */
-  outVec[0] = (GLfloat) face->glyph->advance.x / 64.;
-  outVec[1] = (GLfloat) face->glyph->advance.y / 64.;
+  outVec[0] = (GLfloat) face->glyph->advance.x / 64. / inScaleX;
+  outVec[1] = (GLfloat) face->glyph->advance.y / 64. / inScaleY;
 
 #ifndef FT_CACHE_H
   __glcFaceDescClose(This);
@@ -679,8 +679,8 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
   if (error)
     return NULL;
   else {
-    outVec[0] = (GLfloat) kerning.x / 64.;
-    outVec[1] = (GLfloat) kerning.y / 64.;
+    outVec[0] = (GLfloat) kerning.x / 64. / inScaleX;
+    outVec[1] = (GLfloat) kerning.y / 64. / inScaleY;
     return outVec;
   }
 }
