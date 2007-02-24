@@ -122,6 +122,7 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
   This->fontList.tail = NULL;
 
   This->isCurrent = GL_FALSE;
+  This->isInGlobalCommand = GL_FALSE;
   This->id = inContext;
   This->pendingDelete = GL_FALSE;
   This->stringState.callback = GLC_NONE;

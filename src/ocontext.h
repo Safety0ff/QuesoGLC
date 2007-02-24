@@ -121,6 +121,7 @@ struct __GLCcontextRec {
   FcConfig *config;
 
   GLint id;			/* Context ID */
+  GLboolean isInGlobalCommand;	/* Is in a global command ? */
   GLboolean pendingDelete;	/* Is there a pending deletion ? */
   __GLCenableState enableState;
   __GLCrenderState renderState;
@@ -131,7 +132,7 @@ struct __GLCcontextRec {
   FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
   __GLCarray* measurementBuffer;
   GLfloat measurementStringBuffer[12];
-  GLboolean isInCallbackFunc;
+  GLboolean isInCallbackFunc;	/* Is a callback function executing ? */
   GLint lastFontID;
   __GLCarray* vertexArray;	/* Array of vertices */
   __GLCarray* controlPoints;	/* Array of control points */

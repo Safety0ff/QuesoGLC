@@ -44,7 +44,7 @@ struct __GLCglyphRec {
 
 __GLCglyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
 void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext);
-void __glcGlyphDestroyTexture(__GLCglyph* This);
+void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext);
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext);
 int __glcGlyphGetDisplayListCount(__GLCglyph* This);
 GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount);

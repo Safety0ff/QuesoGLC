@@ -409,6 +409,7 @@ void APIENTRY glcDeleteContext(GLint inContext)
   else {
     /* Remove the context from the context list then destroy it */
     FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)ctx);
+    ctx->isInGlobalCommand = GL_TRUE;
     __glcCtxDestroy(ctx);
   }
 
@@ -537,6 +538,7 @@ void APIENTRY glcContext(GLint inContext)
   if (currentState) {
     if (currentState->pendingDelete) {
       FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)currentState);
+      currentState->isInGlobalCommand = GL_TRUE;
       __glcCtxDestroy(currentState);
     }
   }
@@ -599,6 +601,8 @@ GLint APIENTRY glcGenContext(void)
   FT_List_Add(&__glcCommonArea.contextList, node);
 
   __glcUnlock();
+
+  ctx->isInGlobalCommand = GL_TRUE;
 
   /* The environment variable GLC_PATH is an alternate way to allow QuesoGLC
    * to access to fonts catalogs/directories.
@@ -663,6 +667,7 @@ GLint APIENTRY glcGenContext(void)
     }
   }
 
+  ctx->isInGlobalCommand = GL_FALSE;
   return newContext;
 }
 

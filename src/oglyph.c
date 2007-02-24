@@ -74,9 +74,10 @@ void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext)
 
 
 /* Remove all GL objects related to the texture of the glyph */
-void __glcGlyphDestroyTexture(__GLCglyph* This)
+void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext)
 {
-  glDeleteLists(This->displayList[0], 1);
+  if (!inContext->isInGlobalCommand)
+    glDeleteLists(This->displayList[0], 1);
   This->displayList[0] = 0;
   This->textureObject = NULL;
 }
@@ -90,17 +91,19 @@ void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 {
   if (This->displayList[0]) {
     __glcDeleteAtlasElement((__GLCatlasElement*)This->textureObject, inContext);
-    __glcGlyphDestroyTexture(This);
+    __glcGlyphDestroyTexture(This, inContext);
   }
 
-  if (This->displayList[1])
-    glDeleteLists(This->displayList[1], 1);
+  if (!inContext->isInGlobalCommand) {
+    if (This->displayList[1])
+      glDeleteLists(This->displayList[1], 1);
 
-  if (This->displayList[2])
-    glDeleteLists(This->displayList[2], 1);
+    if (This->displayList[2])
+      glDeleteLists(This->displayList[2], 1);
 
-  if (This->displayList[3])
-    glDeleteLists(This->displayList[3], 1);
+    if (This->displayList[3])
+      glDeleteLists(This->displayList[3], 1);
+  }
 
   memset(This->displayList, 0, 4 * sizeof(GLuint));
 }
