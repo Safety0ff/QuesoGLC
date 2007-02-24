@@ -57,7 +57,6 @@ struct __GLCrendererDataRec {
   GLfloat halfHeight;
   GLboolean displayListIsBuilding;	/* Is a display list planned to be
 					   built ? */
-  GLboolean extrude;
 };
 
 
@@ -549,10 +548,7 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 
 
 /* Callback function that is called by the GLU when it is tesselating a
- * polygon. This function is needed when a Bezier curve is replaced by a
- * piecewise linear curve (which can occur when a curve is outside the
- * viewport). In such a case since the curve is roughly described some
- * intersections can occur between two contours in certain positions.
+ * polygon.
  */
 static void CALLBACK __glcCombineCallback(GLdouble coords[3],
 				 void* vertex_data[4], GLfloat weight[4],
@@ -665,6 +661,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   FT_Face face = NULL;
   GLfloat sx64 = 64. * scale_x;
   GLfloat sy64 = 64. * scale_y;
+  int index = 0;
+
 
 #ifndef FT_CACHE_H
   face = inFont->faceDesc->face;
@@ -692,7 +690,6 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   rendererData.geomBatches = inContext->geomBatches;
 
   rendererData.displayListIsBuilding = inDisplayListIsBuilding;
-  rendererData.extrude = inContext->enableState.extrude;
 
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
@@ -715,22 +712,6 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     rendererData.transformMatrix[6] /= sy64;
     rendererData.transformMatrix[7] /= sy64;
 
-    if (inContext->enableState.extrude) {
-      int i = 0;
-
-      rendererData.transformMatrix[8] *= rendererData.halfWidth;
-      rendererData.transformMatrix[9] *= rendererData.halfHeight;
-
-      for (i = 0; i < 3; i++) {
-	GLfloat norm = 0.f;
-	int j = 0;
-
-	for (j = 0; j < 3; j++)
-	  norm += inTransformMatrix[i*4+j] * inTransformMatrix[i*4+j];
-	memset(&inTransformMatrix[i*4], 0, 3 * sizeof(GLfloat));
-	inTransformMatrix[i*4+i] = sqrt(norm);
-      }
-    }
 #if 0
     rendererData.tolerance = .25; /* Half pixel tolerance */
 #else
@@ -770,19 +751,17 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     return;
   }
 
+  switch(inRenderMode) {
+  case GLC_LINE:
+    index = 1;
+    break;
+  case GLC_TRIANGLE:
+    index = inContext->enableState.extrude ? 3 : 2;
+    break;
+  }
+
   /* Prepare the display list compilation if needed */
   if (inContext->enableState.glObjects) {
-    int index = 0;
-
-    switch(inRenderMode) {
-    case GLC_LINE:
-      index = 1;
-      break;
-    case GLC_TRIANGLE:
-      index = inContext->enableState.extrude ? 3 : 2;
-      break;
-    }
-
     inGlyph->displayList[index] = glGenLists(1);
     if (!inGlyph->displayList[index]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -793,7 +772,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
       return;
     }
 
-    glNewList(inGlyph->displayList[index], GL_COMPILE_AND_EXECUTE);
+    glNewList(inGlyph->displayList[index], GL_COMPILE);
   }
   if (inDisplayListIsBuilding)
     glScalef(1./sx64, 1./sy64, 1.);
@@ -860,23 +839,29 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     geomBatch = (__GLCgeomBatch*)GLC_ARRAY_DATA(rendererData.geomBatches);
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
-      glDrawElements(geomBatch[i].mode, geomBatch[i].length,
-			GL_UNSIGNED_INT, (void*)vertexIndices);
-      if (inContext->enableState.extrude) {
-	glTranslatef(0.0f, 0.0f, -1.0f);
-	glNormal3f(0.f, 0.f, -1.f);
-	glDrawElements(geomBatch[i].mode, geomBatch[i].length,
-			GL_UNSIGNED_INT, (void*)vertexIndices);
-	glTranslatef(0.0f, 0.0f, 1.0f);
-	glNormal3f(0.f, 0.f, 1.f);
-      }
+      glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
+			  geomBatch[i].end, geomBatch[i].length,
+			  GL_UNSIGNED_INT, (void*)vertexIndices);
       vertexIndices += geomBatch[i].length;
     }
 
-    /* For extruded glyphes : close the contours */
+    /* For extruded glyphes : render the other side and close the contours */
     if (inContext->enableState.extrude) {
       GLfloat ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f;
-      GLfloat nx = 0.f, ny = 0.f, length = 0.f;
+      GLfloat nx = 0.f, ny = 0.f, n0x = 0.f, n0y = 0.f, length = 0.f;
+
+      glTranslatef(0.0f, 0.0f, -1.0f);
+      glNormal3f(0.f, 0.f, -1.f);
+
+      vertexIndices = (GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
+
+      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
+	glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
+			    geomBatch[i].end, geomBatch[i].length,
+			    GL_UNSIGNED_INT, (void*)vertexIndices);
+	vertexIndices += geomBatch[i].length;
+      }
+      glTranslatef(0.0f, 0.0f, 1.0f);
 
       for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
 	glBegin(GL_TRIANGLE_STRIP);
@@ -886,8 +871,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	    ay = vertexArray[endContour[i+1]-1][1];
 	    bx = vertexArray[j+1][0];
 	    by = vertexArray[j+1][1];
-	    nx = by - ay;
-	    ny = ax - bx;
+	    n0x = ay - by;
+	    n0y = bx - ax;
 	  }
 	  else if (j == (endContour[i+1] - 1)) {
 	    ax = vertexArray[j-1][0];
@@ -902,13 +887,15 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	    by = vertexArray[j+1][1];
 	  }
 
-	  length = sqrt((by - ay) * (by - ay) + (ax - bx) * (ax - bx));
-	  glNormal3f((by-ay)/length, (ax-bx)/length, 0.f);
+	  nx = ay - by;
+	  ny = bx - ax;
+	  length = sqrt(nx*nx + ny*ny);
+	  glNormal3f(nx/length, ny/length, 0.f);
 	  glVertex2fv(vertexArray[j]);
 	  glVertex3f(vertexArray[j][0], vertexArray[j][1], -1.f);
 	}
-	length = sqrt(nx * nx + ny * ny);
-	glNormal3f(nx / length, ny / length, 0.f);
+	length = sqrt(n0x*n0x + n0y*n0y);
+	glNormal3f(n0x/length, n0y/length, 0.f);
 	glVertex2fv(vertexArray[endContour[i]]);
 	glVertex3f(vertexArray[endContour[i]][0], vertexArray[endContour[i]][1],
 		   -1.f);
@@ -935,8 +922,10 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 
   if (inDisplayListIsBuilding)
     glScalef(sx64, sy64, 1.);
-  if (inContext->enableState.glObjects)
+  if (inContext->enableState.glObjects) {
     glEndList();
+    glCallList(inGlyph->displayList[index]);
+  }
 
   GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inContext->endContour) = 0;
