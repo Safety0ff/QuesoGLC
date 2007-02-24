@@ -390,7 +390,7 @@ void __glcRenderCharTexture(__GLCfont* inFont,
   mipmapBoundingBox.yMin = boundingBox.yMin;
 
   /* Iterate on the powers of 2 in order to build the mipmap */
-  while ((pixmap.width > minSize) && (pixmap.rows > minSize)) {
+  do {
     if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding) {
       pixmap.buffer = (GLubyte *)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
 						GL_WRITE_ONLY);
@@ -411,7 +411,10 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
       glPopClientAttrib();
-      __glcFree(pixmap.buffer);
+      if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding)
+        glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
+      else
+        __glcFree(pixmap.buffer);
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
@@ -445,7 +448,8 @@ void __glcRenderCharTexture(__GLCfont* inFont,
 
     /* Get the bounding box of the transformed glyph */
     FT_Outline_Get_CBox(&outline, &mipmapBoundingBox);
-  }
+
+  } while ((pixmap.width > minSize) && (pixmap.rows > minSize));
 
   /* Finish to build the mipmap if necessary */
   if (inContext->enableState.mipmap && inDisplayListIsBuilding) {
@@ -489,7 +493,8 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     inGlyph->displayList[0] = glGenLists(1);
     if (!inGlyph->displayList[0]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      __glcFree(pixmap.buffer);
+      if (pixmap.buffer)
+        __glcFree(pixmap.buffer);
       return;
     }
 
@@ -526,5 +531,6 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     glEndList();
   }
 
-  __glcFree(pixmap.buffer);
+  if (pixmap.buffer)
+    __glcFree(pixmap.buffer);
 }
