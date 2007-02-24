@@ -161,7 +161,7 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
     atlasNode = (__GLCatlasElement*)inContext->atlasList.tail;
     assert(atlasNode);
     /* Release the texture area of the glyph */
-    __glcGlyphDestroyTexture(atlasNode->glyph);
+    __glcGlyphDestroyTexture(atlasNode->glyph, inContext);
     /* Put the texture area at the head of the list otherwise we will use the
      * same texture element over and over again each time that we need to
      * release a texture area.
@@ -324,12 +324,12 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     FT_Outline_Transform(&outline, &matrix);
   }
 
-  /* Get the bounding box of the glyph */
-  FT_Outline_Get_CBox(&outline, &boundingBox);
-
   /* Compute the size of the pixmap where the glyph will be rendered */
   if (inDisplayListIsBuilding) {
     __GLCatlasElement* atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
+
+    /* Get the bounding box of the glyph */
+    FT_Outline_Get_CBox(&outline, &boundingBox);
 
     pixmap.width = GLC_TEXTURE_SIZE;
     pixmap.rows = GLC_TEXTURE_SIZE;
@@ -343,12 +343,28 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     outline.flags |= FT_OUTLINE_HIGH_PRECISION;
   }
   else {
-    pixmap.width = __glcNextPowerOf2(
-            (boundingBox.xMax - boundingBox.xMin + 63) >> 6); /* ceil() */
-    pixmap.rows = __glcNextPowerOf2(
-            (boundingBox.yMax - boundingBox.yMin + 63) >> 6); /* ceil() */
-    if (!__glcTextureGetImmediate(inContext, pixmap.width, pixmap.rows))
-      return;
+    matrix.xx = 65536; /* 1.0 in FT_Fixed type */
+    matrix.xy = 0;
+    matrix.yx = 0;
+    matrix.yy = 65536;
+
+    /* Try several texture size until we are able to create one */
+    do {
+      FT_Outline_Transform(&outline, &matrix);
+      FT_Outline_Get_CBox(&outline, &boundingBox);
+
+      pixmap.width = __glcNextPowerOf2(
+              (boundingBox.xMax - boundingBox.xMin + 63) >> 6); /* ceil() */
+      pixmap.rows = __glcNextPowerOf2(
+              (boundingBox.yMax - boundingBox.yMin + 63) >> 6); /* ceil() */
+
+      /* If the texture size is too small then give up */
+      if ((pixmap.width < 4) && (pixmap.rows < 4))
+	return;
+
+      matrix.xx = 32768; /* 0.5 in FT_Fixed type */
+      matrix.yy = 32768;
+    } while (!__glcTextureGetImmediate(inContext, pixmap.width, pixmap.rows));
 
     texture = inContext->texture.id;
     texWidth = inContext->texture.width;
@@ -499,7 +515,7 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     }
 
     /* Create the display list */
-    glNewList(inGlyph->displayList[0], GL_COMPILE_AND_EXECUTE);
+    glNewList(inGlyph->displayList[0], GL_COMPILE);
     glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
 
     /* Modify the bouding box dimensions to compensate the glScalef() */
@@ -529,6 +545,7 @@ void __glcRenderCharTexture(__GLCfont* inFont,
     /* Finish display list creation */
     glScalef(64. * scale_x, 64. * scale_y, 1.);
     glEndList();
+    glCallList(inGlyph->displayList[0]);
   }
 
   if (pixmap.buffer)
