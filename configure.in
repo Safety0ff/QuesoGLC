@@ -109,7 +109,7 @@ if (test "x$no_glut" = "xyes"); then
   echo "*** tests will not be built"
 else
   EXAMPLES="examples"
-  TESTS_WITH_GLUT="test7 testrender"
+  TESTS_WITH_GLUT="test7 test8 testrender"
 fi
 
 

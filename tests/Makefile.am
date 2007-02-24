@@ -13,6 +13,7 @@ noinst_PROGRAMS = test1 \
                   @TESTS_WITH_GLUT@
 
 EXTRA_PROGRAMS = test7 \
+                 test8 \
                  testrender
 
 TESTS = $(noinst_PROGRAMS)
@@ -50,6 +51,10 @@ testmaster_SOURCES = testmaster.c
 test7_SOURCES = test7.c
 test7_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
 test7_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test8_SOURCES = test8.c
+test8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
+test8_LDADD = @GLUT_LIBS@ $(LDADD)
 
 testrender_SOURCES = testrender.c
 testrender_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
