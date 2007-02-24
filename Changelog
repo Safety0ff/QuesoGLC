@@ -3,6 +3,15 @@ Changes made from the "0.5" release to the "0.6" release:
 
 * Bertrand Coconnier:
 
+- Added a test in the tests directory that checks if empty strings are
+  correctly handled by the functions of QuesoGLC (no crash, no unexpected
+  errors, no memory leaks).
+- Modified the texture routines so that QuesoGLC tries several sizes of texture
+  before giving up when rendering in GLC_TEXTURE mode with GLC_GL_OBJECTS
+  disabled.
+- Fixed global commands so that they can not execute GL commands since we can
+  not make sure that the relevant GL context is bound to the current thread
+  when a global GLC command is executed.
 - Changed __glcSaveGLState() and __glcRestoreGLState() so that only a minimal
   part of the GL state is saved before the rendering commands are issued.
 - Removed redundancy in the calls to glBindTexture() when the GLC_TEXTURE
