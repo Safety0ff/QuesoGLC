@@ -48,6 +48,25 @@ Changes made from the "0.5" release to the "0.6" release:
 
 * Brandon Casey:
 
+- Ensured at least one texture level is created by using a do {} while,
+  otherwise when hinting is enabled and Xscale or Yscale are too small,
+  sometimes no new texture is created and we render a portion of the previous
+  image.
+- Avoided free'ing NULL buffer in texture routines
+- Fixed scalable rendering when using external display list
+- Fixed the character measurement buffer which was not reset at each call of
+  glcMeasureString() or glcMeasureCountedString(). So newly measured characters
+  were continually appended to measurement array.
+- Removed the call to __glcGetScale() in measuring routines since it is not
+  necessary and breaks if hinting is enabled and rendering bitmap.
+- Fixed kerning adjustment in __glcGetCharMetric().
+- Moved point size adjustments into ofacedesc.c functions to mimic
+  __glcFaceDescGetBoundingBox() 
+- Replaced __glcFree() by free() when glc allocation functions didn't allocate
+  the memory.
+- Fixed glcExtensions string in test6.c
+- Changed glScalef() call in unicode.c so that z dimension is not zeroed which
+  breaks hinting.
 - Fixed parameter type of __glcTextureGetImmediate() (GLsizei instead of
   GLuint).
 - Replaced floating point multiplication by bits shifting.
