@@ -654,7 +654,7 @@ GLint APIENTRY glcGenContext(void)
 	}
 	begin = sepPos;
       } while (*sepPos);
-      __glcFree(path);
+      free(path);
       __glcUpdateHashTable(ctx);
     }
     else {

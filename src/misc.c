@@ -559,7 +559,7 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
     return NULL;
   }
   pattern = FcNameParse(parse);
-  __glcFree(parse);
+  free(parse);
   if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
