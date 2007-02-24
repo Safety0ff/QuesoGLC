@@ -794,8 +794,9 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     }
 
     glNewList(inGlyph->displayList[index], GL_COMPILE_AND_EXECUTE);
-    glScalef(1./sx64, 1./sy64, 1.);
   }
+  if (inDisplayListIsBuilding)
+    glScalef(1./sx64, 1./sy64, 1.);
 
   if (inRenderMode == GLC_TRIANGLE) {
     /* Tesselate the polygon defined by the contour returned by
@@ -932,10 +933,10 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   /* Take into account the advance of the glyph */
   glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 
-  if (inContext->enableState.glObjects) {
+  if (inDisplayListIsBuilding)
     glScalef(sx64, sy64, 1.);
+  if (inContext->enableState.glObjects)
     glEndList();
-  }
 
   GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inContext->endContour) = 0;
