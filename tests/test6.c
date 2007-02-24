@@ -31,9 +31,9 @@
 #define QUESOGLC_MAJOR 0
 #define QUESOGLC_MINOR 2
 
-static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_utf8 GLC_SGI_full_name"
-    " GLC_QSO_hinting GLC_QSO_extrude GLC_QSO_kerning GLC_QSO_matrix_stack"
-    " GLC_QSO_attrib_stack";
+static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_attrib_stack"
+    " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
+    " GLC_QSO_utf8 GLC_SGI_full_name";
 static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
