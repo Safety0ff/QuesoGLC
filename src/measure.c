@@ -90,28 +90,15 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
 				void* inData, GLboolean inMultipleChars)
 {
   GLfloat* outVec = (GLfloat*)inData;
-  GLint i = 0;
+  int i = 0;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
-  GLfloat transformMatrix[16];
   GLfloat temp[4];
 
   assert(inFont);
 
-  /* Get the scale factors in X and Y direction from the transformation
-   * matrix
-   */
-  __glcGetScale(inContext, transformMatrix, &scale_x, &scale_y);
-
-  /* Exit if the font is undefined or if one of the scale factors is almost
-   * zero (that is the matrix transforms the glyph so that its height or length
-   * is zero).
-   */
-  if ((fabs(scale_x) < GLC_EPSILON)
-      || (fabs(scale_y) < GLC_EPSILON))
-    return NULL;
 
   if (inMultipleChars && (inContext->renderState.renderStyle == GLC_BITMAP)) {
     /* If a string (or several characters) is to be measured, it will be easier
@@ -128,7 +115,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
     GLfloat determinant = matrix[0] * matrix[3]	- matrix[1] * matrix[2];
 
     for (i = 0; i < 4; i++) {
-      if (fabs(matrix[i] > norm))
+      if (fabs(matrix[i]) > norm)
 	norm = fabs(matrix[i]);
     }
 
@@ -155,11 +142,13 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
       outVec[3] = 0.;
   }
   else {
-    outVec[2] -= outVec[12];
-    outVec[3] -= outVec[13];
+    outVec[2] += outVec[12];
+    outVec[3] += outVec[13];
   }
 
-  __glcFontGetBoundingBox(inFont, inCode, temp, inContext, scale_x, scale_y);
+  if (!__glcFontGetBoundingBox(inFont, inCode, temp, inContext, scale_x,
+              scale_y))
+      return NULL;
   /* Take into account the advance of the glyphs that have already been
    * measured.
    */
@@ -188,10 +177,11 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
   outVec[11] = outVec[9];
 
   /* Get the advance of the glyph */
-  __glcFontGetAdvance(inFont, inCode, temp, inContext, scale_x, scale_y);
+  if (!__glcFontGetAdvance(inFont, inCode, temp, inContext, scale_x, scale_y))
+      return NULL;
   /* Update the global advance accordingly */
-  outVec[2] += temp[0] / GLC_POINT_SIZE;
-  outVec[3] += temp[1] / GLC_POINT_SIZE;
+  outVec[2] += temp[0];
+  outVec[3] += temp[1];
 
   outVec[12] = 0.;
   outVec[13] = 0.;
@@ -201,8 +191,8 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
     if (__glcFontGetKerning(inFont, inCode, inPrevCode, kerning, inContext,
 			    scale_x, scale_y))
     {
-      outVec[12] = kerning[0] / GLC_POINT_SIZE;
-      outVec[13] = kerning[1] / GLC_POINT_SIZE;
+      outVec[12] = kerning[0];
+      outVec[13] = kerning[1];
     }
   }
 
@@ -573,6 +563,9 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
   }
 
   memset(outVec, 0, 12*sizeof(GLfloat));
+
+  if (inMeasureChars)
+    GLC_ARRAY_LENGTH(inContext->measurementBuffer) = 0;
 
   /* For each character of the string, the measurement are performed and
    * gathered in the context state
