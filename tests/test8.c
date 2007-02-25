@@ -77,11 +77,11 @@ int main(int argc, char **argv)
     return -1;
 
   glcAppendCatalog("");
-  if (!checkError(GLC_NONE))
+  if (!checkError(GLC_PARAMETER_ERROR))
     return -1;
 
   glcPrependCatalog("");
-  if (!checkError(GLC_NONE))
+  if (!checkError(GLC_PARAMETER_ERROR))
     return -1;
 
   font = glcNewFontFromMaster(glcGenFontID(), 1);
