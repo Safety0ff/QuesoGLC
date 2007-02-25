@@ -323,8 +323,6 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
   int i = 0;
   int j = 0;
 
-  assert(inIndex >= 0);
-
   /* In Fontconfig the map in FcCharSet is organized as an array of integers.
    * Each integer corresponds to a page of 32 characters (since it uses 32 bits
    * integer). If a bit is set then character is in the character map otherwise
@@ -343,6 +341,8 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
   FcChar32 base = FcCharSetFirstPage(This->charSet, map, &next);
   FcChar32 count = 0;
   FcChar32 value = 0;
+
+  assert(inIndex >= 0);
 
   do {
     /* Parse the pages in FcCharSet */

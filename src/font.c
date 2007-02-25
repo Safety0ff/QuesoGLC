@@ -61,11 +61,6 @@
  *  the variable \b GLC_FONT_COUNT.
  */
 
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
 #include "internal.h"
 #include FT_LIST_H
 

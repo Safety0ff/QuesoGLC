@@ -22,11 +22,6 @@
  *  defines the routines used to render characters with textures.
  */
 
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
 #include "internal.h"
 
 #if defined __APPLE__ && defined __MACH__

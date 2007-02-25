@@ -22,11 +22,6 @@
  * defines the routines used to render characters with lines and triangles.
  */
 
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
 #include "internal.h"
 
 #if defined __APPLE__ && defined __MACH__
@@ -554,8 +549,6 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3],
 				 void* vertex_data[4], GLfloat weight[4],
 				 void** outData, void* inUserData)
 {
-  GLC_DISCARD_ARG(vertex_data);
-  GLC_DISCARD_ARG(weight);
   __GLCrendererData *data = (__GLCrendererData*)inUserData;
   GLfloat vertex[2];
   /* Evil hack for 32/64 bits compatibility */
@@ -563,6 +556,8 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3],
     void* ptr;
     GLuint i;
   } uintInPtr;
+  GLC_DISCARD_ARG(vertex_data);
+  GLC_DISCARD_ARG(weight);
 
   /* Compute the new vertex and append it to the vertex array */
   vertex[0] = (GLfloat)coords[0];

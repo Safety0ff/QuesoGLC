@@ -46,12 +46,6 @@
  */
 
 #include <math.h>
-
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
 #include "internal.h"
 
 #define GLC_PI 3.1415926535

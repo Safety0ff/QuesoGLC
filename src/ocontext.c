@@ -22,11 +22,6 @@
  * defines the object __GLCcontext which is used to manage the contexts.
  */
 
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
 #include "internal.h"
 
 #include <sys/stat.h>
@@ -268,9 +263,9 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
  */
 static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
 {
-  GLC_DISCARD_ARG(inMemory);
   __GLCfont *font = (__GLCfont*)inData;
   __GLCcontext* ctx = (__GLCcontext*)inUser;
+  GLC_DISCARD_ARG(inMemory);
 
   assert(ctx);
 

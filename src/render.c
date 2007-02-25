@@ -84,11 +84,6 @@
  * underlying GL implementation.
  */
 
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
 #include "internal.h"
 
 #if defined __APPLE__ && defined __MACH__
@@ -192,8 +187,6 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 			    __GLCcontext* inContext, void* inData,
 			    GLboolean inMultipleChars)
 {
-  GLC_DISCARD_ARG(inData);
-  GLC_DISCARD_ARG(inMultipleChars);
   GLfloat transformMatrix[16];
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
@@ -201,6 +194,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
   GLboolean displayListIsBuilding = GL_FALSE;
   FT_Face face = NULL;
   GLfloat sx64 = 0., sy64 = 0.;
+  GLC_DISCARD_ARG(inData);
+  GLC_DISCARD_ARG(inMultipleChars);
 
   assert(inFont);
 
