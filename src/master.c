@@ -49,11 +49,8 @@
  *  or equal to the value of the variable \b GLC_MASTER_COUNT.
  */
 
-/* Microsoft Visual C++ */
-#ifdef _MSC_VER
-#define GLCAPI __declspec(dllexport)
-#endif
-
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "internal.h"
 #include FT_LIST_H
 
@@ -624,10 +621,35 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
 {
   __GLCcontext *ctx = NULL;
+  struct stat dirStat;
 
   /* If inCatalog is NULL then there is no point in continuing */
   if (!inCatalog)
     return;
+
+  /* Check that 'inCatalog' points to a directory that can be read */ 	 
+  #ifdef __WIN32__ 	 
+  if (_access((const char*)inCatalog, 0)) { 	 
+  #else 	 
+  if (access((char *)inCatalog, R_OK) < 0) { 	 
+  #endif 	 
+    /* May be something more explicit should be done */ 	 
+    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
+	return; 	 
+  }
+  /* Check that 'inCatalog' is a directory */ 	 
+  if (stat((char *)inCatalog, &dirStat) < 0) { 	 
+    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
+	return; 	 
+  } 	 
+  #ifdef __WIN32__ 	 
+  if (!(dirStat.st_mode & _S_IFDIR)) { 	 
+  #else 	 
+  if (!S_ISDIR(dirStat.st_mode)) { 	 
+  #endif 	 
+    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
+	return; 	 
+  } 	 
 
   /* Verify that the thread owns a context */
   ctx = __glcGetCurrent();
@@ -663,10 +685,35 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
   FcStrSet* newCatalog = NULL;
   FcStrList* iterator = NULL;
   FcChar8* catalog = NULL;
+  struct stat dirStat;
 
   /* If inCatalog is NULL then there is no point in continuing */
   if (!inCatalog)
     return;
+
+  /* Check that 'inCatalog' points to a directory that can be read */ 	 
+  #ifdef __WIN32__ 	 
+  if (_access((const char*)inCatalog, 0)) { 	 
+  #else 	 
+  if (access((char *)inCatalog, R_OK) < 0) { 	 
+  #endif 	 
+    /* May be something more explicit should be done */ 	 
+    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
+	return; 	 
+  }
+  /* Check that 'inCatalog' is a directory */ 	 
+  if (stat((char *)inCatalog, &dirStat) < 0) { 	 
+    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
+	return; 	 
+  } 	 
+  #ifdef __WIN32__ 	 
+  if (!(dirStat.st_mode & _S_IFDIR)) { 	 
+  #else 	 
+  if (!S_ISDIR(dirStat.st_mode)) { 	 
+  #endif 	 
+    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
+	return; 	 
+  } 	 
 
   /* Verify that the thread owns a context */
   ctx = __glcGetCurrent();
