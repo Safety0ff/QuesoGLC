@@ -452,9 +452,7 @@ GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode)
        * UTF-8 format
        */
       FcChar8 buffer[FC_UTF8_MAX_LEN];
-#ifdef DEBUGMODE
       int len = FcUcs4ToUtf8((FcChar32)inCode, buffer);
-#endif
       assert((size_t)len <= sizeof(GLint));
 
       return *((GLint*)buffer);
