@@ -196,12 +196,6 @@ extern pthread_once_t initLibraryOnce;
 
 __GLCcontext* __glcCtxCreate(GLint inContext);
 void __glcCtxDestroy(__GLCcontext *This);
-void __glcCtxAddMasters(__GLCcontext *This, const GLCchar* catalog,
-			GLboolean append);
-void __glcCtxRemoveMasters(__GLCcontext *This, GLint inIndex);
 __GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint code);
 GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize);
-void __glcAddFontsToContext(__GLCcontext *This, FcFontSet *fontSet,
-			    GLboolean inAppend);
-
 #endif /* __glc_ocontext_h */
