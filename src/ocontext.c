@@ -541,13 +541,18 @@ __GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint inCode)
  */
 GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize)
 {
+  GLCchar* buffer;
+
+  buffer = This->buffer;
   if (inSize > This->bufferSize) {
-    This->buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);
-    if (!This->buffer)
+    buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);
+    if (!buffer)
       __glcRaiseError(GLC_RESOURCE_ERROR);
-    else
+    else {
+      This->buffer = buffer;
       This->bufferSize = inSize;
+    }
   }
 
-  return This->buffer;
+  return buffer;
 }
