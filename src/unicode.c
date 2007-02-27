@@ -141,12 +141,24 @@ static int __glcUtf8ToUcs1(const FcChar8* src_orig,
     else {
       /* Convert to the string '\<xxx>' */
 #ifdef _MSC_VER
-      sprintf_s((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      *dstlen = sprintf_s((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      /* sprintf_s returns -1 on any error, and the number of characters
+       * written to the string not including the terminating null otherwise.
+       * Insufficient length of the destination buffer is an error and the
+       * buffer is set to an empty string. */
+      if (*dstlen < 0)
+        *dstlen = 0;
 #else
-      snprintf((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      *dstlen = snprintf((char*)dst, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      /* Standard ISO/IEC 9899:1999 (ISO C99) snprintf, which it appears
+       * Microsoft has not implemented for their operating systems. Return
+       * value is length of the string that would have been written into
+       * the destination buffer not including the terminating null had their
+       * been enough space. Truncation has occurred if return value is >= 
+       * destination buffer size. */
+      if (*dstlen >= GLC_OUT_OF_RANGE_LEN)
+        *dstlen = GLC_OUT_OF_RANGE_LEN - 1;
 #endif
-
-      *dstlen = strlen((const char*)dst);
     }
   }
   return src_shift;
@@ -319,10 +331,8 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 
       /* Allocate the room to store the final string */
       string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar8));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       /* Perform the conversion */
       ucs1 = (FcChar8*)string;
@@ -357,10 +367,8 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 
       /* Allocate the room to store the final string */
       string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar16));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       /* Perform the conversion */
       ucs2 = (FcChar16*)string;
@@ -393,10 +401,8 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 
       /* Allocate the room to store the final string */
       string = (GLCchar*)__glcCtxQueryBuffer(This, (len+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
 
       /* Perform the conversion */
@@ -414,6 +420,8 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
      */
     string = (GLCchar*)__glcCtxQueryBuffer(This,
 					   strlen((const char*)inString)+1);
+    if (!string)
+      return NULL; /* GLC_RESOURCE_ERROR has been raised */
     strcpy(string, (const char*)inString);
     break;
   default:
@@ -452,8 +460,12 @@ GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode)
        * UTF-8 format
        */
       FcChar8 buffer[FC_UTF8_MAX_LEN];
+#ifndef NDEBUG
       int len = FcUcs4ToUtf8((FcChar32)inCode, buffer);
       assert((size_t)len <= sizeof(GLint));
+#else
+      FcUcs4ToUtf8((FcChar32)inCode, buffer);
+#endif
 
       return *((GLint*)buffer);
     }
@@ -525,10 +537,8 @@ FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(length+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       for (ucs4 = string; *ucs1; ucs1++, ucs4++)
 	*ucs4 = (FcChar32)(*ucs1);
@@ -546,10 +556,8 @@ FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(length+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       for (ucs2 = (FcChar16*)inString, ucs4 = string; *ucs2; ucs2++, ucs4++)
 	*ucs4 = (FcChar32)(*ucs2);
@@ -567,10 +575,8 @@ FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(length+1)*sizeof(int));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       memcpy(string, inString, length*sizeof(int));
 
@@ -600,10 +606,8 @@ FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(length+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       /* Perform the conversion */
       utf8 = (FcChar8*)inString;
@@ -650,10 +654,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(inCount+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       ucs4 = string;
 
@@ -672,10 +674,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(inCount+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       ucs2 = (FcChar16*)inString;
       ucs4 = string;
@@ -691,10 +691,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(inCount+1)*sizeof(int));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       memcpy(string, inString, inCount*sizeof(int));
 
@@ -710,10 +708,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
       /* Allocate the room to store the final string */
       string = (FcChar32*)__glcCtxQueryBuffer(inContext,
 					      2*(inCount+1)*sizeof(FcChar32));
-      if (!string) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return NULL;
-      }
+      if (!string)
+	return NULL; /* GLC_RESOURCE_ERROR has been raised */
 
       /* Perform the conversion */
       utf8 = (FcChar8*)inString;
