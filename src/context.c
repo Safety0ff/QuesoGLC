@@ -139,6 +139,10 @@ void APIENTRY glcDataPointer(GLvoid *inPointer)
  *  execution of glcDeleteGLObjects finishes, both of these lists are empty.
  *  \note \c glcDeleteGLObjects deletes only the objects that the current
  *  GLC context owns, not all objects in all contexts.
+ *  \note Generally speaking, it is always a good idea to call
+ *  \c glcDeleteGLObjects before calling glcDeleteContext(). It is also a good
+ *  idea to call \c glcDeleteGLObjects before changing the GL context that is
+ *  associated with the current GLC context.
  *  \sa glcGetListi()
  */
 void APIENTRY glcDeleteGLObjects(void)
@@ -453,10 +457,8 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
   length = strlen((const char*) catalog) + 1;
 
   buffer = __glcCtxQueryBuffer(ctx, length * sizeof(char));
-  if (!buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
-  }
+  if (!buffer)
+    return GLC_NONE; /* GLC_RESOURCE_ERROR has been raised */
   strncpy((char*)buffer, (const char*)catalog, length);
   return buffer;
 }
