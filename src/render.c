@@ -359,6 +359,11 @@ void APIENTRY glcRenderChar(GLint inCode)
     return;
   }
 
+  /* Get the character code converted to the UCS-4 format */
+  code = __glcConvertGLintToUcs4(ctx, inCode);
+  if (code < 0)
+    return;
+
   /* Save the value of the GL parameters */
   __glcSaveGLState(&GLState, ctx, GL_FALSE);
 
@@ -388,11 +393,6 @@ void APIENTRY glcRenderChar(GLint inCode)
 			ctx->texture.bufferObjectID);
     }
   }
-
-  /* Get the character code converted to the UCS-4 format */
-  code = __glcConvertGLintToUcs4(ctx, inCode);
-  if (code < 0)
-    return;
 
   __glcProcessChar(ctx, code, 0, __glcRenderChar, NULL);
 
