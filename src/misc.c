@@ -127,12 +127,12 @@ void __glcRaiseError(GLCenum inError)
   area = __glcGetThreadArea();
   assert(area);
 
-  /* An error can only be raised if the current error value is GLC_NONE. 
+  /* An error can only be raised if the current error value is GLC_NONE.
    * However, when inError == GLC_NONE then we must force the current error
    * value to GLC_NONE whatever its previous value was.
    */
   error = area->errorState;
-  if ((inError && !error) || !inError)
+  if (!error || !inError)
     area->errorState = inError;
 }
 
