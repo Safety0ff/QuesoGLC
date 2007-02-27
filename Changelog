@@ -57,6 +57,19 @@ Changes made from the "0.5" release to the "0.6" release:
 
 * Brandon Casey:
 
+- Moved the call to __glcConvertGLintToUcs4() before we the GL state is saved
+  in RenderChar(). This saves much GL work if the conversion of the character
+  fails.
+- Avoided strlen call by using return value of snprintf/sprintf_s in unicode.c
+- Fixed __glcCtxQueryBuffer() so that it leaves the context unchanged on
+  failure.
+- Fixed calls to __glcCtxQueryBuffer() so that GLC_RESOURCE_ERROR is not raised
+  twice on failure.
+- Added header unistd.h to master.c since it is needed by access()
+- Fixed test4 by supplying a valid directory for AppendCatalog/PrependCatalog
+- Modified __glcConvertUcs4ToGLint() so that a variable that is only used for
+  debugging is now conditionally compiled
+- Simplified __glcRaiseError() testing of current error state
 - Ensured at least one texture level is created by using a do {} while,
   otherwise when hinting is enabled and Xscale or Yscale are too small,
   sometimes no new texture is created and we render a portion of the previous
