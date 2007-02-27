@@ -99,7 +99,7 @@ int main(void)
 
     /* Master commands */
 
-    glcAppendCatalog("");
+    glcAppendCatalog("/");
     TestErrorCode(glcAppendCatalog);
 
     glcGetMasterListc(0, GLC_CHAR_LIST, 0);
@@ -114,7 +114,7 @@ int main(void)
     glcGetMasteri(0, GLC_CHAR_COUNT);
     TestErrorCode(glcGetMasteri);
 
-    glcPrependCatalog("");
+    glcPrependCatalog("/");
     TestErrorCode(glcPrependCatalog);
 
     glcRemoveCatalog(0);
