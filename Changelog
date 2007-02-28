@@ -56,7 +56,7 @@ Changes made from the "0.5" release to the "0.6" release:
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
 * Brandon Casey:
-
+- Rearranged glcGenContext() to avoid unlikely race.
 - Moved the call to __glcConvertGLintToUcs4() before we the GL state is saved
   in RenderChar(). This saves much GL work if the conversion of the character
   fails.
