@@ -573,29 +573,12 @@ GLint APIENTRY glcGenContext(void)
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
-  /* Lock the "Common Area" in order to prevent race conditions */
-  __glcLock();
-
-  /* Search for the first context ID that is unused */
-  ctx = (__GLCcontext*)__glcCommonArea.contextList.tail;
-  if (!ctx)
-    newContext = 1;
-  else
-    newContext = ctx->id + 1;
-
   /* Create a new context */
-  ctx = __glcCtxCreate(newContext);
+  ctx = __glcCtxCreate(0);
   if (!ctx) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcUnlock();
     return 0;
   }
-
-  node = (FT_ListNode)ctx;
-  node->data = ctx;
-  FT_List_Add(&__glcCommonArea.contextList, node);
-
-  __glcUnlock();
 
   ctx->isInGlobalCommand = GL_TRUE;
 
@@ -663,6 +646,24 @@ GLint APIENTRY glcGenContext(void)
   }
 
   ctx->isInGlobalCommand = GL_FALSE;
+
+  /* Lock the "Common Area" in order to prevent race conditions */
+  __glcLock();
+
+  /* Search for the first context ID that is unused */
+  if (!__glcCommonArea.contextList.tail)
+    newContext = 1;
+  else
+    newContext = ((__GLCcontext*)__glcCommonArea.contextList.tail)->id + 1;
+
+  ctx->id = newContext;
+
+  node = (FT_ListNode)ctx;
+  node->data = ctx;
+  FT_List_Add(&__glcCommonArea.contextList, node);
+
+  __glcUnlock();
+
   return newContext;
 }
 
