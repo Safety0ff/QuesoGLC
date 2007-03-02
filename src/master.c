@@ -49,13 +49,13 @@
  *  or equal to the value of the variable \b GLC_MASTER_COUNT.
  */
 
+#include "internal.h"
+#include FT_LIST_H
 #ifndef __WIN32__ 	 
 # include <unistd.h>
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "internal.h"
-#include FT_LIST_H
 
 
 
