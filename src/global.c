@@ -69,10 +69,10 @@ pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
 
 /* Since the common area can be accessed by any thread, this function should
  * be called before any access (read or write) to the common area. Otherwise
- * race conditons can occur.
+ * race conditions can occur.
  * __glcLock/__glcUnlock can be nested : they keep track of the number of
  * time they have been called and the mutex will be released as soon as
- * __glcUnlock() will be called as many time as __glcLock().
+ * __glcUnlock() will be called as many time as __glcLock() was.
  */
 static void __glcLock(void)
 {
@@ -188,23 +188,20 @@ void _fini(void)
  * The memory manager of our FreeType library class uses the same memory
  * allocation functions than QuesoGLC
  */
-static void* __glcAllocFunc(FT_Memory inMemory, long inSize)
+static void* __glcAllocFunc(FT_Memory GLC_UNUSED_ARG(inMemory), long inSize)
 {
-  GLC_DISCARD_ARG(inMemory);
   return __glcMalloc(inSize);
 }
 
-static void __glcFreeFunc(FT_Memory inMemory, void *inBlock)
+static void __glcFreeFunc(FT_Memory GLC_UNUSED_ARG(inMemory), void *inBlock)
 {
-  GLC_DISCARD_ARG(inMemory);
   __glcFree(inBlock);
 }
 
-static void* __glcReallocFunc(FT_Memory inMemory, long inCurSize,
-			      long inNewSize, void* inBlock)
+static void* __glcReallocFunc(FT_Memory GLC_UNUSED_ARG(inMemory),
+                              long GLC_UNUSED_ARG(inCurSize),
+                              long inNewSize, void* inBlock)
 {
-  GLC_DISCARD_ARG(inMemory);
-  GLC_DISCARD_ARG(inCurSize);
   return __glcRealloc(inBlock, inNewSize);
 }
 

@@ -184,8 +184,9 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
  * 'inCode' must be given in UCS-4 format
  */
 static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
-			    __GLCcontext* inContext, void* inData,
-			    GLboolean inMultipleChars)
+			    __GLCcontext* inContext,
+                            void* GLC_UNUSED_ARG(inData),
+			    GLboolean GLC_UNUSED_ARG(inMultipleChars))
 {
   GLfloat transformMatrix[16];
   GLfloat scale_x = GLC_POINT_SIZE;
@@ -194,13 +195,11 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
   GLboolean displayListIsBuilding = GL_FALSE;
   FT_Face face = NULL;
   GLfloat sx64 = 0., sy64 = 0.;
-  GLC_DISCARD_ARG(inData);
-  GLC_DISCARD_ARG(inMultipleChars);
 
   assert(inFont);
 
   displayListIsBuilding = __glcGetScale(inContext, transformMatrix, &scale_x,
-  					&scale_y);
+                                       &scale_y);
 
   if ((scale_x == 0.f) || (scale_y == 0.f))
     return NULL;

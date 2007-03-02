@@ -546,7 +546,8 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
  * polygon.
  */
 static void CALLBACK __glcCombineCallback(GLdouble coords[3],
-				 void* vertex_data[4], GLfloat weight[4],
+				 void* GLC_UNUSED_ARG(vertex_data[4]),
+                                 GLfloat GLC_UNUSED_ARG(weight[4]),
 				 void** outData, void* inUserData)
 {
   __GLCrendererData *data = (__GLCrendererData*)inUserData;
@@ -556,8 +557,6 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3],
     void* ptr;
     GLuint i;
   } uintInPtr;
-  GLC_DISCARD_ARG(vertex_data);
-  GLC_DISCARD_ARG(weight);
 
   /* Compute the new vertex and append it to the vertex array */
   vertex[0] = (GLfloat)coords[0];
@@ -626,9 +625,8 @@ static void CALLBACK __glcBeginCallback(GLenum mode, void* inUserData)
 /* Callback function that is called by the GLU whenever an error occur during
  * the tesselation of the polygon.
  */
-static void CALLBACK __glcCallbackError(GLenum inErrorCode)
+static void CALLBACK __glcCallbackError(GLenum GLC_UNUSED_ARG(inErrorCode))
 {
-  GLC_DISCARD_ARG(inErrorCode);
   __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 

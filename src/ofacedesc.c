@@ -185,12 +185,11 @@ void __glcFaceDescClose(__GLCfaceDescriptor* This)
 #else /* FT_CACHE_H */
 /* Callback function used by the FreeType cache manager to open a given face */
 FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
-		       FT_Pointer inData, FT_Face* outFace)
+		       FT_Pointer GLC_UNUSED_ARG(inData), FT_Face* outFace)
 {
   __GLCfaceDescriptor* file = (__GLCfaceDescriptor*)inFile;
   FT_Error error = FT_New_Face(inLibrary, (const char*)file->fileName,
 			       file->indexInFile, outFace);
-  GLC_DISCARD_ARG(inData);
 
   if (error) {
     __glcRaiseError(GLC_RESOURCE_ERROR);

@@ -44,7 +44,13 @@
 #define GLC_EPSILON		1E-6
 #define GLC_POINT_SIZE		128
 
-#define GLC_DISCARD_ARG(arg) (void)(arg)
+#if defined(__GNUC__)
+# define GLC_UNUSED_ARG(_arg) GLC_UNUSED_ ## _arg __attribute__((unused))
+#elif defined(__LCLINT__)
+# define GLC_UNUSED_ARG(_arg) /*@unused@*/ GLC_UNUSED_ ## _arg
+#else
+# define GLC_UNUSED_ARG(_arg) GLC_UNUSED_ ## _arg
+#endif
 
 typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
 typedef struct __GLCgeomBatchRec __GLCgeomBatch;

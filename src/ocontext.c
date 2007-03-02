@@ -261,11 +261,11 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
 /* This function is called from FT_List_Finalize() to destroy all
  * remaining fonts
  */
-static void __glcFontDestructor(FT_Memory inMemory, void* inData, void* inUser)
+static void __glcFontDestructor(FT_Memory GLC_UNUSED_ARG(inMemory),
+                                void* inData, void* inUser)
 {
   __GLCfont *font = (__GLCfont*)inData;
   __GLCcontext* ctx = (__GLCcontext*)inUser;
-  GLC_DISCARD_ARG(inMemory);
 
   assert(ctx);
 
