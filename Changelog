@@ -3,6 +3,9 @@ Changes made from the "0.5" release to the "0.6" release:
 
 * Bertrand Coconnier:
 
+- Fixed a bug which caused a character that was not mapped to any font to be
+  rendered wrongly the second time it is displayed when GLC_KERNING_QSO is
+  enabled (bug reported by Brandon Casey).
 - Added a test in the tests directory that checks if empty strings are
   correctly handled by the functions of QuesoGLC (no crash, no unexpected
   errors, no memory leaks).
@@ -56,9 +59,12 @@ Changes made from the "0.5" release to the "0.6" release:
   enabled, QuesoGLC takes into account the user preferences for FontConfig.
 
 * Brandon Casey:
+
+- Declared unused arguments with compiler attributes in order to fix compiler
+  warnings and allow some optimization.
 - Rearranged glcGenContext() to avoid unlikely race.
-- Moved the call to __glcConvertGLintToUcs4() before we the GL state is saved
-  in RenderChar(). This saves much GL work if the conversion of the character
+- Moved the call to __glcConvertGLintToUcs4() before the GL state is saved in
+  RenderChar(). This saves much GL work if the conversion of the character
   fails.
 - Avoided strlen call by using return value of snprintf/sprintf_s in unicode.c
 - Fixed __glcCtxQueryBuffer() so that it leaves the context unchanged on
