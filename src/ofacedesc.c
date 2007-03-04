@@ -37,6 +37,9 @@
 #endif
 
 #include FT_TYPE1_TABLES_H
+#ifdef FT_XFREE86_H
+#include FT_XFREE86_H
+#endif
 #include FT_BDF_H
 #ifdef FT_WINFONTS_H
 #include FT_WINFONTS_H
@@ -500,12 +503,14 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 				     GLCenum inAttrib)
 {
   static FcChar8 unknown[] = "Unknown";
+#ifndef FT_XFREE86_H
   static FcChar8 masterFormat1[] = "Type 1";
   static FcChar8 masterFormat2[] = "BDF";
-#ifdef FT_WINFONTS_H
+#  ifdef FT_WINFONTS_H
   static FcChar8 masterFormat3[] = "Windows FNT";
-#endif
+#  endif /* FT_WINFONTS_H */
   static FcChar8 masterFormat4[] = "TrueType/OpenType";
+#endif /* FT_XFREE86_H */
 
   FT_Face face = NULL;
   PS_FontInfoRec afont_info;
@@ -515,6 +520,7 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
   FT_WinFNT_HeaderRec aheader;
 #endif
   FT_UInt count = 0;
+  FcChar8* result = NULL;
 
   /* Open the face */
 #ifdef FT_CACHE_H
@@ -527,41 +533,69 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
     return GL_FALSE;
   }
 
+#ifdef FT_XFREE86_H
+  if (inAttrib == GLC_MASTER_FORMAT) {
+    /* This function is undocumented until FreeType 2.3.0 where it has been
+     * added to the public API. It can be safely used nonetheless as long as
+     * the existence of FT_XFREE86_H is checked.
+     */
+    result = (FcChar8*)FT_Get_X11_Font_Format(face);
+#  ifndef FT_CACHE_H
+    __glcFaceDescClose(This);
+#  endif /* FT_CACHE_H */
+    return result;
+  }
+#endif /* FT_XFREE86_H */
+
   /* Is it Type 1 ? */
   if (!FT_Get_PS_Font_Info(face, &afont_info)) {
     switch(inAttrib) {
+#ifndef FT_XFREE86_H
     case GLC_MASTER_FORMAT:
       return masterFormat1;
+#endif
     case GLC_FULL_NAME_SGI:
       if (afont_info.full_name)
-	return (FcChar8*)afont_info.full_name;
+	result = (FcChar8*)afont_info.full_name;
+      break;
     case GLC_VERSION:
       if (afont_info.version)
-	return (FcChar8*)afont_info.version;
+	result = (FcChar8*)afont_info.version;
+      break;
     }
   }
   /* Is it BDF ? */
   else if (!FT_Get_BDF_Charset_ID(face, &acharset_encoding,
 				  &acharset_registry)) {
     switch(inAttrib) {
+#ifndef FT_XFREE86_H
     case GLC_MASTER_FORMAT:
-      return masterFormat2;
+      result = masterFormat2;
+      break;
+#endif
     case GLC_FULL_NAME_SGI:
-      return unknown;
+      result = unknown;
+      break;
     case GLC_VERSION:
-      return unknown;
+      result = unknown;
+      break;
     }
   }
 #ifdef FT_WINFONTS_H
   /* Is it Windows FNT ? */
   else if (!FT_Get_WinFNT_Header(face, &aheader)) {
     switch(inAttrib) {
+#ifndef FT_XFREE86_H
     case GLC_MASTER_FORMAT:
-      return masterFormat3;
+      result = masterFormat3;
+      break;
+#endif
     case GLC_FULL_NAME_SGI:
-      return unknown;
+      result = unknown;
+      break;
     case GLC_VERSION:
-      return unknown;
+      result = unknown;
+      break;
     }
   }
 #endif
@@ -573,12 +607,17 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 #endif
 
     switch(inAttrib) {
+#ifndef FT_XFREE86_H
     case GLC_MASTER_FORMAT:
-      return masterFormat4;
+      result = masterFormat4;
+      break;
+#endif
     case GLC_FULL_NAME_SGI:
-      return unknown;
+      result = unknown;
+      break;
     case GLC_VERSION:
-      return unknown;
+      result = unknown;
+      break;
     }
 
     /* TODO : decode the SFNT name tables in order to get full name
@@ -606,7 +645,7 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
   /* Close the face */
   __glcFaceDescClose(This);
 #endif
-  return GLC_NONE;
+  return result;
 }
 
 
