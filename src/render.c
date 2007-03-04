@@ -350,6 +350,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   __GLCcontext *ctx = NULL;
   GLint code = 0;
   __GLCglState GLState;
+  GLint prevCode = 0;
 
   /* Check if the current thread owns a context state */
   ctx = __glcGetCurrent();
@@ -393,7 +394,7 @@ void APIENTRY glcRenderChar(GLint inCode)
     }
   }
 
-  __glcProcessChar(ctx, code, 0, __glcRenderChar, NULL);
+  __glcProcessChar(ctx, code, &prevCode, __glcRenderChar, NULL);
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
@@ -481,10 +482,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  for (i = 0; i < inCount; i++) {
-    __glcProcessChar(ctx, *ptr, prevCode, __glcRenderChar, NULL);
-    prevCode = *(ptr++);
-  }
+  for (i = 0; i < inCount; i++)
+    __glcProcessChar(ctx, *(ptr++), &prevCode, __glcRenderChar, NULL);
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
@@ -559,10 +558,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  while (*ptr) {
-    __glcProcessChar(ctx, *ptr, prevCode, __glcRenderChar, NULL);
-    prevCode = *(ptr++);
-  }
+  while (*ptr)
+    __glcProcessChar(ctx, *(ptr++), &prevCode, __glcRenderChar, NULL);
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);

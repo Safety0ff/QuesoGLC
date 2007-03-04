@@ -85,8 +85,8 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
  * character sequence is issued if necessary.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
-		       GLint inPrevCode, __glcProcessCharFunc inProcessCharFunc,
+void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
+		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData);
 
 /* Render scalable characters using either the GLC_LINE style or the

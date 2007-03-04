@@ -227,6 +227,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   __GLCcontext *ctx = NULL;
   GLint code = 0;
   GLfloat vector[14];
+  GLint prevCode = 0;
 
   assert(outVec);
 
@@ -255,7 +256,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
    * or issue the replacement code or the character sequence \<xxx> and call
    * __glcGetCharMetric()
    */
-  if (__glcProcessChar(ctx, code, 0, __glcGetCharMetric, vector)) {
+  if (__glcProcessChar(ctx, code, &prevCode, __glcGetCharMetric, vector)) {
     switch(inMetric) {
     case GLC_BASELINE:
       memcpy(outVec, vector, 4 * sizeof(GLfloat));
@@ -567,8 +568,8 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
    */
   ptr = inString;
   for (i = 0; i < inCount; i++) {
-    __glcProcessChar(inContext, *ptr, prevCode, __glcGetCharMetric, metrics);
-    prevCode = *(ptr++);
+    __glcProcessChar(inContext, *(ptr++), &prevCode, __glcGetCharMetric,
+		     metrics);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)

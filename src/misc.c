@@ -156,19 +156,22 @@ __GLCcontext* __glcGetCurrent(void)
  * are issued if necessary.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
-		       GLint inPrevCode, __glcProcessCharFunc inProcessCharFunc,
+void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
+		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData)
 {
   GLint repCode = 0;
   __GLCfont* font = NULL;
+  void* ret = NULL;
 
   /* Get a font that maps inCode */
   font = __glcCtxGetFont(inContext, inCode);
   if (font) {
     /* A font has been found */
-    return inProcessCharFunc(inCode, inPrevCode, font, inContext,
-			     inProcessCharData, GL_FALSE);
+    ret = inProcessCharFunc(inCode, *inPrevCode, font, inContext,
+			    inProcessCharData, GL_FALSE);
+    *inPrevCode = inCode;
+    return ret;
   }
 
   /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
@@ -181,9 +184,12 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
    */
   repCode = inContext->stringState.replacementCode;
   font = __glcCtxGetFont(inContext, repCode);
-  if (repCode && font)
-    return inProcessCharFunc(repCode, inPrevCode, font, inContext,
-			     inProcessCharData, GL_FALSE);
+  if (repCode && font) {
+    ret = inProcessCharFunc(repCode, *inPrevCode, font, inContext,
+			    inProcessCharData, GL_FALSE);
+    *inPrevCode = repCode;
+    return ret; 
+  }
   else {
     /* If we get there, we failed to render both the character that inCode maps
      * to and the replacement code. Now, we will try to render the character
@@ -201,6 +207,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     /* Check if a font maps to '\', '<' and '>'. */
     if (!__glcCtxGetFont(inContext, '\\') || !__glcCtxGetFont(inContext, '<')
 	|| !__glcCtxGetFont(inContext, '>'))
+      /* The code is not rendered, the previous code is thus left unchanged */
       return NULL;
 
     /* Check if a font maps hexadecimal digits */
@@ -208,22 +215,26 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     n = strlen(buf);
     for (i = 0; i < n; i++) {
       if (!__glcCtxGetFont(inContext, buf[i]))
+	/* The code is not rendered, the previous code is thus left unchanged */
 	return NULL;
     }
 
     /* Render the '\<hexcode>' sequence */
-    inProcessCharFunc('\\', inPrevCode, __glcCtxGetFont(inContext, '\\'),
+    inProcessCharFunc('\\', *inPrevCode, __glcCtxGetFont(inContext, '\\'),
 		      inContext, inProcessCharData, GL_FALSE);
-    inProcessCharFunc('<', '\\', __glcCtxGetFont(inContext, '<'), inContext,
+    *inPrevCode = '\\';
+    inProcessCharFunc('<', *inPrevCode, __glcCtxGetFont(inContext, '<'), inContext,
 		      inProcessCharData, GL_TRUE);
-    inPrevCode = '<';
+    *inPrevCode = '<';
     for (i = 0; i < n; i++) {
-      inProcessCharFunc(buf[i], inPrevCode, __glcCtxGetFont(inContext, buf[i]),
+      inProcessCharFunc(buf[i], *inPrevCode, __glcCtxGetFont(inContext, buf[i]),
 			inContext, inProcessCharData, GL_TRUE);
-      inPrevCode = buf[i];
+      *inPrevCode = buf[i];
     }
-    return inProcessCharFunc('>', inPrevCode, __glcCtxGetFont(inContext, '>'),
-			     inContext, inProcessCharData, GL_TRUE);
+    ret = inProcessCharFunc('>', *inPrevCode, __glcCtxGetFont(inContext, '>'),
+			    inContext, inProcessCharData, GL_TRUE);
+    *inPrevCode = '>';
+    return ret;
   }
 }
 
