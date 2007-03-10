@@ -153,10 +153,11 @@ __GLCcontext* __glcGetCurrent(void)
 
 /* Process the character in order to find a font that maps the code and to
  * render the corresponding glyph. Replacement code and '<hexcode>' format
- * are issued if necessary.
+ * are issued if necessary. The previous code is updated accordingly.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
+void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
+		       __GLCcharacter* inPrevCode,
 		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData)
 {
@@ -168,9 +169,12 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
   font = __glcCtxGetFont(inContext, inCode);
   if (font) {
     /* A font has been found */
-    ret = inProcessCharFunc(inCode, *inPrevCode, font, inContext,
+    if (font != inPrevCode->font)
+      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
+    ret = inProcessCharFunc(inCode, inPrevCode->code, font, inContext,
 			    inProcessCharData, GL_FALSE);
-    *inPrevCode = inCode;
+    inPrevCode->code = inCode;
+    inPrevCode->font = font;
     return ret;
   }
 
@@ -185,9 +189,12 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
   repCode = inContext->stringState.replacementCode;
   font = __glcCtxGetFont(inContext, repCode);
   if (repCode && font) {
-    ret = inProcessCharFunc(repCode, *inPrevCode, font, inContext,
+    if (font != inPrevCode->font)
+      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
+    ret = inProcessCharFunc(repCode, inPrevCode->code, font, inContext,
 			    inProcessCharData, GL_FALSE);
-    *inPrevCode = repCode;
+    inPrevCode->code = inCode;
+    inPrevCode->font = font;
     return ret; 
   }
   else {
@@ -220,20 +227,38 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
     }
 
     /* Render the '\<hexcode>' sequence */
-    inProcessCharFunc('\\', *inPrevCode, __glcCtxGetFont(inContext, '\\'),
-		      inContext, inProcessCharData, GL_FALSE);
-    *inPrevCode = '\\';
-    inProcessCharFunc('<', *inPrevCode, __glcCtxGetFont(inContext, '<'), inContext,
-		      inProcessCharData, GL_TRUE);
-    *inPrevCode = '<';
+    font = __glcCtxGetFont(inContext, '\\');
+    if (font != inPrevCode->font)
+      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
+    inProcessCharFunc('\\', inPrevCode->code, font, inContext,
+		      inProcessCharData, GL_FALSE);
+    inPrevCode->code = '\\';
+    inPrevCode->font = font;
+
+    font = __glcCtxGetFont(inContext, '<');
+    if (font != inPrevCode->font)
+      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
+    inProcessCharFunc('<', inPrevCode->code, font, inContext, inProcessCharData,
+		      GL_TRUE);
+    inPrevCode->code = '<';
+    inPrevCode->font = font;
+
     for (i = 0; i < n; i++) {
-      inProcessCharFunc(buf[i], *inPrevCode, __glcCtxGetFont(inContext, buf[i]),
-			inContext, inProcessCharData, GL_TRUE);
-      *inPrevCode = buf[i];
+      font = __glcCtxGetFont(inContext, buf[i]);
+      if (font != inPrevCode->font)
+	inPrevCode->code = 0; /*The font has changed, kerning must be disabled*/
+      inProcessCharFunc(buf[i], inPrevCode->code, font, inContext,
+			inProcessCharData, GL_TRUE);
+      inPrevCode->code = buf[i];
+      inPrevCode->font = font;
     }
-    ret = inProcessCharFunc('>', *inPrevCode, __glcCtxGetFont(inContext, '>'),
-			    inContext, inProcessCharData, GL_TRUE);
-    *inPrevCode = '>';
+    font = __glcCtxGetFont(inContext, '>');
+    if (font != inPrevCode->font)
+      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
+    ret = inProcessCharFunc('>', inPrevCode->code, font, inContext,
+			    inProcessCharData, GL_TRUE);
+    inPrevCode->code = '>';
+    inPrevCode->font = font;
     return ret;
   }
 }

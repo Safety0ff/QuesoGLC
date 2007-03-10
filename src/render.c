@@ -350,7 +350,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   __GLCcontext *ctx = NULL;
   GLint code = 0;
   __GLCglState GLState;
-  GLint prevCode = 0;
+  __GLCcharacter prevCode = { 0, NULL };
 
   /* Check if the current thread owns a context state */
   ctx = __glcGetCurrent();
@@ -422,7 +422,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   FcChar32* UinString = NULL;
   FcChar32* ptr = NULL;
   __GLCglState GLState;
-  GLint prevCode = 0;
+  __GLCcharacter prevCode = { 0, NULL };
 
   /* Check if inCount is positive */
   if (inCount < 0) {
@@ -504,7 +504,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   FcChar32* UinString = NULL;
   FcChar32* ptr = NULL;
   __GLCglState GLState;
-  GLint prevCode = 0;
+  __GLCcharacter prevCode = { 0, NULL };
 
   /* Check if the current thread owns a context state */
   ctx = __glcGetCurrent();

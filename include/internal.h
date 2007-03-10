@@ -54,6 +54,7 @@
 
 typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
 typedef struct __GLCgeomBatchRec __GLCgeomBatch;
+typedef struct __GLCcharacterRec __GLCcharacter;
 
 struct __GLCdataCodeFromNameRec {
   GLint code;
@@ -65,6 +66,11 @@ struct __GLCgeomBatchRec {
   GLint length;
   GLuint start;
   GLuint end;
+};
+
+struct __GLCcharacterRec {
+  GLint code;
+  __GLCfont* font;
 };
 
 /* Callback function type that is called by __glcProcessChar().
@@ -85,7 +91,8 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
  * character sequence is issued if necessary.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__GLCcontext *inContext, GLint inCode, GLint* inPrevCode,
+void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
+		       __GLCcharacter* inPrevCode,
 		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData);
 

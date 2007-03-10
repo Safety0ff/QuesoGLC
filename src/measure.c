@@ -227,7 +227,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   __GLCcontext *ctx = NULL;
   GLint code = 0;
   GLfloat vector[14];
-  GLint prevCode = 0;
+  __GLCcharacter prevCode = { 0, NULL };
 
   assert(outVec);
 
@@ -549,7 +549,7 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
   GLfloat* outVec = inContext->measurementStringBuffer;
-  GLint prevCode = 0;
+  __GLCcharacter prevCode = { 0, NULL };
 
   if (inContext->renderState.renderStyle == GLC_BITMAP) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
