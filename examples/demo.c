@@ -52,11 +52,11 @@ static int frame = 0, msec = 0;
 
 /* Forward declarations. */
 static void check_glc_error(char* routine_name);
-static void draw_letters(float scale);
+static void draw_letters(void);
 static void access_font();
 
 static void 
-draw_letters(float scale)
+draw_letters(void)
 {
 
    /* Draws each of the letters at a particular location */
@@ -133,7 +133,7 @@ access_font()
    static GLint glc_font_id;
 
    GLint result;
-   unsigned int i, j;
+   int i, j;
 
    /* Only get a context once.                                           */
    /* When using SGI's implementation of GLC, don't call glcGetError()   */
@@ -164,49 +164,47 @@ access_font()
                      master_name)) {
             face_count = glcGetMasteri(i, GLC_FACE_COUNT);
             for (j = 0; j < face_count; j++) {
-               if (!strcmp((const char*)glcGetMasterListc(i, GLC_FACE_LIST, j), face_name)) {
+               if (!strcmp((const char*)glcGetMasterListc(i, GLC_FACE_LIST, j),
+			   face_name)) {
                   master = i;
                }
             }
          }
       }
 
-      /* Access the font family. */
-      result = glcNewFontFromFamily(glc_font_id, 
-                                    glcGetMasterc(master, GLC_FAMILY));
-      check_glc_error("glcNewFontFromFamily()");
-      if (result != glc_font_id) {
-         fprintf(stderr, "Error - glcNewFontFromFamily() failed.  Exiting.\n");
-         exit(-1);
+
+      if (i < master_count) {
+        /* Access the font family. */
+        result = glcNewFontFromFamily(glc_font_id, 
+                                      glcGetMasterc(master, GLC_FAMILY));
+        check_glc_error("glcNewFontFromFamily()");
+        if (result == glc_font_id) {
+          /* Use the font. */
+          glcFont(glc_font_id);
+          check_glc_error("glcFont()");
+
+          /* Use the face. */
+          glcFontFace(glc_font_id, face_name);
+          check_glc_error("glcFontFace()");
+        }
       }
-      else {
-
-         /* Use the font. */
-         glcFont(glc_font_id);
-         check_glc_error("glcFont()");
-
-         /* Use the face. */
-         glcFontFace(glc_font_id, face_name);
-         check_glc_error("glcFontFace()");
-
 #if 0
-         /* This only speeds up immediate mode rendering.              */
-         /* Don't do this when compiling your own display list because */
-         /* the polygons will go into the GLC internal display lists   */
-         /* rather than the display list you are trying to construct.  */
-         glcEnable(GLC_GL_OBJECTS);
-         check_glc_error("glcEnable(GLC_GL_OBJECTS)");
-         with_dlist = GL_TRUE;
+      /* This only speeds up immediate mode rendering.              */
+      /* Don't do this when compiling your own display list because */
+      /* the polygons will go into the GLC internal display lists   */
+      /* rather than the display list you are trying to construct.  */
+      glcEnable(GLC_GL_OBJECTS);
+      check_glc_error("glcEnable(GLC_GL_OBJECTS)");
+      with_dlist = GL_TRUE;
 #else
-         glcDisable(GLC_GL_OBJECTS);
-         check_glc_error("glcDisable(GLC_GL_OBJECTS)");
-         with_dlist = GL_FALSE;
+      glcDisable(GLC_GL_OBJECTS);
+      check_glc_error("glcDisable(GLC_GL_OBJECTS)");
+      with_dlist = GL_FALSE;
 #endif
 
-         /* Draw as polygons for smooth rotation & zoom. */
-         glcRenderStyle(GLC_TRIANGLE);
-         check_glc_error("glcRenderStyle(GLC_TRIANGLE)");
-      }
+      /* Draw as polygons for smooth rotation & zoom. */
+      glcRenderStyle(GLC_TRIANGLE);
+      check_glc_error("glcRenderStyle(GLC_TRIANGLE)");
    }
 }
 
@@ -405,7 +403,7 @@ my_display(void)
 #else
    glClear(GL_COLOR_BUFFER_BIT);
    do_persp(GL_FALSE, 0.0, 0.0);
-   draw_letters(scale);
+   draw_letters();
 #endif
 
    glutSwapBuffers();
@@ -542,7 +540,7 @@ main(int argc, char **argv)
    glutInitDisplayMode(GLUT_RGBA|GLUT_ACCUM|GLUT_DOUBLE);
 
    trackball(curquat, 0.0, 0.0, 0.0, 0.0);
-   trackball(lastquat, 0.0, 0.0, 0.0, 0.0);
+   trackball(lastquat, 0.001, 0.0, 0.0, 0.001);
 
    glutCreateWindow("QuesoGLC Demo");
 
@@ -558,6 +556,7 @@ main(int argc, char **argv)
    glutKeyboardFunc(my_handle_key);
    glutMouseFunc(my_mouse);
    glutMotionFunc(my_motion);
+   glutIdleFunc(animate);
 
    glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 
