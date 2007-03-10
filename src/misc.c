@@ -157,7 +157,7 @@ __GLCcontext* __glcGetCurrent(void)
  * 'inCode' must be given in UCS-4 format
  */
 void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
-		       __GLCcharacter* inPrevCode,
+		       __GLCcharacter* inPrevCode, GLboolean inIsRTL,
 		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData)
 {
@@ -171,7 +171,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     /* A font has been found */
     if (font != inPrevCode->font)
       inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
-    ret = inProcessCharFunc(inCode, inPrevCode->code, font, inContext,
+    ret = inProcessCharFunc(inCode, inPrevCode->code, inIsRTL, font, inContext,
 			    inProcessCharData, GL_FALSE);
     inPrevCode->code = inCode;
     inPrevCode->font = font;
@@ -191,7 +191,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
   if (repCode && font) {
     if (font != inPrevCode->font)
       inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
-    ret = inProcessCharFunc(repCode, inPrevCode->code, font, inContext,
+    ret = inProcessCharFunc(repCode, inPrevCode->code, inIsRTL, font, inContext,
 			    inProcessCharData, GL_FALSE);
     inPrevCode->code = inCode;
     inPrevCode->font = font;
@@ -207,19 +207,12 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
      * alphabetic digits are in upper case. The GLC measurement commands treat
      * the sequence as a single character.
      */
-    char buf[10];
+    char buf[11];
     GLint i = 0;
     GLint n = 0;
 
-    /* Check if a font maps to '\', '<' and '>'. */
-    if (!__glcCtxGetFont(inContext, '\\') || !__glcCtxGetFont(inContext, '<')
-	|| !__glcCtxGetFont(inContext, '>'))
-      /* The code is not rendered, the previous code is thus left unchanged */
-      return NULL;
-
     /* Check if a font maps hexadecimal digits */
-    sprintf(buf,"%X", (int)inCode);
-    n = strlen(buf);
+    n = snprintf(buf, 11, "\\<%X>", (int)inCode);
     for (i = 0; i < n; i++) {
       if (!__glcCtxGetFont(inContext, buf[i]))
 	/* The code is not rendered, the previous code is thus left unchanged */
@@ -227,38 +220,17 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     }
 
     /* Render the '\<hexcode>' sequence */
-    font = __glcCtxGetFont(inContext, '\\');
-    if (font != inPrevCode->font)
-      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
-    inProcessCharFunc('\\', inPrevCode->code, font, inContext,
-		      inProcessCharData, GL_FALSE);
-    inPrevCode->code = '\\';
-    inPrevCode->font = font;
-
-    font = __glcCtxGetFont(inContext, '<');
-    if (font != inPrevCode->font)
-      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
-    inProcessCharFunc('<', inPrevCode->code, font, inContext, inProcessCharData,
-		      GL_TRUE);
-    inPrevCode->code = '<';
-    inPrevCode->font = font;
-
     for (i = 0; i < n; i++) {
-      font = __glcCtxGetFont(inContext, buf[i]);
+      GLint pos = inIsRTL ? n-i-1 : i;
+
+      font = __glcCtxGetFont(inContext, buf[pos]);
       if (font != inPrevCode->font)
 	inPrevCode->code = 0; /*The font has changed, kerning must be disabled*/
-      inProcessCharFunc(buf[i], inPrevCode->code, font, inContext,
-			inProcessCharData, GL_TRUE);
-      inPrevCode->code = buf[i];
+      ret = inProcessCharFunc(buf[pos], inPrevCode->code, inIsRTL, font,
+			      inContext, inProcessCharData, GL_TRUE);
+      inPrevCode->code = buf[pos];
       inPrevCode->font = font;
     }
-    font = __glcCtxGetFont(inContext, '>');
-    if (font != inPrevCode->font)
-      inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
-    ret = inProcessCharFunc('>', inPrevCode->code, font, inContext,
-			    inProcessCharData, GL_TRUE);
-    inPrevCode->code = '>';
-    inPrevCode->font = font;
     return ret;
   }
 }

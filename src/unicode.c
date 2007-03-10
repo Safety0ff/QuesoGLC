@@ -516,7 +516,7 @@ GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode)
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
+FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL,
 				   const GLCchar* inString)
 {
   FcChar32* string = NULL;
@@ -626,6 +626,8 @@ FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
     return NULL;
   }
 
+  *outIsRTL = FRIBIDI_IS_RTL(base) ? GL_TRUE : GL_FALSE;
+
   return visualString;
 }
 
@@ -635,6 +637,7 @@ FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
  * format and return a copy of the converted string in visual order.
  */
 FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
+						GLboolean *outIsRTL,
 						const GLCchar* inString,
 						const GLint inCount)
 {
@@ -729,6 +732,8 @@ FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+
+  *outIsRTL = FRIBIDI_IS_RTL(base) ? GL_TRUE : GL_FALSE;
 
   return visualString;
 }

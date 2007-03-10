@@ -275,8 +275,7 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
 /* Internal function that renders glyph in textures :
  * 'inCode' must be given in UCS-4 format
  */
-void __glcRenderCharTexture(__GLCfont* inFont,
-			    __GLCcontext* inContext,
+void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 			    GLboolean inDisplayListIsBuilding,
 			    GLfloat scale_x, GLfloat scale_y,
 			    __GLCglyph* inGlyph)
@@ -532,9 +531,6 @@ void __glcRenderCharTexture(__GLCfont* inFont,
   glTexCoord2f(posX / texWidth, (posY + heigth) / texHeigth);
   glVertex2i(boundingBox.xMin, boundingBox.yMax);
   glEnd();
-
-  /* Store the glyph advance in the display list */
-  glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 
   if (inContext->enableState.glObjects) {
     /* Finish display list creation */

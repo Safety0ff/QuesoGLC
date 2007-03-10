@@ -81,8 +81,9 @@ static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
  * 'inCode' must be given in UCS-4 format
  */
 static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
-				__GLCfont* inFont, __GLCcontext* inContext,
-				void* inData, GLboolean inMultipleChars)
+				GLboolean inIsRTL, __GLCfont* inFont,
+				__GLCcontext* inContext, void* inData,
+				GLboolean inMultipleChars)
 {
   GLfloat* outVec = (GLfloat*)inData;
   int i = 0;
@@ -175,18 +176,25 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
   if (!__glcFontGetAdvance(inFont, inCode, temp, inContext, scale_x, scale_y))
       return NULL;
   /* Update the global advance accordingly */
-  outVec[2] += temp[0];
-  outVec[3] += temp[1];
+  if (inIsRTL) {
+    outVec[2] -= temp[0];
+    outVec[3] -= temp[1];
+  }
+  else {
+    outVec[2] += temp[0];
+    outVec[3] += temp[1];
+  }
 
   outVec[12] = 0.;
   outVec[13] = 0.;
   if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
+    GLint leftCode = inIsRTL ? inCode : inPrevCode;
+    GLint rightCode = inIsRTL ? inPrevCode : inCode;
 
-    if (__glcFontGetKerning(inFont, inCode, inPrevCode, kerning, inContext,
-			    scale_x, scale_y))
-    {
-      outVec[12] = kerning[0];
+    if (__glcFontGetKerning(inFont, leftCode, rightCode, kerning, inContext,
+			    scale_x, scale_y)) {
+      outVec[12] = inIsRTL ? -kerning[0] : kerning[0];
       outVec[13] = kerning[1];
     }
   }
@@ -256,7 +264,8 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
    * or issue the replacement code or the character sequence \<xxx> and call
    * __glcGetCharMetric()
    */
-  if (__glcProcessChar(ctx, code, &prevCode, __glcGetCharMetric, vector)) {
+  if (__glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcGetCharMetric,
+		       vector)) {
     switch(inMetric) {
     case GLC_BASELINE:
       memcpy(outVec, vector, 4 * sizeof(GLfloat));
@@ -539,7 +548,7 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
  */
 static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 				GLboolean inMeasureChars, GLint inCount,
-				const FcChar32* inString)
+				const FcChar32* inString, GLboolean inIsRTL)
 {
   GLint i = 0;
   GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -568,8 +577,8 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
    */
   ptr = inString;
   for (i = 0; i < inCount; i++) {
-    __glcProcessChar(inContext, *(ptr++), &prevCode, __glcGetCharMetric,
-		     metrics);
+    __glcProcessChar(inContext, *(ptr++), &prevCode, inIsRTL,
+		     __glcGetCharMetric, metrics);
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)
@@ -675,6 +684,7 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   __GLCcontext *ctx = NULL;
   GLint count = 0;
   FcChar32* UinString = NULL;
+  GLboolean isRightToLeft = GL_FALSE;
 
   /* Check the parameters */
   if (inCount < 0) {
@@ -693,13 +703,15 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   if (!inString)
     return 0;
 
-  UinString = __glcConvertCountedStringToVisualUcs4(ctx, inString, inCount);
+  UinString = __glcConvertCountedStringToVisualUcs4(ctx, &isRightToLeft,
+						    inString, inCount);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
   }
 
-  count = __glcMeasureCountedString(ctx, inMeasureChars, inCount, UinString);
+  count = __glcMeasureCountedString(ctx, inMeasureChars, inCount, UinString,
+				    isRightToLeft);
 
   return count;
 }
@@ -731,6 +743,7 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   GLint count = 0;
   GLint len = 0;
   FcChar32* ucs4 = NULL;
+  GLboolean isRightToLeft = GL_FALSE;
 
   /* Verify if the current thread owns a context state */
   ctx = __glcGetCurrent();
@@ -743,7 +756,7 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   if (!inString)
     return 0;
 
-  UinString = __glcConvertToVisualUcs4(ctx, inString);
+  UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
@@ -756,7 +769,8 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   for (ucs4 = UinString, len = 0; *ucs4; ucs4++, len++);
 
 
-  count = __glcMeasureCountedString(ctx, inMeasureChars, len, UinString);
+  count = __glcMeasureCountedString(ctx, inMeasureChars, len, UinString,
+				    isRightToLeft);
 
   return count;
 }

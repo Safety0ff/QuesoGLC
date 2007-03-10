@@ -102,7 +102,7 @@
 /* TODO : Render Bitmap fonts */
 static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 				  __GLCcontext* inContext, GLfloat scale_x,
-				  GLfloat scale_y)
+				  GLfloat scale_y, GLboolean inIsRTL)
 {
   FT_Matrix matrix;
   FT_Outline outline;
@@ -165,13 +165,24 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-  glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
-	   -boundingBox.yMin >> 6,
-	   inGlyph->advance.x / 64. * matrix.xx / 65536.
-	   + inGlyph->advance.y / 64. * matrix.xy / 65536.,
-	   inGlyph->advance.x / 64. * matrix.yx / 65536.
-	   + inGlyph->advance.y / 64. * matrix.yy / 65536.,
-	   pixmap.buffer);
+  if (inIsRTL) {
+    glBitmap(0, 0, 0, 0,
+	     inGlyph->advance.y / 64. * matrix.xy / 65536.
+	     - inGlyph->advance.x / 64. * matrix.xx / 65536.,
+	     inGlyph->advance.y / 64. * matrix.yy / 65536.
+	     - inGlyph->advance.x / 64. * matrix.yx / 65536.,
+	     NULL);
+    glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
+	     -boundingBox.yMin >> 6, 0., 0., pixmap.buffer);
+  }
+  else
+    glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
+	     -boundingBox.yMin >> 6,
+	     inGlyph->advance.x / 64. * matrix.xx / 65536.
+	     + inGlyph->advance.y / 64. * matrix.xy / 65536.,
+	     inGlyph->advance.x / 64. * matrix.yx / 65536.
+	     + inGlyph->advance.y / 64. * matrix.yy / 65536.,
+	     pixmap.buffer);
 
   glPopClientAttrib();
 
@@ -183,8 +194,8 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
-			    __GLCcontext* inContext,
+static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
+			    __GLCfont* inFont, __GLCcontext* inContext,
                             void* GLC_UNUSED_ARG(inData),
 			    GLboolean GLC_UNUSED_ARG(inMultipleChars))
 {
@@ -206,18 +217,23 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 
   if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
+    GLint leftCode = inIsRTL ? inCode : inPrevCode;
+    GLint rightCode = inIsRTL ? inPrevCode : inCode;
 
-    if (__glcFontGetKerning(inFont, inCode, inPrevCode, kerning, inContext,
+    if (__glcFontGetKerning(inFont, leftCode, rightCode, kerning, inContext,
 			    scale_x, scale_y)) {
-        if (inContext->renderState.renderStyle == GLC_BITMAP)
-            glBitmap(0, 0, 0, 0,
-                     kerning[0] * inContext->bitmapMatrix[0] 
-                     + kerning[1] * inContext->bitmapMatrix[2],
-                     kerning[0] * inContext->bitmapMatrix[1]
-                     + kerning[1] * inContext->bitmapMatrix[3],
-                     NULL);
-        else
-            glTranslatef(kerning[0], kerning[1], 0.);
+      if (inIsRTL)
+	kerning[0] = -kerning[0];
+
+      if (inContext->renderState.renderStyle == GLC_BITMAP)
+	glBitmap(0, 0, 0, 0,
+		 kerning[0] * inContext->bitmapMatrix[0] 
+		 + kerning[1] * inContext->bitmapMatrix[2],
+		 kerning[0] * inContext->bitmapMatrix[1]
+		 + kerning[1] * inContext->bitmapMatrix[3],
+		 NULL);
+      else
+	glTranslatef(kerning[0], kerning[1], 0.);
     }
   }
 
@@ -228,6 +244,9 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
    * then return.
    */
   if (inContext->enableState.glObjects) {
+    if (inIsRTL)
+      glTranslatef(-glyph->advance[0], glyph->advance[1], 0.);
+
     switch(inContext->renderState.renderStyle) {
     case GLC_TEXTURE:
       if (glyph->displayList[0]) {
@@ -237,22 +256,30 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 	 * the atlas when it is full.
 	 */
 	FT_List_Up(&inContext->atlasList, (FT_ListNode)glyph->textureObject);
+	if (!inIsRTL)
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	return NULL;
       }
       break;
     case GLC_LINE:
       if (glyph->displayList[1]) {
 	glCallList(glyph->displayList[1]);
+	if (!inIsRTL)
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	return NULL;
       }
       break;
     case GLC_TRIANGLE:
       if ((!inContext->enableState.extrude) && glyph->displayList[2]) {
 	glCallList(glyph->displayList[2]);
+	if (!inIsRTL)
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	return NULL;
       }
       if (inContext->enableState.extrude && glyph->displayList[3]) {
 	glCallList(glyph->displayList[3]);
+	if (!inIsRTL)
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	return NULL;
       }
       break;
@@ -270,13 +297,12 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
 #endif
 
   __glcFaceDescLoadFreeTypeGlyph(inFont->faceDesc, inContext, scale_x, scale_y,
-                        glyph->index);
+				 glyph->index);
 
   sx64 = 64. * scale_x;
   sy64 = 64. * scale_y;
 
-  if ((inContext->renderState.renderStyle != GLC_BITMAP)
-      && (!displayListIsBuilding)) {
+  if (inContext->renderState.renderStyle != GLC_BITMAP) {
     FT_Outline outline= face->glyph->outline;
 
     /* If the outline contains no point then the glyph represents a space
@@ -284,8 +310,12 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
      */
     if (!outline.n_points) {
       /* Update the advance and return */
-      glTranslatef(face->glyph->advance.x / sx64, face->glyph->advance.y / sy64,
-		   0.);
+      if (inIsRTL)
+        glTranslatef(-face->glyph->advance.x / sx64,
+		     face->glyph->advance.y / sy64, 0.);
+      else
+        glTranslatef(face->glyph->advance.x / sx64,
+		     face->glyph->advance.y / sy64, 0.);
 #ifndef FT_CACHE_H
       __glcFaceDescClose(font->faceDesc);
 #endif
@@ -295,7 +325,20 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
     /* coordinates are given in 26.6 fixed point integer hence we
      * divide the scale by 2^6
      */
-    glScalef(1. / sx64, 1. / sy64, 1.);
+    if (!displayListIsBuilding) 
+      glScalef(1. / sx64, 1. / sy64, 1.);
+
+    if (inContext->enableState.glObjects) {
+      glyph->advance[0] = (GLfloat) face->glyph->advance.x / sx64;
+      glyph->advance[1] = (GLfloat) face->glyph->advance.y / sy64;
+    }
+
+    if (inIsRTL) {
+      if (inContext->enableState.glObjects)
+	glTranslatef(-glyph->advance[0], glyph->advance[1], 0.);
+      else
+	glTranslatef(-face->glyph->advance.x, face->glyph->advance.y, 0.);
+    }
   }
 
   /* Call the appropriate function depending on the rendering mode. It first
@@ -304,8 +347,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
    */
   switch(inContext->renderState.renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(face->glyph, inContext, scale_x,
-			  scale_y);
+    __glcRenderCharBitmap(face->glyph, inContext, scale_x, scale_y, inIsRTL);
     break;
   case GLC_TEXTURE:
       __glcRenderCharTexture(inFont, inContext, displayListIsBuilding,
@@ -325,12 +367,19 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, __GLCfont* inFont,
     __glcRaiseError(GLC_PARAMETER_ERROR);
   }
 
+  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+    if (!inIsRTL) {
+      if (inContext->enableState.glObjects)
+	glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
+      else
+	glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
+    }
+    if (!displayListIsBuilding)
+      glScalef(sx64, sy64, 1.);
+  }
 #ifndef FT_CACHE_H
   __glcFaceDescClose(font->faceDesc);
 #endif
-  if ((inContext->renderState.renderStyle != GLC_BITMAP)
-      && (!displayListIsBuilding))
-    glScalef(sx64, sy64, 1.);
   return NULL;
 }
 
@@ -394,7 +443,7 @@ void APIENTRY glcRenderChar(GLint inCode)
     }
   }
 
-  __glcProcessChar(ctx, code, &prevCode, __glcRenderChar, NULL);
+  __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
@@ -423,6 +472,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   FcChar32* ptr = NULL;
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
+  GLboolean isRightToLeft = GL_FALSE;
 
   /* Check if inCount is positive */
   if (inCount < 0) {
@@ -444,7 +494,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertCountedStringToVisualUcs4(ctx, inString, inCount);
+  UinString = __glcConvertCountedStringToVisualUcs4(ctx, &isRightToLeft,
+						    inString, inCount);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -483,7 +534,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   /* Render the string */
   ptr = UinString;
   for (i = 0; i < inCount; i++)
-    __glcProcessChar(ctx, *(ptr++), &prevCode, __glcRenderChar, NULL);
+    __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
+		     NULL);
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
@@ -505,6 +557,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   FcChar32* ptr = NULL;
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
+  GLboolean isRightToLeft = GL_FALSE;
 
   /* Check if the current thread owns a context state */
   ctx = __glcGetCurrent();
@@ -520,7 +573,7 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertToVisualUcs4(ctx, inString);
+  UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -559,7 +612,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   /* Render the string */
   ptr = UinString;
   while (*ptr)
-    __glcProcessChar(ctx, *(ptr++), &prevCode, __glcRenderChar, NULL);
+    __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
+		     NULL);
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);

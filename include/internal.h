@@ -81,7 +81,7 @@ struct __GLCcharacterRec {
  * __glcRenderChar() for rendering and __glcGetCharMetric() for measurement.
  */
 typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
-				      __GLCfont* inFont,
+				      GLboolean inIsRTL, __GLCfont* inFont,
 				      __GLCcontext* inContext,
 				      void* inProcessCharData,
 				      GLboolean inMultipleChars);
@@ -92,15 +92,14 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
  * 'inCode' must be given in UCS-4 format
  */
 void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
-		       __GLCcharacter* inPrevCode,
+		       __GLCcharacter* inPrevCode, GLboolean inIsRTL,
 		       __glcProcessCharFunc inProcessCharFunc,
 		       void* inProcessCharData);
 
 /* Render scalable characters using either the GLC_LINE style or the
  * GLC_TRIANGLE style
  */
-extern void __glcRenderCharScalable(__GLCfont* inFont,
-				    __GLCcontext* inContext,
+extern void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 				    GLCenum inRenderMode,
 				    GLboolean inDisplayListIsBuilding,
 				    GLfloat* inTransformMatrix,
@@ -208,13 +207,14 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
+FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL,
 				   const GLCchar* inString);
 
 /* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4
  * format and return a copy of the converted string in visual order.
  */
 FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
+						GLboolean *outIsRTL,
 						const GLCchar* inString,
 						const GLint inCount);
 

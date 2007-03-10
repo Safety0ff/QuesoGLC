@@ -643,8 +643,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 			     GLCenum inRenderMode,
 			     GLboolean inDisplayListIsBuilding,
 			     GLfloat* inTransformMatrix, GLfloat scale_x,
-			     GLfloat scale_y,
-			     __GLCglyph* inGlyph)
+			     GLfloat scale_y, __GLCglyph* inGlyph)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs outlineInterface;
@@ -909,9 +908,6 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
       glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);
   }
-
-  /* Take into account the advance of the glyph */
-  glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
 
   if (inDisplayListIsBuilding)
     glScalef(sx64, sy64, 1.);
