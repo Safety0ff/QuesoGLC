@@ -212,7 +212,15 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     GLint n = 0;
 
     /* Check if a font maps hexadecimal digits */
+#ifdef _MSC_VER
+    n = sprintf_s(buf, 11, "\\<%X>", (int)inCode);
+    if (n < 0) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return NULL;
+    }
+#else
     n = snprintf(buf, 11, "\\<%X>", (int)inCode);
+#endif
     for (i = 0; i < n; i++) {
       if (!__glcCtxGetFont(inContext, buf[i]))
 	/* The code is not rendered, the previous code is thus left unchanged */
