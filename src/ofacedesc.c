@@ -707,6 +707,12 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
   if (!face)
     return NULL;
 
+  if (!FT_HAS_KERNING(face)) {
+    outVec[0] = 0.;
+    outVec[1] = 0.;
+    return outVec;
+  }
+
   error = FT_Get_Kerning(face, inPrevGlyphIndex, inGlyphIndex,
 			 FT_KERNING_DEFAULT, &kerning);
 
