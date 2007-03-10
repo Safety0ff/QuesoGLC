@@ -3,6 +3,9 @@ Changes made from the "0.5" release to the "0.6" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1640256 : the advance vector now supports RTL strings
+- Fixed a bug by disabling kerning when two successive characters of a string
+  are not rendered with the same font.
 - Modified __glcFaceDescGetFontFormat() to use FT_Get_X11_Font_Format(),
   whenever available, to detect the font format.
 - Fixed a bug which caused a character that was not mapped to any font to be
