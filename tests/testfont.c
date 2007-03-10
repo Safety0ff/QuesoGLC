@@ -34,12 +34,34 @@ int main(void)
 #ifdef __WIN32__
   glcFontFace(glcNewFontFromFamily(1, "Times New Roman"), "Bold");
   font = glcNewFontFromFamily(2, "Courier New");
-#else
-  glcFontFace(glcNewFontFromFamily(1, "Utopia"), "Bold");
-  font = glcNewFontFromFamily(2, "Courier");
-#endif
   glcFont(font);
   glcFontFace(font, "Italic");
+#else
+  /* For platforms other than Windows, available fonts may vary from a platform
+   * to another. It even vary from one Linux distribution to another !!! So we
+   * can not rely on a font name; instead, we will look for masters with
+   * specific properties : here we search for masters that contain the letter
+   * 'A' (which usually means that the whole latin alphabet is available) and
+   * that have at least 2 faces so that we can choose another face than the
+   * default one.
+   */
+  /* Find a master that contains the letter 'A' (code 65) */
+  for (i = 0; i < glcGeti(GLC_MASTER_COUNT); i++) {
+    if (glcGetMasterMap(i, 65) && (glcGetMasteri(i, GLC_FACE_COUNT) > 1))
+      break;
+  }
+  /* Create a font with the second face of the master */
+  glcFontFace(glcNewFontFromMaster(1, i),
+	      glcGetMasterListc(i, GLC_FACE_LIST, 1));
+
+  /* Find another master */
+  for (; i < glcGeti(GLC_MASTER_COUNT); i++) {
+    if (glcGetMasterMap(i, 65) && (glcGetMasteri(i, GLC_FACE_COUNT) > 1))
+      break;
+  }
+  font = glcNewFontFromMaster(2, i);
+  glcFont(font);
+#endif
 
   printf("Face : %s\n", (char *)glcGetFontFace(font));
   printf("GenFontID : %d\n", glcGenFontID());
