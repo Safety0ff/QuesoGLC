@@ -35,10 +35,10 @@ here</a>. As far as I know, SGI dropped the development of GLC and the draft of
 its specifications has not evolved since late 1996.
 
 \section whatisqglc What is QuesoGLC ?
-QuesoGLC is a free implementation of the OpenGL Character Renderer (GLC).
-QuesoGLC is based on the FreeType library, provides Unicode support and is
-designed to be easily ported to any platform that supports both FreeType and
-the OpenGL API.
+QuesoGLC is a free (as in free speech) implementation of the OpenGL Character
+Renderer (GLC). QuesoGLC is based on the FreeType library, provides Unicode
+support and is designed to be easily ported to any platform that supports both
+FreeType and the OpenGL API.
 
 QuesoGLC is free software; you can redistribute it and/or modify it under the
 terms of the GNU Lesser General Public License as published by the Free
@@ -55,7 +55,7 @@ Its development platform is Linux.
 \section requirements Requirements
 QuesoGLC is written in ANSI C and should compile with any C compiler that is
 compliant with ANSI C standards. QuesoGLC has been successfully compiled and
-used under Linux and Windows.
+used under Linux, Windows and Mac OSX.
 
 <a href="http://www.opengl.org">OpenGL</a>,
 <a href="http://www.freetype.org">FreeType 2</a> and
@@ -63,7 +63,8 @@ used under Linux and Windows.
 dependencies.
 
 So far, Fontconfig is mandatory in order to build and run the QuesoGLC library.
-However, it is expected that Fontconfig will become optional in the future.
+However, it is expected that the Fontconfig dependency will be removed in the
+future for Windows and Mac OSX platforms.
 \section qusers QuesoGLC users
 QuesoGLC users are :
 
@@ -366,6 +367,12 @@ middle of a word or between a word and a comma for example). This is where
 can find some more informations at the <a href="http://www.unicode.org">Unicode
 web site</a></em>.
 
+Another application of the bounding boxes is the visibility test. For example,
+one can get the bouding box of a letter or a string, tranform it into the screen
+coordinates and test the result against the viewport. If the bounding box is
+located out of the viewport then there is no need to render the string. Such a
+test may help to speed up a program.
+
 \section baseelements Base elements
 
 In this tutorial we will see how to render the string <em>Hello world!</em>
@@ -378,10 +385,10 @@ below.
 
 The code presented in the \ref tutorial tutorial is the starting point of the
 current example. Notice however that it has been slightly changed : a call to
-the function glcRotate() has been added in order to rotate the text of 10°
-counterclockwise. The call to glcAppendCatalog() has also been commented out :
-it is not needed if <a href="http://www.fontconfig.org">Fontconfig</a> has been
-carefully installed (which is the case on most of the recent Linux
+the function glcRotate() has been added in order to rotate the text of 10
+degrees counterclockwise. The call to glcAppendCatalog() has also been commented
+out : it is not needed if <a href="http://www.fontconfig.org">Fontconfig</a> has
+been carefully installed (which is the case on most of the recent Linux
 distributions).
 
 \code
@@ -400,7 +407,7 @@ glcFont(myFont);
 
 // Render the text at a size of 100 points
 glcScale(100.f, 100.f);
-glcRotate(10.f); // Rotate the text of 10° couterclockwise
+glcRotate(10.f); // Rotate the text of 10 degrees counterclockwise
 
 // Render "Hello world!"
 glColor3f(1.f, 0.f, 0.f);
@@ -450,8 +457,8 @@ for (i = 0; i < 4; i++)
 glEnd();
 \endcode
 
-\note <em>We do not need to rotate the bounding box of 10° since it has already
-been done by GLC. If we were using a \b GLC_RENDER_STYLE that were not
+\note <em>We do not need to rotate the bounding box of 10 degrees since it has
+already been done by GLC. If we were using a \b GLC_RENDER_STYLE that were not
 \b GLC_BITMAP, we would need to add a call to <tt>glRotatef(0., 0., 1.,
 10.);</tt></em>
 
@@ -557,7 +564,7 @@ glcFont(myFont);
 
 // Render the text at a size of 100 points
 glcScale(100.f, 100.f);
-glcRotate(10.f); // Rotate the text of 10° couterclockwise
+glcRotate(10.f); // Rotate the text of 10 degrees counterclockwise
 
 // Render "Hello world!"
 glColor3f(1.f, 0.f, 0.f);
@@ -793,12 +800,12 @@ in the next sub-section (see the explanations on the EM square).</em>
 
 The source format of outlines is a collection of closed paths called
 \e contours. Each contour delimits an outer or inner \e region of the glyph, and
-can be made of either <em>line segments</em> or <em>Bézier arcs</em>.
+can be made of either <em>line segments</em> or <em>Bezier arcs</em>.
 
 The arcs are defined through <em>control points</em>, and can be either
-second-order (these are \e conic Béziers) or third-order (\e cubic Béziers)
-polynomials, depending on the font format. Note that conic Béziers are usually
-called \e quadratic Béziers in the literature. Hence, each point of the outline
+second-order (these are \e conic Beziers) or third-order (\e cubic Beziers)
+polynomials, depending on the font format. Note that conic Beziers are usually
+called \e quadratic Beziers in the literature. Hence, each point of the outline
 has an associated flag indicating its type (normal or control point). And
 scaling the points will scale the whole outline.
 
