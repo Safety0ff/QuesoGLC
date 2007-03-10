@@ -151,8 +151,9 @@ int main(void)
 		printf("Main Thread : Can't destroy mutex\n");
 		return -1;
 	}
+	pthread_join(t2, NULL);
 	printf("Main Thread : Mutex destroyed\n");
-        printf("\nTests successful !\n");
+	printf("\nTests successful !\n");
 
 	return 0;
 }
