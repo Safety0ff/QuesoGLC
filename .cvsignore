@@ -3,11 +3,8 @@ configure
 Makefile
 Makefile.in
 aclocal.m4
-compile
-depcomp
 install-sh
 libtool
-ltmain.sh
 missing
 mkinstalldirs
 autom4te.cache
