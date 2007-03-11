@@ -155,8 +155,11 @@ void display(void)
     else
       glColor3f(0., 1., 0.);
     glLoadIdentity();
-    glTranslatef(10., 450. - i * 40., 0.);
-    glScalef(25., 25., 1.);
+    if ((language == 10) && (i > 0))
+      glTranslatef(630., 450. - i * 40., 0.);
+    else
+      glTranslatef(10., 450. - i * 40., 0.);
+    glScalef(20., 20., 1.);
     glcRenderString(text[i]);
   }
 
