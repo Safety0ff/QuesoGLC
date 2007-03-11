@@ -1,4 +1,4 @@
-This file contains general informations about QuesoGLC. For installations
+This file contains general informations about QuesoGLC. For installation
 instructions, see the INSTALL file if you run a POSIX platform and INSTALL.win
 if you run Windows.
 
@@ -28,7 +28,7 @@ To render a character, a GLC client issues the command
 GLC then goes through these steps:
 
 1.  GLC finds a font that maps inCode to a character such as LATIN
-    CAPITAL LETTER A.								 
+    CAPITAL LETTER A.
 
 2.  GLC uses one or more glyphs from the font to create a graphical
     layout that represents the character.
