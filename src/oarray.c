@@ -146,7 +146,7 @@ __GLCarray* __glcArrayInsert(__GLCarray* This, int inRank, void* inValue)
 
 
 
-/* Remove an element from the array. For permformance reasons, this function
+/* Remove an element from the array. For performance reasons, this function
  * does not release memory.
  */
 void __glcArrayRemove(__GLCarray* This, int inRank)

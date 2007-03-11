@@ -112,7 +112,7 @@ all X-window flavor.
 4. Is that really all ?
 =======================
 
-You should have a look to the README file and to the documentation, especially
-to the tutorial. You can also get the specifications of GLC from
+You should have a look at the README file and at the documentation, especially
+at the tutorials. You can also get the specifications of GLC from
 www.opengl.org/documentation/specs/glc/glcspec.ps. You should also try the tests
-programs too.
+and example programs too.

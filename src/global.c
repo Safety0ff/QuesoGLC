@@ -93,7 +93,7 @@ static void __glcLock(void)
 
 
 
-/* Unlock the mutex in order to allow other threads to amke accesses to the
+/* Unlock the mutex in order to allow other threads to make accesses to the
  * common area.
  * See also the note on nested calls in __glcLock's description.
  */
