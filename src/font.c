@@ -388,8 +388,14 @@ GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
 
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
   if (FT_List_Find(&inContext->currentFontList, font)) {
-    __GLCcharMap* newCharMap = __glcFaceDescGetCharMap(faceDesc, inContext);
+    FcResult result = FcResultMatch;
+    FcCharSet* charSet = NULL;
+    __GLCcharMap* newCharMap = NULL;
 
+    result = FcPatternGetCharSet(pattern, FC_CHARSET, 0, &charSet);
+    assert(result != FcResultTypeMismatch);
+
+    newCharMap = __glcCharMapCreate(charSet);
     if (!newCharMap) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return GL_FALSE;

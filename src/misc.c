@@ -533,7 +533,7 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
     return NULL;
   }
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       NULL);
+			       FC_CHARSET, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -595,8 +595,8 @@ __GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
   int i = 0;
   __GLCfaceDescriptor* faceDesc = NULL;
 
-  objectSet = FcObjectSetBuild(FC_STYLE, FC_CHARSET, FC_SPACING, FC_FILE,
-			       FC_INDEX, FC_OUTLINE, NULL);
+  objectSet = FcObjectSetBuild(FC_STYLE, FC_SPACING, FC_FILE, FC_INDEX,
+			       FC_OUTLINE, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -612,15 +612,9 @@ __GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
     FcChar8 *fileName = NULL;
     FcChar8 *styleName = NULL;
     int fixed = 0;
-    FcCharSet *charSet = NULL;
     int index = 0;
     FcBool outline = FcFalse;
     FcResult result = FcResultMatch;
-#ifdef DEBUGMODE
-    FcChar32 base = 0;
-    FcChar32 next = 0;
-    FcChar32 map[FC_CHARSET_MAP_SIZE];
-#endif
 
     /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
@@ -637,14 +631,6 @@ __GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
     /* Is this a fixed font ? */
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
-    /* get the char set */
-    result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
-    assert(result != FcResultTypeMismatch);
-#ifdef DEBUGMODE
-    /* Check that the char set is not empty */
-    base = FcCharSetFirstPage(charSet, map, &next);
-    assert(base != FC_CHARSET_DONE);
-#endif
     /* get the index of the font in font file */
     result = FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index);
     assert(result != FcResultTypeMismatch);
@@ -686,7 +672,7 @@ void __glcUpdateHashTable(__GLCcontext *inContext)
     return;
   }
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       NULL);
+			       FC_CHARSET, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);

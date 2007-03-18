@@ -495,7 +495,7 @@ __GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint inCode)
      * (otherwise the hash value will not match any value of the hash table).
      */
     objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-				 NULL);
+				 FC_CHARSET, NULL);
     if (!objectSet) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);

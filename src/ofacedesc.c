@@ -19,9 +19,9 @@
 /* $Id$ */
 
 /** \file
- * defines the object __glcFaceDesc that contains the description of a face.
- * One of the purpose of this object is to encapsulate the FT_Face structure
- * from FreeType and to add it some more functionalities.
+ * defines the object __GLCfaceDescriptor that contains the description of a
+ * face. One of the purpose of this object is to encapsulate the FT_Face
+ * structure from FreeType and to add it some more functionalities.
  * It also allows to centralize the character map management for easier
  * maintenance.
  */
@@ -363,63 +363,6 @@ void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
 
     __glcGlyphDestroyGLObjects(glyph, inContext);
   }
-}
-
-
-
-/* Get a copy of the character map of the face */
-__GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
-				      __GLCcontext* inContext)
-{
-  __GLCcharMap* charMap = NULL;
-  FT_Face face = NULL;
-  FcCharSet* charSet = NULL;
-#ifdef FT_CACHE_H
-  FT_UInt gindex = 0;
-  FT_ULong charCode = 0;
-#endif
-
-  /* Check that the face is opened */
-#ifdef FT_CACHE_H
-  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
-#else
-  face = __glcFaceDescOpen(This, inContext);
-  if (!face) {
-#endif
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  /* Build a character map based on the FcCharSet of the face */
-#ifndef FT_CACHE_H
-  charSet = FcFreeTypeCharSet(face, NULL);
-#else
-  /* For some reason, FcFreeTypeCharSet() fails when a cached face is used.
-   * Instead we build the charset ourselves but that means that we may not
-   * get a list as complete as the one we get when calling FcFreeTypeCharSet.
-   */
-  charSet = FcCharSetCreate();
-  if (!charSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-  charCode = FT_Get_First_Char(face, &gindex);
-  while (gindex) {
-    if (!FcCharSetAddChar(charSet, charCode)) {
-      FcCharSetDestroy(charSet);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return NULL;
-    }
-    charCode = FT_Get_Next_Char(face, charCode, &gindex);
-  }
-#endif
-
-  charMap = __glcCharMapCreate(charSet);
-  FcCharSetDestroy(charSet);
-#ifndef FT_CACHE_H
-  __glcFaceDescClose(This);
-#endif
-  return charMap;
 }
 
 

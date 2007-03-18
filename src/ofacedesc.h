@@ -19,7 +19,8 @@
 /* $Id$ */
 
 /** \file
- * header of the object __glcFaceDesc that contains the description of a face.
+ * header of the object __GLCfaceDescriptor that contains the description of a
+ * face.
  */
 
 #ifndef __glc_ofacedesc_h
@@ -61,8 +62,6 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
 			       GLfloat inScaleY, FT_ULong inGlyphIndex);
 void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
 				   __GLCcontext* inContext);
-__GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
-				      __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
 				     FT_ULong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,

@@ -39,6 +39,8 @@ __GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
   int i = 0;
   FcChar32 hashValue = FcPatternHash(inPattern);
   FcChar32* hashTable = NULL;
+  FcCharSet* charSet = NULL;
+  FcResult result = FcResultMatch;
 
   assert(inContext);
   assert(inPattern);
@@ -58,7 +60,10 @@ __GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
     return NULL;
   }
 
-  This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inContext);
+  result = FcPatternGetCharSet(inPattern, FC_CHARSET, 0, &charSet);
+  assert(result != FcResultTypeMismatch);
+
+  This->charMap = __glcCharMapCreate(charSet);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(This->faceDesc, inContext);
