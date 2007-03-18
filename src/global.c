@@ -232,7 +232,7 @@ void _init(void)
   __glcCommonArea.threadKey = TlsAlloc();
   if (__glcCommonArea.threadKey == 0xffffffff)
     goto FatalError;
-#else
+#elif !defined(HAVE_TLS)
   if (pthread_key_create(&__glcCommonArea.threadKey, __glcFreeThreadArea))
     goto FatalError;
 #endif

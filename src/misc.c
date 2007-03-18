@@ -71,6 +71,7 @@ GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
 
 
 
+#ifndef HAVE_TLS
 /* Each thread has to store specific informations so they can be retrieved
  * later. __glcGetThreadArea() returns a struct which contains thread specific
  * info for GLC.
@@ -102,17 +103,18 @@ __GLCthreadArea* __glcGetThreadArea(void)
     area->exceptionStack.tail = NULL;
     area->failedTry = GLC_NO_EXC;
 #ifdef __WIN32__
-	if (!TlsSetValue(__glcCommonArea.threadKey, (LPVOID)area)) {
-	  free(area);
-	  return NULL;
-	}
+    if (!TlsSetValue(__glcCommonArea.threadKey, (LPVOID)area)) {
+      free(area);
+      return NULL;
+    }
 #else
-	pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
+    pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
 #endif
   }
 
   return area;
 }
+#endif /* HAVE_TLS */
 
 
 

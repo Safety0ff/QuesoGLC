@@ -189,7 +189,11 @@ GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
 			__GLCcontext *inContext);
 
 /* Return a struct which contains thread specific info */
+#ifdef HAVE_TLS
+#define __glcGetThreadArea() &__glcTlsThreadArea;
+#else
 __GLCthreadArea* __glcGetThreadArea(void);
+#endif
 
 /* Raise an error */
 void __glcRaiseError(GLCenum inError);

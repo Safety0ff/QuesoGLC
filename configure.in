@@ -39,6 +39,12 @@ ACX_PTHREAD
 CC="$PTHREAD_CC"
 
 
+# Checks for TLS support.
+# ----------------------------------
+
+AX_CHECK_TLS
+
+
 # Checks for typedefs, structures, and compiler characteristics.
 # --------------------------------------------------------------
 

@@ -173,9 +173,10 @@ struct __GLCcommonAreaRec {
 #ifndef __WIN32__
   pthread_mutex_t mutex;	/* For concurrent accesses to the common
 				   area */
-
+#ifndef HAVE_TLS
   pthread_key_t threadKey;
-#else
+#endif /* HAVE_TLS */
+#else /* __WIN32__ */
   CRITICAL_SECTION section;
   DWORD threadKey;
 #endif
@@ -189,6 +190,10 @@ struct __GLCcommonAreaRec {
 };
 
 extern __GLCcommonArea __glcCommonArea;
+#ifdef HAVE_TLS
+extern __thread __GLCthreadArea __glcTlsThreadArea
+    __attribute__((tls_model("initial-exec")));
+#endif
 
 #ifdef QUESOGLC_STATIC_LIBRARY
 extern pthread_once_t initLibraryOnce;

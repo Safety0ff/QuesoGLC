@@ -36,6 +36,9 @@
 #include FT_LIST_H
 
 __GLCcommonArea __glcCommonArea;
+#ifdef HAVE_TLS
+__thread __GLCthreadArea __glcTlsThreadArea;
+#endif
 
 
 
