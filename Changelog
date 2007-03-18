@@ -1,6 +1,15 @@
 Changes made from the "0.6" release to the "0.7" release:
 -----------------------------------------------------------
 
+* Bertrand Coconnier:
+
+- Modified QuesoGLC threading implementation in order to use TLS when available.
+  This allows to discard the expensive calls to pthread_get_specific().
+- Removed the useless QUESOGLC_VERSION macro
+- Removed __glcFaceDescGetCharMap() which were buggy for some fonts. Now uses
+  Fontconfig patterns instead. This fixes a bug which created a new font for
+  each newly rendered glyph.
+
 Changes made from the "0.5" release to the "0.6" release:
 -----------------------------------------------------------
 
