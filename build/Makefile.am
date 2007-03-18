@@ -43,7 +43,6 @@ fribidi_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
                   $(top_builddir)/src/fribidi/fribidi_tab_char_type_9.i
 
 libGLC_la_CFLAGS = -I$(top_builddir)/src \
-                   -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" \
                    -D_REENTRANT \
                    -DGLEW_MX \
                    @PTHREAD_CFLAGS@ \

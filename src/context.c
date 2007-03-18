@@ -695,7 +695,11 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
     " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
     " GLC_QSO_utf8 GLC_SGI_full_name";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
+#ifdef HAVE_CONFIG_H
+  static GLCchar* __glcRelease = (GLCchar*) PACKAGE_VERSION;
+#else
   static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
+#endif
 
   __GLCcontext *ctx = NULL;
 
