@@ -354,19 +354,22 @@ void APIENTRY glcFont(GLint inFont)
 
 /* This internal function tries to open the face file which name is identified
  * by 'inFace'. If it succeeds, it closes the previous face and stores the new
- * face attributes in the __GLCfont object identified by inFont. Otherwise,
- * it leaves the font 'inFont' unchanged. GL_TRUE or GL_FALSE are returned
- * to indicate if the function succeeded or not.
+ * face attributes in the __GLCfont object "inFont". Otherwise, it leaves the
+ * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
+ * succeeded or not.
  */
-GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
+GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
 			__GLCcontext *inContext)
 {
   __GLCfaceDescriptor *faceDesc = NULL;
   FcPattern *pattern = NULL;
+  FcResult result = FcResultMatch;
+  FcCharSet* charSet = NULL;
+  __GLCcharMap* newCharMap = NULL;
 
   /* TODO : Verify if the font has already the required face activated */
 
-  pattern = __glcGetPatternFromMasterID(font->parentMasterID, inContext);
+  pattern = __glcGetPatternFromMasterID(inFont->parentMasterID, inContext);
   if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;
@@ -380,28 +383,28 @@ GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
 
   /* Get the face descriptor of the face identified by the string inFace */
   faceDesc = __glcGetFaceDescFromPattern(pattern, inContext);
-  FcPatternDestroy(pattern);
   if (!faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
     return GL_FALSE;
   }
 
-  /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
-  if (FT_List_Find(&inContext->currentFontList, font)) {
-    FcResult result = FcResultMatch;
-    FcCharSet* charSet = NULL;
-    __GLCcharMap* newCharMap = NULL;
+  result = FcPatternGetCharSet(pattern, FC_CHARSET, 0, &charSet);
+  assert(result != FcResultTypeMismatch);
 
-    result = FcPatternGetCharSet(pattern, FC_CHARSET, 0, &charSet);
-    assert(result != FcResultTypeMismatch);
+  newCharMap = __glcCharMapCreate(charSet);
+  if (!newCharMap) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return GL_FALSE;
+  }
 
-    newCharMap = __glcCharMapCreate(charSet);
-    if (!newCharMap) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return GL_FALSE;
-    }
+  FcPatternDestroy(pattern);
 
 #ifndef FT_CACHE_H
+  /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
+  if (FT_List_Find(&inContext->currentFontList, font)) {
+
     /* Open the new face */
     if (!__glcFaceDescOpen(faceDesc, inContext)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -411,17 +414,17 @@ GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
 
     /* Close the current face */
     __glcFaceDescClose(font->faceDesc);
+  }
 #endif
 
-    /* Destroy the current charmap */
-    if (font->charMap)
-      __glcCharMapDestroy(font->charMap);
+  /* Destroy the current charmap */
+  if (inFont->charMap)
+    __glcCharMapDestroy(inFont->charMap);
 
-    font->charMap = newCharMap;
-  }
+  inFont->charMap = newCharMap;
 
-  __glcFaceDescDestroy(font->faceDesc, inContext);
-  font->faceDesc = faceDesc;
+  __glcFaceDescDestroy(inFont->faceDesc, inContext);
+  inFont->faceDesc = faceDesc;
 
   return GL_TRUE;
 }
@@ -1110,7 +1113,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   __glcFree(UinFamily);
 
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       NULL);
+			       FC_CHARSET, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
