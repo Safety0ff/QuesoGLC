@@ -127,16 +127,20 @@ extern GLCchar* __glcNameFromCode(GLint code);
 /* Find a Unicode code from its name */
 extern GLint __glcCodeFromName(GLCchar* name);
 
-/* Duplicate a string in UTF-8 format */
+/* Duplicate a string and convert if from any Unicode format to UTF-8 format */
 extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
 				   const GLint inStringType);
 
-/* Duplicate a UTF-8 string to the context buffer */
+/* Duplicate a string to the context buffer and convert it from UTF-8 format to
+ * any Unicode format.
+ */
 extern GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 					     const FcChar8* inString,
 					     const GLint inStringType);
 
-/* Duplicate a counted string in UTF-8 format */
+/* Duplicate a counted string to the context buffer and convert it from any
+ * Unicode format to UTF-8 format.
+ */
 FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
 					 const GLCchar* inString,
 					 const GLint inStringType);
@@ -181,25 +185,44 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 
 /* This internal function tries to open the face file which name is identified
  * by 'inFace'. If it succeeds, it closes the previous face and stores the new
- * face attributes in the __GLCfont object identified by inFont. Otherwise,
- * it leaves the font 'inFont' unchanged. GL_TRUE or GL_FALSE are returned
- * to indicate if the function succeeded or not.
+ * face attributes in the __GLCfont object "inFont". Otherwise, it leaves the
+ * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
+ * succeeded or not.
  */
-GLboolean __glcFontFace(__GLCfont* font, const FcChar8* inFace,
+GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
 			__GLCcontext *inContext);
 
-/* Return a struct which contains thread specific info */
+/* Return a struct which contains thread specific info. If the platform supports
+ * pointers for thread-local storage (TLS) then __glcGetThreadArea is replaced
+ * by a macro that returns a thread-local pointer. Otherwise, a function is
+ * called to return the structure using pthread_get_specific (POSIX) or
+ * TlsGetValue (WIN32) which are much slower.
+ */
 #ifdef HAVE_TLS
 #define __glcGetThreadArea() &__glcTlsThreadArea;
 #else
 __GLCthreadArea* __glcGetThreadArea(void);
 #endif
 
-/* Raise an error */
+/* Raise an error.
+ * See also remarks above about TLS pointers.
+ */
+#ifdef HAVE_TLS
+#define __glcRaiseError(inError) \
+if (!__glcTlsThreadArea.errorState || ! (inError)) \
+  __glcTlsThreadArea.errorState = (inError)
+#else
 void __glcRaiseError(GLCenum inError);
+#endif
 
-/* Return the current context state */
+/* Return the current context state.
+ * See also remarks above about TLS pointers.
+ */
+#ifdef HAVE_TLS
+#define __glcGetCurrent() __glcTlsThreadArea.currentContext
+#else
 __GLCcontext* __glcGetCurrent(void);
+#endif
 
 /* Compute an optimal size for the glyph to be rendered on the screen (if no
  * display list is currently building).

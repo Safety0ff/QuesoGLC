@@ -118,6 +118,7 @@ __GLCthreadArea* __glcGetThreadArea(void)
 
 
 
+#ifndef HAVE_TLS
 /* Raise an error. This function must be called each time the current error
  * of the issuing thread must be set
  */
@@ -137,9 +138,11 @@ void __glcRaiseError(GLCenum inError)
   if (!error || !inError)
     area->errorState = inError;
 }
+#endif /* HAVE_TLS */
 
 
 
+#ifndef HAVE_TLS
 /* Get the current context of the issuing thread */
 __GLCcontext* __glcGetCurrent(void)
 {
@@ -150,6 +153,7 @@ __GLCcontext* __glcGetCurrent(void)
 
   return area->currentContext;
 }
+#endif
 
 
 
