@@ -51,7 +51,7 @@
 
 #include "internal.h"
 #include FT_LIST_H
-#ifndef __WIN32__ 	 
+#ifndef __WIN32__
 # include <unistd.h>
 #endif
 #include <sys/types.h>
@@ -630,29 +630,29 @@ void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
   if (!inCatalog)
     return;
 
-  /* Check that 'inCatalog' points to a directory that can be read */ 	 
-  #ifdef __WIN32__ 	 
-  if (_access((const char*)inCatalog, 0)) { 	 
-  #else 	 
-  if (access((char *)inCatalog, R_OK) < 0) { 	 
-  #endif 	 
-    /* May be something more explicit should be done */ 	 
-    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
-	return; 	 
+  /* Check that 'inCatalog' points to a directory that can be read */
+  #ifdef __WIN32__
+  if (_access((const char*)inCatalog, 0)) {
+  #else
+  if (access((char *)inCatalog, R_OK) < 0) {
+  #endif
+    /* May be something more explicit should be done */
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
   }
-  /* Check that 'inCatalog' is a directory */ 	 
-  if (stat((char *)inCatalog, &dirStat) < 0) { 	 
-    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
-	return; 	 
-  } 	 
-  #ifdef __WIN32__ 	 
-  if (!(dirStat.st_mode & _S_IFDIR)) { 	 
-  #else 	 
-  if (!S_ISDIR(dirStat.st_mode)) { 	 
-  #endif 	 
-    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
-	return; 	 
-  } 	 
+  /* Check that 'inCatalog' is a directory */
+  if (stat((char *)inCatalog, &dirStat) < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
+  }
+  #ifdef __WIN32__
+  if (!(dirStat.st_mode & _S_IFDIR)) {
+  #else
+  if (!S_ISDIR(dirStat.st_mode)) {
+  #endif
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
+  }
 
   /* Verify that the thread owns a context */
   ctx = __glcGetCurrent();
@@ -667,6 +667,7 @@ void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
     return;
   }
   if (!FcConfigAppFontAddDir(ctx->config, (const unsigned char*)inCatalog)) {
+    FcStrSetDel(ctx->catalogList, inCatalog);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
@@ -694,29 +695,29 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
   if (!inCatalog)
     return;
 
-  /* Check that 'inCatalog' points to a directory that can be read */ 	 
-  #ifdef __WIN32__ 	 
-  if (_access((const char*)inCatalog, 0)) { 	 
-  #else 	 
-  if (access((char *)inCatalog, R_OK) < 0) { 	 
-  #endif 	 
-    /* May be something more explicit should be done */ 	 
-    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
-	return; 	 
+  /* Check that 'inCatalog' points to a directory that can be read */
+  #ifdef __WIN32__
+  if (_access((const char*)inCatalog, 0)) {
+  #else
+  if (access((char *)inCatalog, R_OK) < 0) {
+  #endif
+    /* May be something more explicit should be done */
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
   }
-  /* Check that 'inCatalog' is a directory */ 	 
-  if (stat((char *)inCatalog, &dirStat) < 0) { 	 
-    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
-	return; 	 
-  } 	 
-  #ifdef __WIN32__ 	 
-  if (!(dirStat.st_mode & _S_IFDIR)) { 	 
-  #else 	 
-  if (!S_ISDIR(dirStat.st_mode)) { 	 
-  #endif 	 
-    __glcRaiseError(GLC_PARAMETER_ERROR); 	 
-	return; 	 
-  } 	 
+  /* Check that 'inCatalog' is a directory */
+  if (stat((char *)inCatalog, &dirStat) < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
+  }
+  #ifdef __WIN32__
+  if (!(dirStat.st_mode & _S_IFDIR)) {
+  #else
+  if (!S_ISDIR(dirStat.st_mode)) {
+  #endif
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+	return;
+  }
 
   /* Verify that the thread owns a context */
   ctx = __glcGetCurrent();
@@ -752,14 +753,14 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
     }
   }
   FcStrListDone(iterator);
+  if (!FcConfigAppFontAddDir(ctx->config, (const unsigned char*)inCatalog)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcStrSetDestroy(newCatalog);
+    return;
+  }
   FcStrSetDestroy(ctx->catalogList);
   ctx->catalogList = newCatalog;
 
-  if (!FcConfigAppFontAddDir(ctx->config, (const unsigned char*)inCatalog)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDel(ctx->catalogList, inCatalog);
-    return;
-  }
   __glcUpdateHashTable(ctx);
 }
 
@@ -848,6 +849,9 @@ void APIENTRY glcRemoveCatalog(GLint inIndex)
   FcStrListDone(iterator);
   __glcCreateHashTable(ctx);
 
+  /* Remove from GLC_FONT_LIST the fonts that were defined in the catalog that
+   * has been removed.
+   */
   for (node = ctx->fontList.head; node; node = node->next) {
     __GLCfont* font = (__GLCfont*)(node->data);
     FcPattern* pattern = __glcGetPatternFromMasterID(font->parentMasterID, ctx);
@@ -860,12 +864,14 @@ void APIENTRY glcRemoveCatalog(GLint inIndex)
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return;
     }
+    /* Check if the hash value of the master is in the hash table */
     hashValue = FcPatternHash(pattern);
     for (i = 0; i < length; i++) {
       if (hashValue == hashTable[i])
 	break;
     }
 
+    /* The font is not contained in the hash table => remove it */
     if (i == length)
       glcDeleteFont(font->id);
   }

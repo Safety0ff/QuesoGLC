@@ -147,8 +147,7 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
   pixmap.pitch = - pixmap.pitch;
 
   /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -boundingBox.xMin,
-		       -boundingBox.yMin);
+  FT_Outline_Translate(&outline, -boundingBox.xMin, -boundingBox.yMin);
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
@@ -316,9 +315,6 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
       else
         glTranslatef(face->glyph->advance.x / sx64,
 		     face->glyph->advance.y / sy64, 0.);
-#ifndef FT_CACHE_H
-      __glcFaceDescClose(font->faceDesc);
-#endif
       return NULL;
     }
 

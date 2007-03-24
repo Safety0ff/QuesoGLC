@@ -530,7 +530,6 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
   int i = 0;
-  FcChar8* parse = NULL;
 
   /* Use Fontconfig to get the default font files */
   pattern = FcPatternCreate();
@@ -571,17 +570,11 @@ FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
 
   assert(i < fontSet->nfont);
 
-  /* Ugly hack to make a copy of the pattern of the found font (otherwise it
-   * will be deleted with the font set).
+  /* Duplicate the pattern of the found font (otherwise it will be deleted with
+   * the font set).
    */
-  parse = FcNameUnparse(fontSet->fonts[i]);
+  pattern = FcPatternDuplicate(fontSet->fonts[i]);
   FcFontSetDestroy(fontSet);
-  if (!parse) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-  pattern = FcNameParse(parse);
-  free(parse);
   if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;

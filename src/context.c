@@ -431,8 +431,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
 	catalog = FcStrListNext(iterator), inIndex--);
   FcStrListDone(iterator);
 
-  /* Now we can check if inIndex identifies a member of the string set or 
-   * not */
+  /* Now we can check if inIndex identifies a member of the string set or not */
   if (!catalog) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
@@ -452,7 +451,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
    */
 
   /* Grmmff, is the use of strlen() adequate here ? 
-   * What if 'catalog' is encoded in UCS2 format ?
+   * What if 'catalog' is encoded in UCS2 format or any other weird format ?
    */
   length = strlen((const char*) catalog) + 1;
 
@@ -598,13 +597,24 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
     return 0;
   case GLC_TEXTURE_OBJECT_LIST:
     switch(inIndex) {
-      case 1:
+      /* QuesoGLC uses at most 2 textures : one for immediate mode rendering and
+       * another one for the texture atlas. That's all. They are virtually
+       * stored in the following order : texture for immediate mode first, then
+       * texture atlas.
+       */
+      case 0:
 	if (ctx->texture.id)
 	  return ctx->texture.id;
+	/* If the texture for immediate mode does not exist, then the first
+	 * texture is the texture atlas.
+	 * NOTE: if the texture atlas is created first and the texture for
+	 * immediate mode is created after then this algorithm leads to a
+	 * modification of the order which is not satisfying...
+	 */
 	if (ctx->atlas.id)
 	  return ctx->atlas.id;
 	break;
-      case 2:
+      case 1:
 	if ((ctx->texture.id) && (ctx->atlas.id))
 	  return ctx->atlas.id;
 	break;
