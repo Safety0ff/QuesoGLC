@@ -115,6 +115,7 @@ static void __glcUnlock(void)
 
 
 
+#ifndef HAVE_TLS
 /* This function is called each time a pthread is cancelled or exits in order
  * to free its specific area
  */
@@ -131,6 +132,7 @@ static void __glcFreeThreadArea(void *keyValue)
     free(area); /* DO NOT use __glcFree() !!! */
   }
 }
+#endif /* HAVE_TLS */
 
 
 
@@ -383,7 +385,10 @@ void APIENTRY glcDeleteContext(GLint inContext)
   pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
 #endif
 
-  /* Lock the "Common Area" in order to prevent race conditions */
+  /* Lock the "Common Area" in order to prevent race conditions. Indeed, we
+   * must prevent other threads to make current the context that we are
+   * destroying.
+   */
   __glcLock();
 
   /* verify if the context exists */
@@ -445,7 +450,7 @@ void APIENTRY glcContext(GLint inContext)
 {
   char *version = NULL;
   char *extension = NULL;
-  __GLCcontext *currentState = NULL;
+  __GLCcontext *currentContext = NULL;
   __GLCcontext *ctx = NULL;
   __GLCthreadArea *area = NULL;
 
@@ -473,14 +478,14 @@ void APIENTRY glcContext(GLint inContext)
       return;
     }
 
-    /* Gets the current context state */
-    currentState = area->currentContext;
+    /* Get the current context of the issuing thread */
+    currentContext = area->currentContext;
 
     /* Check if the issuing thread is executing a callback
      * function that has been called from GLC
      */
-    if (currentState) {
-      if (currentState->isInCallbackFunc) {
+    if (currentContext) {
+      if (currentContext->isInCallbackFunc) {
 	__glcRaiseError(GLC_STATE_ERROR);
 	__glcUnlock();
 	return;
@@ -490,11 +495,13 @@ void APIENTRY glcContext(GLint inContext)
     /* Is the context already current to a thread ? */
     if (ctx->isCurrent) {
       /* If the context is current to another thread => ERROR ! */
-      if (!currentState)
+      if (!currentContext) {
 	__glcRaiseError(GLC_STATE_ERROR);
-      else
-	if (currentState->id != inContext)
+      }
+      else {
+	if (currentContext->id != inContext)
 	  __glcRaiseError(GLC_STATE_ERROR);
+      }
 
       /* If we get there, this means that the context 'inContext'
        * is already current to one thread (whether it is the issuing thread
@@ -505,8 +512,8 @@ void APIENTRY glcContext(GLint inContext)
     }
 
     /* Release old current context if any */
-    if (currentState)
-      currentState->isCurrent = GL_FALSE;
+    if (currentContext)
+      currentContext->isCurrent = GL_FALSE;
 
     /* Make the context current to the thread */
     area->currentContext = ctx;
@@ -516,33 +523,46 @@ void APIENTRY glcContext(GLint inContext)
     /* inContext is null, the current thread must release its context if any */
 
     /* Gets the current context state */
-    currentState = area->currentContext;
+    currentContext = area->currentContext;
 
-    if (currentState) {
+    if (currentContext) {
       /* Deassociate the context from the issuing thread */
       area->currentContext = NULL;
       /* Release the context */
-      currentState->isCurrent = GL_FALSE;
+      currentContext->isCurrent = GL_FALSE;
     }
   }
 
-  /* execute pending deletion if any */
-  if (currentState) {
-    if (currentState->pendingDelete) {
-      FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)currentState);
-      currentState->isInGlobalCommand = GL_TRUE;
-      __glcCtxDestroy(currentState);
+  /* Execute pending deletion if any. Here, the variable name 'currentContext'
+   * is not appropriate any more : 'currentContext' used to be the current
+   * context but it has either been replaced by another one or it has been
+   * released.
+   */
+  if (currentContext) {
+    if (currentContext->pendingDelete) {
+      FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)currentContext);
+      currentContext->isInGlobalCommand = GL_TRUE;
+      __glcCtxDestroy(currentContext);
     }
   }
 
   __glcUnlock();
 
-  /* If the current context was released then there is no need to check OpenGL
-   * extensions.
+  /* If the issuing thread has released its context then there is no point to
+   * check for OpenGL extensions.
    */
   if (!inContext)
     return;
 
+  /* Some OpenGL implementations return a void pointer if the function
+   * glGetString() is called while no GL context is bound to the current thread.
+   * However this behaviour is not required by the GL specs, so those calls may
+   * just fail or lead to weird results or even crash the app. There is nothing
+   * that we can do against that : the GLC specs make it very clear that
+   * glGetString() is called by glcContext() and the QuesoGLC docs tell that the
+   * behaviour of GLC is undefined if no GL context is current while issuing GL
+   * commands.
+   */
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
 
@@ -576,73 +596,6 @@ GLint APIENTRY glcGenContext(void)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
   }
-
-  ctx->isInGlobalCommand = GL_TRUE;
-
-  /* The environment variable GLC_PATH is an alternate way to allow QuesoGLC
-   * to access to fonts catalogs/directories.
-   */
-  /*Check if the GLC_PATH environment variable is exported */
-  if (getenv("GLC_CATALOG_LIST") || getenv("GLC_PATH")) {
-    char *path = NULL;
-    char *begin = NULL;
-    char *sepPos = NULL;
-    char *separator = NULL;
-
-    /* Read the paths of fonts file.
-     * First, try GLC_CATALOG_LIST...
-     */
-    if (getenv("GLC_CATALOG_LIST"))
-      path = strdup(getenv("GLC_CATALOG_LIST"));
-    else if (getenv("GLC_PATH")) {
-      /* Try GLC_PATH which uses the same format than PATH */
-      path = strdup(getenv("GLC_PATH"));
-    }
-
-    /* Get the list separator */
-    separator = getenv("GLC_LIST_SEPARATOR");
-    if (!separator) {
-#ifdef __WIN32__
-	/* Windows can not use a colon-separated list since the colon sign is
-	 * used after the drive letter. The semicolon is used for the PATH
-	 * variable, so we use it for consistency.
-	 */
-	separator = (char *)";";
-#else
-	/* POSIX platforms uses colon-separated lists for the paths variables
-	 * so we keep with it for consistency.
-	 */
-	separator = (char *)":";
-#endif
-    }
-
-    if (path) {
-      /* Get each path and add the corresponding masters to the current
-       * context */
-      begin = path;
-      do {
-	sepPos = (char *)__glcFindIndexList(begin, 1, separator);
-
-        if (*sepPos)
-	  *(sepPos++) = 0;
-	if (!FcStrSetAdd(ctx->catalogList, (const FcChar8*)begin))
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	if (!FcConfigAppFontAddDir(ctx->config, (const unsigned char*)begin)) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  FcStrSetDel(ctx->catalogList, (const FcChar8*)begin);
-	}
-	begin = sepPos;
-      } while (*sepPos);
-      free(path);
-      __glcUpdateHashTable(ctx);
-    }
-    else {
-      /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-    }
-  }
-
-  ctx->isInGlobalCommand = GL_FALSE;
 
   /* Lock the "Common Area" in order to prevent race conditions */
   __glcLock();

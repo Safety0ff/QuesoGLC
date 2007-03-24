@@ -256,6 +256,69 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
   This->atlasHeight = 0;
   This->atlasCount = 0;
 
+  /* The environment variable GLC_PATH is an alternate way to allow QuesoGLC
+   * to access to fonts catalogs/directories.
+   */
+  /*Check if the GLC_PATH environment variables are exported */
+  if (getenv("GLC_CATALOG_LIST") || getenv("GLC_PATH")) {
+    char *path = NULL;
+    char *begin = NULL;
+    char *sepPos = NULL;
+    char *separator = NULL;
+
+    /* Read the paths of fonts file.
+     * First, try GLC_CATALOG_LIST...
+     */
+    if (getenv("GLC_CATALOG_LIST"))
+      path = strdup(getenv("GLC_CATALOG_LIST"));
+    else if (getenv("GLC_PATH")) {
+      /* Try GLC_PATH which uses the same format than PATH */
+      path = strdup(getenv("GLC_PATH"));
+    }
+
+    /* Get the list separator */
+    separator = getenv("GLC_LIST_SEPARATOR");
+    if (!separator) {
+#ifdef __WIN32__
+	/* Windows can not use a colon-separated list since the colon sign is
+	 * used after the drive letter. The semicolon is used for the PATH
+	 * variable, so we use it for consistency.
+	 */
+	separator = (char *)";";
+#else
+	/* POSIX platforms uses colon-separated lists for the paths variables
+	 * so we keep with it for consistency.
+	 */
+	separator = (char *)":";
+#endif
+    }
+
+    if (path) {
+      /* Get each path and add the corresponding masters to the current
+       * context */
+      begin = path;
+      do {
+	sepPos = (char *)__glcFindIndexList(begin, 1, separator);
+
+        if (*sepPos)
+	  *(sepPos++) = 0;
+	if (!FcStrSetAdd(This->catalogList, (const FcChar8*)begin))
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)begin)) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  FcStrSetDel(This->catalogList, (const FcChar8*)begin);
+	}
+	begin = sepPos;
+      } while (*sepPos);
+      free(path);
+      __glcUpdateHashTable(This);
+    }
+    else {
+      /* strdup has failed to allocate memory to duplicate GLC_PATH => ERROR */
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+    }
+  }
+
   return This;
 }
 
@@ -549,8 +612,9 @@ GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize)
   buffer = This->buffer;
   if (inSize > This->bufferSize) {
     buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);
-    if (!buffer)
+    if (!buffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
+    }
     else {
       This->buffer = buffer;
       This->bufferSize = inSize;
