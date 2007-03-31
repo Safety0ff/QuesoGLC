@@ -397,8 +397,10 @@ void APIENTRY glcRenderChar(GLint inCode)
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -470,6 +472,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
 
+  GLC_INIT_THREAD();
+
   /* Check if inCount is positive */
   if (inCount < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -477,7 +481,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   }
 
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -555,8 +559,10 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -648,6 +654,8 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if inStyle has a legal value */
   switch(inStyle) {
   case GLC_BITMAP:
@@ -661,7 +669,7 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
   }
 
   /* Check if the current thread owns a current state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -685,10 +693,13 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
  */
 void APIENTRY glcReplacementCode(GLint inCode)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
   GLint code = 0;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a current state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -718,9 +729,12 @@ void APIENTRY glcReplacementCode(GLint inCode)
  */
 void APIENTRY glcResolution(GLfloat inVal)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Check if the current thread owns a current state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;

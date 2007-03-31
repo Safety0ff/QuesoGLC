@@ -38,6 +38,8 @@
 __GLCcommonArea __glcCommonArea;
 #ifdef HAVE_TLS
 __thread __GLCthreadArea __glcTlsThreadArea;
+#else
+__GLCthreadArea* __glcThreadArea = NULL;
 #endif
 
 

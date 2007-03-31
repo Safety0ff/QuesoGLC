@@ -175,10 +175,14 @@ struct __GLCcommonAreaRec {
 				   area */
 #ifndef HAVE_TLS
   pthread_key_t threadKey;
+  pthread_t threadID;
+  pthread_once_t __glcInitThreadOnce;
 #endif /* HAVE_TLS */
 #else /* __WIN32__ */
   CRITICAL_SECTION section;
   DWORD threadKey;
+  DWORD threadID;
+  LONG __glcInitThreadOnce;
 #endif
 
   /* Evil hack : we use the FT_MemoryRec_ structure definition which is
@@ -193,10 +197,8 @@ extern __GLCcommonArea __glcCommonArea;
 #ifdef HAVE_TLS
 extern __thread __GLCthreadArea __glcTlsThreadArea
     __attribute__((tls_model("initial-exec")));
-#endif
-
-#ifdef QUESOGLC_STATIC_LIBRARY
-extern pthread_once_t initLibraryOnce;
+#else
+extern __GLCthreadArea* __glcThreadArea;
 #endif
 
 __GLCcontext* __glcCtxCreate(GLint inContext);

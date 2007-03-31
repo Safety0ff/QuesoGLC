@@ -65,8 +65,10 @@ void APIENTRY glcLoadIdentity(void)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -95,10 +97,12 @@ void APIENTRY glcLoadMatrix(const GLfloat *inMatrix)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   assert(inMatrix);
 
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -126,10 +130,12 @@ void APIENTRY glcMultMatrix(const GLfloat *inMatrix)
   __GLCcontext *ctx = NULL;
   GLfloat tempMatrix[4];
 
+  GLC_INIT_THREAD();
+
   assert(inMatrix);
 
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -230,8 +236,10 @@ void APIENTRY glcPushMatrixQSO(void)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -264,8 +272,10 @@ void APIENTRY glcPopMatrixQSO(void)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;

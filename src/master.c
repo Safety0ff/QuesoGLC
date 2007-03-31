@@ -67,7 +67,7 @@
  */
 FcPattern* __glcVerifyMasterParameters(GLint inMaster)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Check if the current thread owns a context state */
   if (!ctx) {
@@ -169,7 +169,7 @@ static __GLCcharMap* __glcGetMasterCharMap(FcFontSet* inFontSet)
 const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 				 GLint inIndex)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
   FcPattern *pattern = NULL;
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
@@ -177,6 +177,8 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   FcResult result = FcResultMatch;
   FcChar8* string = NULL;
   GLCchar* element = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Check some parameter.
    * NOTE : the verification of some parameters needs to get the current
@@ -204,6 +206,8 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   pattern = __glcVerifyMasterParameters(inMaster);
   if (!pattern)
     return GLC_NONE;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   objectSet = FcObjectSetBuild(FC_STYLE, FC_CHARSET, NULL);
   if (!objectSet) {
@@ -294,15 +298,18 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
  */
 const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
 {
-  FcPattern *pattern = __glcVerifyMasterParameters(inMaster);
-  __GLCcontext *ctx = __glcGetCurrent();
-  GLint code = 0;
+  FcPattern *pattern = NULL;
 
+  GLC_INIT_THREAD();
+
+  pattern = __glcVerifyMasterParameters(inMaster);
   if (pattern) {
+    __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
     FcObjectSet* objectSet = NULL;
     FcFontSet *fontSet = NULL;
     __GLCcharMap* charMap = NULL;
     GLCchar* result = NULL;
+    GLint code = 0;
 
     objectSet = FcObjectSetBuild(FC_STYLE, FC_CHARSET, NULL);
     if (!objectSet) {
@@ -404,11 +411,13 @@ static FcChar8* __glcGetMasterInfoJustInTime(FcPattern* inPattern,
  */
 const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
   GLCchar *buffer = NULL;
   FcChar8* s = NULL;
   FcPattern* pattern = NULL;
   FcResult result = FcResultMatch;
+
+  GLC_INIT_THREAD();
 
   /* Check parameter inAttrib */
   switch(inAttrib) {
@@ -429,6 +438,8 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
   pattern = __glcVerifyMasterParameters(inMaster);
   if (!pattern)
     return GLC_NONE;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Get the Unicode string which corresponds to the requested attribute */
   switch(inAttrib) {
@@ -515,6 +526,8 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   __GLCcharMap* charMap = NULL;
   __GLCcontext* ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check parameter inAttrib */
   switch(inAttrib) {
   case GLC_CHAR_COUNT:
@@ -531,7 +544,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
    */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   pattern = __glcVerifyMasterParameters(inMaster);
   if (!pattern)
     return GLC_NONE;
@@ -626,6 +639,8 @@ void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
   __GLCcontext *ctx = NULL;
   struct stat dirStat;
 
+  GLC_INIT_THREAD();
+
   /* If inCatalog is NULL then there is no point in continuing */
   if (!inCatalog)
     return;
@@ -655,7 +670,7 @@ void APIENTRY glcAppendCatalog(const GLCchar* inCatalog)
   }
 
   /* Verify that the thread owns a context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -691,6 +706,8 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
   FcChar8* catalog = NULL;
   struct stat dirStat;
 
+  GLC_INIT_THREAD();
+
   /* If inCatalog is NULL then there is no point in continuing */
   if (!inCatalog)
     return;
@@ -720,7 +737,7 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
   }
 
   /* Verify that the thread owns a context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -787,8 +804,10 @@ void APIENTRY glcRemoveCatalog(GLint inIndex)
   FcStrSet* newCatalog = NULL;
   FT_ListNode node = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Verify that the thread owns a context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;

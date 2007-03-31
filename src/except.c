@@ -63,7 +63,7 @@ jmp_buf* __glcExceptionCreateContext(void)
   __GLCthreadArea *area = NULL;
   __GLCexceptContext *xContext = NULL;
  
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   xContext = (__GLCexceptContext*)malloc(sizeof(__GLCexceptContext));
@@ -87,7 +87,7 @@ void __glcExceptionReleaseContext(void)
   __GLCthreadArea *area = NULL;
   __GLCexceptContext *xContext = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   xContext = (__GLCexceptContext*)area->exceptionStack.tail;
@@ -109,7 +109,7 @@ void __glcExceptionPush(void (*destructor)(void*), void *data)
   __GLCexceptContext *xContext = NULL;
   __GLCcleanupStackNode *stackNode = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   xContext = (__GLCexceptContext*)area->exceptionStack.tail;
@@ -137,7 +137,7 @@ void __glcExceptionPop(int destroy)
   __GLCexceptContext *xContext = NULL;
   __GLCcleanupStackNode *stackNode = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   xContext = (__GLCexceptContext*)area->exceptionStack.tail;
@@ -167,7 +167,7 @@ void __glcExceptionUnwind(int destroy)
   FT_ListNode next = NULL;
   __GLCcleanupStackNode *stackNode = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   xContext = (__GLCexceptContext*)area->exceptionStack.tail;
@@ -198,7 +198,7 @@ jmp_buf* __glcExceptionThrow(__glcException exception)
   __GLCthreadArea *area = NULL;
   __GLCexceptContext *xContext = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   xContext = (__GLCexceptContext*)area->exceptionStack.tail;
@@ -216,7 +216,7 @@ __glcException __glcExceptionCatch(void)
   __GLCthreadArea *area = NULL;
   __GLCexceptContext *xContext = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   if (area->failedTry) {

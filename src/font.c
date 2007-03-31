@@ -75,7 +75,7 @@
  */
 __GLCfont* __glcVerifyFontParameters(GLint inFont)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
   FT_ListNode node = NULL;
   __GLCfont *font = NULL;
 
@@ -147,14 +147,19 @@ void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont)
  */
 void APIENTRY glcAppendFont(GLint inFont)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
-  __GLCfont *font = __glcVerifyFontParameters(inFont);
+  __GLCcontext *ctx = NULL;
+  __GLCfont *font = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Verify that the thread has a current context and that the font identified
    * by 'inFont' exists.
    */
+  font = __glcVerifyFontParameters(inFont);
   if (!font)
     return;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Check if inFont is already an element of GLC_CURRENT_FONT_LIST */
   if (FT_List_Find(&ctx->currentFontList, font)) {
@@ -208,15 +213,20 @@ static void __glcDeleteFont(__GLCfont* font, __GLCcontext* inContext)
  */
 void APIENTRY glcDeleteFont(GLint inFont)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
-  __GLCfont *font = __glcVerifyFontParameters(inFont);
+  __GLCcontext *ctx = NULL;
+  __GLCfont *font = NULL;
   FT_ListNode node = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Verify that the thread has a current context and that the font identified
    * by 'inFont' exists.
    */
+  font = __glcVerifyFontParameters(inFont);
   if (!font)
     return;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* remove the font from the GLC_FONT_LIST then destroy it */
   node = FT_List_Find(&ctx->fontList, font);
@@ -259,9 +269,12 @@ static void __glcCloseFace(FT_Memory inMemory, void* data, void* user)
  */
 void APIENTRY glcFont(GLint inFont)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Verify if the current thread owns a context state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -367,6 +380,8 @@ GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
   FcCharSet* charSet = NULL;
   __GLCcharMap* newCharMap = NULL;
 
+  GLC_INIT_THREAD();
+
   /* TODO : Verify if the font has already the required face activated */
 
   pattern = __glcGetPatternFromMasterID(inFont->parentMasterID, inContext);
@@ -460,13 +475,16 @@ GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
  */
 GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
   FcChar8* UinFace = NULL;
   __GLCfont* font = NULL;
+
+  GLC_INIT_THREAD();
 
   assert(inFace);
 
   /* Check if the current thread owns a context state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GL_FALSE;
@@ -568,12 +586,16 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
 {
   __GLCfont *font = NULL;
   GLint code = 0;
-  __GLCcontext* ctx = __glcGetCurrent();
+  __GLCcontext* ctx = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
   if (!font)
     return;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(ctx, inCode);
@@ -635,8 +657,10 @@ GLint APIENTRY glcGenFontID(void)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
@@ -679,11 +703,14 @@ GLint APIENTRY glcGenFontID(void)
  */
 const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
 {
-  __GLCfont *font = __glcVerifyFontParameters(inFont);
+  __GLCfont *font = NULL;
 
+  GLC_INIT_THREAD();
+
+  font = __glcVerifyFontParameters(inFont);
   if (font) {
     GLCchar *buffer = NULL;
-    __GLCcontext *ctx = __glcGetCurrent();
+    __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
 
     /* Convert the string name of the face into the current string type */
     buffer = __glcConvertFromUtf8ToBuffer(ctx, font->faceDesc->styleName,
@@ -748,11 +775,17 @@ const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
 const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib,
 					GLint inIndex)
 {
-  __GLCfont* font = __glcVerifyFontParameters(inFont);
-  __GLCcontext* ctx = __glcGetCurrent();
+  __GLCfont* font = NULL;
+  __GLCcontext* ctx = NULL;
 
+  GLC_INIT_THREAD();
+
+  /* Check if the font parameters are valid */
+  font = __glcVerifyFontParameters(inFont);
   if (!font)
-    return GLC_NONE;
+    return;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   switch(inAttrib) {
   case GLC_FACE_LIST:
@@ -789,20 +822,25 @@ const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib,
  */
 const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
 {
-  __GLCfont *font = __glcVerifyFontParameters(inFont);
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCfont *font = NULL;
+  __GLCcontext *ctx = NULL;
   GLint code = 0;
 
-  if (font) {
-    /* Get the character code converted to the UCS-4 format */
-    code = __glcConvertGLintToUcs4(ctx, inCode);
-    if (code < 0)
-      return GLC_NONE;
+  GLC_INIT_THREAD();
 
-    return __glcCharMapGetCharName(font->charMap, code, ctx);
-  }
-  else
+  /* Check if the font parameters are valid */
+  font = __glcVerifyFontParameters(inFont);
+  if (!font)
     return GLC_NONE;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
+
+  /* Get the character code converted to the UCS-4 format */
+  code = __glcConvertGLintToUcs4(ctx, inCode);
+  if (code < 0)
+    return GLC_NONE;
+
+  return __glcCharMapGetCharName(font->charMap, code, ctx);
 }
 
 
@@ -843,8 +881,12 @@ const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
  */
 const GLCchar* APIENTRY glcGetFontc(GLint inFont, GLCenum inAttrib)
 {
-  __GLCfont *font = __glcVerifyFontParameters(inFont);
+  __GLCfont *font = NULL;
 
+  GLC_INIT_THREAD();
+
+  /* Check if the font parameters are valid */
+  font = __glcVerifyFontParameters(inFont);
   if (font)
     /* Those are master attributes so we call the equivalent master function */
     return glcGetMasterc(font->parentMasterID, inAttrib);
@@ -891,8 +933,12 @@ const GLCchar* APIENTRY glcGetFontc(GLint inFont, GLCenum inAttrib)
  */
 GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
 {
-  __GLCfont *font = __glcVerifyFontParameters(inFont);
+  __GLCfont *font = NULL;
 
+  GLC_INIT_THREAD();
+
+  /* Check if the font parameters are valid */
+  font = __glcVerifyFontParameters(inFont);
   if (!font)
     return 0;
 
@@ -927,10 +973,13 @@ GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
  */
 GLboolean APIENTRY glcIsFont(GLint inFont)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
+  __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GL_FALSE;
@@ -957,6 +1006,8 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 {
   FT_ListNode node = NULL;
   __GLCfont* font = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Create a new entry for GLC_FONT_LIST */
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
@@ -1005,16 +1056,21 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
  */
 GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
-  __GLCcontext *ctx = __glcGetCurrent();
-  FcPattern *pattern = __glcVerifyMasterParameters(inMaster);
+  __GLCcontext *ctx = NULL;
+  FcPattern *pattern = NULL;
   __GLCfont *font = NULL;
   FT_ListNode node = NULL;
+
+  GLC_INIT_THREAD();
 
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
    */
+  pattern = __glcVerifyMasterParameters(inMaster);
   if (!pattern)
     return 0;
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Check if inFont is in legal bounds */
   if (inFont < 1) {
@@ -1074,6 +1130,8 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   __GLCfont *font = NULL;
   FT_ListNode node = NULL;
 
+  GLC_INIT_THREAD();
+
   assert(inFamily);
 
   /* Check if inFont is in legal bounds */
@@ -1083,7 +1141,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
   }
 
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;

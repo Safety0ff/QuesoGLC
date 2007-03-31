@@ -61,10 +61,6 @@
 #include <stdlib.h>
 #include FT_LIST_H
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-pthread_once_t __glcInitLibraryOnce = PTHREAD_ONCE_INIT;
-#endif
-
 
 
 /* Since the common area can be accessed by any thread, this function should
@@ -78,7 +74,7 @@ static void __glcLock(void)
 {
   __GLCthreadArea *area = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   if (!area->lockState)
@@ -101,7 +97,7 @@ static void __glcUnlock(void)
 {
   __GLCthreadArea *area = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   area->lockState--;
@@ -115,7 +111,7 @@ static void __glcUnlock(void)
 
 
 
-#ifndef HAVE_TLS
+#if !defined(HAVE_TLS) && !defined(__WIN32__)
 /* This function is called each time a pthread is cancelled or exits in order
  * to free its specific area
  */
@@ -132,20 +128,16 @@ static void __glcFreeThreadArea(void *keyValue)
     free(area); /* DO NOT use __glcFree() !!! */
   }
 }
-#endif /* HAVE_TLS */
+#endif /* !HAVE_TLS && !__WIN32__ */
 
 
 
 /* This function is called when QuesoGLC is no longer needed.
  */
-#ifdef QUESOGLC_STATIC_LIBRARY
-static void __glcExitLibrary(void)
-#else
 #ifdef __GNUC__
 __attribute__((destructor)) void fini(void)
 #else
 void _fini(void)
-#endif
 #endif
 {
   FT_ListNode node = NULL;
@@ -212,14 +204,10 @@ static void* __glcReallocFunc(FT_Memory GLC_UNUSED_ARG(inMemory),
 /* This function is called before any function of QuesoGLC
  * is used. It reserves memory and initialiazes the library, hence the name.
  */
-#ifdef QUESOGLC_STATIC_LIBRARY
-static void __glcInitLibrary(void)
-#else
 #ifdef __GNUC__
 __attribute__((constructor)) void init(void)
 #else
 void _init(void)
-#endif
 #endif
 {
   /* Initialize fontconfig */
@@ -234,9 +222,11 @@ void _init(void)
   __glcCommonArea.threadKey = TlsAlloc();
   if (__glcCommonArea.threadKey == 0xffffffff)
     goto FatalError;
+  __glcCommonArea.__glcInitThreadOnce = 0;
 #elif !defined(HAVE_TLS)
   if (pthread_key_create(&__glcCommonArea.threadKey, __glcFreeThreadArea))
     goto FatalError;
+  __glcCommonArea.__glcInitThreadOnce = PTHREAD_ONCE_INIT;
 #endif
 
   __glcCommonArea.memoryManager.user = NULL;
@@ -256,9 +246,6 @@ void _init(void)
     goto FatalError;
 #endif
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  atexit(__glcExitLibrary);
-#endif
   return;
 
  FatalError:
@@ -317,9 +304,7 @@ static __GLCcontext* __glcGetContext(GLint inContext)
  */
 GLboolean APIENTRY glcIsContext(GLint inContext)
 {
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
+  GLC_INIT_THREAD();
 
   return (__glcGetContext(inContext) ? GL_TRUE : GL_FALSE);
 }
@@ -339,11 +324,9 @@ GLint APIENTRY glcGetCurrentContext(void)
 {
   __GLCcontext *ctx = NULL;
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
+  GLC_INIT_THREAD();
 
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx)
     return 0;
   else
@@ -381,9 +364,7 @@ void APIENTRY glcDeleteContext(GLint inContext)
 {
   __GLCcontext *ctx = NULL;
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
+  GLC_INIT_THREAD();
 
   /* Lock the "Common Area" in order to prevent race conditions. Indeed, we
    * must prevent other threads to make current the context that we are
@@ -454,15 +435,14 @@ void APIENTRY glcContext(GLint inContext)
   __GLCcontext *ctx = NULL;
   __GLCthreadArea *area = NULL;
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
+  GLC_INIT_THREAD();
+
   if (inContext < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   /* Lock the "Common Area" in order to prevent race conditions */
@@ -557,11 +537,11 @@ void APIENTRY glcContext(GLint inContext)
   /* Some OpenGL implementations return a void pointer if the function
    * glGetString() is called while no GL context is bound to the current thread.
    * However this behaviour is not required by the GL specs, so those calls may
-   * just fail or lead to weird results or even crash the app. There is nothing
-   * that we can do against that : the GLC specs make it very clear that
-   * glGetString() is called by glcContext() and the QuesoGLC docs tell that the
-   * behaviour of GLC is undefined if no GL context is current while issuing GL
-   * commands.
+   * just fail or lead to weird results or even crash the app (Mac OSX). There
+   * is nothing that we can do against that : the GLC specs make it very clear
+   * that glGetString() is called by glcContext() and the QuesoGLC docs tell
+   * that the behaviour of GLC is undefined if no GL context is current while
+   * issuing GL commands.
    */
   version = (char *)glGetString(GL_VERSION);
   extension = (char *)glGetString(GL_EXTENSIONS);
@@ -586,9 +566,7 @@ GLint APIENTRY glcGenContext(void)
   __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
+  GLC_INIT_THREAD();
 
   /* Create a new context */
   ctx = __glcCtxCreate(0);
@@ -637,9 +615,7 @@ GLint* APIENTRY glcGetAllContexts(void)
   GLint* contextArray = NULL;
   FT_ListNode node = NULL;
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
+  GLC_INIT_THREAD();
 
   /* Count the number of existing contexts (whether they are current to a
    * thread or not).
@@ -703,10 +679,9 @@ GLCenum APIENTRY glcGetError(void)
   GLCenum error = GLC_NONE;
   __GLCthreadArea * area = NULL;
 
-#ifdef QUESOGLC_STATIC_LIBRARY
-  pthread_once(&__glcInitLibraryOnce, __glcInitLibrary);
-#endif
-  area = __glcGetThreadArea();
+  GLC_INIT_THREAD();
+
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   error = area->errorState;

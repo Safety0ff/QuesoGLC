@@ -83,6 +83,8 @@ void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check parameters */
   if (inOpcode != GLC_OP_glcUnmappedCode) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -90,7 +92,7 @@ void APIENTRY glcCallbackFunc(GLCenum inOpcode, GLCfunc inFunc)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -117,8 +119,10 @@ void APIENTRY glcDataPointer(GLvoid *inPointer)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -150,8 +154,10 @@ void APIENTRY glcDeleteGLObjects(void)
   __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -205,7 +211,7 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -289,6 +295,8 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
  */
 void APIENTRY glcDisable(GLCenum inAttrib)
 {
+  GLC_INIT_THREAD();
+
   __glcChangeState(inAttrib, GL_FALSE);
 }
 
@@ -322,6 +330,8 @@ void APIENTRY glcDisable(GLCenum inAttrib)
  */
 void APIENTRY glcEnable(GLCenum inAttrib)
 {
+  GLC_INIT_THREAD();
+
   __glcChangeState(inAttrib, GL_TRUE);
 }
 
@@ -340,6 +350,8 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   if (inOpcode != GLC_OP_glcUnmappedCode) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -347,7 +359,7 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
@@ -397,6 +409,8 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
   GLCchar* buffer = NULL;
   int length = 0;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   if (inAttrib != GLC_CATALOG_LIST) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -415,7 +429,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
@@ -519,6 +533,8 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
   __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check parameters */
   switch(inAttrib) {
   case GLC_CURRENT_FONT_LIST:
@@ -543,7 +559,7 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
@@ -654,6 +670,8 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameter */
   if (inAttrib != GLC_DATA_POINTER) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -661,7 +679,7 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
@@ -713,6 +731,8 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
@@ -725,7 +745,7 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
@@ -774,6 +794,8 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameter */
   if (inAttrib != GLC_RESOLUTION) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -781,7 +803,7 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0.f;
@@ -821,6 +843,8 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   assert(outVec);
 
   /* Check the parameters */
@@ -830,7 +854,7 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
@@ -931,6 +955,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   FcStrList* iterator = NULL;
   FcChar8* catalog = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
@@ -956,7 +982,7 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GLC_NONE;
@@ -1045,6 +1071,8 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   switch(inAttrib) {
   case GLC_AUTO_FONT:
@@ -1060,7 +1088,7 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return GL_FALSE;
@@ -1143,6 +1171,8 @@ void APIENTRY glcStringType(GLCenum inStringType)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   switch(inStringType) {
   case GLC_UCS1:
@@ -1156,7 +1186,7 @@ void APIENTRY glcStringType(GLCenum inStringType)
   }
 
   /* Check if the thread has a current context */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -1294,8 +1324,10 @@ void APIENTRY glcPushAttribQSO(GLbitfield inMask)
   __GLCcontext *ctx = NULL;
   __GLCattribStackLevel *level = NULL;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;
@@ -1349,8 +1381,10 @@ void APIENTRY glcPopAttribQSO(void)
   __GLCattribStackLevel *level = NULL;
   GLbitfield mask;
 
+  GLC_INIT_THREAD();
+
   /* Check if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return;

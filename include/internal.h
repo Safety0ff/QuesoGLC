@@ -52,6 +52,49 @@
 # define GLC_UNUSED_ARG(_arg) GLC_UNUSED_ ## _arg
 #endif
 
+/* Definition of the GLC_INIT_THREAD macro : it is some sort of an equivalent to
+ * XInitThreads(). It allows to get rid of pthread_get_specific()/TlsGetValue()
+ * when only one thread is used and to fallback to the usual thread management
+ * if more than one thread is used.
+ * If Thread Local Storage is used the macro does nothing.
+ */
+#ifdef __WIN32__
+# define GLC_INIT_THREAD() \
+  if (!InterlockedCompareExchange(&__glcCommonArea.__glcInitThreadOnce, 1, 0)) \
+    __glcInitThread();
+#elif !defined(HAVE_TLS)
+# define GLC_INIT_THREAD() \
+  pthread_once(&__glcCommonArea.__glcInitThreadOnce, __glcInitThread);
+#else
+#define GLC_INIT_THREAD()
+#endif
+
+/* Definition of the GLC_GET_THREAD_AREA macro */
+#ifdef __WIN32__
+# define GLC_GET_THREAD_AREA() \
+  (((__glcCommonArea.threadID == GetCurrentThreadId()) && __glcThreadArea) ? \
+    __glcThreadArea : __glcGetThreadArea())
+#elif !defined(HAVE_TLS)
+# define GLC_GET_THREAD_AREA() \
+  ((pthread_equal(__glcCommonArea.threadID, pthread_self()) && __glcThreadArea) ? \
+    __glcThreadArea : __glcGetThreadArea())
+#else
+# define GLC_GET_THREAD_AREA() &__glcTlsThreadArea
+#endif
+
+/* Definition of the GLC_GET_CURRENT_CONTEXT macro */
+#ifdef __WIN32__
+# define GLC_GET_CURRENT_CONTEXT() \
+  (((__glcCommonArea.threadID == GetCurrentThreadId()) && __glcThreadArea) ? \
+    __glcThreadArea->currentContext : __glcGetCurrent())
+#elif !defined(HAVE_TLS)
+# define GLC_GET_CURRENT_CONTEXT() \
+  ((pthread_equal(__glcCommonArea.threadID, pthread_self()) && __glcThreadArea) ? \
+    __glcThreadArea->currentContext : __glcGetCurrent())
+#else
+#define GLC_GET_CURRENT_CONTEXT() __glcTlsThreadArea.currentContext
+#endif
+
 typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
 typedef struct __GLCgeomBatchRec __GLCgeomBatch;
 typedef struct __GLCcharacterRec __GLCcharacter;
@@ -192,15 +235,13 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
 			__GLCcontext *inContext);
 
+#ifndef HAVE_TLS
 /* Return a struct which contains thread specific info. If the platform supports
  * pointers for thread-local storage (TLS) then __glcGetThreadArea is replaced
  * by a macro that returns a thread-local pointer. Otherwise, a function is
  * called to return the structure using pthread_get_specific (POSIX) or
  * TlsGetValue (WIN32) which are much slower.
  */
-#ifdef HAVE_TLS
-#define __glcGetThreadArea() &__glcTlsThreadArea;
-#else
 __GLCthreadArea* __glcGetThreadArea(void);
 #endif
 
@@ -215,12 +256,10 @@ if (!__glcTlsThreadArea.errorState || ! (inError)) \
 void __glcRaiseError(GLCenum inError);
 #endif
 
+#ifndef HAVE_TLS
 /* Return the current context state.
  * See also remarks above about TLS pointers.
  */
-#ifdef HAVE_TLS
-#define __glcGetCurrent() __glcTlsThreadArea.currentContext
-#else
 __GLCcontext* __glcGetCurrent(void);
 #endif
 
@@ -286,4 +325,12 @@ void __glcUpdateHashTable(__GLCcontext *inContext);
 
 /* Function for GLEW so that it can get a context */
 GLEWContext* glewGetContext(void);
+
+#ifndef HAVE_TLS
+/* This function initializes the thread management of QuesoGLC when TLS is not
+ * available. It must be called once (see the macro GLC_INIT_THREAD)
+ */
+void __glcInitThread(void);
+#endif
+
 #endif /* __glc_internal_h */

@@ -90,28 +90,34 @@ __GLCthreadArea* __glcGetThreadArea(void)
 #else
   area = (__GLCthreadArea*)pthread_getspecific(__glcCommonArea.threadKey);
 #endif
+  if (area)
+    return area;
 
-  if (!area) {
-    area = (__GLCthreadArea*)malloc(sizeof(__GLCthreadArea));
-    if (!area)
-      return NULL;
+  area = (__GLCthreadArea*)malloc(sizeof(__GLCthreadArea));
+  if (!area)
+    return NULL;
 
-    area->currentContext = NULL;
-    area->errorState = GLC_NONE;
-    area->lockState = 0;
-    area->exceptionStack.head = NULL;
-    area->exceptionStack.tail = NULL;
-    area->failedTry = GLC_NO_EXC;
+  area->currentContext = NULL;
+  area->errorState = GLC_NONE;
+  area->lockState = 0;
+  area->exceptionStack.head = NULL;
+  area->exceptionStack.tail = NULL;
+  area->failedTry = GLC_NO_EXC;
 #ifdef __WIN32__
-    if (!TlsSetValue(__glcCommonArea.threadKey, (LPVOID)area)) {
-      free(area);
-      return NULL;
-    }
-#else
-    pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
-#endif
+  if (!TlsSetValue(__glcCommonArea.threadKey, (LPVOID)area)) {
+    free(area);
+    return NULL;
   }
+#else
+  pthread_setspecific(__glcCommonArea.threadKey, (void*)area);
+#endif
 
+#ifdef __WIN32__
+  if (__glcCommonArea.threadID == GetCurrentThreadId())
+#else
+  if (pthread_equal(__glcCommonArea.threadID, pthread_self()))
+#endif
+    __glcThreadArea = area;
   return area;
 }
 #endif /* HAVE_TLS */
@@ -127,7 +133,7 @@ void __glcRaiseError(GLCenum inError)
   GLCenum error = GLC_NONE;
   __GLCthreadArea *area = NULL;
 
-  area = __glcGetThreadArea();
+  area = GLC_GET_THREAD_AREA();
   assert(area);
 
   /* An error can only be raised if the current error value is GLC_NONE.
@@ -148,7 +154,7 @@ __GLCcontext* __glcGetCurrent(void)
 {
   __GLCthreadArea *area = NULL;
 
-  area = __glcGetThreadArea();
+  area = __glcGetThreadArea(); /* Don't use GLC_GET_THREAD_AREA */
   assert(area);
 
   return area->currentContext;
@@ -742,7 +748,7 @@ void __glcCreateHashTable(__GLCcontext* inContext)
 /* Function for GLEW so that it can get a context */
 GLEWContext* glewGetContext(void)
 {
-  __GLCcontext* ctx = __glcGetCurrent();
+  __GLCcontext* ctx = GLC_GET_CURRENT_CONTEXT();
 
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
@@ -751,3 +757,18 @@ GLEWContext* glewGetContext(void)
 
   return &ctx->glewContext;
 }
+
+
+
+/* This function initializes the thread management of QuesoGLC when TLS is not
+ * available. It must be called once (see the macro GLC_INIT_THREAD)
+ */
+#ifndef HAVE_TLS
+void __glcInitThread(void) {
+#ifdef __WIN32__
+  __glcCommonArea.threadID = GetCurrentThreadId();
+#else
+  __glcCommonArea.threadID = pthread_self();
+#endif /* __WIN32__ */
+}
+#endif /* HAVE_TLS */

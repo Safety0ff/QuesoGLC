@@ -237,6 +237,8 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   GLfloat vector[14];
   __GLCcharacter prevCode = { 0, NULL };
 
+  GLC_INIT_THREAD();
+
   assert(outVec);
 
   switch(inMetric) {
@@ -249,7 +251,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   }
 
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
@@ -312,6 +314,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   GLfloat advance_x = 0., advance_y = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
   FT_ListNode node = NULL;
 
+  GLC_INIT_THREAD();
+
   assert(outVec);
 
   /* Check the parameters */
@@ -325,7 +329,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   }
 
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
@@ -440,6 +444,8 @@ GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
   __GLCcontext *ctx = NULL;
   GLfloat (*measurementBuffer)[12] = NULL;
 
+  GLC_INIT_THREAD();
+
   assert(outVec);
 
   /* Check the parameters */
@@ -453,7 +459,7 @@ GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
   }
 
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
@@ -508,6 +514,8 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
 {
   __GLCcontext *ctx = NULL;
 
+  GLC_INIT_THREAD();
+
   assert(outVec);
 
   /* Check the parameters */
@@ -521,7 +529,7 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
   }
 
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return NULL;
@@ -686,6 +694,8 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   FcChar32* UinString = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
+  GLC_INIT_THREAD();
+
   /* Check the parameters */
   if (inCount < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -693,7 +703,7 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   }
 
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
@@ -745,8 +755,10 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   FcChar32* ucs4 = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
+  GLC_INIT_THREAD();
+
   /* Verify if the current thread owns a context state */
-  ctx = __glcGetCurrent();
+  ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
