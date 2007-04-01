@@ -32,10 +32,10 @@ typedef struct __GLCfaceDescriptorRec __GLCfaceDescriptor;
 
 struct __GLCfaceDescriptorRec {
   FT_ListNodeRec node;
-  FcChar8* styleName;
+  GLCchar8* styleName;
   GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
-  FcChar8* fileName;
-  FT_Long indexInFile;
+  GLCchar8* fileName;
+  GLClong indexInFile;
 #ifndef FT_CACHE_H
   FT_Face face;
   int faceRefCount;
@@ -44,10 +44,10 @@ struct __GLCfaceDescriptorRec {
 };
 
 
-__GLCfaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
+__GLCfaceDescriptor* __glcFaceDescCreate(GLCchar8* inStyleName,
 					 GLboolean inIsFixedPitch,
-					 FcChar8* inFileName,
-					 FT_Long inIndexInFile);
+					 GLCchar8* inFileName,
+					 GLClong inIndexInFile);
 void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
 #ifndef FT_CACHE_H
@@ -59,24 +59,24 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
 				  __GLCcontext* inContext);
 FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
 			       __GLCcontext* inContext, GLfloat inScaleX,
-			       GLfloat inScaleY, FT_ULong inGlyphIndex);
+			       GLfloat inScaleY, GLCulong inGlyphIndex);
 void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
 				   __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
-				     FT_ULong inGlyphIndex, GLfloat* outVec,
+				     GLCulong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,
 				     __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
-				 FT_ULong inGlyphIndex, GLfloat* outVec,
+				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext);
-FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
+GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 				    __GLCcontext* inContext,
 				    GLCenum inAttrib);
 GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
 				   __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
-				 FT_UInt inGlyphIndex, FT_UInt inPrevGlyphIndex,
+				 GLCuint inGlyphIndex, GLCuint inPrevGlyphIndex,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 GLfloat* outVec, __GLCcontext* inContext);
 #endif /* __glc_ofacedesc_h */

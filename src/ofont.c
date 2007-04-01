@@ -37,8 +37,8 @@ __GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
 {
   __GLCfont *This = NULL;
   int i = 0;
-  FcChar32 hashValue = FcPatternHash(inPattern);
-  FcChar32* hashTable = NULL;
+  GLCchar32 hashValue = FcPatternHash(inPattern);
+  GLCchar32* hashTable = NULL;
   FcCharSet* charSet = NULL;
   FcResult result = FcResultMatch;
 
@@ -71,7 +71,7 @@ __GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
     return NULL;
   }
 
-  hashTable = (FcChar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
+  hashTable = (GLCchar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
 
   for (i = 0; i < GLC_ARRAY_LENGTH(inContext->masterHashTable); i++) {
     if (hashValue == hashTable[i])

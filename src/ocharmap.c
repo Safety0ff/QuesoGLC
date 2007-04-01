@@ -26,8 +26,6 @@
  * maintenance.
  */
 
-#include <fontconfig/fontconfig.h>
-
 #include "internal.h"
 
 
@@ -111,11 +109,11 @@ void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
     /* If the character map already contains the new character then update the
      * glyph then return.
      */
-    if (element[middle].mappedCode == (FT_ULong)inCode) {
+    if (element[middle].mappedCode == (GLCulong)inCode) {
       element[middle].glyph = inGlyph;
       return;
     }
-    else if (element[middle].mappedCode > (FT_ULong)inCode)
+    else if (element[middle].mappedCode > (GLCulong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -124,7 +122,7 @@ void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
   /* If we have reached the end of the array then updated the rank 'middle'
    * accordingly.
    */
-  if ((end >= 0) && (element[middle].mappedCode < (FT_ULong)inCode))
+  if ((end >= 0) && (element[middle].mappedCode < (GLCulong)inCode))
     middle++;
 
   /* Insert the new character in the character map */
@@ -160,11 +158,11 @@ void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
   while (start <= end) {
     middle = (start + end) >> 1;
     /* When the character is found remove it from the array and return */
-    if (element[middle].mappedCode == (FT_ULong)inCode) {
+    if (element[middle].mappedCode == (GLCulong)inCode) {
       __glcArrayRemove(This->map, middle);
       break;
     }
-    else if (element[middle].mappedCode > (FT_ULong)inCode)
+    else if (element[middle].mappedCode > (GLCulong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -182,7 +180,7 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
 				 __GLCcontext* inContext)
 {
   GLCchar *buffer = NULL;
-  FcChar8* name = NULL;
+  GLCchar8* name = NULL;
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
@@ -200,11 +198,11 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
    */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (element[middle].mappedCode == (FT_ULong)inCode) {
+    if (element[middle].mappedCode == (GLCulong)inCode) {
       inCode = element[middle].glyph->codepoint;
       break;
     }
-    else if (element[middle].mappedCode > (FT_ULong)inCode)
+    else if (element[middle].mappedCode > (GLCulong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -253,10 +251,10 @@ __GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode)
    */
   while (start <= end) {
     middle = (start + end) >> 1;
-    if (element[middle].mappedCode == (FT_ULong)inCode)
+    if (element[middle].mappedCode == (GLCulong)inCode)
       /* When the character is found return the corresponding glyph */
       return element[middle].glyph;
-    else if (element[middle].mappedCode > (FT_ULong)inCode)
+    else if (element[middle].mappedCode > (GLCulong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -287,9 +285,9 @@ GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode)
   while (start <= end) {
     middle = (start + end) >> 1;
     /* The character has been found : return GL_TRUE */
-    if (element[middle].mappedCode == (FT_ULong)inCode)
+    if (element[middle].mappedCode == (GLCulong)inCode)
       return GL_TRUE;
-    else if (element[middle].mappedCode > (FT_ULong)inCode)
+    else if (element[middle].mappedCode > (GLCulong)inCode)
       end = middle - 1;
     else
       start = middle + 1;
@@ -304,10 +302,10 @@ GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode)
 /* This function counts the number of bits that are set in c1 
  * Copied from Keith Packard's fontconfig
  */
-static FcChar32 __glcCharSetPopCount(FcChar32 c1)
+static GLCchar32 __glcCharSetPopCount(GLCchar32 c1)
 {
   /* hackmem 169 */
-  FcChar32    c2 = (c1 >> 1) & 033333333333;
+  GLCchar32    c2 = (c1 >> 1) & 033333333333;
   c2 = c1 - c2 - ((c2 >> 1) & 033333333333);
   return (((c2 + (c2 >> 3)) & 030707070707) % 077);
 }
@@ -336,11 +334,11 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
    * The codepoint of a character located at bit 'j' of page 'i' is :
    * 'base + (i << 5) + j'.
    */
-  FcChar32 map[FC_CHARSET_MAP_SIZE];
-  FcChar32 next = 0;
-  FcChar32 base = FcCharSetFirstPage(This->charSet, map, &next);
-  FcChar32 count = 0;
-  FcChar32 value = 0;
+  GLCchar32 map[FC_CHARSET_MAP_SIZE];
+  GLCchar32 next = 0;
+  GLCchar32 base = FcCharSetFirstPage(This->charSet, map, &next);
+  GLCchar32 count = 0;
+  GLCchar32 value = 0;
 
   assert(inIndex >= 0);
 
@@ -351,14 +349,14 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
       value = __glcCharSetPopCount(map[i]);
 
       /* Check if the character we are looking for is in the current page */
-      if (count + value >= (FcChar32)inIndex + 1) {
+      if (count + value >= (GLCchar32)inIndex + 1) {
 	for (j = 0; j < 32; j++) {
 	  /* Parse the page bit by bit */
 	  if ((map[i] >> j) & 1) count++; /* A character is set at bit j */
 	  /* Check if we have reached the rank inIndex */
-	  if (count == (FcChar32)inIndex + 1) {
+	  if (count == (GLCchar32)inIndex + 1) {
 	    /* Get the character name */
-	    FcChar8* name = __glcNameFromCode(base + (i << 5) + j);
+	    GLCchar8* name = __glcNameFromCode(base + (i << 5) + j);
 	    GLCchar* buffer = NULL;
 
 	    if (!name) {
@@ -405,12 +403,12 @@ GLint __glcCharMapGetCount(__GLCcharMap* This)
 /* Get the maximum mapped code of a character set */
 GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
 {
-  FcChar32 base = 0;
-  FcChar32 next = 0;
-  FcChar32 prev_base = 0;
-  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  GLCchar32 base = 0;
+  GLCchar32 next = 0;
+  GLCchar32 prev_base = 0;
+  GLCchar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
-  FT_ULong maxMappedCode = 0;
+  GLCulong maxMappedCode = 0;
   __GLCcharMapElement* element = NULL;
   int length = 0;
 
@@ -463,11 +461,11 @@ GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
 /* Get the minimum mapped code of a character set */
 GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
 {
-  FcChar32 base = 0;
-  FcChar32 next = 0;
-  FcChar32 map[FC_CHARSET_MAP_SIZE];
+  GLCchar32 base = 0;
+  GLCchar32 next = 0;
+  GLCchar32 map[FC_CHARSET_MAP_SIZE];
   int i = 0, j = 0;
-  FT_ULong minMappedCode = 0;
+  GLCulong minMappedCode = 0xffffffff;
   __GLCcharMapElement* element = NULL;
   int length = 0;
 
@@ -502,8 +500,8 @@ GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
 
   /* Return the lower of the code of both the FcCharSet and the array 'map'*/
   if (length > 0)
-    return element[length-1].mappedCode < minMappedCode ?
-      element[length-1].mappedCode : minMappedCode;
+    return element[0].mappedCode < minMappedCode ?
+      element[0].mappedCode : minMappedCode;
   else
     return minMappedCode;
 }

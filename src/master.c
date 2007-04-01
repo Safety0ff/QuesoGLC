@@ -175,7 +175,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   FcFontSet *fontSet = NULL;
   __GLCcharMap* charMap = NULL;
   FcResult result = FcResultMatch;
-  FcChar8* string = NULL;
+  GLCchar8* string = NULL;
   GLCchar* element = NULL;
 
   GLC_INIT_THREAD();
@@ -355,11 +355,11 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
  * accesses, informations such as the master format, full name or version are
  * read "just in time" i.e. only when the user requests them.
  */
-static FcChar8* __glcGetMasterInfoJustInTime(FcPattern* inPattern,
+static GLCchar8* __glcGetMasterInfoJustInTime(FcPattern* inPattern,
 					     __GLCcontext* inContext,
 					     GLCenum inAttrib)
 {
-  FcChar8* result = NULL;
+  GLCchar8* result = NULL;
   __GLCfaceDescriptor* faceDesc = __glcGetFaceDescFromPattern(inPattern,
 							      inContext);
 
@@ -413,7 +413,7 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
   __GLCcontext *ctx = NULL;
   GLCchar *buffer = NULL;
-  FcChar8* s = NULL;
+  GLCchar8* s = NULL;
   FcPattern* pattern = NULL;
   FcResult result = FcResultMatch;
 
@@ -703,7 +703,7 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
   __GLCcontext *ctx = NULL;
   FcStrSet* newCatalog = NULL;
   FcStrList* iterator = NULL;
-  FcChar8* catalog = NULL;
+  GLCchar8* catalog = NULL;
   struct stat dirStat;
 
   GLC_INIT_THREAD();
@@ -799,7 +799,7 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
 void APIENTRY glcRemoveCatalog(GLint inIndex)
 {
   __GLCcontext *ctx = NULL;
-  FcChar8* catalog = NULL;
+  GLCchar8* catalog = NULL;
   FcStrList* iterator = NULL;
   FcStrSet* newCatalog = NULL;
   FT_ListNode node = NULL;
@@ -874,8 +874,8 @@ void APIENTRY glcRemoveCatalog(GLint inIndex)
   for (node = ctx->fontList.head; node; node = node->next) {
     __GLCfont* font = (__GLCfont*)(node->data);
     FcPattern* pattern = __glcGetPatternFromMasterID(font->parentMasterID, ctx);
-    FcChar32 hashValue = 0;
-    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(ctx->masterHashTable);
+    GLCchar32 hashValue = 0;
+    GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(ctx->masterHashTable);
     int length = GLC_ARRAY_LENGTH(ctx->masterHashTable);
     int i = 0;
 

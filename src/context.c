@@ -405,7 +405,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
 {
   __GLCcontext *ctx = NULL;
   FcStrList* iterator = NULL;
-  FcChar8* catalog = NULL;
+  GLCchar8* catalog = NULL;
   GLCchar* buffer = NULL;
   int length = 0;
 
@@ -953,7 +953,7 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   FT_ListNode node = NULL;
   GLint count = 0;
   FcStrList* iterator = NULL;
-  FcChar8* catalog = NULL;
+  GLCchar8* catalog = NULL;
 
   GLC_INIT_THREAD();
 

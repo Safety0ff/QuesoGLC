@@ -103,7 +103,7 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
     return NULL;
   }
 
-  This->masterHashTable = __glcArrayCreate(sizeof(FcChar32));
+  This->masterHashTable = __glcArrayCreate(sizeof(GLCchar32));
   if (!This->masterHashTable) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcStrSetDestroy(This->catalogList);
@@ -304,11 +304,11 @@ __GLCcontext* __glcCtxCreate(GLint inContext)
 
         if (*sepPos)
 	  *(sepPos++) = 0;
-	if (!FcStrSetAdd(This->catalogList, (const FcChar8*)begin))
+	if (!FcStrSetAdd(This->catalogList, (const GLCchar8*)begin))
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)begin)) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  FcStrSetDel(This->catalogList, (const FcChar8*)begin);
+	  FcStrSetDel(This->catalogList, (const GLCchar8*)begin);
 	}
 	begin = sepPos;
       } while (*sepPos);
@@ -499,7 +499,7 @@ __GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint inCode)
     FcObjectSet* objectSet = NULL;
     FcResult result = FcResultMatch;
     int f = 0;
-    FcChar8* style = NULL;
+    GLCchar8* style = NULL;
 
     font = __glcLookupFont(inCode, &This->fontList);
     if (font) {

@@ -466,8 +466,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
   GLint i = 0;
   __GLCcontext *ctx = NULL;
-  FcChar32* UinString = NULL;
-  FcChar32* ptr = NULL;
+  GLCchar32* UinString = NULL;
+  GLCchar32* ptr = NULL;
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
@@ -553,8 +553,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 void APIENTRY glcRenderString(const GLCchar *inString)
 {
   __GLCcontext *ctx = NULL;
-  FcChar32* UinString = NULL;
-  FcChar32* ptr = NULL;
+  GLCchar32* UinString = NULL;
+  GLCchar32* ptr = NULL;
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;

@@ -556,12 +556,12 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
  */
 static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 				GLboolean inMeasureChars, GLint inCount,
-				const FcChar32* inString, GLboolean inIsRTL)
+				const GLCchar32* inString, GLboolean inIsRTL)
 {
   GLint i = 0;
   GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
 			 0.};
-  const FcChar32* ptr = NULL;
+  const GLCchar32* ptr = NULL;
   const GLint storeRenderStyle = inContext->renderState.renderStyle;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
@@ -691,7 +691,7 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 {
   __GLCcontext *ctx = NULL;
   GLint count = 0;
-  FcChar32* UinString = NULL;
+  GLCchar32* UinString = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
   GLC_INIT_THREAD();
@@ -749,10 +749,10 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
 				const GLCchar* inString)
 {
   __GLCcontext *ctx = NULL;
-  FcChar32* UinString = NULL;
+  GLCchar32* UinString = NULL;
   GLint count = 0;
   GLint len = 0;
-  FcChar32* ucs4 = NULL;
+  GLCchar32* ucs4 = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
   GLC_INIT_THREAD();

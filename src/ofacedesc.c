@@ -54,10 +54,10 @@
  * The user must give the name of the face, the character map, if it is a fixed
  * font or not, the file name and the index of the font in its file.
  */
-__GLCfaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
+__GLCfaceDescriptor* __glcFaceDescCreate(GLCchar8* inStyleName,
 					 GLboolean inIsFixedPitch,
-					 FcChar8* inFileName,
-					 FT_Long inIndexInFile)
+					 GLCchar8* inFileName,
+					 GLClong inIndexInFile)
 {
   __GLCfaceDescriptor* This = NULL;
 
@@ -67,7 +67,7 @@ __GLCfaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
     return NULL;
   }
 
-  This->styleName = (FcChar8*)strdup((const char*)inStyleName);
+  This->styleName = (GLCchar8*)strdup((const char*)inStyleName);
   if (!This->styleName) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
@@ -77,7 +77,7 @@ __GLCfaceDescriptor* __glcFaceDescCreate(FcChar8* inStyleName,
   /* Filenames are kept in their original format which is supposed to
    * be compatible with strlen()
    */
-  This->fileName = (FcChar8*)strdup((const char*)inFileName);
+  This->fileName = (GLCchar8*)strdup((const char*)inFileName);
   if (!This->fileName) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     free(This->styleName);
@@ -221,7 +221,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
   /* Check if the glyph has already been added to the glyph list */
   for (node = This->glyphList.head; node; node = node->next) {
     glyph = (__GLCglyph*)node;
-    if (glyph->codepoint == (FT_ULong)inCode)
+    if (glyph->codepoint == (GLCulong)inCode)
       return glyph;
   }
 
@@ -267,7 +267,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
 FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
 				       __GLCcontext* inContext,
 				       GLfloat inScaleX, GLfloat inScaleY,
-				       FT_ULong inGlyphIndex)
+				       GLCulong inGlyphIndex)
 {
   FT_Face face = NULL;
   FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
@@ -310,8 +310,8 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
   scaler.width = (FT_F26Dot6)(inScaleX * 64.);
   scaler.height = (FT_F26Dot6)(inScaleY * 64.);
   scaler.pixel = 0;
-  scaler.x_res = (FT_UInt)inContext->renderState.resolution;
-  scaler.y_res = (FT_UInt)inContext->renderState.resolution;
+  scaler.x_res = (GLCuint)inContext->renderState.resolution;
+  scaler.y_res = (GLCuint)inContext->renderState.resolution;
 
   if (FTC_Manager_LookupSize(inContext->cache, &scaler, &size)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -330,8 +330,8 @@ FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
   /* Select the size of the glyph */
   if (FT_Set_Char_Size(face, (FT_F26Dot6)(inScaleX * 64.),
 		       (FT_F26Dot6)(inScaleY * 64.),
-		       (FT_UInt)inContext->resolution,
-		       (FT_UInt)inContext->resolution)) {
+		       (GLCuint)inContext->resolution,
+		       (GLCuint)inContext->resolution)) {
     __glcFaceDescClose(This);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -372,7 +372,7 @@ void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
  * index of the glyph in the font file.
  */
 GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
-				     FT_ULong inGlyphIndex, GLfloat* outVec,
+				     GLCulong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,
 				     __GLCcontext* inContext)
 {
@@ -412,7 +412,7 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
  * index of the glyph in the font file.
  */
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
-				 FT_ULong inGlyphIndex, GLfloat* outVec,
+				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext)
 {
@@ -441,18 +441,18 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 /* Use FreeType to determine in which format the face is stored in its file :
  * Type1, TrueType, OpenType, ...
  */
-FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
+GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 				     __GLCcontext* inContext,
 				     GLCenum inAttrib)
 {
-  static FcChar8 unknown[] = "Unknown";
+  static GLCchar8 unknown[] = "Unknown";
 #ifndef FT_XFREE86_H
-  static FcChar8 masterFormat1[] = "Type 1";
-  static FcChar8 masterFormat2[] = "BDF";
+  static GLCchar8 masterFormat1[] = "Type 1";
+  static GLCchar8 masterFormat2[] = "BDF";
 #  ifdef FT_WINFONTS_H
-  static FcChar8 masterFormat3[] = "Windows FNT";
+  static GLCchar8 masterFormat3[] = "Windows FNT";
 #  endif /* FT_WINFONTS_H */
-  static FcChar8 masterFormat4[] = "TrueType/OpenType";
+  static GLCchar8 masterFormat4[] = "TrueType/OpenType";
 #endif /* FT_XFREE86_H */
 
   FT_Face face = NULL;
@@ -462,8 +462,8 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 #ifdef FT_WINFONTS_H
   FT_WinFNT_HeaderRec aheader;
 #endif
-  FT_UInt count = 0;
-  FcChar8* result = NULL;
+  GLCuint count = 0;
+  GLCchar8* result = NULL;
 
   /* Open the face */
 #ifdef FT_CACHE_H
@@ -482,7 +482,7 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
      * added to the public API. It can be safely used nonetheless as long as
      * the existence of FT_XFREE86_H is checked.
      */
-    result = (FcChar8*)FT_Get_X11_Font_Format(face);
+    result = (GLCchar8*)FT_Get_X11_Font_Format(face);
 #  ifndef FT_CACHE_H
     __glcFaceDescClose(This);
 #  endif /* FT_CACHE_H */
@@ -499,11 +499,11 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 #endif
     case GLC_FULL_NAME_SGI:
       if (afont_info.full_name)
-	result = (FcChar8*)afont_info.full_name;
+	result = (GLCchar8*)afont_info.full_name;
       break;
     case GLC_VERSION:
       if (afont_info.version)
-	result = (FcChar8*)afont_info.version;
+	result = (GLCchar8*)afont_info.version;
       break;
     }
   }
@@ -545,7 +545,7 @@ FcChar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
   /* Is it TrueType/OpenType ? */
   else if ((count = FT_Get_Sfnt_Name_Count(face))) {
 #if 0
-    FT_UInt i = 0;
+    GLCuint i = 0;
     FT_SfntName aName;
 #endif
 
@@ -636,7 +636,7 @@ GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
  * by inScaleX and inScaleY. The result is returned in outVec.
  */
 GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
-				 FT_UInt inGlyphIndex, FT_UInt inPrevGlyphIndex,
+				 GLCuint inGlyphIndex, GLCuint inPrevGlyphIndex,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 GLfloat* outVec, __GLCcontext* inContext)
 {

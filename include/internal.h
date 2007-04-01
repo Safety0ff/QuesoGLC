@@ -38,6 +38,13 @@
 #ifdef HAVE_CONFIG_H
 #include "qglc_config.h"
 #endif
+
+#define GLCchar8  FcChar8
+#define GLCchar32 FcChar32
+#define GLCuint   FT_UInt
+#define GLClong   FT_Long
+#define GLCulong  FT_ULong
+
 #include "ofont.h"
 
 #define GLC_OUT_OF_RANGE_LEN	11
@@ -171,22 +178,22 @@ extern GLCchar* __glcNameFromCode(GLint code);
 extern GLint __glcCodeFromName(GLCchar* name);
 
 /* Duplicate a string and convert if from any Unicode format to UTF-8 format */
-extern FcChar8* __glcConvertToUtf8(const GLCchar* inString,
-				   const GLint inStringType);
+extern GLCchar8* __glcConvertToUtf8(const GLCchar* inString,
+				    const GLint inStringType);
 
 /* Duplicate a string to the context buffer and convert it from UTF-8 format to
  * any Unicode format.
  */
 extern GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
-					     const FcChar8* inString,
+					     const GLCchar8* inString,
 					     const GLint inStringType);
 
 /* Duplicate a counted string to the context buffer and convert it from any
  * Unicode format to UTF-8 format.
  */
-FcChar8* __glcConvertCountedStringToUtf8(const GLint inCount,
-					 const GLCchar* inString,
-					 const GLint inStringType);
+GLCchar8* __glcConvertCountedStringToUtf8(const GLint inCount,
+					  const GLCchar* inString,
+					  const GLint inStringType);
 
 /* Convert a UCS-4 character code into the current string type. The result is
  * stored in a GLint. This function is needed since the GLC specs store
@@ -232,7 +239,7 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
  * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
  * succeeded or not.
  */
-GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
+GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 			__GLCcontext *inContext);
 
 #ifndef HAVE_TLS
@@ -273,16 +280,16 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-FcChar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL,
-				   const GLCchar* inString);
+GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL,
+				    const GLCchar* inString);
 
 /* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4
  * format and return a copy of the converted string in visual order.
  */
-FcChar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
-						GLboolean *outIsRTL,
-						const GLCchar* inString,
-						const GLint inCount);
+GLCchar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
+						 GLboolean *outIsRTL,
+						 const GLCchar* inString,
+						 const GLint inCount);
 
 #ifdef FT_CACHE_H
 /* Callback function used by the FreeType cache manager to open a given face */

@@ -530,8 +530,8 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
 				       __GLCcontext* inContext)
 {
-  FcChar32 hashValue =
-	((FcChar32*)GLC_ARRAY_DATA(inContext->masterHashTable))[inMaster];
+  GLCchar32 hashValue =
+	((GLCchar32*)GLC_ARRAY_DATA(inContext->masterHashTable))[inMaster];
   FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
@@ -614,8 +614,8 @@ __GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
   }
 
   for (i = 0; i < fontSet->nfont; i++) {
-    FcChar8 *fileName = NULL;
-    FcChar8 *styleName = NULL;
+    GLCchar8 *fileName = NULL;
+    GLCchar8 *styleName = NULL;
     int fixed = 0;
     int index = 0;
     FcBool outline = FcFalse;
@@ -695,10 +695,10 @@ void __glcUpdateHashTable(__GLCcontext *inContext)
    * hash table.
    */
   for (i = 0; i < fontSet->nfont; i++) {
-    FcChar32 hashValue = 0;
+    GLCchar32 hashValue = 0;
     int j = 0;
     int length = GLC_ARRAY_LENGTH(inContext->masterHashTable);
-    FcChar32* hashTable = (FcChar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
+    GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
     FcBool outline = FcFalse;
     FcResult result = FcResultMatch;
 

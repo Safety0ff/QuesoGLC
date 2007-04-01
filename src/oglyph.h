@@ -32,8 +32,8 @@ typedef struct __GLCglyphRec __GLCglyph;
 struct __GLCglyphRec {
   FT_ListNodeRec node;
 
-  FT_ULong index;
-  FT_ULong codepoint;
+  GLCulong index;
+  GLCulong codepoint;
   /* GL objects management */
   void* textureObject;
   GLuint displayList[4];
@@ -42,7 +42,7 @@ struct __GLCglyphRec {
   GLfloat advance[2];
 };
 
-__GLCglyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode);
+__GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode);
 void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext);
 void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext);
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext);

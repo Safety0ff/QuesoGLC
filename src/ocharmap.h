@@ -37,7 +37,7 @@ typedef struct __GLCcharMapElementRec __GLCcharMapElement;
 typedef struct __GLCcharMapRec __GLCcharMap;
 
 struct __GLCcharMapElementRec {
-  FT_ULong mappedCode;
+  GLCulong mappedCode;
   __GLCglyph* glyph;
 };
 

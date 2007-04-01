@@ -30,7 +30,7 @@
 struct __GLCfontRec {
   GLint id;
   __GLCfaceDescriptor* faceDesc;
-  FcChar32 parentMasterID;
+  GLCchar32 parentMasterID;
   __GLCcharMap* charMap;
 };
 

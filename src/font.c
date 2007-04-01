@@ -371,7 +371,7 @@ void APIENTRY glcFont(GLint inFont)
  * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
  * succeeded or not.
  */
-GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
+GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 			__GLCcontext *inContext)
 {
   __GLCfaceDescriptor *faceDesc = NULL;
@@ -476,7 +476,7 @@ GLboolean __glcFontFace(__GLCfont* inFont, const FcChar8* inFace,
 GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
 {
   __GLCcontext *ctx = NULL;
-  FcChar8* UinFace = NULL;
+  GLCchar8* UinFace = NULL;
   __GLCfont* font = NULL;
 
   GLC_INIT_THREAD();
@@ -607,7 +607,7 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     __glcCharMapRemoveChar(font->charMap, code);
   else {
     GLCchar* buffer = NULL;
-    FT_ULong mappedCode  = 0;
+    GLCulong mappedCode  = 0;
     __GLCglyph* glyph = NULL;
     GLint error = 0;
 
@@ -627,7 +627,7 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       __glcFree(buffer);
       return;
     }
-    mappedCode = (FT_ULong)error;
+    mappedCode = (GLCulong)error;
 
     /* Get the glyph that corresponds to the mapped code */
     glyph = __glcFaceDescGetGlyph(font->faceDesc, mappedCode, ctx);
@@ -1121,7 +1121,7 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 {
   __GLCcontext *ctx = NULL;
-  FcChar8* UinFamily = NULL;
+  GLCchar8* UinFamily = NULL;
   FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;

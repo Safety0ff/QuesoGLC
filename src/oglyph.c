@@ -36,7 +36,7 @@
  * The user must give the index of the glyph in the font file and its Unicode
  * codepoint.
  */
-__GLCglyph* __glcGlyphCreate(FT_ULong inIndex, FT_ULong inCode)
+__GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
 {
   __GLCglyph* This = NULL;
 
