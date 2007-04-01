@@ -210,6 +210,15 @@ __attribute__((constructor)) void init(void)
 void _init(void)
 #endif
 {
+#if !defined(__WIN32__) && !defined(HAVE_TLS)
+  /* A temporary variable is used to store the PTHREAD_ONCE_INIT value because
+   * some platforms (namely Mac OSX) define PTHREAD_ONCE_INIT as a structure
+   * initialization "{.., ..}" which is not allowed to be used by C99 anywhere
+   * but at variables declaration.
+   */
+  pthread_once_t onceInit = PTHREAD_ONCE_INIT;
+#endif
+
   /* Initialize fontconfig */
   if (!FcInit())
     goto FatalError;
@@ -226,7 +235,10 @@ void _init(void)
 #elif !defined(HAVE_TLS)
   if (pthread_key_create(&__glcCommonArea.threadKey, __glcFreeThreadArea))
     goto FatalError;
-  __glcCommonArea.__glcInitThreadOnce = PTHREAD_ONCE_INIT;
+  /* Now we can initialize our actual once_control variable by copying the value
+   * of the temporary variable onceInit.
+   */
+  __glcCommonArea.__glcInitThreadOnce = onceInit;
 #endif
 
   __glcCommonArea.memoryManager.user = NULL;
