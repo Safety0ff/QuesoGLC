@@ -376,8 +376,6 @@ GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 {
   __GLCfaceDescriptor *faceDesc = NULL;
   FcPattern *pattern = NULL;
-  FcResult result = FcResultMatch;
-  FcCharSet* charSet = NULL;
   __GLCcharMap* newCharMap = NULL;
 
   GLC_INIT_THREAD();
@@ -404,10 +402,7 @@ GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
     return GL_FALSE;
   }
 
-  result = FcPatternGetCharSet(pattern, FC_CHARSET, 0, &charSet);
-  assert(result != FcResultTypeMismatch);
-
-  newCharMap = __glcCharMapCreate(charSet);
+  newCharMap = __glcCharMapCreate(pattern);
   if (!newCharMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -713,7 +708,7 @@ const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
     __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
 
     /* Convert the string name of the face into the current string type */
-    buffer = __glcConvertFromUtf8ToBuffer(ctx, font->faceDesc->styleName,
+    buffer = __glcConvertFromUtf8ToBuffer(ctx, __glcFaceDescGetStyleName(font->faceDesc),
 					  ctx->stringState.stringType);
     if (!buffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -783,7 +778,7 @@ const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib,
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
   if (!font)
-    return;
+    return GLC_NONE;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
 
@@ -946,7 +941,7 @@ GLint APIENTRY glcGetFonti(GLint inFont, GLCenum inAttrib)
   case GLC_CHAR_COUNT:
     return __glcCharMapGetCount(font->charMap);
   case GLC_IS_FIXED_PITCH:
-    return font->faceDesc->isFixedPitch;
+    return __glcFaceDescIsFixedPitch(font->faceDesc);
   case GLC_MAX_MAPPED_CODE:
     return __glcCharMapGetMaxMappedCode(font->charMap);
   case GLC_MIN_MAPPED_CODE:

@@ -32,10 +32,7 @@ typedef struct __GLCfaceDescriptorRec __GLCfaceDescriptor;
 
 struct __GLCfaceDescriptorRec {
   FT_ListNodeRec node;
-  GLCchar8* styleName;
-  GLboolean isFixedPitch;	/* GLC_IS_FIXED_PITCH */
-  GLCchar8* fileName;
-  GLClong indexInFile;
+  FcPattern* pattern;
 #ifndef FT_CACHE_H
   FT_Face face;
   int faceRefCount;
@@ -44,10 +41,7 @@ struct __GLCfaceDescriptorRec {
 };
 
 
-__GLCfaceDescriptor* __glcFaceDescCreate(GLCchar8* inStyleName,
-					 GLboolean inIsFixedPitch,
-					 GLCchar8* inFileName,
-					 GLClong inIndexInFile);
+__GLCfaceDescriptor* __glcFaceDescCreate(FcPattern* inPattern);
 void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
 #ifndef FT_CACHE_H
@@ -79,4 +73,6 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
 				 GLCuint inGlyphIndex, GLCuint inPrevGlyphIndex,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 GLfloat* outVec, __GLCcontext* inContext);
+GLCchar8* __glcFaceDescGetStyleName(__GLCfaceDescriptor* This);
+GLboolean __glcFaceDescIsFixedPitch(__GLCfaceDescriptor* This);
 #endif /* __glc_ofacedesc_h */

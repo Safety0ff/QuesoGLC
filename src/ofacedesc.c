@@ -54,10 +54,7 @@
  * The user must give the name of the face, the character map, if it is a fixed
  * font or not, the file name and the index of the font in its file.
  */
-__GLCfaceDescriptor* __glcFaceDescCreate(GLCchar8* inStyleName,
-					 GLboolean inIsFixedPitch,
-					 GLCchar8* inFileName,
-					 GLClong inIndexInFile)
+__GLCfaceDescriptor* __glcFaceDescCreate(FcPattern* inPattern)
 {
   __GLCfaceDescriptor* This = NULL;
 
@@ -67,20 +64,9 @@ __GLCfaceDescriptor* __glcFaceDescCreate(GLCchar8* inStyleName,
     return NULL;
   }
 
-  This->styleName = (GLCchar8*)strdup((const char*)inStyleName);
-  if (!This->styleName) {
+  This->pattern = FcPatternDuplicate(inPattern);
+  if (!This->pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(This);
-    return NULL;
-  }
-
-  /* Filenames are kept in their original format which is supposed to
-   * be compatible with strlen()
-   */
-  This->fileName = (GLCchar8*)strdup((const char*)inFileName);
-  if (!This->fileName) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    free(This->styleName);
     __glcFree(This);
     return NULL;
   }
@@ -88,8 +74,6 @@ __GLCfaceDescriptor* __glcFaceDescCreate(GLCchar8* inStyleName,
   This->node.prev = NULL;
   This->node.next = NULL;
   This->node.data = NULL;
-  This->isFixedPitch = inIsFixedPitch;
-  This->indexInFile = inIndexInFile;
 #ifndef FT_CACHE_H
   This->face = NULL;
   This->faceRefCount = 0;
@@ -127,8 +111,7 @@ void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext)
   FTC_Manager_RemoveFaceID(inContext->cache, (FTC_FaceID)This);
 #endif
 
-  free(This->styleName);
-  free(This->fileName);
+  FcPatternDestroy(This->pattern);
   __glcFree(This);
 }
 
@@ -142,8 +125,19 @@ FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext)
 {
   if (!This->faceRefCount) {
-    if (FT_New_Face(inContext->library, (const char*)This->fileName,
-		    This->indexInFile, &This->face)) {
+    GLCchar8 *fileName = NULL;
+    int index = 0;
+    FcResult result = FcResultMatch;
+
+    /* get the file name */
+    result = FcPatternGetString(This->pattern, FC_FILE, 0, &fileName);
+    assert(result != FcResultTypeMismatch);
+    /* get the index of the font in font file */
+    result = FcPatternGetInteger(This->pattern, FC_INDEX, 0, &index);
+    assert(result != FcResultTypeMismatch);
+
+    if (FT_New_Face(inContext->library, (const char*)fileName, index,
+		    &This->face)) {
       /* Unable to load the face file */
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return NULL;
@@ -191,8 +185,19 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 		       FT_Pointer GLC_UNUSED_ARG(inData), FT_Face* outFace)
 {
   __GLCfaceDescriptor* file = (__GLCfaceDescriptor*)inFile;
-  FT_Error error = FT_New_Face(inLibrary, (const char*)file->fileName,
-			       file->indexInFile, outFace);
+  GLCchar8 *fileName = NULL;
+  int index = 0;
+  FcResult result = FcResultMatch;
+  FT_Error error;
+
+  /* get the file name */
+  result = FcPatternGetString(file->pattern, FC_FILE, 0, &fileName);
+  assert(result != FcResultTypeMismatch);
+  /* get the index of the font in font file */
+  result = FcPatternGetInteger(file->pattern, FC_INDEX, 0, &index);
+  assert(result != FcResultTypeMismatch);
+
+  error = FT_New_Face(inLibrary, (const char*)fileName, index, outFace);
 
   if (error) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -670,4 +675,28 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
     outVec[1] = (GLfloat) kerning.y / 64. / inScaleY;
     return outVec;
   }
+}
+
+
+
+/* Get the style name of the face descriptor */
+GLCchar8* __glcFaceDescGetStyleName(__GLCfaceDescriptor* This)
+{
+  GLCchar8 *styleName = NULL;
+  FcResult result = FcPatternGetString(This->pattern, FC_STYLE, 0, &styleName);
+
+  assert(result != FcResultTypeMismatch);
+  return styleName;
+}
+
+
+
+/* Determine if the face descriptor has a fixed pitch */
+GLboolean __glcFaceDescIsFixedPitch(__GLCfaceDescriptor* This)
+{
+  int fixed = 0;
+  FcResult result = FcPatternGetInteger(This->pattern, FC_SPACING, 0, &fixed);
+
+  assert(result != FcResultTypeMismatch);
+  return (fixed != FC_PROPORTIONAL);
 }

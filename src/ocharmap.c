@@ -32,10 +32,10 @@
 
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
- * The user must give the initial FcCharSet of the font or the master (which
- * may be NULL) in which case the character map will be empty.
+ * The user must give the FcPattern of the font or the master (which may be NULL
+ * in which case the character map will be empty).
  */
-__GLCcharMap* __glcCharMapCreate(FcCharSet* inCharSet)
+__GLCcharMap* __glcCharMapCreate(FcPattern* inPattern)
 {
   __GLCcharMap* This = NULL;
 
@@ -45,8 +45,14 @@ __GLCcharMap* __glcCharMapCreate(FcCharSet* inCharSet)
     return NULL;
   }
 
-  if (inCharSet)
-    This->charSet = FcCharSetCopy(inCharSet);
+  if (inPattern) {
+    FcCharSet* charSet = NULL;
+    FcResult result = FcResultMatch;
+
+    result = FcPatternGetCharSet(inPattern, FC_CHARSET, 0, &charSet);
+    assert(result != FcResultTypeMismatch);
+    This->charSet = FcCharSetCopy(charSet);
+  }
   else
     This->charSet = FcCharSetCreate();
 

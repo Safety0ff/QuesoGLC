@@ -93,7 +93,6 @@ FcPattern* __glcVerifyMasterParameters(GLint inMaster)
 static __GLCcharMap* __glcGetMasterCharMap(FcFontSet* inFontSet)
 {
   int i = 0;
-  FcResult result = FcResultMatch;
   __GLCcharMap* charMap = NULL; 
 
   charMap = __glcCharMapCreate(NULL);
@@ -103,12 +102,9 @@ static __GLCcharMap* __glcGetMasterCharMap(FcFontSet* inFontSet)
   }
 
   for (i = 0; i < inFontSet->nfont; i++) {
-    FcCharSet* charSet = NULL;
     __GLCcharMap* charList = NULL;
 
-    result = FcPatternGetCharSet(inFontSet->fonts[i], FC_CHARSET, 0, &charSet);
-    assert(result != FcResultTypeMismatch);
-    charList = __glcCharMapCreate(charSet);
+    charList = __glcCharMapCreate(inFontSet->fonts[i]);
     if (!charList) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcCharMapDestroy(charMap);

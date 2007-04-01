@@ -614,10 +614,6 @@ __GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
   }
 
   for (i = 0; i < fontSet->nfont; i++) {
-    GLCchar8 *fileName = NULL;
-    GLCchar8 *styleName = NULL;
-    int fixed = 0;
-    int index = 0;
     FcBool outline = FcFalse;
     FcResult result = FcResultMatch;
 
@@ -627,24 +623,10 @@ __GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
     if (!outline)
       continue;
 
-    /* get the file name */
-    result = FcPatternGetString(fontSet->fonts[i], FC_FILE, 0, &fileName);
-    assert(result != FcResultTypeMismatch);
-    /* get the style name */
-    result = FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &styleName);
-    assert(result != FcResultTypeMismatch);
-    /* Is this a fixed font ? */
-    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
-    assert(result != FcResultTypeMismatch);
-    /* get the index of the font in font file */
-    result = FcPatternGetInteger(fontSet->fonts[i], FC_INDEX, 0, &index);
-    assert(result != FcResultTypeMismatch);
-
     /* Create a face descriptor that will contain the whole description of
      * the face (hence the name).
      */
-    faceDesc = __glcFaceDescCreate(styleName, (fixed != FC_PROPORTIONAL),
-				   fileName, index);
+    faceDesc = __glcFaceDescCreate(fontSet->fonts[i]);
     if (!faceDesc) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
