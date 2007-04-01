@@ -3,8 +3,14 @@ Changes made from the "0.6" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
-- Modified QuesoGLC threading implementation in order to use TLS when available.
-  This allows to discard the expensive calls to pthread_get_specific().
+- Renamed some type names (FT_ULong, FcChar8, ...) in order to make them more
+  portable.
+- Minimized the use of pthread_get_specific()/TlsGetValue() when only one thread
+  is used and ELF TLS is not available since calls to those functions are
+  expansive.
+- Removed the useless QUESOGLC_STATIC_LIBRARY
+- Modified QuesoGLC threading implementation in order to use ELF TLS when
+  available. This allows to discard the expansive calls to pthread_get_specific.
 - Removed the useless QUESOGLC_VERSION macro
 - Removed __glcFaceDescGetCharMap() which were buggy for some fonts. Now uses
   Fontconfig patterns instead. This fixes a bug which created a new font for
