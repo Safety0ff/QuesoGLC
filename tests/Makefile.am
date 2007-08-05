@@ -14,6 +14,14 @@ noinst_PROGRAMS = test1 \
 
 EXTRA_PROGRAMS = test7 \
                  test8 \
+                 test9.1 \
+                 test9.2 \
+                 test9.3 \
+                 test9.4 \
+                 test9.5 \
+                 test9.6 \
+                 test9.7 \
+                 test9.8 \
                  testrender
 
 TESTS = $(noinst_PROGRAMS)
@@ -55,6 +63,38 @@ test7_LDADD = @GLUT_LIBS@ $(LDADD)
 test8_SOURCES = test8.c
 test8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
 test8_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_1_SOURCES = test9.c
+test9_1_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE
+test9_1_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_2_SOURCES = test9.c
+test9_2_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE -DWITH_GL_OBJECTS
+test9_2_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_3_SOURCES = test9.c
+test9_3_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE -DWITH_USER_LIST
+test9_3_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_4_SOURCES = test9.c
+test9_4_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE -DWITH_GL_OBJECTS -DWITH_USER_LIST
+test9_4_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_5_SOURCES = test9.c
+test9_5_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE
+test9_5_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_6_SOURCES = test9.c
+test9_6_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE -DWITH_GL_OBJECTS
+test9_6_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_7_SOURCES = test9.c
+test9_7_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE -DWITH_USER_LIST
+test9_7_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test9_8_SOURCES = test9.c
+test9_8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE -DWITH_GL_OBJECTS -DWITH_USER_LIST
+test9_8_LDADD = @GLUT_LIBS@ $(LDADD)
 
 testrender_SOURCES = testrender.c
 testrender_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
