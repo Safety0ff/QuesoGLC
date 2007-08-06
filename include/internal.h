@@ -151,7 +151,6 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
  */
 extern void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 				    GLCenum inRenderMode,
-				    GLboolean inDisplayListIsBuilding,
 				    GLfloat* inTransformMatrix,
 				    GLfloat scale_x, GLfloat scale_y,
 				    __GLCglyph* inGlyph);
@@ -273,9 +272,8 @@ __GLCcontext* __glcGetCurrent(void);
 /* Compute an optimal size for the glyph to be rendered on the screen (if no
  * display list is currently building).
  */
-GLboolean __glcGetScale(__GLCcontext* inContext,
-			GLfloat* outTransformMatrix, GLfloat* outScaleX,
-			GLfloat* outScaleY);
+void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
+		   GLfloat* outScaleX, GLfloat* outScaleY);
 
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.

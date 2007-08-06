@@ -276,7 +276,6 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
  * 'inCode' must be given in UCS-4 format
  */
 void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
-			    GLboolean inDisplayListIsBuilding,
 			    GLfloat scale_x, GLfloat scale_y,
 			    __GLCglyph* inGlyph)
 {
@@ -306,7 +305,9 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
   outline = face->glyph->outline;
 
-  if (inDisplayListIsBuilding) {
+  if (inContext->enableState.glObjects) {
+    __GLCatlasElement* atlasNode = NULL;
+
     if (!__glcTextureAtlasGetPosition(inContext, inGlyph))
       return;
 
@@ -316,11 +317,9 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     matrix.yy = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / scale_y);
 
     FT_Outline_Transform(&outline, &matrix);
-  }
 
-  /* Compute the size of the pixmap where the glyph will be rendered */
-  if (inDisplayListIsBuilding) {
-    __GLCatlasElement* atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
+    /* Compute the size of the pixmap where the glyph will be rendered */
+    atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
 
     /* Get the bounding box of the glyph */
     FT_Outline_Get_CBox(&outline, &boundingBox);
@@ -373,7 +372,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   pixmap.pixel_mode = ft_pixel_mode_grays; /* Anti-aliased rendering */
   pixmap.num_grays = 256;
 
-  if (!inContext->texture.bufferObjectID || inDisplayListIsBuilding) {
+  if (!inContext->texture.bufferObjectID || inContext->enableState.glObjects) {
     pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
     if (!pixmap.buffer) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -401,7 +400,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
   /* Iterate on the powers of 2 in order to build the mipmap */
   do {
-    if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding) {
+    if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects) {
       pixmap.buffer = (GLubyte *)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
 						GL_WRITE_ONLY);
       if (!pixmap.buffer) {
@@ -421,7 +420,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     /* render the glyph */
     if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
       glPopClientAttrib();
-      if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding)
+      if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects)
         glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
       else
         __glcFree(pixmap.buffer);
@@ -429,7 +428,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       return;
     }
 
-    if (GLEW_ARB_pixel_buffer_object && !inDisplayListIsBuilding) {
+    if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects) {
       glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
       pixmap.buffer = NULL;
     }
@@ -441,7 +440,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     /* A mipmap is built only if a display list is currently building
      * otherwise it adds useless computations
      */
-    if (!(inContext->enableState.mipmap && inDisplayListIsBuilding))
+    if (!(inContext->enableState.mipmap && inContext->enableState.glObjects))
       break;
 
     /* restore the outline initial position */
@@ -462,7 +461,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   } while ((pixmap.width > minSize) && (pixmap.rows > minSize));
 
   /* Finish to build the mipmap if necessary */
-  if (inContext->enableState.mipmap && inDisplayListIsBuilding) {
+  if (inContext->enableState.mipmap && inContext->enableState.glObjects) {
     if (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
     else {

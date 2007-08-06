@@ -50,8 +50,6 @@ struct __GLCrendererDataRec {
 					   object space to the viewport */
   GLfloat halfWidth;
   GLfloat halfHeight;
-  GLboolean displayListIsBuilding;	/* Is a display list planned to be
-					   built ? */
 };
 
 
@@ -640,10 +638,9 @@ static void CALLBACK __glcCallbackError(GLenum GLC_UNUSED_ARG(inErrorCode))
  * before being rendered.
  */
 void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
-			     GLCenum inRenderMode,
-			     GLboolean inDisplayListIsBuilding,
-			     GLfloat* inTransformMatrix, GLfloat scale_x,
-			     GLfloat scale_y, __GLCglyph* inGlyph)
+			     GLCenum inRenderMode, GLfloat* inTransformMatrix,
+			     GLfloat scale_x, GLfloat scale_y,
+			     __GLCglyph* inGlyph)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs outlineInterface;
@@ -681,12 +678,10 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   rendererData.vertexIndices = inContext->vertexIndices;
   rendererData.geomBatches = inContext->geomBatches;
 
-  rendererData.displayListIsBuilding = inDisplayListIsBuilding;
-
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
    */
-  if (!inDisplayListIsBuilding) {
+  if (!inContext->enableState.glObjects) {
     GLint viewport[4];
 
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -765,9 +760,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     }
 
     glNewList(inGlyph->displayList[index], GL_COMPILE);
-  }
-  if (inDisplayListIsBuilding)
     glScalef(1./sx64, 1./sy64, 1.);
+  }
 
   if (inRenderMode == GLC_TRIANGLE) {
     /* Tesselate the polygon defined by the contour returned by
@@ -896,7 +890,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     }
   }
   else {
-    /* For GLC_LINE, there is no need to tesselate. The vertex are contained
+    /* For GLC_LINE, there is no need to tesselate. The vertices are contained
      * in an array so we use the OpenGL function glDrawArrays().
      */
     int i = 0;
@@ -909,9 +903,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
       glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);
   }
 
-  if (inDisplayListIsBuilding)
-    glScalef(sx64, sy64, 1.);
   if (inContext->enableState.glObjects) {
+    glScalef(sx64, sy64, 1.);
     glEndList();
     glCallList(inGlyph->displayList[index]);
   }

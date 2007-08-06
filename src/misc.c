@@ -358,17 +358,10 @@ static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 /* Compute an optimal size for the glyph to be rendered on the screen if no
  * display list is planned to be built.
  */
-GLboolean __glcGetScale(__GLCcontext* inContext,
-			GLfloat* outTransformMatrix, GLfloat* outScaleX,
-			GLfloat* outScaleY)
+void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
+		   GLfloat* outScaleX, GLfloat* outScaleY)
 {
-  GLint listIndex = 0;
-  GLboolean displayListIsBuilding = GL_FALSE;
   int i = 0;
-
-  /* Check if a display list is currently building */
-  glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  displayListIsBuilding = listIndex || inContext->enableState.glObjects;
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
     /* Compute the matrix that transforms object space coordinates to viewport
@@ -385,7 +378,7 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
 
     __glcMultMatrices(modelviewMatrix, projectionMatrix, outTransformMatrix);
 
-    if ((!displayListIsBuilding) && inContext->enableState.hinting) {
+    if (!inContext->enableState.glObjects && inContext->enableState.hinting) {
       GLfloat rs[16], m[16];
       /* Get the scale factors in each X, Y and Z direction */
       GLfloat sx = sqrt(outTransformMatrix[0] * outTransformMatrix[0]
@@ -409,7 +402,7 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
       if (!__glcInvertMatrix(rs, rs)) {
 	*outScaleX = 0.f;
 	*outScaleY = 0.f;
-	return displayListIsBuilding;
+	return;
       }
 
       __glcMultMatrices(rs, outTransformMatrix, m);
@@ -441,7 +434,7 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
     if (fabsf(determinant) < norm * GLC_EPSILON) {
       *outScaleX = 0.f;
       *outScaleY = 0.f;
-      return displayListIsBuilding;
+      return;
     }
 
     if (inContext->enableState.hinting) {
@@ -453,8 +446,6 @@ GLboolean __glcGetScale(__GLCcontext* inContext,
       *outScaleY = GLC_POINT_SIZE;
     }
   }
-
-  return displayListIsBuilding;
 }
 
 

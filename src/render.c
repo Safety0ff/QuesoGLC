@@ -202,14 +202,12 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
   __GLCglyph* glyph = NULL;
-  GLboolean displayListIsBuilding = GL_FALSE;
   FT_Face face = NULL;
   GLfloat sx64 = 0., sy64 = 0.;
 
   assert(inFont);
 
-  displayListIsBuilding = __glcGetScale(inContext, transformMatrix, &scale_x,
-                                       &scale_y);
+  __glcGetScale(inContext, transformMatrix, &scale_x, &scale_y);
 
   if ((scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
@@ -302,7 +300,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   sy64 = 64. * scale_y;
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
-    FT_Outline outline= face->glyph->outline;
+    FT_Outline outline = face->glyph->outline;
 
     /* If the outline contains no point then the glyph represents a space
      * character and there is no need to continue the process of rendering.
@@ -321,7 +319,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     /* coordinates are given in 26.6 fixed point integer hence we
      * divide the scale by 2^6
      */
-    if (!displayListIsBuilding) 
+    if (!inContext->enableState.glObjects)
       glScalef(1. / sx64, 1. / sy64, 1.);
 
     if (inContext->enableState.glObjects) {
@@ -346,17 +344,14 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     __glcRenderCharBitmap(face->glyph, inContext, scale_x, scale_y, inIsRTL);
     break;
   case GLC_TEXTURE:
-      __glcRenderCharTexture(inFont, inContext, displayListIsBuilding,
-			     scale_x, scale_y, glyph);
+      __glcRenderCharTexture(inFont, inContext, scale_x, scale_y, glyph);
     break;
   case GLC_LINE:
-      __glcRenderCharScalable(inFont, inContext, GLC_LINE,
-			      displayListIsBuilding, transformMatrix,
+      __glcRenderCharScalable(inFont, inContext, GLC_LINE, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
   case GLC_TRIANGLE:
-      __glcRenderCharScalable(inFont, inContext, GLC_TRIANGLE,
-			      displayListIsBuilding, transformMatrix,
+      __glcRenderCharScalable(inFont, inContext, GLC_TRIANGLE, transformMatrix,
 			      scale_x, scale_y, glyph);
     break;
   default:
@@ -370,7 +365,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
       else
 	glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
     }
-    if (!displayListIsBuilding)
+    if (!inContext->enableState.glObjects)
       glScalef(sx64, sy64, 1.);
   }
 #ifndef FT_CACHE_H
@@ -396,6 +391,8 @@ void APIENTRY glcRenderChar(GLint inCode)
   GLint code = 0;
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
+  GLint listIndex = 0;
+  GLboolean saveGLObjects = GL_FALSE;
 
   GLC_INIT_THREAD();
 
@@ -410,6 +407,15 @@ void APIENTRY glcRenderChar(GLint inCode)
   code = __glcConvertGLintToUcs4(ctx, inCode);
   if (code < 0)
     return;
+
+  /* Disable the internal management of GL objects when the user is currently
+   * building a display list.
+   */
+  glGetIntegerv(GL_LIST_INDEX, &listIndex);
+  if (listIndex) {
+    saveGLObjects = ctx->enableState.glObjects;
+    ctx->enableState.glObjects = GL_FALSE;
+  }
 
   /* Save the value of the GL parameters */
   __glcSaveGLState(&GLState, ctx, GL_FALSE);
@@ -445,6 +451,8 @@ void APIENTRY glcRenderChar(GLint inCode)
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
+  if (listIndex)
+    ctx->enableState.glObjects = saveGLObjects;
 }
 
 
@@ -471,6 +479,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
+  GLint listIndex = 0;
+  GLboolean saveGLObjects = GL_FALSE;
 
   GLC_INIT_THREAD();
 
@@ -499,6 +509,15 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
+  }
+
+  /* Disable the internal management of GL objects when the user is currently
+   * building a display list.
+   */
+  glGetIntegerv(GL_LIST_INDEX, &listIndex);
+  if (listIndex) {
+    saveGLObjects = ctx->enableState.glObjects;
+    ctx->enableState.glObjects = GL_FALSE;
   }
 
   /* Save the value of the GL parameters */
@@ -539,6 +558,8 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
+  if (listIndex)
+    ctx->enableState.glObjects = saveGLObjects;
 }
 
 
@@ -558,6 +579,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
+  GLint listIndex = 0;
+  GLboolean saveGLObjects = GL_FALSE;
 
   GLC_INIT_THREAD();
 
@@ -579,6 +602,15 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
+  }
+
+  /* Disable the internal management of GL objects when the user is currently
+   * building a display list.
+   */
+  glGetIntegerv(GL_LIST_INDEX, &listIndex);
+  if (listIndex) {
+    saveGLObjects = ctx->enableState.glObjects;
+    ctx->enableState.glObjects = GL_FALSE;
   }
 
   /* Save the value of the GL parameters */
@@ -619,6 +651,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
+  if (listIndex)
+    ctx->enableState.glObjects = saveGLObjects;
 }
 
 
