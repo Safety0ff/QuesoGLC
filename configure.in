@@ -15,6 +15,10 @@ AC_CONFIG_HEADER([include/qglc_config.h:include/qglc_config.hin])
 AC_CONFIG_SRCDIR([src/global.c])
 AC_CONFIG_AUX_DIR([build])
 
+AC_ARG_WITH([fribidi],
+  AC_HELP_STRING([--with-fribidi], [use the FriBiDi system library @<:@default=yes@:>@]),
+  [], [with_fribidi=yes]
+)
 
 # Init automake.
 # --------------
@@ -93,6 +97,22 @@ if (test "x$no_fc" = "xyes"); then
 fi
 
 
+# Checks for Unicode libraries.
+# --------------------------
+
+if (test "x$with_fribidi" = "xyes"); then
+  AX_CHECK_FRIBIDI
+  if (test "x$no_fribidi" = "xyes"); then
+    AC_MSG_NOTICE([Unable to locate the FriBiDi library. FriBiDi will be built and embedded])
+  fi
+else
+  no_fribidi="yes"
+fi
+
+if (test "x$no_fribidi" = "xyes"); then
+  FRIBIDI_OBJ="libGLC_la-fribidi.lo libGLC_la-fribidi_char_type.lo libGLC_la-fribidi_mirroring.lo libGLC_la-fribidi_types.lo"
+fi
+
 # Checks for OpenGL and related libraries.
 # ----------------------------------------
 
@@ -111,8 +131,7 @@ fi
 AX_CHECK_GLUT
 
 if (test "x$no_glut" = "xyes"); then
-  echo "*** The GLUT library could not be found : example programs and some"
-  echo "*** tests will not be built"
+  AC_MSG_WARN([The GLUT library could not be found : example programs and some tests will not be built])
 else
   EXAMPLES="examples"
   TESTS_WITH_GLUT="test7 test8 test9.1 test9.2 test9.3 test9.4 test9.5 test9.6 test9.7 test9.8 testrender"
@@ -130,4 +149,5 @@ AC_CONFIG_FILES(Makefile
 
 AC_SUBST(EXAMPLES)
 AC_SUBST(TESTS_WITH_GLUT)
+AC_SUBST(FRIBIDI_OBJ)
 AC_OUTPUT

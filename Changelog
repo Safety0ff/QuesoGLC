@@ -3,6 +3,9 @@ Changes made from the "0.6" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1812058 (QuesoGLC uses the system library FriBiDi whenever
+  possible. Otherwise a copy of FriBiDi is automagically built and embedded with
+  QuesoGLC)
 - Fixed bug #1754660 (actually a partial fix. See explanations on bug #1754660
   on SourceForge.net)
 - Renamed some type names (FT_ULong, FcChar8, ...) in order to make them more

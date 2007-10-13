@@ -29,13 +29,15 @@ TESTS = $(noinst_PROGRAMS)
 AM_CFLAGS = @PTHREAD_CFLAGS@ \
             @FREETYPE2_CFLAGS@ \
             @FONTCONFIG_CFLAGS@ \
-            @GLUT_CFLAGS@
+            @GLUT_CFLAGS@ \
+            @FRIBIDI_CFLAGS@
 
 LDADD = $(top_builddir)/build/libGLC.la \
         @GLUT_LIBS@ \
         @FONTCONFIG_LIBS@ \
         @FREETYPE2_LIBS@ \
-        @PTHREAD_LIBS@
+        @PTHREAD_LIBS@ \
+        @FRIBIDI_LIBS@
 
 test1_SOURCES = test1.c
 

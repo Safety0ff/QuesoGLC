@@ -27,20 +27,18 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/texture.h \
                     $(top_builddir)/src/texture.c \
                     $(top_builddir)/src/unicode.c \
-                    $(top_builddir)/src/glew.c \
-                    $(fribidi_SOURCES)
+                    $(top_builddir)/src/glew.c
 
-
-fribidi_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
-                  $(top_builddir)/src/fribidi/fribidi.c \
-                  $(top_builddir)/src/fribidi/fribidi_char_type.c \
-                  $(top_builddir)/src/fribidi/fribidi_mirroring.c \
-                  $(top_builddir)/src/fribidi/fribidi_types.c \
-                  $(top_builddir)/src/fribidi/fribidi_types.h \
-                  $(top_builddir)/src/fribidi/fribidi_types.i \
-                  $(top_builddir)/src/fribidi/fribidi_unicode.h \
-                  $(top_builddir)/src/fribidi/fribidi_tab_mirroring.i \
-                  $(top_builddir)/src/fribidi/fribidi_tab_char_type_9.i
+EXTRA_libGLC_la_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
+                          $(top_builddir)/src/fribidi/fribidi.c \
+                          $(top_builddir)/src/fribidi/fribidi_char_type.c \
+                          $(top_builddir)/src/fribidi/fribidi_mirroring.c \
+                          $(top_builddir)/src/fribidi/fribidi_types.c \
+                          $(top_builddir)/src/fribidi/fribidi_types.h \
+                          $(top_builddir)/src/fribidi/fribidi_types.i \
+                          $(top_builddir)/src/fribidi/fribidi_unicode.h \
+                          $(top_builddir)/src/fribidi/fribidi_tab_mirroring.i \
+                          $(top_builddir)/src/fribidi/fribidi_tab_char_type_9.i
 
 libGLC_la_CFLAGS = -I$(top_builddir)/src \
                    -D_REENTRANT \
@@ -49,15 +47,21 @@ libGLC_la_CFLAGS = -I$(top_builddir)/src \
                    @FONTCONFIG_CFLAGS@ \
                    @FREETYPE2_CFLAGS@ \
                    @GL_CFLAGS@ \
-                   @GLU_CFLAGS@
+                   @GLU_CFLAGS@ \
+                   @FRIBIDI_CFLAGS@
 
 libGLC_la_LIBADD = @GLU_LIBS@ \
                    @FONTCONFIG_LIBS@ \
                    @FREETYPE2_LIBS@ \
-                   @PTHREAD_LIBS@
+                   @PTHREAD_LIBS@ \
+                   @FRIBIDI_LIBS@ \
+                   @FRIBIDI_OBJ@
+
+libGLC_la_DEPENDENCIES = @FRIBIDI_OBJ@
 
 libGLC_la_LDFLAGS = -version-info 0:2 \
                     -release @PACKAGE_VERSION@
 
 $(top_builddir)/src/database.c: $(top_builddir)/database/buildDB.py
 	cd $(top_builddir)/database && python buildDB.py && cd $(top_builddir)/src
+ 
