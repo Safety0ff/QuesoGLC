@@ -35,6 +35,7 @@
 
 typedef struct __GLCcharMapElementRec __GLCcharMapElement;
 typedef struct __GLCcharMapRec __GLCcharMap;
+typedef struct __GLCmasterRec __GLCmaster;
 
 struct __GLCcharMapElementRec {
   GLCulong mappedCode;
@@ -46,7 +47,7 @@ struct __GLCcharMapRec {
   __GLCarray* map;
 };
 
-__GLCcharMap* __glcCharMapCreate(FcPattern* inPattern);
+__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster);
 void __glcCharMapDestroy(__GLCcharMap* This);
 void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode,
 			 __GLCglyph* inGlyph);
@@ -60,5 +61,4 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
 GLint __glcCharMapGetCount(__GLCcharMap* This);
 GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This);
 GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This);
-GLboolean __glcCharMapUnion(__GLCcharMap* This, __GLCcharMap* inCharMap);
 #endif

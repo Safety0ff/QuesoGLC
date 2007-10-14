@@ -54,17 +54,72 @@
  * The user must give the name of the face, the character map, if it is a fixed
  * font or not, the file name and the index of the font in its file.
  */
-__GLCfaceDescriptor* __glcFaceDescCreate(FcPattern* inPattern)
+__GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
+					 const GLCchar8* inFace,
+					 __GLCcontext* inContext)
 {
   __GLCfaceDescriptor* This = NULL;
+  FcObjectSet* objectSet = NULL;
+  FcFontSet *fontSet = NULL;
+  FcPattern* pattern = inMaster->pattern;
+  int i = 0;
 
-  This = (__GLCfaceDescriptor*)__glcMalloc(sizeof(__GLCfaceDescriptor));
-  if (!This) {
+  if (inFace) {
+    pattern = FcPatternDuplicate(inMaster->pattern);
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return NULL;
+    }
+
+    if (!FcPatternAddString(pattern, FC_STYLE, inFace)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      return NULL;
+    }
+  }
+
+  objectSet = FcObjectSetBuild(FC_STYLE, FC_SPACING, FC_FILE, FC_INDEX,
+			       FC_OUTLINE, NULL);
+  if (!objectSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+  fontSet = FcFontList(inContext->config, pattern, objectSet);
+  FcObjectSetDestroy(objectSet);
+  if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
-  This->pattern = FcPatternDuplicate(inPattern);
+  if (inFace)
+    FcPatternDestroy(pattern);
+
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcBool outline = FcFalse;
+    FcResult result = FcResultMatch;
+
+    /* Check whether the glyphs are outlines */
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+    if (outline)
+      break;
+  }
+
+  if (i == fontSet->nfont) {
+    FcFontSetDestroy(fontSet);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  This = (__GLCfaceDescriptor*)__glcMalloc(sizeof(__GLCfaceDescriptor));
+  if (!This) {
+    FcFontSetDestroy(fontSet);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  This->pattern = FcPatternDuplicate(fontSet->fonts[i]);
+  FcFontSetDestroy(fontSet);
   if (!This->pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);

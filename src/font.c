@@ -375,41 +375,35 @@ GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 			__GLCcontext *inContext)
 {
   __GLCfaceDescriptor *faceDesc = NULL;
-  FcPattern *pattern = NULL;
+  __GLCmaster *master = NULL;
   __GLCcharMap* newCharMap = NULL;
 
   GLC_INIT_THREAD();
 
   /* TODO : Verify if the font has already the required face activated */
 
-  pattern = __glcGetPatternFromMasterID(inFont->parentMasterID, inContext);
-  if (!pattern) {
+  master = __glcMasterCreate(inFont->parentMasterID, inContext);
+  if (!master) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GL_FALSE;
-  }
-
-  if (!FcPatternAddString(pattern, FC_STYLE, inFace)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
     return GL_FALSE;
   }
 
   /* Get the face descriptor of the face identified by the string inFace */
-  faceDesc = __glcGetFaceDescFromPattern(pattern, inContext);
+  faceDesc = __glcFaceDescCreate(master, inFace, inContext);
   if (!faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
+    __glcMasterDestroy(master);
     return GL_FALSE;
   }
 
-  newCharMap = __glcCharMapCreate(pattern);
+  newCharMap = __glcCharMapCreate(master);
   if (!newCharMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
+    __glcMasterDestroy(master);
     return GL_FALSE;
   }
 
-  FcPatternDestroy(pattern);
+  __glcMasterDestroy(master);
 
 #ifndef FT_CACHE_H
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
@@ -520,22 +514,16 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
      * by UinFace.
      */
     for (node = ctx->currentFontList.head; node; node = node->next) {
-      FcPattern* pattern = NULL;
+      __GLCmaster* master = NULL;
       __GLCfaceDescriptor* faceDesc = NULL;
 
       font = (__GLCfont*)node->data;
-      pattern = __glcGetPatternFromMasterID(font->parentMasterID, ctx);
-      assert(pattern);
-
-      if (!FcPatternAddString(pattern, FC_STYLE, UinFace)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	FcPatternDestroy(pattern);
-	return GL_FALSE;
-      }
+      master = __glcMasterCreate(font->parentMasterID, ctx);
+      assert(master);
 
       /* Get the face descriptor of the face identified by the string inFace */
-      faceDesc = __glcGetFaceDescFromPattern(pattern, ctx);
-      FcPatternDestroy(pattern);
+      faceDesc = __glcFaceDescCreate(master, UinFace, ctx);
+      __glcMasterDestroy(master);
       if (!faceDesc) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return GL_FALSE;
@@ -997,7 +985,8 @@ GLboolean APIENTRY glcIsFont(GLint inFont)
  * added to the list GLC_FONT_LIST.
  */
 __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
-				  FcPattern* inPattern, __GLCcontext *inContext)
+				  __GLCmaster* inMaster,
+				  __GLCcontext *inContext)
 {
   FT_ListNode node = NULL;
   __GLCfont* font = NULL;
@@ -1016,7 +1005,7 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
     __glcDeleteFont(inFont, inContext);
 
   /* Create a new font and add it to the list GLC_FONT_LIST */
-  font = __glcFontCreate(inFontID, inPattern, inContext);
+  font = __glcFontCreate(inFontID, inMaster, inContext);
   if (!font) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
@@ -1052,7 +1041,7 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
 {
   __GLCcontext *ctx = NULL;
-  FcPattern *pattern = NULL;
+  __GLCmaster *master = NULL;
   __GLCfont *font = NULL;
   FT_ListNode node = NULL;
 
@@ -1061,8 +1050,8 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
    */
-  pattern = __glcVerifyMasterParameters(inMaster);
-  if (!pattern)
+  master = __glcVerifyMasterParameters(inMaster);
+  if (!master)
     return 0;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
@@ -1085,8 +1074,8 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
     font = NULL;
 
   /* Create and return the new font */
-  font = __glcNewFontFromMaster(font, inFont, pattern, ctx);
-  FcPatternDestroy(pattern);
+  font = __glcNewFontFromMaster(font, inFont, master, ctx);
+  __glcMasterDestroy(master);
   return font->id;
 }
 
@@ -1117,11 +1106,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 {
   __GLCcontext *ctx = NULL;
   GLCchar8* UinFamily = NULL;
-  FcPattern* pattern = NULL;
-  FcObjectSet* objectSet = NULL;
-  FcFontSet *fontSet = NULL;
-  FcResult result = FcResultMatch;
-  int i = 0;
+  __GLCmaster* master = NULL;
   __GLCfont *font = NULL;
   FT_ListNode node = NULL;
 
@@ -1142,59 +1127,18 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     return 0;
   }
 
-  pattern = FcPatternCreate();
-  if (!pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return 0;
-  }
-
   /* Convert the family name in UTF-8 encoding */
   UinFamily = __glcConvertToUtf8(inFamily, ctx->stringState.stringType);
   if (!UinFamily) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
     return 0;
   }
 
-  if (!FcPatternAddString(pattern, FC_FAMILY, UinFamily)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(UinFamily);
-    FcPatternDestroy(pattern);
-    return 0;
-  }
+  master = __glcMasterFromFamily(ctx, UinFamily);
 
   __glcFree(UinFamily);
-
-  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
-  if (!objectSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
+  if (!master)
     return 0;
-  }
-  fontSet = FcFontList(ctx->config, pattern, objectSet);
-  FcObjectSetDestroy(objectSet);
-  FcPatternDestroy(pattern);
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return 0;
-  }
-
-  for (i = 0; i < fontSet->nfont; i++) {
-    FcBool outline = FcFalse;
-
-    /* Check whether the glyphs are outlines */
-    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
-    assert(result != FcResultTypeMismatch);
-    if (outline)
-      break;
-  }
-
-  if (i == fontSet->nfont) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcFontSetDestroy(fontSet);
-    return 0;
-  }
 
   /* Look for the font which ID is inFont in the GLC_FONT_LIST */
   for (node = ctx->fontList.head; node; node = node->next) {
@@ -1208,7 +1152,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     font = NULL;
 
   /* Create and return the new font */
-  font = __glcNewFontFromMaster(font, inFont, fontSet->fonts[i], ctx);
-  FcFontSetDestroy(fontSet);
+  font = __glcNewFontFromMaster(font, inFont, master, ctx);
+  __glcMasterDestroy(master);
   return font->id;
 }

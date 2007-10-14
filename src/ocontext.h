@@ -201,8 +201,13 @@ extern __thread __GLCthreadArea __glcTlsThreadArea
 extern __GLCthreadArea* __glcThreadArea;
 #endif
 
-__GLCcontext* __glcCtxCreate(GLint inContext);
-void __glcCtxDestroy(__GLCcontext *This);
-__GLCfont* __glcCtxGetFont(__GLCcontext *This, GLint code);
-GLCchar* __glcCtxQueryBuffer(__GLCcontext *This, int inSize);
+__GLCcontext* __glcContextCreate(GLint inContext);
+void __glcContextDestroy(__GLCcontext *This);
+__GLCfont* __glcContextGetFont(__GLCcontext *This, GLint code);
+GLCchar* __glcContextQueryBuffer(__GLCcontext *This, int inSize);
+void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog);
+void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog);
+void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex);
+GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex);
+GLint __glcContextRemoveBlank(__GLCcontext* This, GLint inCode);
 #endif /* __glc_ocontext_h */

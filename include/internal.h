@@ -40,6 +40,7 @@
 #endif
 
 #define GLCchar8  FcChar8
+#define GLCchar16  FcChar16
 #define GLCchar32 FcChar32
 #define GLCuint   FT_UInt
 #define GLClong   FT_Long
@@ -210,7 +211,7 @@ GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode);
  * by 'inMaster' exists. Returns a FontConfig pattern corresponding to the
  * master ID 'inMaster'.
  */
-FcPattern* __glcVerifyMasterParameters(GLint inMaster);
+__GLCmaster* __glcVerifyMasterParameters(GLint inMaster);
 
 /* Verify that the thread has a current context and that the font identified
  * by 'inFont' exists.
@@ -229,7 +230,7 @@ void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont);
  * added to the list GLC_FONT_LIST.
  */
 __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
-				  FcPattern* inPattern,
+				  __GLCmaster* inMaster,
 				  __GLCcontext *inContext);
 
 /* This internal function tries to open the face file which name is identified
@@ -309,24 +310,6 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 /* Restore the GL State from a structure */
 void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 			 GLboolean inAll);
-
-/* Get a FontConfig pattern from a master ID */
-FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
-				       __GLCcontext* inContext);
-
-/* Get a face descriptor object from a FontConfig pattern */
-__GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
-						 __GLCcontext* inContext);
-
-/* Initialize the hash table that allows to convert master IDs into FontConfig
- * patterns.
- */
-void __glcCreateHashTable(__GLCcontext *inContext);
-
-/* Update the hash table that allows to convert master IDs into FontConfig
- * patterns.
- */
-void __glcUpdateHashTable(__GLCcontext *inContext);
 
 /* Function for GLEW so that it can get a context */
 GLEWContext* glewGetContext(void);

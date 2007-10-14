@@ -404,7 +404,6 @@ GLCfunc APIENTRY glcGetCallbackFunc(GLCenum inOpcode)
 const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
 {
   __GLCcontext *ctx = NULL;
-  FcStrList* iterator = NULL;
   GLCchar8* catalog = NULL;
   GLCchar* buffer = NULL;
   int length = 0;
@@ -435,21 +434,9 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
     return GLC_NONE;
   }
 
-  /* Get the string at offset inIndex */
-  iterator = FcStrListCreate(ctx->catalogList);
-  if (!iterator) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  catalog = __glcContextGetCatalogPath(ctx, inIndex);
+  if (!catalog)
     return GLC_NONE;
-  }
-  for (catalog = FcStrListNext(iterator); catalog && inIndex;
-	catalog = FcStrListNext(iterator), inIndex--);
-  FcStrListDone(iterator);
-
-  /* Now we can check if inIndex identifies a member of the string set or not */
-  if (!catalog) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
-  }
 
   /* Three remarks have to be made concerning the following code :
    * 1. We do not return a pointer that points to the actual location of the
@@ -469,7 +456,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
    */
   length = strlen((const char*) catalog) + 1;
 
-  buffer = __glcCtxQueryBuffer(ctx, length * sizeof(char));
+  buffer = __glcContextQueryBuffer(ctx, length * sizeof(char));
   if (!buffer)
     return GLC_NONE; /* GLC_RESOURCE_ERROR has been raised */
   strncpy((char*)buffer, (const char*)catalog, length);

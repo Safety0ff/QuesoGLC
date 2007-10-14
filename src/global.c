@@ -151,7 +151,7 @@ void _fini(void)
   node = __glcCommonArea.contextList.head;
   while (node) {
     FT_ListNode next = node->next;
-    __glcCtxDestroy((__GLCcontext*)node);
+    __glcContextDestroy((__GLCcontext*)node);
     node = next;
   }
 
@@ -400,7 +400,7 @@ void APIENTRY glcDeleteContext(GLint inContext)
     /* Remove the context from the context list then destroy it */
     FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)ctx);
     ctx->isInGlobalCommand = GL_TRUE;
-    __glcCtxDestroy(ctx);
+    __glcContextDestroy(ctx);
   }
 
   __glcUnlock();
@@ -534,7 +534,7 @@ void APIENTRY glcContext(GLint inContext)
     if (currentContext->pendingDelete) {
       FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)currentContext);
       currentContext->isInGlobalCommand = GL_TRUE;
-      __glcCtxDestroy(currentContext);
+      __glcContextDestroy(currentContext);
     }
   }
 
@@ -581,7 +581,7 @@ GLint APIENTRY glcGenContext(void)
   GLC_INIT_THREAD();
 
   /* Create a new context */
-  ctx = __glcCtxCreate(0);
+  ctx = __glcContextCreate(0);
   if (!ctx) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;

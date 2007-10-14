@@ -26,7 +26,7 @@
 #ifndef __glc_ofacedesc_h
 #define __glc_ofacedesc_h
 
-#include "ocharmap.h"
+#include "omaster.h"
 
 typedef struct __GLCfaceDescriptorRec __GLCfaceDescriptor;
 
@@ -41,7 +41,9 @@ struct __GLCfaceDescriptorRec {
 };
 
 
-__GLCfaceDescriptor* __glcFaceDescCreate(FcPattern* inPattern);
+__GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
+					 const GLCchar8* inFace,
+					 __GLCcontext* inContext);
 void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
 #ifndef FT_CACHE_H

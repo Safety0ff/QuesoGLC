@@ -177,8 +177,11 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
   __GLCfont* font = NULL;
   void* ret = NULL;
 
+  if (!inCode)
+    return NULL;
+
   /* Get a font that maps inCode */
-  font = __glcCtxGetFont(inContext, inCode);
+  font = __glcContextGetFont(inContext, inCode);
   if (font) {
     /* A font has been found */
     if (font != inPrevCode->font)
@@ -199,7 +202,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
    * that the replacement code is mapped to
    */
   repCode = inContext->stringState.replacementCode;
-  font = __glcCtxGetFont(inContext, repCode);
+  font = __glcContextGetFont(inContext, repCode);
   if (repCode && font) {
     if (font != inPrevCode->font)
       inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
@@ -234,7 +237,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     n = snprintf(buf, 11, "\\<%X>", (int)inCode);
 #endif
     for (i = 0; i < n; i++) {
-      if (!__glcCtxGetFont(inContext, buf[i]))
+      if (!__glcContextGetFont(inContext, buf[i]))
 	/* The code is not rendered, the previous code is thus left unchanged */
 	return NULL;
     }
@@ -243,7 +246,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     for (i = 0; i < n; i++) {
       GLint pos = inIsRTL ? n-i-1 : i;
 
-      font = __glcCtxGetFont(inContext, buf[pos]);
+      font = __glcContextGetFont(inContext, buf[pos]);
       if (font != inPrevCode->font)
 	inPrevCode->code = 0; /*The font has changed, kerning must be disabled*/
       ret = inProcessCharFunc(buf[pos], inPrevCode->code, inIsRTL, font,
@@ -513,207 +516,6 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
     if (inGLState->edgeFlagArray)
       glEnableClientState(GL_EDGE_FLAG_ARRAY);
   }
-}
-
-
-
-/* Get a FontConfig pattern from a master ID */
-FcPattern* __glcGetPatternFromMasterID(GLint inMaster,
-				       __GLCcontext* inContext)
-{
-  GLCchar32 hashValue =
-	((GLCchar32*)GLC_ARRAY_DATA(inContext->masterHashTable))[inMaster];
-  FcPattern* pattern = NULL;
-  FcObjectSet* objectSet = NULL;
-  FcFontSet *fontSet = NULL;
-  int i = 0;
-
-  /* Use Fontconfig to get the default font files */
-  pattern = FcPatternCreate();
-  if (!pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
-  if (!objectSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
-    return NULL;
-  }
-  fontSet = FcFontList(inContext->config, pattern, objectSet);
-  FcObjectSetDestroy(objectSet);
-  FcPatternDestroy(pattern);
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  /* Parse the font set looking for a font with an outline and which hash value
-   * matches the hash value of the master we are looking for.
-   */
-  for (i = 0; i < fontSet->nfont; i++) {
-    FcBool outline = FcFalse;
-    FcResult result = FcResultMatch;
-
-    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
-    assert(result != FcResultTypeMismatch);
-    if (!outline)
-      continue;
-
-    if (hashValue == FcPatternHash(fontSet->fonts[i]))
-      break;
-  }
-
-  assert(i < fontSet->nfont);
-
-  /* Duplicate the pattern of the found font (otherwise it will be deleted with
-   * the font set).
-   */
-  pattern = FcPatternDuplicate(fontSet->fonts[i]);
-  FcFontSetDestroy(fontSet);
-  if (!pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  return pattern;
-}
-
-
-
-/* Get a face descriptor object from a FontConfig pattern */
-__GLCfaceDescriptor* __glcGetFaceDescFromPattern(FcPattern* inPattern,
-						 __GLCcontext* inContext)
-{
-  FcObjectSet* objectSet = NULL;
-  FcFontSet *fontSet = NULL;
-  int i = 0;
-  __GLCfaceDescriptor* faceDesc = NULL;
-
-  objectSet = FcObjectSetBuild(FC_STYLE, FC_SPACING, FC_FILE, FC_INDEX,
-			       FC_OUTLINE, NULL);
-  if (!objectSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-  fontSet = FcFontList(inContext->config, inPattern, objectSet);
-  FcObjectSetDestroy(objectSet);
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  for (i = 0; i < fontSet->nfont; i++) {
-    FcBool outline = FcFalse;
-    FcResult result = FcResultMatch;
-
-    /* Check whether the glyphs are outlines */
-    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
-    assert(result != FcResultTypeMismatch);
-    if (!outline)
-      continue;
-
-    /* Create a face descriptor that will contain the whole description of
-     * the face (hence the name).
-     */
-    faceDesc = __glcFaceDescCreate(fontSet->fonts[i]);
-    if (!faceDesc) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcFontSetDestroy(fontSet);
-      return NULL;
-    }
-
-    break;
-  }
-
-  FcFontSetDestroy(fontSet);
-  return faceDesc;
-}
-
-
-
-/* Update the hash table that allows to convert master IDs into FontConfig
- * patterns.
- */
-void __glcUpdateHashTable(__GLCcontext *inContext)
-{
-  FcPattern* pattern = NULL;
-  FcObjectSet* objectSet = NULL;
-  FcFontSet *fontSet = NULL;
-  int i = 0;
-
-  /* Use Fontconfig to get the default font files */
-  pattern = FcPatternCreate();
-  if (!pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
-  if (!objectSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
-    return;
-  }
-  fontSet = FcFontList(inContext->config, pattern, objectSet);
-  FcPatternDestroy(pattern);
-  FcObjectSetDestroy(objectSet);
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-
-  /* Parse the font set looking for fonts that are not already registered in the
-   * hash table.
-   */
-  for (i = 0; i < fontSet->nfont; i++) {
-    GLCchar32 hashValue = 0;
-    int j = 0;
-    int length = GLC_ARRAY_LENGTH(inContext->masterHashTable);
-    GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
-    FcBool outline = FcFalse;
-    FcResult result = FcResultMatch;
-
-    /* Check whether the glyphs are outlines */
-    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
-    assert(result != FcResultTypeMismatch);
-    if (!outline)
-      continue;
-
-    /* Check if the font is already registered in the hash table */
-    hashValue = FcPatternHash(fontSet->fonts[i]);
-    for (j = 0; j < length; j++) {
-      if (hashTable[j] == hashValue)
-	break;
-    }
-
-    /* If the font is already registered then parse the next one */
-    if (j != length)
-      continue;
-
-    /* Register the font (i.e. append its hash value to the hash table) */
-    if (!__glcArrayAppend(inContext->masterHashTable, &hashValue)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcFontSetDestroy(fontSet);
-      return;
-    }
-  }
-
-  FcFontSetDestroy(fontSet);
-}
-
-
-
-/* Initialize the hash table that allows to convert master IDs into FontConfig
- * patterns.
- */
-void __glcCreateHashTable(__GLCcontext* inContext)
-{
-  /* Empties the hash table */
-  GLC_ARRAY_LENGTH(inContext->masterHashTable) = 0;
-  /* Update the hash table */
-  __glcUpdateHashTable(inContext);
 }
 
 

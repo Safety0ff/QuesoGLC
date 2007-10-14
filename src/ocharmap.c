@@ -35,7 +35,7 @@
  * The user must give the FcPattern of the font or the master (which may be NULL
  * in which case the character map will be empty).
  */
-__GLCcharMap* __glcCharMapCreate(FcPattern* inPattern)
+__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster)
 {
   __GLCcharMap* This = NULL;
 
@@ -45,11 +45,11 @@ __GLCcharMap* __glcCharMapCreate(FcPattern* inPattern)
     return NULL;
   }
 
-  if (inPattern) {
+  if (inMaster) {
     FcCharSet* charSet = NULL;
     FcResult result = FcResultMatch;
 
-    result = FcPatternGetCharSet(inPattern, FC_CHARSET, 0, &charSet);
+    result = FcPatternGetCharSet(inMaster->pattern, FC_CHARSET, 0, &charSet);
     assert(result != FcResultTypeMismatch);
     This->charSet = FcCharSetCopy(charSet);
   }
@@ -510,25 +510,4 @@ GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
       element[0].mappedCode : minMappedCode;
   else
     return minMappedCode;
-}
-
-
-
-/* Merge the character map 'inCharMap' in the character map 'This' */
-GLboolean __glcCharMapUnion(__GLCcharMap* This, __GLCcharMap* inCharMap)
-{
-  FcCharSet* result = NULL;
-
-  /* Add the character set to the charmap */
-  result = FcCharSetUnion(This->charSet, inCharMap->charSet);
-  if (!result) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GL_FALSE;
-  }
-
-  /* Destroy the previous FcCharSet and replace it by the new one */
-  FcCharSetDestroy(This->charSet);
-  This->charSet = result;
-
-  return GL_TRUE;
 }

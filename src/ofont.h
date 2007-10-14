@@ -30,11 +30,11 @@
 struct __GLCfontRec {
   GLint id;
   __GLCfaceDescriptor* faceDesc;
-  GLCchar32 parentMasterID;
+  GLint parentMasterID;
   __GLCcharMap* charMap;
 };
 
-__GLCfont*  __glcFontCreate(GLint id, FcPattern* inPattern,
+__GLCfont*  __glcFontCreate(GLint id, __GLCmaster* inMaster,
 			    __GLCcontext* inContext);
 void __glcFontDestroy(__GLCfont *This, __GLCcontext* inContext);
 __GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,

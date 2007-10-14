@@ -32,16 +32,13 @@
  * of the new object.
  * The user must give the master 'inParent' which the font will instantiate.
  */
-__GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
+__GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
 			   __GLCcontext* inContext)
 {
   __GLCfont *This = NULL;
-  int i = 0;
-  GLCchar32 hashValue = FcPatternHash(inPattern);
-  GLCchar32* hashTable = NULL;
 
   assert(inContext);
-  assert(inPattern);
+  assert(inMaster);
 
   This = (__GLCfont*)__glcMalloc(sizeof(__GLCfont));
   if (!This) {
@@ -51,14 +48,14 @@ __GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-  This->faceDesc = __glcGetFaceDescFromPattern(inPattern, inContext);
+  This->faceDesc = __glcFaceDescCreate(inMaster, NULL, inContext);
   if (!This->faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
     return NULL;
   }
 
-  This->charMap = __glcCharMapCreate(inPattern);
+  This->charMap = __glcCharMapCreate(inMaster);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(This->faceDesc, inContext);
@@ -66,15 +63,7 @@ __GLCfont* __glcFontCreate(GLint inID, FcPattern* inPattern,
     return NULL;
   }
 
-  hashTable = (GLCchar32*)GLC_ARRAY_DATA(inContext->masterHashTable);
-
-  for (i = 0; i < GLC_ARRAY_LENGTH(inContext->masterHashTable); i++) {
-    if (hashValue == hashTable[i])
-      break;
-  }
-  assert(i < GLC_ARRAY_LENGTH(inContext->masterHashTable));
-
-  This->parentMasterID = i;
+  This->parentMasterID = __glcMasterGetID(inMaster, inContext);
   This->id = inID;
 
   return This;
