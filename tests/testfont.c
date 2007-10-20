@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,14 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 /* $Id$ */
+
+/** \file
+ * Test the GLC functions of the font group. It can be used either :
+ * - by checking the output
+ * - by checking that it does not crash
+ * - by checking memory leaks with a tool like valgrind
+ */
+
 #include "GL/glc.h"
 #include <stdio.h>
 
