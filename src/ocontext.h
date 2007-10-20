@@ -129,7 +129,7 @@ struct __GLCcontextRec {
   FT_ListRec currentFontList;	/* GLC_CURRENT_FONT_LIST */
   FT_ListRec fontList;		/* GLC_FONT_LIST */
   __GLCarray* masterHashTable;
-  FcStrSet* catalogList;	/* GLC_CATALOG_LIST */
+  __GLCarray* catalogList;	/* GLC_CATALOG_LIST */
   __GLCarray* measurementBuffer;
   GLfloat measurementStringBuffer[12];
   GLboolean isInCallbackFunc;	/* Is a callback function executing ? */

@@ -93,7 +93,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->node.next = NULL;
   This->node.data = NULL;
 
-  This->catalogList = FcStrSetCreate();
+  This->catalogList = __glcArrayCreate(sizeof(GLCchar8*));
   if (!This->catalogList) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef FT_CACHE_H
@@ -107,8 +107,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 
   This->masterHashTable = __glcArrayCreate(sizeof(GLCchar32));
   if (!This->masterHashTable) {
+    __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -149,9 +149,9 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->attribStackDepth = 0;
   This->measurementBuffer = __glcArrayCreate(12 * sizeof(GLfloat));
   if (!This->measurementBuffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcArrayDestroy(This->masterHashTable);
-    FcStrSetDestroy(This->catalogList);
+    __glcArrayDestroy(This->catalogList);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -168,8 +168,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   if (!This->vertexArray) {
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
+    __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -183,8 +183,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
+    __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -199,8 +199,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
+    __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -217,8 +217,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->endContour);
+    __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -236,8 +236,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->vertexIndices);
+    __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(This->catalogList);
 #ifdef FT_CACHE_H
     FTC_Manager_Done(This->cache);
 #endif
@@ -301,19 +301,34 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     if (path) {
       /* Get each path and add the corresponding masters to the current
        * context */
+      GLCchar8* dup = NULL;
+
       begin = path;
       do {
 	sepPos = (char *)__glcFindIndexList(begin, 1, separator);
 
         if (*sepPos)
 	  *(sepPos++) = 0;
-	if (!FcStrSetAdd(This->catalogList, (const GLCchar8*)begin))
+
+        dup = (GLCchar8*)strdup(begin);
+        if (!dup) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)begin)) {
-	  __glcRaiseError(GLC_RESOURCE_ERROR);
-	  FcStrSetDel(This->catalogList, (const GLCchar8*)begin);
-	}
-	begin = sepPos;
+        }
+        else {
+	  if (!__glcArrayAppend(This->catalogList, &dup)) {
+            __glcRaiseError(GLC_RESOURCE_ERROR);
+            free(dup);
+          }
+          else if (!FcConfigAppFontAddDir(This->config,
+                                          (const unsigned char*)begin)) {
+            __glcArrayRemove(This->catalogList,
+                             GLC_ARRAY_LENGTH(This->catalogList));
+	    __glcRaiseError(GLC_RESOURCE_ERROR);
+            free(dup);
+          }
+        }
+
+        begin = sepPos;
       } while (*sepPos);
       free(path);
       __glcContextUpdateHashTable(This);
@@ -357,10 +372,18 @@ static void __glcFontDestructor(FT_Memory GLC_UNUSED_ARG(inMemory),
  */
 void __glcContextDestroy(__GLCcontext *This)
 {
+  int i = 0;
+
   assert(This);
 
   /* Destroy the list of catalogs */
-  FcStrSetDestroy(This->catalogList);
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->catalogList); i++) {
+    GLCchar8* string = ((GLCchar8**)GLC_ARRAY_DATA(This->catalogList))[i];
+
+    assert(string);
+    free(string);
+  }
+  __glcArrayDestroy(This->catalogList);
 
   /* Destroy GLC_CURRENT_FONT_LIST */
   FT_List_Finalize(&This->currentFontList, NULL,
@@ -627,13 +650,23 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
 /* Append a catalog to the context catalog list */
 void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 {
-  if (!FcStrSetAdd(This->catalogList, inCatalog)) {
+  GLCchar8* dup = (GLCchar8*)strdup(inCatalog);
+
+  if (!dup) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
-  if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)inCatalog)) {
-    FcStrSetDel(This->catalogList, inCatalog);
+
+  if (!__glcArrayAppend(This->catalogList, &dup)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    free(dup);
+    return;
+  }
+
+  if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)inCatalog)) {
+    __glcArrayRemove(This->catalogList, GLC_ARRAY_LENGTH(This->catalogList));
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    free(dup);
     return;
   }
   __glcContextUpdateHashTable(This);
@@ -644,43 +677,25 @@ void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 /* Prepend a catalog to the context catalog list */
 void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 {
-  FcStrList* iterator = NULL;
-  GLCchar8* catalog = NULL;
-  FcStrSet* newCatalog = FcStrSetCreate();
+  GLCchar8* dup = (GLCchar8*)strdup(inCatalog);
 
-  if (!newCatalog) {
+  if (!dup) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
-  if (!FcStrSetAdd(newCatalog, inCatalog)) {
+
+  if (!__glcArrayInsert(This->catalogList, 0, &dup)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(newCatalog);
+    free(dup);
     return;
   }
-  iterator = FcStrListCreate(This->catalogList);
-  if (!iterator) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(newCatalog);
-    return;
-  }
-  for (catalog = FcStrListNext(iterator); catalog;
-       catalog = FcStrListNext(iterator)) {
-    if (!FcStrSetAdd(newCatalog, catalog)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcStrSetDestroy(newCatalog);
-      FcStrListDone(iterator);
-      return;
-    }
-  }
-  FcStrListDone(iterator);
+
   if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)inCatalog)) {
+    __glcArrayRemove(This->catalogList, 0);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(newCatalog);
+    free(dup);
     return;
   }
-  FcStrSetDestroy(This->catalogList);
-  This->catalogList = newCatalog;
-
   __glcContextUpdateHashTable(This);
 }
 
@@ -689,23 +704,12 @@ void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 /* Get the path of the catalog identified by inIndex */
 GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex)
 {
-  GLCchar8* catalog = NULL;
-  FcStrList* iterator = FcStrListCreate(This->catalogList);
-
-  if (!iterator) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
-  }
-  for (catalog = FcStrListNext(iterator); catalog && inIndex;
-       catalog = FcStrListNext(iterator), inIndex);
-  FcStrListDone(iterator);
-
-  if (inIndex || !catalog) {
+  if (inIndex >= GLC_ARRAY_LENGTH(This->catalogList)) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
-
-  return catalog;
+    
+  return ((GLCchar8**)GLC_ARRAY_DATA(This->catalogList))[inIndex];
 }
 
 
@@ -713,46 +717,32 @@ GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex)
 /* Remove a catalog from the context catalog list */
 void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
 {
-  FcStrSet* newCatalog = NULL;
   FT_ListNode node = NULL;
-  FcStrList* iterator = NULL;
-  GLCchar8* catalog = __glcContextGetCatalogPath(This, inIndex);
+  GLCchar8* catalog = NULL;
+  int i = 0;
 
-  if (!catalog)
-    return;
-
-  newCatalog = FcStrSetCreate();
-  if (!newCatalog) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (inIndex >= GLC_ARRAY_LENGTH(This->catalogList)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return;
   }
-  FcStrSetDel(This->catalogList, catalog);
+
   FcConfigAppFontClear(This->config);
-  iterator = FcStrListCreate(This->catalogList);
-  if (!iterator) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcStrSetDestroy(newCatalog);
-    return;
-  }
-  for (catalog = FcStrListNext(iterator); catalog;
-       catalog = FcStrListNext(iterator)) {
-    if (!FcStrSetAdd(newCatalog, catalog)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcStrSetDestroy(This->catalogList);
-      This->catalogList = newCatalog;
-      FcStrListDone(iterator);
-      return;
-    }
+  catalog = ((GLCchar8**)GLC_ARRAY_DATA(This->catalogList))[inIndex];
+  assert(catalog);
+  __glcArrayRemove(This->catalogList, inIndex);
+  free(catalog);
+
+  for (i = 0; i < GLC_ARRAY_LENGTH(This->catalogList); i++) {
+    catalog = ((GLCchar8**)GLC_ARRAY_DATA(This->catalogList))[i];
+    assert(catalog);
     if (!FcConfigAppFontAddDir(This->config, catalog)) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcStrSetDel(newCatalog, catalog);
-      FcStrSetDestroy(This->catalogList);
-      This->catalogList = newCatalog;
-      FcStrListDone(iterator);
-      return;
+      __glcArrayRemove(This->catalogList, i);
+      free(catalog);
+      if (i > 0) i--;
     }
   }
-  FcStrListDone(iterator);
+
   /* Re-create the hash table from scratch */
   GLC_ARRAY_LENGTH(This->masterHashTable) = 0;
   __glcContextUpdateHashTable(This);
