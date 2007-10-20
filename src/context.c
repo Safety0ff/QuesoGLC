@@ -939,8 +939,6 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   __GLCcontext *ctx = NULL;
   FT_ListNode node = NULL;
   GLint count = 0;
-  FcStrList* iterator = NULL;
-  GLCchar8* catalog = NULL;
 
   GLC_INIT_THREAD();
 
@@ -978,15 +976,7 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   /* Returns the requested value */
   switch(inAttrib) {
   case GLC_CATALOG_COUNT:
-    iterator = FcStrListCreate(ctx->catalogList);
-    if (!iterator) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return GLC_NONE;
-    }
-    for (catalog = FcStrListNext(iterator), count = 0; catalog;
-	catalog = FcStrListNext(iterator), count++);
-    FcStrListDone(iterator);
-    return count;
+    return GLC_ARRAY_LENGTH(ctx->catalogList);
   case GLC_CURRENT_FONT_COUNT:
     for (node = ctx->currentFontList.head, count = 0; node;
 	 node = node->next, count++);
