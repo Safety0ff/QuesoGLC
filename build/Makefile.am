@@ -28,8 +28,7 @@ libGLC_la_SOURCES = $(top_builddir)/src/context.c \
                     $(top_builddir)/src/oglyph.c \
                     $(top_builddir)/src/texture.h \
                     $(top_builddir)/src/texture.c \
-                    $(top_builddir)/src/unicode.c \
-                    $(top_builddir)/src/glew.c
+                    $(top_builddir)/src/unicode.c
 
 EXTRA_libGLC_la_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
                           $(top_builddir)/src/fribidi/fribidi.c \
@@ -40,7 +39,8 @@ EXTRA_libGLC_la_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
                           $(top_builddir)/src/fribidi/fribidi_types.i \
                           $(top_builddir)/src/fribidi/fribidi_unicode.h \
                           $(top_builddir)/src/fribidi/fribidi_tab_mirroring.i \
-                          $(top_builddir)/src/fribidi/fribidi_tab_char_type_9.i
+                          $(top_builddir)/src/fribidi/fribidi_tab_char_type_9.i \
+                          $(top_builddir)/src/glew.c
 
 libGLC_la_CFLAGS = -I$(top_builddir)/src \
                    -D_REENTRANT \
@@ -57,9 +57,10 @@ libGLC_la_LIBADD = @GLU_LIBS@ \
                    @FREETYPE2_LIBS@ \
                    @PTHREAD_LIBS@ \
                    @FRIBIDI_LIBS@ \
-                   @FRIBIDI_OBJ@
+                   @FRIBIDI_OBJ@ \
+                   @GLEW_OBJ@
 
-libGLC_la_DEPENDENCIES = @FRIBIDI_OBJ@
+libGLC_la_DEPENDENCIES = @FRIBIDI_OBJ@ @GLEW_OBJ@
 
 libGLC_la_LDFLAGS = -version-info 0:2
 

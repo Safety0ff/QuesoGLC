@@ -19,6 +19,10 @@ AC_ARG_WITH([fribidi],
   AC_HELP_STRING([--with-fribidi], [use the FriBiDi system library @<:@default=yes@:>@]),
   [], [with_fribidi=yes]
 )
+AC_ARG_WITH([glew],
+  AC_HELP_STRING([--with-glew], [use the GLEW system library @<:@default=yes@:>@]),
+  [], [with_glew=yes]
+)
 
 # Init automake.
 # --------------
@@ -103,7 +107,7 @@ fi
 if (test "x$with_fribidi" = "xyes"); then
   AX_CHECK_FRIBIDI
   if (test "x$no_fribidi" = "xyes"); then
-    AC_MSG_NOTICE([Unable to locate the FriBiDi library. FriBiDi will be built and embedded])
+    AC_MSG_NOTICE([FriBiDi will be built and embedded])
   fi
 else
   no_fribidi="yes"
@@ -128,6 +132,19 @@ if (test "x$no_glu" = "xyes"); then
   AC_MSG_ERROR([GLU library not found])
 fi
 
+if (test "x$with_glew" = "xyes"); then
+  AX_CHECK_GLEW
+  if (test "x$no_glew" = "xyes"); then
+    AC_MSG_NOTICE([GLEW will be built and embedded])
+  fi
+else
+  no_glew="yes"
+fi
+
+if (test "x$no_glew" = "xyes"); then
+  GLEW_OBJ="libGLC_la-glew.lo"
+fi
+
 AX_CHECK_GLUT
 
 if (test "x$no_glut" = "xyes"); then
@@ -150,4 +167,5 @@ AC_CONFIG_FILES(Makefile
 AC_SUBST(EXAMPLES)
 AC_SUBST(TESTS_WITH_GLUT)
 AC_SUBST(FRIBIDI_OBJ)
+AC_SUBST(GLEW_OBJ)
 AC_OUTPUT

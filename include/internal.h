@@ -32,7 +32,11 @@
 #endif
 #include <assert.h>
 
+#ifdef HAVE_LIBGLEW
+#include <GL/glew.h>
+#else
 #include "GL/glew.h"
+#endif
 #define GLCAPI GLEWAPI
 #include "GL/glc.h"
 #ifdef HAVE_CONFIG_H
