@@ -50,7 +50,6 @@
  */
 
 #include "internal.h"
-#include FT_LIST_H
 #ifndef __WIN32__
 # include <unistd.h>
 #endif

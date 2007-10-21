@@ -33,7 +33,6 @@
 
 #include "texture.h"
 #include FT_MODULE_H
-#include FT_LIST_H
 
 __GLCcommonArea __glcCommonArea;
 #ifdef HAVE_TLS

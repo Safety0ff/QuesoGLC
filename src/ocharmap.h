@@ -26,10 +26,6 @@
 #ifndef __glc_ocharmap_h
 #define __glc_ocharmap_h
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include <fontconfig/fontconfig.h>
-
 #include "ocontext.h"
 #include "oglyph.h"
 

@@ -25,7 +25,6 @@
 #include <math.h>
 
 #include "internal.h"
-#include FT_LIST_H
 
 
 

@@ -59,7 +59,6 @@
 
 #include "internal.h"
 #include <stdlib.h>
-#include FT_LIST_H
 
 
 

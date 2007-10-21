@@ -61,7 +61,6 @@
 
 #include "internal.h"
 #include <math.h>
-#include FT_GLYPH_H
 
 
 

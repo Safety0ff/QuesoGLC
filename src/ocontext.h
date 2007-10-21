@@ -36,8 +36,8 @@
 #ifdef FT_CACHE_H
 #include FT_CACHE_H
 #endif
+#include FT_LIST_H
 
-#include "GL/glc.h"
 #include "oarray.h"
 #include "except.h"
 
