@@ -30,11 +30,11 @@
 #include <fontconfig/fcfreetype.h>
 
 #include "internal.h"
-#include FT_LIST_H
 #include FT_GLYPH_H
 #ifdef FT_CACHE_H
 #include FT_CACHE_H
 #endif
+#include FT_OUTLINE_H
 
 #include FT_TYPE1_TABLES_H
 #ifdef FT_XFREE86_H
@@ -324,7 +324,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
  * corresponding FT_Face. The size of the glyph is given by inScaleX and
  * inScaleY. 'inGlyphIndex' contains the index of the glyph in the font file.
  */
-FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
+static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
 				       __GLCcontext* inContext,
 				       GLfloat inScaleX, GLfloat inScaleY,
 				       GLCulong inGlyphIndex)
@@ -471,10 +471,18 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
  * inScaleY. The result is returned in outVec. 'inGlyphIndex' contains the
  * index of the glyph in the font file.
  */
+#ifdef FT_CACHE_H
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext)
+#else
+GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
+				 GLCulong inGlyphIndex, GLfloat* outVec,
+				 GLfloat inScaleX, GLfloat inScaleY,
+                                 GLboolean inCloseFile,
+				 __GLCcontext* inContext)
+#endif
 {
   FT_Face face = __glcFaceDescLoadFreeTypeGlyph(This, inContext, inScaleX,
 						inScaleY, inGlyphIndex);
@@ -491,7 +499,8 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
   outVec[1] = (GLfloat) face->glyph->advance.y / 64. / inScaleY;
 
 #ifndef FT_CACHE_H
-  __glcFaceDescClose(This);
+  if (inCloseFile)
+    __glcFaceDescClose(This);
 #endif
   return outVec;
 }
@@ -754,4 +763,380 @@ GLboolean __glcFaceDescIsFixedPitch(__GLCfaceDescriptor* This)
 
   assert(result != FcResultTypeMismatch);
   return (fixed != FC_PROPORTIONAL);
+}
+
+
+
+/* Callback function that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * MoveTo is called when the pen move from one curve to another curve.
+ */
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcMoveTo(const FT_Vector *inVecTo, void* inUserData)
+#else
+static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
+#endif
+{
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
+
+  /* We don't need to store the point where the pen is since glyphs are defined
+   * by closed loops (i.e. the first point and the last point are the same) and
+   * the first point will be stored by the next call to lineto/conicto/cubicto.
+   */
+
+  if (!__glcArrayAppend(data->endContour,
+			&GLC_ARRAY_LENGTH(data->vertexArray))) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
+  }
+
+  data->vector[0] = (GLfloat) inVecTo->x;
+  data->vector[1] = (GLfloat) inVecTo->y;
+  return 0;
+}
+
+
+
+/* Callback function that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * LineTo is called when the pen draws a line between two points.
+ */
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcLineTo(const FT_Vector *inVecTo, void* inUserData)
+#else
+static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
+#endif
+{
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
+
+  if (!__glcArrayAppend(data->vertexArray, data->vector)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 1;
+  }
+
+  data->vector[0] = (GLfloat) inVecTo->x;
+  data->vector[1] = (GLfloat) inVecTo->y;
+  return 0;
+}
+
+
+
+/* Callback function that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * ConicTo is called when the pen draws a conic between two points (and with
+ * one control point).
+ */
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcConicTo(const FT_Vector *inVecControl,
+			const FT_Vector *inVecTo, void* inUserData)
+{
+#else
+static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
+			void* inUserData)
+{
+#endif
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
+  int error = 0;
+
+  data->vector[2] = (GLfloat)inVecControl->x;
+  data->vector[3] = (GLfloat)inVecControl->y;
+  data->vector[4] = (GLfloat)inVecTo->x;
+  data->vector[5] = (GLfloat)inVecTo->y;
+  error = __glcdeCasteljauConic(inUserData);
+  data->vector[0] = (GLfloat) inVecTo->x;
+  data->vector[1] = (GLfloat) inVecTo->y;
+
+  return error;
+}
+
+
+
+/* Callback functions that is called by the FreeType function
+ * FT_Outline_Decompose() when parsing an outline.
+ * CubicTo is called when the pen draws a cubic between two points (and with
+ * two control points).
+ */
+#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
+static int __glcCubicTo(const FT_Vector *inVecControl1,
+			const FT_Vector *inVecControl2,
+			const FT_Vector *inVecTo, void* inUserData)
+{
+#else
+static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
+			FT_Vector *inVecTo, void* inUserData)
+{
+#endif
+  __GLCrendererData *data = (__GLCrendererData *) inUserData;
+  int error = 0;
+
+  data->vector[2] = (GLfloat)inVecControl1->x;
+  data->vector[3] = (GLfloat)inVecControl1->y;
+  data->vector[4] = (GLfloat)inVecControl2->x;
+  data->vector[5] = (GLfloat)inVecControl2->y;
+  data->vector[6] = (GLfloat)inVecTo->x;
+  data->vector[7] = (GLfloat)inVecTo->y;
+  error = __glcdeCasteljauCubic(inUserData);
+  data->vector[0] = (GLfloat) inVecTo->x;
+  data->vector[1] = (GLfloat) inVecTo->y;
+
+  return error;
+}
+
+
+
+/* Decompose the outline of a glyph */
+GLboolean __glcFaceDescOutlineDecompose(__GLCfaceDescriptor* This,
+                                        __GLCrendererData* inData,
+                                        __GLCcontext* inContext)
+{
+  FT_Outline *outline = NULL;
+  FT_Outline_Funcs outlineInterface;
+  FT_Face face = NULL;
+
+#ifndef FT_CACHE_H
+  face = This->face;
+#else
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+#endif
+
+  /* Initialize the data for FreeType to parse the outline */
+  outline = &face->glyph->outline;
+  outlineInterface.shift = 0;
+  outlineInterface.delta = 0;
+  outlineInterface.move_to = __glcMoveTo;
+  outlineInterface.line_to = __glcLineTo;
+  outlineInterface.conic_to = __glcConicTo;
+  outlineInterface.cubic_to = __glcCubicTo;
+
+  if (inContext->enableState.glObjects) {
+    /* Distances are computed in object space, so is the tolerance of the
+     * de Casteljau algorithm.
+     */
+    inData->tolerance *= face->units_per_EM;
+  }
+
+  /* Parse the outline of the glyph */
+  if (FT_Outline_Decompose(outline, &outlineInterface, inData)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    GLC_ARRAY_LENGTH(inData->vertexArray) = 0;
+    GLC_ARRAY_LENGTH(inData->endContour) = 0;
+    GLC_ARRAY_LENGTH(inData->vertexIndices) = 0;
+    GLC_ARRAY_LENGTH(inData->geomBatches) = 0;
+    return GL_FALSE;
+  }
+
+  return GL_TRUE;
+}
+
+
+
+/* Compute the lower power of 2 that is greater than value. It is used to
+ * determine the smaller texture than can contain a glyph.
+ */
+static int __glcNextPowerOf2(int value)
+{
+  int power = 0;
+
+  for (power = 1; power < value; power <<= 1);
+
+  return power;
+}
+
+
+
+/* Get the size of the bitmap in which the glyph will be rendered */
+GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
+                                     GLint *outHeight, GLint* outBoundingBox,
+                                     GLfloat inScaleX, GLfloat inScaleY,
+                                     int inFactor, __GLCcontext* inContext)
+{
+  FT_Face face = NULL;
+  FT_Outline outline;
+  FT_Matrix matrix;
+  FT_BBox boundingBox;
+
+
+#ifndef FT_CACHE_H
+  face = This->face;
+  assert(face);
+#else
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+#endif
+
+  outline = face->glyph->outline;
+
+  if (inContext->renderState.renderStyle == GLC_BITMAP) {
+    GLfloat *transform = inContext->bitmapMatrix;
+    FT_Pos pitch = 0;
+
+    /* compute glyph dimensions */
+    matrix.xx = (FT_Fixed)(transform[0] * 65536. / inScaleX);
+    matrix.xy = (FT_Fixed)(transform[2] * 65536. / inScaleY);
+    matrix.yx = (FT_Fixed)(transform[1] * 65536. / inScaleX);
+    matrix.yy = (FT_Fixed)(transform[3] * 65536. / inScaleY);
+
+    /* Get the bounding box of the glyph */
+    FT_Outline_Transform(&outline, &matrix);
+    FT_Outline_Get_CBox(&outline, &boundingBox);
+
+    /* Compute the sizes of the pixmap where the glyph will be drawn */
+    boundingBox.xMin = boundingBox.xMin & -64;	/* floor(xMin) */
+    boundingBox.yMin = boundingBox.yMin & -64;	/* floor(yMin) */
+    boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
+    boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
+
+    /* Calculate pitch to upper 8 byte boundary for 1 bit / pixel, i.e. ceil() */
+    pitch = (boundingBox.xMax - boundingBox.xMin + 511) >> 9;
+    *outWidth = pitch << 3;
+    *outHeight = (boundingBox.yMax - boundingBox.yMin) >> 6;
+  }
+  else {
+    matrix.xy = 0;
+    matrix.yx = 0;
+
+    if (inContext->enableState.glObjects) {
+      matrix.xx = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / inScaleX);
+      matrix.yy = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / inScaleY);
+
+      FT_Outline_Transform(&outline, &matrix);
+      FT_Outline_Get_CBox(&outline, &boundingBox);
+
+      *outWidth = GLC_TEXTURE_SIZE;
+      *outHeight = GLC_TEXTURE_SIZE;
+
+      outline.flags |= FT_OUTLINE_HIGH_PRECISION;
+    }
+    else {
+      matrix.xx = 65536 >> inFactor;
+      matrix.yy = 65536 >> inFactor;
+
+      FT_Outline_Transform(&outline, &matrix);
+      FT_Outline_Get_CBox(&outline, &boundingBox);
+
+      *outWidth = __glcNextPowerOf2(
+              (boundingBox.xMax - boundingBox.xMin + 63) >> 6); /* ceil() */
+      *outHeight = __glcNextPowerOf2(
+              (boundingBox.yMax - boundingBox.yMin + 63) >> 6); /* ceil() */
+
+      /* If the texture size is too small then give up */
+      if ((*outWidth < 4) || (*outHeight < 4))
+        return GL_FALSE;
+    }
+  }
+
+  outBoundingBox[0] = boundingBox.xMin;
+  outBoundingBox[1] = boundingBox.yMin;
+  outBoundingBox[2] = boundingBox.xMax;
+  outBoundingBox[3] = boundingBox.yMax;
+
+  return GL_TRUE;
+}
+
+
+
+/* Render the glyph in a bitmap */
+GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
+                                 GLint inHeight, void* inBuffer,
+                                 __GLCcontext* inContext)
+{
+  FT_Face face = NULL;
+  FT_Outline outline;
+  FT_BBox boundingBox;
+  FT_Bitmap pixmap;
+  FT_Matrix matrix;
+
+#ifndef FT_CACHE_H
+  face = This->face;
+  assert(face);
+#else
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+#endif
+
+  outline = face->glyph->outline;
+  FT_Outline_Get_CBox(&outline, &boundingBox);
+
+  pixmap.width = inWidth;
+  pixmap.rows = inHeight;
+  pixmap.buffer = inBuffer;
+
+  if (inContext->renderState.renderStyle == GLC_BITMAP) {
+    /* Calculate pitch to upper 8 byte boundary for 1 bit / pixel, i.e. ceil() */
+    pixmap.pitch = -(pixmap.width >> 3);
+
+    /* Fill the pixmap descriptor and the pixmap buffer */
+    pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
+  }
+  else {
+    /* Flip the picture */
+    pixmap.pitch = -pixmap.width; /* 8 bits / pixel */
+
+    /* Fill the pixmap descriptor and the pixmap buffer */
+    pixmap.pixel_mode = ft_pixel_mode_grays; /* Anti-aliased rendering */
+    pixmap.num_grays = 256;
+  }
+
+  /* fill the pixmap buffer with the background color */
+  memset(pixmap.buffer, 0, - pixmap.rows * pixmap.pitch);
+
+  /* translate the outline to match (0,0) with the glyph's lower left
+   * corner
+   */
+  FT_Outline_Translate(&outline, -boundingBox.xMin, -boundingBox.yMin);
+
+  /* render the glyph */
+  if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+
+  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+    /* Prepare the outline for the next mipmap level :
+     * a. Restore the outline initial position
+     */
+    FT_Outline_Translate(&outline, boundingBox.xMin, boundingBox.yMin);
+
+    /* b. Divide the character size by 2. */
+    matrix.xx = 32768; /* 0.5 in FT_Fixed type */
+    matrix.xy = 0;
+    matrix.yx = 0;
+    matrix.yy = 32768;
+    FT_Outline_Transform(&outline, &matrix);
+  }
+
+  return GL_TRUE;
+}
+
+
+
+/* Chek if the outline of the glyph is empty (which means it is a spacing
+ * character).
+ */
+GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This,
+                                    __GLCcontext* inContext)
+{
+  FT_Face face = NULL;
+  FT_Outline outline;
+
+#ifndef FT_CACHE_H
+  face = This->face;
+  assert(face);
+#else
+  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+#endif
+
+  outline = face->glyph->outline;
+
+  return outline.n_points ? GL_TRUE : GL_FALSE;
 }

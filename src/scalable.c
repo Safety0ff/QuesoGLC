@@ -31,26 +31,7 @@
 #endif
 #include <math.h>
 
-#include FT_OUTLINE_H
-#include FT_LIST_H
-
 #define GLC_MAX_ITER	50
-
-typedef struct __GLCrendererDataRec __GLCrendererData;
-
-struct __GLCrendererDataRec {
-  FT_Vector pen;			/* Current coordinates */
-  GLfloat tolerance;			/* Chordal tolerance */
-  __GLCarray* vertexArray;		/* Array of vertices */
-  __GLCarray* controlPoints;		/* Array of control points */
-  __GLCarray* endContour;		/* Array of contour limits */
-  __GLCarray* vertexIndices;		/* Array of vertex indices */
-  __GLCarray* geomBatches;		/* Array of geometric batches */
-  GLfloat* transformMatrix;		/* Transformation matrix from the
-					   object space to the viewport */
-  GLfloat halfWidth;
-  GLfloat halfHeight;
-};
 
 
 
@@ -104,13 +85,10 @@ static void __glcComputePixelCoordinates(GLfloat* inCoord,
  * sub-optimal lines, but it provides a fast method for choosing the
  * subdivision point. This guess can be refined by lengthening the lines.
  */ 
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
-static int __glcdeCasteljauConic(const FT_Vector **inVector, void *inUserData)
-#else
-static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
-#endif
+int __glcdeCasteljauConic(void *inUserData)
 {
   __GLCrendererData *data = (__GLCrendererData *) inUserData;
+  GLfloat* vector = data->vector;
   GLfloat(*controlPoint)[5] = NULL;
   GLint nArc = 1, arc = 0, rank = 0;
   int iter = 0;
@@ -124,8 +102,7 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
   }
 
   /* Append the control points to the vertex array */
-  cp[0] = (GLfloat) data->pen.x;
-  cp[1] = (GLfloat) data->pen.y;
+  memcpy(cp, vector, 2 * sizeof(GLfloat));
   __glcComputePixelCoordinates(cp, data);
 
   /* Append the first vertex of the curve to the vertex array */
@@ -139,8 +116,8 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
   /* Build the array of the control points */
   for (iter = 0; iter < 2; iter++) {
     cp += 5;
-    cp[0] = (GLfloat) inVector[iter]->x;
-    cp[1] = (GLfloat) inVector[iter]->y;
+    vector += 2;
+    memcpy(cp, vector, 2 * sizeof(GLfloat));
     __glcComputePixelCoordinates(cp, data);
   }
 
@@ -253,13 +230,10 @@ static int __glcdeCasteljauConic(FT_Vector **inVector, void *inUserData)
  *
  * See also remarks about __glcdeCasteljauConic.
  */ 
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
-static int __glcdeCasteljauCubic(const FT_Vector **inVector, void *inUserData)
-#else
-static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
-#endif
+int __glcdeCasteljauCubic(void *inUserData)
 {
   __GLCrendererData *data = (__GLCrendererData *) inUserData;
+  GLfloat* vector = data->vector;
   GLfloat(*controlPoint)[5] = NULL;
   GLint nArc = 1, arc = 0, rank = 0;
   int iter = 0;
@@ -274,8 +248,7 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
 
 
   /* Append the control points to the vertex array */
-  cp[0] = (GLfloat) data->pen.x;
-  cp[1] = (GLfloat) data->pen.y;
+  memcpy(cp, vector, 2 * sizeof(GLfloat));
   __glcComputePixelCoordinates(cp, data);
 
   /* Append the first vertex of the curve to the vertex array */
@@ -289,8 +262,8 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
   /* Build the array of the control points */
   for (iter = 0; iter < 3; iter++) {
     cp += 5;
-    cp[0] = (GLfloat) inVector[iter]->x;
-    cp[1] = (GLfloat) inVector[iter]->y;
+    vector += 2;
+    memcpy(cp, vector, 2 * sizeof(GLfloat));
     __glcComputePixelCoordinates(cp, data);
   }
 
@@ -425,121 +398,6 @@ static int __glcdeCasteljauCubic(FT_Vector **inVector, void *inUserData)
 
 
 
-/* Callback function that is called by the FreeType function
- * FT_Outline_Decompose() when parsing an outline.
- * MoveTo is called when the pen move from one curve to another curve.
- */
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
-static int __glcMoveTo(const FT_Vector *inVecTo, void* inUserData)
-#else
-static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
-#endif
-{
-  __GLCrendererData *data = (__GLCrendererData *) inUserData;
-
-  /* We don't need to store the point where the pen is since glyphs are defined
-   * by closed loops (i.e. the first point and the last point are the same) and
-   * the first point will be stored by the next call to lineto/conicto/cubicto.
-   */
-
-  if (!__glcArrayAppend(data->endContour,
-			&GLC_ARRAY_LENGTH(data->vertexArray))) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return 1;
-  }
-
-  data->pen = *inVecTo;
-  return 0;
-}
-
-
-
-/* Callback function that is called by the FreeType function
- * FT_Outline_Decompose() when parsing an outline.
- * LineTo is called when the pen draws a line between two points.
- */
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
-static int __glcLineTo(const FT_Vector *inVecTo, void* inUserData)
-#else
-static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
-#endif
-{
-  __GLCrendererData *data = (__GLCrendererData *) inUserData;
-  GLfloat vertex[2];
-
-  vertex[0] = (GLfloat) data->pen.x;
-  vertex[1] = (GLfloat) data->pen.y;
-  if (!__glcArrayAppend(data->vertexArray, vertex)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return 1;
-  }
-
-  data->pen = *inVecTo;
-  return 0;
-}
-
-
-
-/* Callback function that is called by the FreeType function
- * FT_Outline_Decompose() when parsing an outline.
- * ConicTo is called when the pen draws a conic between two points (and with
- * one control point).
- */
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
-static int __glcConicTo(const FT_Vector *inVecControl,
-			const FT_Vector *inVecTo, void* inUserData)
-{
-  const FT_Vector* vector[2];
-#else
-static int __glcConicTo(FT_Vector *inVecControl, FT_Vector *inVecTo,
-			void* inUserData)
-{
-  FT_Vector* vector[2];
-#endif
-  __GLCrendererData *data = (__GLCrendererData *) inUserData;
-  int error = 0;
-
-  vector[0] = inVecControl;
-  vector[1] = inVecTo;
-  error = __glcdeCasteljauConic(vector, inUserData);
-  data->pen = *inVecTo;
-
-  return error;
-}
-
-
-
-/* Callback functions that is called by the FreeType function
- * FT_Outline_Decompose() when parsing an outline.
- * CubicTo is called when the pen draws a cubic between two points (and with
- * two control points).
- */
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR >= 2))
-static int __glcCubicTo(const FT_Vector *inVecControl1,
-			const FT_Vector *inVecControl2,
-			const FT_Vector *inVecTo, void* inUserData)
-{
-  const FT_Vector* vector[3];
-#else
-static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
-			FT_Vector *inVecTo, void* inUserData)
-{
-  FT_Vector* vector[3];
-#endif
-  __GLCrendererData *data = (__GLCrendererData *) inUserData;
-  int error = 0;
-
-  vector[0] = inVecControl1;
-  vector[1] = inVecControl2;
-  vector[2] = inVecTo;
-  error = __glcdeCasteljauCubic(vector, inUserData);
-  data->pen = *inVecTo;
-
-  return error;
-}
-
-
-
 /* Callback function that is called by the GLU when it is tesselating a
  * polygon.
  */
@@ -642,35 +500,12 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 			     GLfloat scale_x, GLfloat scale_y,
 			     __GLCglyph* inGlyph)
 {
-  FT_Outline *outline = NULL;
-  FT_Outline_Funcs outlineInterface;
   __GLCrendererData rendererData;
   GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
 				       1., 0., 0., 0., 0., 1.};
-  FT_Face face = NULL;
   GLfloat sx64 = 64. * scale_x;
   GLfloat sy64 = 64. * scale_y;
   int index = 0;
-
-
-#ifndef FT_CACHE_H
-  face = inFont->faceDesc->face;
-#else
-  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)inFont->faceDesc,
-			     &face)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
-#endif
-
-  /* Initialize the data for FreeType to parse the outline */
-  outline = &face->glyph->outline;
-  outlineInterface.shift = 0;
-  outlineInterface.delta = 0;
-  outlineInterface.move_to = __glcMoveTo;
-  outlineInterface.line_to = __glcLineTo;
-  outlineInterface.conic_to = __glcConicTo;
-  outlineInterface.cubic_to = __glcCubicTo;
 
   rendererData.vertexArray = inContext->vertexArray;
   rendererData.controlPoints = inContext->controlPoints;
@@ -710,7 +545,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
      * de Casteljau algorithm.
      */
     rendererData.tolerance = 0.005 * sqrt(scale_x*scale_x + scale_y*scale_y)
-      * face->units_per_EM / sx64 / sy64;
+      / sx64 / sy64;
     rendererData.halfWidth = 0.5;
     rendererData.halfHeight = 0.5;
     rendererData.transformMatrix = identityMatrix;
@@ -719,14 +554,9 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   }
 
   /* Parse the outline of the glyph */
-  if (FT_Outline_Decompose(outline, &outlineInterface, &rendererData)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
-    GLC_ARRAY_LENGTH(inContext->endContour) = 0;
-    GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
-    GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
+  if (!__glcFaceDescOutlineDecompose(inFont->faceDesc, &rendererData,
+                                     inContext))
     return;
-  }
 
   if (!__glcArrayAppend(rendererData.endContour,
 			&GLC_ARRAY_LENGTH(rendererData.vertexArray))) {
@@ -765,7 +595,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 
   if (inRenderMode == GLC_TRIANGLE) {
     /* Tesselate the polygon defined by the contour returned by
-     * FT_Outline_Decompose().
+     * __glcFaceDescOutlineDecompose().
      */
     GLUtesselator *tess = gluNewTess();
     GLuint j = 0;

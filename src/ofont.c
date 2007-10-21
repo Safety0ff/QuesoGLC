@@ -175,8 +175,13 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
   }
 
   /* Otherwise, we must extract the advance from the face file */
+#ifdef FT_CACHE_H
   if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
 			       inScaleX, inScaleY, inContext)) {
+#else
+  if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
+			       inScaleX, inScaleY, GL_TRUE, inContext)) {
+#endif
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }

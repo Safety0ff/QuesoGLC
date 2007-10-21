@@ -55,6 +55,7 @@
 #define GLC_OUT_OF_RANGE_LEN	11
 #define GLC_EPSILON		1E-6
 #define GLC_POINT_SIZE		128
+#define GLC_TEXTURE_SIZE        64
 
 #if defined(__GNUC__)
 # define GLC_UNUSED_ARG(_arg) GLC_UNUSED_ ## _arg __attribute__((unused))
@@ -110,6 +111,20 @@
 typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
 typedef struct __GLCgeomBatchRec __GLCgeomBatch;
 typedef struct __GLCcharacterRec __GLCcharacter;
+
+struct __GLCrendererDataRec {
+  GLfloat vector[8];			/* Current coordinates */
+  GLfloat tolerance;			/* Chordal tolerance */
+  __GLCarray* vertexArray;		/* Array of vertices */
+  __GLCarray* controlPoints;		/* Array of control points */
+  __GLCarray* endContour;		/* Array of contour limits */
+  __GLCarray* vertexIndices;		/* Array of vertex indices */
+  __GLCarray* geomBatches;		/* Array of geometric batches */
+  GLfloat* transformMatrix;		/* Transformation matrix from the
+					   object space to the viewport */
+  GLfloat halfWidth;
+  GLfloat halfHeight;
+};
 
 struct __GLCdataCodeFromNameRec {
   GLint code;
@@ -325,4 +340,6 @@ GLEWContext* glewGetContext(void);
 void __glcInitThread(void);
 #endif
 
+int __glcdeCasteljauConic(void *inUserData);
+int __glcdeCasteljauCubic(void *inUserData);
 #endif /* __glc_internal_h */

@@ -93,65 +93,33 @@
 #endif
 
 #include "texture.h"
-#include FT_OUTLINE_H
-#include FT_LIST_H
 
 
 
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
-static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
-				  __GLCcontext* inContext, GLfloat scale_x,
-				  GLfloat scale_y, GLboolean inIsRTL)
+static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
+                                  GLfloat scale_x, GLfloat scale_y,
+                                  GLfloat* advance, GLboolean inIsRTL)
 {
-  FT_Matrix matrix;
-  FT_Outline outline;
-  FT_BBox boundingBox;
-  FT_Bitmap pixmap;
   GLfloat *transform = inContext->bitmapMatrix;
+  GLint pixWidth = 0, pixHeight = 0;
+  void* pixBuffer = NULL;
+  GLint boundingBox[4] = {0, 0, 0, 0};
 
-  /* compute glyph dimensions */
-  matrix.xx = (FT_Fixed)(transform[0] * 65536. / scale_x);
-  matrix.xy = (FT_Fixed)(transform[2] * 65536. / scale_y);
-  matrix.yx = (FT_Fixed)(transform[1] * 65536. / scale_x);
-  matrix.yy = (FT_Fixed)(transform[3] * 65536. / scale_y);
+  __glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
+                             boundingBox, scale_x, scale_y, 0, inContext);
 
-  /* Get the bounding box of the glyph */
-  outline = inGlyph->outline;
-  FT_Outline_Transform(&outline, &matrix);
-  FT_Outline_Get_CBox(&outline, &boundingBox);
-
-  /* Compute the sizes of the pixmap where the glyph will be drawn */
-  boundingBox.xMin = boundingBox.xMin & -64;	/* floor(xMin) */
-  boundingBox.yMin = boundingBox.yMin & -64;	/* floor(yMin) */
-  boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
-  boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
-
-  /* Calculate pitch to upper 8 byte boundary for 1 bit / pixel, i.e. ceil() */
-  pixmap.pitch = (boundingBox.xMax - boundingBox.xMin + 511) >> 9;
-  pixmap.width = pixmap.pitch << 3;
-  pixmap.rows = (boundingBox.yMax - boundingBox.yMin) >> 6;
-
-  /* Fill the pixmap descriptor and the pixmap buffer */
-  pixmap.pixel_mode = ft_pixel_mode_mono;	/* Monochrome rendering */
-  pixmap.buffer = (GLubyte *)__glcMalloc(pixmap.rows * pixmap.pitch);
-  if (!pixmap.buffer) {
+  pixBuffer = (GLubyte *)__glcMalloc(pixWidth * pixHeight);
+  if (!pixBuffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  /* fill the pixmap buffer with the background color */
-  memset(pixmap.buffer, 0, pixmap.rows * pixmap.pitch);
-
-  /* Flip the picture */
-  pixmap.pitch = - pixmap.pitch;
-
-  /* translate the outline to match (0,0) with the glyph's lower left corner */
-  FT_Outline_Translate(&outline, -boundingBox.xMin, -boundingBox.yMin);
-
   /* render the glyph */
-  if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
-    __glcFree(pixmap.buffer);
+  if (!__glcFaceDescGetBitmap(inFont->faceDesc, pixWidth, pixHeight,
+                              pixBuffer, inContext)) {
+    __glcFree(pixBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
@@ -166,26 +134,22 @@ static void __glcRenderCharBitmap(FT_GlyphSlot inGlyph,
 
   if (inIsRTL) {
     glBitmap(0, 0, 0, 0,
-	     inGlyph->advance.y / 64. * matrix.xy / 65536.
-	     - inGlyph->advance.x / 64. * matrix.xx / 65536.,
-	     inGlyph->advance.y / 64. * matrix.yy / 65536.
-	     - inGlyph->advance.x / 64. * matrix.yx / 65536.,
+	     advance[1] * transform[2] - advance[0] * transform[0],
+	     advance[1] * transform[3] - advance[0] * transform[1],
 	     NULL);
-    glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
-	     -boundingBox.yMin >> 6, 0., 0., pixmap.buffer);
+    glBitmap(pixWidth, pixHeight, -boundingBox[0] >> 6,
+	     -boundingBox[1] >> 6, 0., 0., pixBuffer);
   }
   else
-    glBitmap(pixmap.width, pixmap.rows, -boundingBox.xMin >> 6,
-	     -boundingBox.yMin >> 6,
-	     inGlyph->advance.x / 64. * matrix.xx / 65536.
-	     + inGlyph->advance.y / 64. * matrix.xy / 65536.,
-	     inGlyph->advance.x / 64. * matrix.yx / 65536.
-	     + inGlyph->advance.y / 64. * matrix.yy / 65536.,
-	     pixmap.buffer);
+    glBitmap(pixWidth, pixHeight, -boundingBox[0] >> 6,
+	     -boundingBox[1] >> 6,
+	     advance[0] * transform[0] + advance[1] * transform[2],
+	     advance[0] * transform[1] + advance[1] * transform[3],
+	     pixBuffer);
 
   glPopClientAttrib();
 
-  __glcFree(pixmap.buffer);
+  __glcFree(pixBuffer);
 }
 
 
@@ -202,8 +166,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   GLfloat scale_x = GLC_POINT_SIZE;
   GLfloat scale_y = GLC_POINT_SIZE;
   __GLCglyph* glyph = NULL;
-  FT_Face face = NULL;
   GLfloat sx64 = 0., sy64 = 0.;
+  GLfloat advance[2] = {0., 0.};
 
   assert(inFont);
 
@@ -283,36 +247,24 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     }
   }
 
-#ifndef FT_CACHE_H
-  face = inFont->faceDesc->face;
-#else
-  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)inFont->faceDesc,
-			     &face)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
+                               scale_y, inContext))
     return NULL;
-  }
-#endif
-
-  __glcFaceDescLoadFreeTypeGlyph(inFont->faceDesc, inContext, scale_x, scale_y,
-				 glyph->index);
 
   sx64 = 64. * scale_x;
   sy64 = 64. * scale_y;
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
-    FT_Outline outline = face->glyph->outline;
+    if (inIsRTL)
+      glTranslatef(-advance[0], advance[1], 0.);
 
     /* If the outline contains no point then the glyph represents a space
      * character and there is no need to continue the process of rendering.
      */
-    if (!outline.n_points) {
+    if (!__glcFaceDescOutlineEmpty(inFont->faceDesc, inContext)) {
       /* Update the advance and return */
-      if (inIsRTL)
-        glTranslatef(-face->glyph->advance.x / sx64,
-		     face->glyph->advance.y / sy64, 0.);
-      else
-        glTranslatef(face->glyph->advance.x / sx64,
-		     face->glyph->advance.y / sy64, 0.);
+      if (!inIsRTL)
+        glTranslatef(advance[0], advance[1], 0.);
       return NULL;
     }
 
@@ -321,17 +273,9 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
      */
     if (!inContext->enableState.glObjects)
       glScalef(1. / sx64, 1. / sy64, 1.);
-
-    if (inContext->enableState.glObjects) {
-      glyph->advance[0] = (GLfloat) face->glyph->advance.x / sx64;
-      glyph->advance[1] = (GLfloat) face->glyph->advance.y / sy64;
-    }
-
-    if (inIsRTL) {
-      if (inContext->enableState.glObjects)
-	glTranslatef(-glyph->advance[0], glyph->advance[1], 0.);
-      else
-	glTranslatef(-face->glyph->advance.x, face->glyph->advance.y, 0.);
+    else {
+      glyph->advance[0] = advance[0];
+      glyph->advance[1] = advance[1];
     }
   }
 
@@ -341,7 +285,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
    */
   switch(inContext->renderState.renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(face->glyph, inContext, scale_x, scale_y, inIsRTL);
+    __glcRenderCharBitmap(inFont, inContext, scale_x, scale_y, advance, inIsRTL);
     break;
   case GLC_TEXTURE:
       __glcRenderCharTexture(inFont, inContext, scale_x, scale_y, glyph);
@@ -359,17 +303,13 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   }
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
-    if (!inIsRTL) {
-      if (inContext->enableState.glObjects)
-	glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-      else
-	glTranslatef(face->glyph->advance.x, face->glyph->advance.y, 0.);
-    }
     if (!inContext->enableState.glObjects)
       glScalef(sx64, sy64, 1.);
+    if (!inIsRTL)
+      glTranslatef(advance[0], advance[1], 0.);
   }
 #ifndef FT_CACHE_H
-  __glcFaceDescClose(font->faceDesc);
+  __glcFaceDescClose(inFont->faceDesc);
 #endif
   return NULL;
 }

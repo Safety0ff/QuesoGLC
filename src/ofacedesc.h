@@ -28,6 +28,7 @@
 
 #include "omaster.h"
 
+typedef struct __GLCrendererDataRec __GLCrendererData;
 typedef struct __GLCfaceDescriptorRec __GLCfaceDescriptor;
 
 struct __GLCfaceDescriptorRec {
@@ -53,19 +54,24 @@ void __glcFaceDescClose(__GLCfaceDescriptor* This);
 #endif
 __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
 				  __GLCcontext* inContext);
-FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
-			       __GLCcontext* inContext, GLfloat inScaleX,
-			       GLfloat inScaleY, GLCulong inGlyphIndex);
 void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
 				   __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
 				     GLCulong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,
 				     __GLCcontext* inContext);
+#ifdef FT_CACHE_H
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext);
+#else
+GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
+				 GLCulong inGlyphIndex, GLfloat* outVec,
+				 GLfloat inScaleX, GLfloat inScaleY,
+                                 GLboolean inCloseFile,
+				 __GLCcontext* inContext);
+#endif
 GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 				    __GLCcontext* inContext,
 				    GLCenum inAttrib);
@@ -77,4 +83,16 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
 				 GLfloat* outVec, __GLCcontext* inContext);
 GLCchar8* __glcFaceDescGetStyleName(__GLCfaceDescriptor* This);
 GLboolean __glcFaceDescIsFixedPitch(__GLCfaceDescriptor* This);
+GLboolean __glcFaceDescOutlineDecompose(__GLCfaceDescriptor* This,
+                                        __GLCrendererData* inData,
+                                        __GLCcontext* inContext);
+GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
+                                     GLint *outHeight, GLint* outBoundingBox,
+                                     GLfloat inScaleX, GLfloat inScaleY,
+                                     int inFactor, __GLCcontext* inContext);
+GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
+                                 GLint inHeight, void* inBuffer,
+                                 __GLCcontext* inContext);
+GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This,
+                                    __GLCcontext* inContext);
 #endif /* __glc_ofacedesc_h */
