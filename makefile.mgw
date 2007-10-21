@@ -30,10 +30,10 @@ GLUT_LIBS=c:\mingw\lib\libglut.a
 #                                    #
 ######################################
 
-QUESOGLC_VERSION=0.6.0
+QUESOGLC_VERSION=0.7.0
 
 C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c \
-	  ofacedesc.c ofont.c oglyph.c render.c scalable.c transform.c texture.c unicode.c glew.c
+	  ofacedesc.c ofont.c oglyph.c render.c scalable.c transform.c texture.c unicode.c glew.c omaster.c
 FRIBIDI_FILES=fribidi.c fribidi_char_type.c fribidi_types.c fribidi_mirroring.c
 TESTS=test1 test4 test5 test6 test7 test8 testcontex testfont testmaster testrender
 EXAMPLES=glcdemo glclogo tutorial tutorial2 unicode demo
@@ -51,7 +51,7 @@ SUBLIBRARIES+=$(OPENGL_LIBS)
 LIBS=$(LDFLAGS) -l$(LIB_NAME)
 CC=gcc
 ifdef DEBUGMODE
-CFLAGS=-Wall -Werror -pedantic-errors -g -DDEBUGMODE
+CFLAGS=-g -Wall -Werror -DDEBUGMODE
 else
 CFLAGS=-O2 -fomit-frame-pointer -ffast-math
 endif
