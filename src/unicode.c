@@ -503,7 +503,7 @@ GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode)
     }
   }
 
-  return __glcContextRemoveBlank(inContext, code);
+  return code;
 }
 
 

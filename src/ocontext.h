@@ -209,5 +209,4 @@ void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog);
 void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog);
 void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex);
 GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex);
-GLint __glcContextRemoveBlank(__GLCcontext* This, GLint inCode);
 #endif /* __glc_ocontext_h */

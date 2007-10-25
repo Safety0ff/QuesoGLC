@@ -775,18 +775,3 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
     __glcMasterDestroy(master);
   }
 }
-
-
-
-/* Replace blank characters by '\0' */
-GLint __glcContextRemoveBlank(__GLCcontext* This, GLint inCode)
-{
-  FcBlanks* blanks = FcConfigGetBlanks(This->config);
-
-  if (blanks) {
-    if (FcBlanksIsMember(blanks, inCode))
-      return 0;
-  }
-
-  return inCode;
-}

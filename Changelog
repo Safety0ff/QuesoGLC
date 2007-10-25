@@ -3,6 +3,8 @@ Changes made from the "0.6" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Fixed a bug where blank characters (i.e. spaces) were wrongly transformed into
+  null characters.
 - Removed the use of FcStrSet and FcStrList objects for the catalog list. Use
   object __GLCarray instead.
 - Fixed bug #1814773 (QuesoGLC uses the system library GLEW whenever
