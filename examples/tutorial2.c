@@ -80,6 +80,7 @@ void display(void)
   for (i = 0; i < 4; i++)
     glVertex2fv(&bbox[2*i]);
   glEnd();
+  glLoadIdentity();
 
   glFlush();
 }
