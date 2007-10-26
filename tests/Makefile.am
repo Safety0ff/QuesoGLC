@@ -22,6 +22,7 @@ EXTRA_PROGRAMS = test7 \
                  test9.6 \
                  test9.7 \
                  test9.8 \
+                 test10 \
                  testrender
 
 TESTS = $(noinst_PROGRAMS)
@@ -97,6 +98,8 @@ test9_7_LDADD = @GLUT_LIBS@ $(LDADD)
 test9_8_SOURCES = test9.c
 test9_8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE -DWITH_GL_OBJECTS -DWITH_USER_LIST
 test9_8_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test10_SOURCES = test10.c
 
 testrender_SOURCES = testrender.c
 testrender_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@

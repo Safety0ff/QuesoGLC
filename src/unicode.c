@@ -615,13 +615,18 @@ GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL
     break;
   }
 
-  visualString = string + length + 1;
-  if (!fribidi_log2vis(string, length, &base, visualString, NULL, NULL, NULL)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
+  if (length) {
+    visualString = string + length + 1;
+    if (!fribidi_log2vis(string, length, &base, visualString, NULL, NULL,
+                         NULL)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return NULL;
+    }
 
-  *outIsRTL = FRIBIDI_IS_RTL(base) ? GL_TRUE : GL_FALSE;
+    *outIsRTL = FRIBIDI_IS_RTL(base) ? GL_TRUE : GL_FALSE;
+  }
+  else
+    visualString = string;
 
   return visualString;
 }
