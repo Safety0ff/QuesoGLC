@@ -261,7 +261,6 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 			    GLfloat scale_x, GLfloat scale_y,
 			    __GLCglyph* inGlyph)
 {
-  GLuint texture = 0;
   GLfloat width = 0, heigth = 0;
   GLint level = 0;
   GLint posX = 0, posY = 0;
@@ -283,7 +282,6 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     __glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
                                boundingBox, scale_x, scale_y, 0, inContext);
 
-    texture = inContext->atlas.id;
     texWidth = inContext->atlas.width;
     texHeigth = inContext->atlas.heigth;
     posY = (atlasNode->position / inContext->atlasWidth);
@@ -303,7 +301,6 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       factor = 1;
     } while (!__glcTextureGetImmediate(inContext, pixWidth, pixHeight));
 
-    texture = inContext->texture.id;
     texWidth = inContext->texture.width;
     texHeigth = inContext->texture.heigth;
     posX = 0;
@@ -422,8 +419,8 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
     /* Modify the bouding box dimensions to compensate the glScalef() */
     boundingBox[0] *= scale_x / GLC_TEXTURE_SIZE;
-    boundingBox[1] *= scale_x / GLC_TEXTURE_SIZE;
-    boundingBox[2] *= scale_y / GLC_TEXTURE_SIZE;
+    boundingBox[1] *= scale_y / GLC_TEXTURE_SIZE;
+    boundingBox[2] *= scale_x / GLC_TEXTURE_SIZE;
     boundingBox[3] *= scale_y / GLC_TEXTURE_SIZE;
   }
 
