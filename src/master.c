@@ -50,8 +50,10 @@
  */
 
 #include "internal.h"
-#ifndef __WIN32__
-# include <unistd.h>
+#ifdef __WIN32__
+#include <io.h>
+#else
+#include <unistd.h>
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
