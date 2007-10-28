@@ -261,6 +261,12 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   if (code < 0)
     return NULL;
 
+  /* Control characters have no metrics */
+  if (code < 32) {
+    memset(outVec, 0, ((inMetric == GLC_BOUNDS) ? 8 : 4) * sizeof(GLfloat));
+    return outVec;
+  }
+
   /* Call __glcProcessChar that will get a font which maps the code to a glyph
    * or issue the replacement code or the character sequence \<xxx> and call
    * __glcGetCharMetric()
@@ -584,8 +590,18 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
    */
   ptr = inString;
   for (i = 0; i < inCount; i++) {
-    __glcProcessChar(inContext, *(ptr++), &prevCode, inIsRTL,
-		     __glcGetCharMetric, metrics);
+    if (*ptr < 32) {
+      /* Control characters have no metrics. However they must not be skipped
+       * otherwise the characters indices in the string would be modified and
+       * this would make troubles when the user calls glcGetStringCharMetric().
+       */
+      memset(metrics, 0, 14 * sizeof(GLfloat));
+      ptr++;
+    }
+    else {
+      __glcProcessChar(inContext, *(ptr++), &prevCode, inIsRTL,
+                       __glcGetCharMetric, metrics);
+    }
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)

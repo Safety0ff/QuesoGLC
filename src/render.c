@@ -345,8 +345,8 @@ void APIENTRY glcRenderChar(GLint inCode)
 
   /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(ctx, inCode);
-  if (code < 0)
-    return;
+  if (code < 32)
+    return; /* Skip control characters and unknown characters */
 
   /* Disable the internal management of GL objects when the user is currently
    * building a display list.
@@ -492,9 +492,16 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  for (i = 0; i < inCount; i++)
-    __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
-		     NULL);
+  for (i = 0; i < inCount; i++) {
+    if (*ptr < 32) {
+      /* Skip control characters */
+      ptr++;
+      continue;
+    }
+    else
+      __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
+                       NULL);
+  }
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
@@ -585,9 +592,16 @@ void APIENTRY glcRenderString(const GLCchar *inString)
 
   /* Render the string */
   ptr = UinString;
-  while (*ptr)
-    __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
-		     NULL);
+  while (*ptr) {
+    if (*ptr < 32) {
+      /* Skip control characters */
+      ptr++;
+      continue;
+    }
+    else
+      __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
+                       NULL);
+  }
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
