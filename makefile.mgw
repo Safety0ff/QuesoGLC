@@ -30,12 +30,12 @@ GLUT_LIBS=c:\mingw\lib\libglut.a
 #                                    #
 ######################################
 
-QUESOGLC_VERSION=0.7.0
+QUESOGLC_VERSION=0.6.5
 
 C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c \
 	  ofacedesc.c ofont.c oglyph.c render.c scalable.c transform.c texture.c unicode.c glew.c omaster.c
 FRIBIDI_FILES=fribidi.c fribidi_char_type.c fribidi_types.c fribidi_mirroring.c
-TESTS=test1 test4 test5 test6 test7 test8 testcontex testfont testmaster testrender
+TESTS=test1 test4 test5 test6 test7 test8 test10 testcontex testfont testmaster testrender
 EXAMPLES=glcdemo glclogo tutorial tutorial2 unicode demo
 
 C_SOURCE=$(addprefix src/,$(C_FILES)) $(addprefix src/fribidi/,$(FRIBIDI_FILES))

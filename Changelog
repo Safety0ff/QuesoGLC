@@ -1,12 +1,14 @@
-Changes made from the "0.6" release to the "0.7" release:
+Changes made from the "0.6" release to the "0.6.5" release:
 -----------------------------------------------------------
 
 * Bertrand Coconnier:
 
+- Rendering and measuring routines now skip control characters instead of
+  having a random behavior about them.
 - Fixed bug #1820546 (glcRenderString("") displayed the last rendered string
   minus its first character)
-- Fixed a bug where blank characters (i.e. spaces) were wrongly transformed into
-  null characters.
+- Fixed bug #1821219 (Blank characters (i.e. spaces) were wrongly transformed
+  into null characters)
 - Removed the use of FcStrSet and FcStrList objects for the catalog list. Use
   object __GLCarray instead.
 - Fixed bug #1814773 (QuesoGLC uses the system library GLEW whenever
@@ -20,7 +22,7 @@ Changes made from the "0.6" release to the "0.7" release:
 - Renamed some type names (FT_ULong, FcChar8, ...) in order to make them more
   portable.
 - Minimized the use of pthread_get_specific()/TlsGetValue() when only one thread
-  is used and ELF TLS is not available since calls to those functions are
+  is used and when ELF TLS is not available, since calls to those functions are
   expansive.
 - Removed the useless QUESOGLC_STATIC_LIBRARY
 - Modified QuesoGLC threading implementation in order to use ELF TLS when
