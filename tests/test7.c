@@ -184,6 +184,59 @@ int main(int argc, char **argv) {
     return -1;
   }
 
+  /* Regression test for bug #1821219 (glcGetCharMetric randomly crashes when
+   * requesting measurement for the space character).
+   */
+
+  for (i = 0; i < glcGeti(GLC_MASTER_COUNT); i++) {
+    GLint font = glcGenFontID();
+
+    if (!glcNewFontFromMaster(font, i)) {
+      printf("Can not get a font from master %s\n",
+             (char*)glcGetMasterc(i, GLC_FAMILY));
+      return -1;
+    }
+
+    CheckError();
+
+    glcFont(font);
+
+    CheckError();
+
+    if (!glcGetCharMetric(' ', GLC_BOUNDS, boundingBox1)) {
+      printf("Failed to get the bounding box of the space character\n");
+      return -1;
+    }
+
+    CheckError();
+
+    if (!glcGetCharMetric(' ', GLC_BASELINE, baseline1)) {
+      printf("Failed to get the baseline of the space character\n");
+      return -1;
+    }
+
+    CheckError();
+
+    v1 = fabs(baseline1[1]);
+    v2 = fabs(baseline1[3]);
+    norm = v1 > v2 ? v1 : v2;
+
+    if (fabs(v1 - v2) <= EPSILON * norm) {
+      v1 = fabs(baseline1[0]);
+      v2 = fabs(baseline1[2]);
+      norm = v1 > v2 ? v1 : v2;
+      if ((fabs(v1 - v2) <= EPSILON * norm) || (baseline1[2] < baseline1[0])) {
+        printf("Right and left side of the baseline are swapped\n");
+        printf("%f %f %f %f\n", baseline1[0], baseline1[1], baseline1[2],
+               baseline1[3]);
+        return -1;
+      }
+    }
+  }
+
+  glcDeleteContext(ctx);
+  glcContext(0);
+
   printf("Tests successful\n");
   return 0;
 }
