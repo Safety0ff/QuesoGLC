@@ -496,9 +496,8 @@ static void CALLBACK __glcCallbackError(GLenum GLC_UNUSED_ARG(inErrorCode))
  * before being rendered.
  */
 void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
-			     GLCenum inRenderMode, GLfloat* inTransformMatrix,
-			     GLfloat scale_x, GLfloat scale_y,
-			     __GLCglyph* inGlyph)
+			     GLfloat* inTransformMatrix, GLfloat scale_x,
+			     GLfloat scale_y, __GLCglyph* inGlyph)
 {
   __GLCrendererData rendererData;
   GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
@@ -568,7 +567,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     return;
   }
 
-  switch(inRenderMode) {
+  switch(inContext->renderState.renderStyle) {
   case GLC_LINE:
     index = 1;
     break;
@@ -593,7 +592,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     glScalef(1./sx64, 1./sy64, 1.);
   }
 
-  if (inRenderMode == GLC_TRIANGLE) {
+  if (inContext->renderState.renderStyle == GLC_TRIANGLE) {
     /* Tesselate the polygon defined by the contour returned by
      * __glcFaceDescOutlineDecompose().
      */

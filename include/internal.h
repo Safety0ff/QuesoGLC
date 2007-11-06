@@ -161,16 +161,15 @@ typedef void* (*__glcProcessCharFunc)(GLint inCode, GLint inPrevCode,
  * character sequence is issued if necessary.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
-		       __GLCcharacter* inPrevCode, GLboolean inIsRTL,
-		       __glcProcessCharFunc inProcessCharFunc,
-		       void* inProcessCharData);
+extern void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
+			      __GLCcharacter* inPrevCode, GLboolean inIsRTL,
+			      __glcProcessCharFunc inProcessCharFunc,
+			      void* inProcessCharData);
 
 /* Render scalable characters using either the GLC_LINE style or the
  * GLC_TRIANGLE style
  */
 extern void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
-				    GLCenum inRenderMode,
 				    GLfloat* inTransformMatrix,
 				    GLfloat scale_x, GLfloat scale_y,
 				    __GLCglyph* inGlyph);
@@ -210,45 +209,45 @@ extern GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 /* Duplicate a counted string to the context buffer and convert it from any
  * Unicode format to UTF-8 format.
  */
-GLCchar8* __glcConvertCountedStringToUtf8(const GLint inCount,
-					  const GLCchar* inString,
-					  const GLint inStringType);
+extern GLCchar8* __glcConvertCountedStringToUtf8(const GLint inCount,
+						 const GLCchar* inString,
+						 const GLint inStringType);
 
 /* Convert a UCS-4 character code into the current string type. The result is
  * stored in a GLint. This function is needed since the GLC specs store
  * individual character codes in GLint whatever is their string type.
  */
-GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode);
+extern GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode);
 
 /* Convert a character encoded in the current string type to the UCS-4 format.
  * This function is needed since the GLC specs store individual character
  * codes in GLint whatever is their string type.
  */
-GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode);
+extern GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode);
 
 /* Verify that the thread has a current context and that the master identified
  * by 'inMaster' exists. Returns a FontConfig pattern corresponding to the
  * master ID 'inMaster'.
  */
-__GLCmaster* __glcVerifyMasterParameters(GLint inMaster);
+extern __GLCmaster* __glcVerifyMasterParameters(GLint inMaster);
 
 /* Verify that the thread has a current context and that the font identified
  * by 'inFont' exists.
  */
-__GLCfont* __glcVerifyFontParameters(GLint inFont);
+extern __GLCfont* __glcVerifyFontParameters(GLint inFont);
 
 /* Do the actual job of glcAppendFont(). This function can be called as an
  * internal version of glcAppendFont() where the current GLC context is already
  * determined and the font ID has been resolved in its corresponding __GLCfont
  * object.
  */
-void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont);
+extern void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont);
 
 /* This internal function deletes the font identified by inFont (if any) and
  * creates a new font based on the pattern 'inPattern'. The resulting font is
  * added to the list GLC_FONT_LIST.
  */
-__GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
+extern __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 				  __GLCmaster* inMaster,
 				  __GLCcontext *inContext);
 
@@ -258,7 +257,7 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
  * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
  * succeeded or not.
  */
-GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
+extern GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 			__GLCcontext *inContext);
 
 #ifndef HAVE_TLS
@@ -268,7 +267,7 @@ GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
  * called to return the structure using pthread_get_specific (POSIX) or
  * TlsGetValue (WIN32) which are much slower.
  */
-__GLCthreadArea* __glcGetThreadArea(void);
+extern __GLCthreadArea* __glcGetThreadArea(void);
 #endif
 
 /* Raise an error.
@@ -279,40 +278,41 @@ __GLCthreadArea* __glcGetThreadArea(void);
 if (!__glcTlsThreadArea.errorState || ! (inError)) \
   __glcTlsThreadArea.errorState = (inError)
 #else
-void __glcRaiseError(GLCenum inError);
+extern void __glcRaiseError(GLCenum inError);
 #endif
 
 #ifndef HAVE_TLS
 /* Return the current context state.
  * See also remarks above about TLS pointers.
  */
-__GLCcontext* __glcGetCurrent(void);
+extern __GLCcontext* __glcGetCurrent(void);
 #endif
 
 /* Compute an optimal size for the glyph to be rendered on the screen (if no
  * display list is currently building).
  */
-void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
-		   GLfloat* outScaleX, GLfloat* outScaleY);
+extern void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
+			  GLfloat* outScaleX, GLfloat* outScaleY);
 
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL,
-				    const GLCchar* inString);
+extern GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
+					   GLboolean *outIsRTL,
+					   const GLCchar* inString);
 
 /* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4
  * format and return a copy of the converted string in visual order.
  */
-GLCchar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
-						 GLboolean *outIsRTL,
-						 const GLCchar* inString,
-						 const GLint inCount);
+extern GLCchar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
+							GLboolean *outIsRTL,
+							const GLCchar* inString,
+							const GLint inCount);
 
 #ifdef FT_CACHE_H
 /* Callback function used by the FreeType cache manager to open a given face */
-FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
-		       FT_Pointer inData, FT_Face* outFace);
+extern FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
+			      FT_Pointer inData, FT_Face* outFace);
 
 /* Rename FTC_Manager_LookupFace for old freetype versions */
 # if FREETYPE_MAJOR == 2 \
@@ -323,23 +323,23 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 #endif
 
 /* Save the GL State in a structure */
-void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
-		      GLboolean inAll);
+extern void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
+			     GLboolean inAll);
 
 /* Restore the GL State from a structure */
-void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
-			 GLboolean inAll);
+extern void __glcRestoreGLState(__GLCglState* inGLState,
+				__GLCcontext* inContext, GLboolean inAll);
 
 /* Function for GLEW so that it can get a context */
-GLEWContext* glewGetContext(void);
+extern GLEWContext* glewGetContext(void);
 
 #ifndef HAVE_TLS
 /* This function initializes the thread management of QuesoGLC when TLS is not
  * available. It must be called once (see the macro GLC_INIT_THREAD)
  */
-void __glcInitThread(void);
+extern void __glcInitThread(void);
 #endif
 
-int __glcdeCasteljauConic(void *inUserData);
-int __glcdeCasteljauCubic(void *inUserData);
+extern int __glcdeCasteljauConic(void *inUserData);
+extern int __glcdeCasteljauCubic(void *inUserData);
 #endif /* __glc_internal_h */

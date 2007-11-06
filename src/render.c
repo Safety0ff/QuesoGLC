@@ -285,18 +285,19 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
    */
   switch(inContext->renderState.renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(inFont, inContext, scale_x, scale_y, advance, inIsRTL);
+    __glcRenderCharBitmap(inFont, inContext, scale_x, scale_y, advance,
+			  inIsRTL);
     break;
   case GLC_TEXTURE:
-      __glcRenderCharTexture(inFont, inContext, scale_x, scale_y, glyph);
+    __glcRenderCharTexture(inFont, inContext, scale_x, scale_y, glyph);
     break;
   case GLC_LINE:
-      __glcRenderCharScalable(inFont, inContext, GLC_LINE, transformMatrix,
-			      scale_x, scale_y, glyph);
+    __glcRenderCharScalable(inFont, inContext, transformMatrix, scale_x,
+			    scale_y, glyph);
     break;
   case GLC_TRIANGLE:
-      __glcRenderCharScalable(inFont, inContext, GLC_TRIANGLE, transformMatrix,
-			      scale_x, scale_y, glyph);
+    __glcRenderCharScalable(inFont, inContext, transformMatrix, scale_x,
+			    scale_y, glyph);
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
