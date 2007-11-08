@@ -52,6 +52,7 @@ __GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
 
   This->index = inIndex;
   This->codepoint = inCode;
+  This->isSpacingChar = GL_FALSE;
   This->textureObject = NULL;
 
   /* A display list for each rendering mode (except GLC_BITMAP) may be built */

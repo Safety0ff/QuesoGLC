@@ -208,6 +208,12 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     if (inIsRTL)
       glTranslatef(-glyph->advance[0], glyph->advance[1], 0.);
 
+    if (glyph->isSpacingChar) {
+      if (!inIsRTL)
+	glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
+      return NULL;
+    }
+
     switch(inContext->renderState.renderStyle) {
     case GLC_TEXTURE:
       if (glyph->displayList[0]) {
@@ -265,6 +271,11 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
       /* Update the advance and return */
       if (!inIsRTL)
         glTranslatef(advance[0], advance[1], 0.);
+      if (inContext->enableState.glObjects) {
+	glyph->advance[0] = advance[0];
+	glyph->advance[1] = advance[1];
+	glyph->isSpacingChar = GL_TRUE;
+      }
       return NULL;
     }
 
@@ -398,7 +409,7 @@ void APIENTRY glcRenderChar(GLint inCode)
 
       glyph = __glcCharMapGetGlyph(font->charMap, code);
 
-      if (glyph) {
+      if (glyph && !glyph->isSpacingChar) {
 	switch(ctx->renderState.renderStyle) {
 	case GLC_TEXTURE:
 	  if (glyph->displayList[0]) {

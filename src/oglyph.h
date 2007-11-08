@@ -34,6 +34,7 @@ struct __GLCglyphRec {
 
   GLCulong index;
   GLCulong codepoint;
+  GLboolean isSpacingChar;
   /* GL objects management */
   void* textureObject;
   GLuint displayList[4];
