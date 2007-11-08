@@ -766,7 +766,7 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   __GLCcontext *ctx = NULL;
   GLCchar32* UinString = NULL;
   GLint count = 0;
-  GLint len = 0;
+  GLint length = 0;
   GLCchar32* ucs4 = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
@@ -783,20 +783,13 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   if (!inString)
     return 0;
 
-  UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, inString);
+  UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, &length, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return 0;
   }
 
-  /* Compute the number of characters of the string so that there will be no
-   * difference in the measurement process afterwards between the counted
-   * strings and the other strings.
-   */
-  for (ucs4 = UinString, len = 0; *ucs4; ucs4++, len++);
-
-
-  count = __glcMeasureCountedString(ctx, inMeasureChars, len, UinString,
+  count = __glcMeasureCountedString(ctx, inMeasureChars, length, UinString,
 				    isRightToLeft);
 
   return count;

@@ -299,6 +299,7 @@ extern void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
  */
 extern GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
 					   GLboolean *outIsRTL,
+					   GLint *outLength,
 					   const GLCchar* inString);
 
 /* Convert 'inCount' characters of 'inString' (stored in logical order) to UCS4

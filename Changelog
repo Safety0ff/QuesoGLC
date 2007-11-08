@@ -1,3 +1,13 @@
+Changes made from the "0.6.5" release to the "0.7" release:
+-----------------------------------------------------------
+
+* Bertrand Coconnier:
+
+- Code refactoring between glcRenderString() and glcRenderCountedString() in
+  order to maximize common code for easier maintenance.
+- Display lists are now called earlier in glcRenderChar() in order to minimize
+  useless overhead.
+
 Changes made from the "0.6" release to the "0.6.5" release:
 -----------------------------------------------------------
 

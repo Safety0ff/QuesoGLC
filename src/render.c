@@ -331,9 +331,9 @@ void APIENTRY glcRenderChar(GLint inCode)
   __GLCcontext *ctx = NULL;
   GLint code = 0;
   __GLCglState GLState;
-  __GLCcharacter prevCode = { 0, NULL };
   GLint listIndex = 0;
   GLboolean saveGLObjects = GL_FALSE;
+  __GLCglyph* glyph = NULL;
 
   GLC_INIT_THREAD();
 
@@ -388,12 +388,139 @@ void APIENTRY glcRenderChar(GLint inCode)
     }
   }
 
-  __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
+  if (ctx->enableState.glObjects
+      && ctx->renderState.renderStyle != GLC_BITMAP) {
+    /* Renders the display lists if they exist */
+    FT_ListNode node = NULL;
+
+    for (node = ctx->currentFontList.head; node; node = node->next) {
+      __GLCfont* font = (__GLCfont*)node->data;
+
+      glyph = __glcCharMapGetGlyph(font->charMap, code);
+
+      if (glyph) {
+	switch(ctx->renderState.renderStyle) {
+	case GLC_TEXTURE:
+	  if (glyph->displayList[0]) {
+	    glCallList(glyph->displayList[0]);
+	    /* The glyph is put at the head of the atlas list, so that we keep
+	     * track of glyphes that are used often in order not to remove those
+	     * ones from the atlas when it is full.
+	     */
+	    FT_List_Up(&ctx->atlasList, (FT_ListNode)glyph->textureObject);
+	  }
+	  else
+	    glyph = NULL;
+	  break;
+	case GLC_LINE:
+	  if (glyph->displayList[1])
+	    glCallList(glyph->displayList[1]);
+	  else
+	    glyph = NULL;
+
+	  break;
+	case GLC_TRIANGLE:
+	  if ((!ctx->enableState.extrude) && glyph->displayList[2])
+	    glCallList(glyph->displayList[2]);
+	  else if (ctx->enableState.extrude && glyph->displayList[3])
+	    glCallList(glyph->displayList[3]);
+	  else
+	    glyph = NULL;
+
+	  break;
+	}
+	if (glyph){
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
+	  break;
+	}
+      }
+    }
+  }
+
+  if (!glyph) {
+    __GLCcharacter prevCode = { 0, NULL };
+
+    __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
+  }
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, ctx, GL_FALSE);
   if (listIndex)
     ctx->enableState.glObjects = saveGLObjects;
+}
+
+
+
+/* This internal function is used by both glcRenderString() and
+ * glcRenderCountedString(). The string 'inString' must be sorted in visual
+ * order and stored using UCS4 format.
+ */
+static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
+				     GLboolean inIsRightToLeft,GLint inCount)
+{
+  GLint listIndex = 0;
+  GLint i = 0;
+  GLCchar32* ptr = NULL;
+  __GLCglState GLState;
+  __GLCcharacter prevCode = { 0, NULL };
+  GLboolean saveGLObjects = GL_FALSE;
+
+  /* Disable the internal management of GL objects when the user is currently
+   * building a display list.
+   */
+  glGetIntegerv(GL_LIST_INDEX, &listIndex);
+  if (listIndex) {
+    saveGLObjects = inContext->enableState.glObjects;
+    inContext->enableState.glObjects = GL_FALSE;
+  }
+
+  /* Save the value of the GL parameters */
+  __glcSaveGLState(&GLState, inContext, GL_FALSE);
+
+  if (inContext->renderState.renderStyle == GLC_LINE ||
+      inContext->renderState.renderStyle == GLC_TRIANGLE) {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_INDEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  }
+
+  /* Set the texture environment if the render style is GLC_TEXTURE */
+  if (inContext->renderState.renderStyle == GLC_TEXTURE) {
+    /* Set the new values of the parameters */
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    if (inContext->enableState.glObjects && inContext->atlas.id)
+      glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
+    else if (!inContext->enableState.glObjects && inContext->texture.id) {
+      glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
+      if (GLEW_ARB_pixel_buffer_object && inContext->texture.bufferObjectID)
+	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
+			inContext->texture.bufferObjectID);
+    }
+  }
+
+  /* Render the string */
+  ptr = inString;
+  for (i = 0; i < inCount; i++) {
+    if (*ptr < 32) {
+      /* Skip control characters */
+      ptr++;
+      continue;
+    }
+    else
+      __glcProcessChar(inContext, *(ptr++), &prevCode, inIsRightToLeft,
+		       __glcRenderChar, NULL);
+  }
+
+  /* Restore the values of the GL state if needed */
+  __glcRestoreGLState(&GLState, inContext, GL_FALSE);
+  if (listIndex)
+    inContext->enableState.glObjects = saveGLObjects;
 }
 
 
@@ -413,15 +540,9 @@ void APIENTRY glcRenderChar(GLint inCode)
  */
 void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
 {
-  GLint i = 0;
   __GLCcontext *ctx = NULL;
   GLCchar32* UinString = NULL;
-  GLCchar32* ptr = NULL;
-  __GLCglState GLState;
-  __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
-  GLint listIndex = 0;
-  GLboolean saveGLObjects = GL_FALSE;
 
   GLC_INIT_THREAD();
 
@@ -452,62 +573,7 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
     return;
   }
 
-  /* Disable the internal management of GL objects when the user is currently
-   * building a display list.
-   */
-  glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  if (listIndex) {
-    saveGLObjects = ctx->enableState.glObjects;
-    ctx->enableState.glObjects = GL_FALSE;
-  }
-
-  /* Save the value of the GL parameters */
-  __glcSaveGLState(&GLState, ctx, GL_FALSE);
-
-  if (ctx->renderState.renderStyle == GLC_LINE ||
-      ctx->renderState.renderStyle == GLC_TRIANGLE) {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_INDEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_EDGE_FLAG_ARRAY);
-  }
-
-  /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
-    /* Set the new values of the parameters */
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (ctx->enableState.glObjects && ctx->atlas.id)
-      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
-    else if (!ctx->enableState.glObjects && ctx->texture.id) {
-      glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
-      if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
-			ctx->texture.bufferObjectID);
-    }
-  }
-
-  /* Render the string */
-  ptr = UinString;
-  for (i = 0; i < inCount; i++) {
-    if (*ptr < 32) {
-      /* Skip control characters */
-      ptr++;
-      continue;
-    }
-    else
-      __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
-                       NULL);
-  }
-
-  /* Restore the values of the GL state if needed */
-  __glcRestoreGLState(&GLState, ctx, GL_FALSE);
-  if (listIndex)
-    ctx->enableState.glObjects = saveGLObjects;
+  __glcRenderCountedString(ctx, UinString, isRightToLeft, inCount);
 }
 
 
@@ -523,12 +589,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
 {
   __GLCcontext *ctx = NULL;
   GLCchar32* UinString = NULL;
-  GLCchar32* ptr = NULL;
-  __GLCglState GLState;
-  __GLCcharacter prevCode = { 0, NULL };
   GLboolean isRightToLeft = GL_FALSE;
-  GLint listIndex = 0;
-  GLboolean saveGLObjects = GL_FALSE;
+  GLint length = 0;
 
   GLC_INIT_THREAD();
 
@@ -546,68 +608,13 @@ void APIENTRY glcRenderString(const GLCchar *inString)
   /* Creates a Unicode string based on the current string type. Basically,
    * that means that inString is read in the current string format.
    */
-  UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, inString);
+  UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, &length, inString);
   if (!UinString) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  /* Disable the internal management of GL objects when the user is currently
-   * building a display list.
-   */
-  glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  if (listIndex) {
-    saveGLObjects = ctx->enableState.glObjects;
-    ctx->enableState.glObjects = GL_FALSE;
-  }
-
-  /* Save the value of the GL parameters */
-  __glcSaveGLState(&GLState, ctx, GL_FALSE);
-
-  if (ctx->renderState.renderStyle == GLC_LINE ||
-      ctx->renderState.renderStyle == GLC_TRIANGLE) {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_INDEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_EDGE_FLAG_ARRAY);
-  }
-
-  /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
-    /* Set the new values of the parameters */
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (ctx->enableState.glObjects && ctx->atlas.id)
-      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
-    else if (!ctx->enableState.glObjects && ctx->texture.id) {
-      glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
-      if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
-			ctx->texture.bufferObjectID);
-    }
-  }
-
-  /* Render the string */
-  ptr = UinString;
-  while (*ptr) {
-    if (*ptr < 32) {
-      /* Skip control characters */
-      ptr++;
-      continue;
-    }
-    else
-      __glcProcessChar(ctx, *(ptr++), &prevCode, isRightToLeft, __glcRenderChar,
-                       NULL);
-  }
-
-  /* Restore the values of the GL state if needed */
-  __glcRestoreGLState(&GLState, ctx, GL_FALSE);
-  if (listIndex)
-    ctx->enableState.glObjects = saveGLObjects;
+  __glcRenderCountedString(ctx, UinString, isRightToLeft, length);
 }
 
 

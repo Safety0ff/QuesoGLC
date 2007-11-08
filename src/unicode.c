@@ -497,7 +497,8 @@ GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode)
     /* Convert the codepoint in UCS4 format and check if it is ill-formed or
      * not
      */
-    if (FcUtf8ToUcs4((GLCchar8*)&inCode, (GLCchar32*)&code, sizeof(GLint)) < 0) {
+    if (FcUtf8ToUcs4((GLCchar8*)&inCode, (GLCchar32*)&code,
+		     sizeof(GLint)) < 0) {
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return -1;
     }
@@ -511,8 +512,9 @@ GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode)
 /* Convert 'inString' (stored in logical order) to UCS4 format and return a
  * copy of the converted string in visual order.
  */
-GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL,
-				   const GLCchar* inString)
+GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
+				    GLboolean *outIsRTL, GLint *outLength,
+				    const GLCchar* inString)
 {
   GLCchar32* string = NULL;
   int length = 0;
@@ -627,6 +629,8 @@ GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext, GLboolean *outIsRTL
   }
   else
     visualString = string;
+
+  *outLength = length;
 
   return visualString;
 }
