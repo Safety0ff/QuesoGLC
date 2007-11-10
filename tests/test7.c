@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   GLint ctx;
   GLCenum err;
   GLint length = 0;
-  GLint i, j;
+  GLint i, j, n;
   GLfloat baseline1[4], baseline2[4];
   GLfloat boundingBox1[8], boundingBox2[8];
   GLfloat v1, v2, norm, area;
@@ -62,14 +62,41 @@ int main(int argc, char **argv) {
   glcContext(ctx);
   CheckError();
 
+  length = glcMeasureCountedString(GL_TRUE, strlen(string)-1, string);
+  CheckError();
+
+  if ((!length) || (length != (strlen(string)-1))) {
+    printf("glcMeasureString() failed to measure %d characters"
+	   " (%d measured instead)\n", (int)strlen(string), length);
+    return -1;
+  }
+
+  n = glcGeti(GLC_MEASURED_CHAR_COUNT);
+  CheckError();
+
+  if (length != n) {
+    printf("glcGeti(GLC_MEASURED_CHAR_COUNT) == %d is not consistent with the"
+	   " value returned by glcMeasureString() == %d\n", n, length);
+    return -1;
+  }
+
   length = glcMeasureString(GL_TRUE, string);
+  CheckError();
+
   if ((!length) || (length != strlen(string))) {
     printf("glcMeasureString() failed to measure %d characters"
 	   " (%d measured instead)\n", (int)strlen(string), length);
     return -1;
   }
 
+  n = glcGeti(GLC_MEASURED_CHAR_COUNT);
   CheckError();
+
+  if (length != n) {
+    printf("glcGeti(GLC_MEASURED_CHAR_COUNT) == %d is not consistent with the"
+	   " value returned by glcMeasureString() == %d\n", n, length);
+    return -1;
+  }
 
   for (i = 0; i < strlen(string); i++) {
     if (!glcGetCharMetric(string[i], GLC_BASELINE, baseline1)) {

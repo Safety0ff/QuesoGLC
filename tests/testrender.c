@@ -105,10 +105,19 @@ void reshape(int width, int height)
 
 void keyboard(unsigned char key, int x, int y)
 {
+  GLint i = 0;
+
   switch(key) {
   case 27: /* Escape Key */
     printf("Textures : %d\n", glcGeti(GLC_TEXTURE_OBJECT_COUNT));
+    for (i = 1; i <= glcGeti(GLC_TEXTURE_OBJECT_COUNT); i++)
+      printf("Texture #%d : %d\n", i, glcGetListi(GLC_TEXTURE_OBJECT_LIST, i));
     printf("Display Lists : %d\n", glcGeti(GLC_LIST_OBJECT_COUNT));
+    for (i = 1; i <= glcGeti(GLC_LIST_OBJECT_COUNT); i++)
+      printf("Display List#%d : %d\n", i, glcGetListi(GLC_LIST_OBJECT_LIST, i));
+    glcDeleteGLObjects();
+    glcDeleteContext(glcGetCurrentContext());
+    glcContext(0);
     exit(0);
   default:
     break;

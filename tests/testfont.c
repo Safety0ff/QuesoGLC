@@ -40,9 +40,11 @@ int main(void)
   glcContext(ctx);
 
 #ifdef __WIN32__
-  glcFontFace(glcNewFontFromFamily(1, "Times New Roman"), "Bold");
-  font = glcNewFontFromFamily(2, "Courier New");
+  font = glcNewFontFromFamily(1, "Times New Roman");
+  glcFontFace(font, "Bold");
   glcFont(font);
+  font = glcNewFontFromFamily(2, "Courier New");
+  glcAppendFont(font);
   glcFontFace(font, "Italic");
 #else
   /* For platforms other than Windows, available fonts may vary from a platform
@@ -59,8 +61,9 @@ int main(void)
       break;
   }
   /* Create a font with the second face of the master */
-  glcFontFace(glcNewFontFromMaster(1, i),
-	      glcGetMasterListc(i, GLC_FACE_LIST, 1));
+  font = glcNewFontFromMaster(1, i);
+  glcFontFace(font, glcGetMasterListc(i, GLC_FACE_LIST, 1));
+  glcFont(font);
 
   /* Find another master */
   for (; i < glcGeti(GLC_MASTER_COUNT); i++) {
@@ -68,14 +71,27 @@ int main(void)
       break;
   }
   font = glcNewFontFromMaster(2, i);
-  glcFont(font);
+  glcAppendFont(font);
 #endif
+
+  if (!glcIsFont(font)) {
+    printf("Font %d not recognized as a legal font ID while it should\n", font);
+    return -1;
+  }
 
   printf("Face : %s\n", (char *)glcGetFontFace(font));
   printf("GenFontID : %d\n", glcGenFontID());
   printf("Font #%d family : %s\n", font,
 	 (char *)glcGetFontc(font, GLC_FAMILY));
-  for (i = 0; i < glcGetFonti(font, GLC_FACE_COUNT); i++)
+  printf("Font #%d master format : %s\n", font,
+	 (char *)glcGetFontc(font, GLC_MASTER_FORMAT));
+  printf("Font #%d vendor : %s\n", font,
+	 (char *)glcGetFontc(font, GLC_VENDOR));
+  printf("Font #%d version : %s\n", font,
+	 (char *)glcGetFontc(font, GLC_VERSION));
+  count = glcGetFonti(font, GLC_FACE_COUNT);
+  printf("Font #%d faces : %d\n", font, count);
+  for (i = 0; i < count; i++)
     printf("Font #%d face #%d: %s\n", font, i,
 	   (char *)glcGetFontListc(font, GLC_FACE_LIST, i));
 
@@ -84,6 +100,13 @@ int main(void)
   for (i = 0; i < count; i++)
     printf("Font #%d char #%d: %s\n", font, i,
 	   (char*)glcGetFontListc(font, GLC_CHAR_LIST, i));
+
+  printf("Font #%d is fixed pitch : %s\n", font,
+	 glcGetFonti(font, GLC_IS_FIXED_PITCH) ? "YES" : "NO");
+  printf("Font #%d max mapped code : %d\n", font,
+	 glcGetFonti(font, GLC_MAX_MAPPED_CODE));
+  printf("Font #%d min mapped code : %d\n", font,
+	 glcGetFonti(font, GLC_MIN_MAPPED_CODE));
 
   printf("Font count : %d\n", glcGeti(GLC_FONT_COUNT));
   printf("Current font count : %d\n", glcGeti(GLC_CURRENT_FONT_COUNT));
@@ -109,7 +132,9 @@ int main(void)
   glcFontMap(font, 88, NULL);
   printf("Character 88 removed from the font map\n");
 
-  /* Check that the remaining characters in the font map are still correctly mapped */
+  /* Check that the remaining characters in the font map are still correctly
+   * mapped.
+   */
   for (i = 87; i < 91; i++)
     printf("Font Map #%d : %s\n", i, (char *)glcGetFontMap(font, i));
 
@@ -126,6 +151,7 @@ int main(void)
   printf("- Last Character : %s\n", 
 	 (char *)glcGetMasterListc(i, GLC_CHAR_LIST, last-1));
 
+  glcDeleteFont(font);
   glcRemoveCatalog(1);
 
   return 0;

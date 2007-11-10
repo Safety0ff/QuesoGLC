@@ -44,7 +44,8 @@ int main(void)
   printf("Catalogs : %d\n", numCatalogs);
   
   for (i = 0; i < numCatalogs; i++)
-    printf("Catalog #%d : %s\n", i, (const char *)glcGetListc(GLC_CATALOG_LIST, i));
+    printf("Catalog #%d : %s\n", i,
+	   (const char *)glcGetListc(GLC_CATALOG_LIST, i));
 
   numMasters = glcGeti(GLC_MASTER_COUNT);
   printf("Masters : %d\n", numMasters);
@@ -52,10 +53,13 @@ int main(void)
   for (i = 0; i < numMasters; i++) {
     numFaces = glcGetMasteri(i, GLC_FACE_COUNT);
     printf("Master #%d\n", i);
-    printf("- Vendor : %s\n", (char *)glcGetMasterc(i, GLC_VENDOR));
-    printf("- Format : %s\n", (char *)glcGetMasterc(i, GLC_MASTER_FORMAT));
+    printf("- Vendor : %s\n", (char*)glcGetMasterc(i, GLC_VENDOR));
+    printf("- Format : %s\n", (char*)glcGetMasterc(i, GLC_MASTER_FORMAT));
     printf("- Face count : %d\n", numFaces);
-    printf("- Family : %s\n", (char *)glcGetMasterc(i, GLC_FAMILY));
+    printf("- Family : %s\n", (char*)glcGetMasterc(i, GLC_FAMILY));
+    printf("- Version : %s\n", (char*)glcGetMasterc(i, GLC_VERSION));
+    printf("- Is Fixed Pitch : %s\n", glcGetMasteri(i, GLC_IS_FIXED_PITCH) ?
+	   "YES" : "NO");
     for (j = 0; j < numFaces; j++)
       printf("- Face #%d : %s\n", j, 
 	     (char *)glcGetMasterListc(i, GLC_FACE_LIST, j));

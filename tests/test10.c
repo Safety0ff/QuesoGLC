@@ -84,7 +84,7 @@ void display(void)
   glLoadIdentity();
   glScalef(100.f, 100.f, 1.f);
   glTranslatef(0.5f, 0.5f, 0.f);
-  glcRenderString("ABCD");
+  glcRenderCountedString(4, "ABCDE");
   glLoadIdentity();
   glScalef(100.f, 100.f, 1.f);
   glTranslatef(0.5f, 1.5f, 0.f);
