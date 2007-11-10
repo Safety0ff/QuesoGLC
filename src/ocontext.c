@@ -178,7 +178,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     return NULL;
   }
   This->controlPoints = __glcArrayCreate(5 * sizeof(GLfloat));
-  if (!This->vertexArray) {
+  if (!This->controlPoints) {
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
