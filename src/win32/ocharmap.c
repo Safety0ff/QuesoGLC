@@ -57,7 +57,7 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster)
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return NULL;
     }
-    font = CreateFontIndirect(&inMaster->pattern.elfLogFont);
+    font = CreateFontIndirect(&inMaster->pattern->elfLogFont);
     if (FAILED(font)) {
       DeleteDC(dc);
       __glcFree(This);
