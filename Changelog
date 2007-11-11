@@ -3,6 +3,8 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1640256 (RTL scripts were wrongly supported and the fix introduced
+  for release 0.6 was actually a partial fix).
 - Improved tests coverage (all GLC functions are now tested at least once with
   all its legal attributes)
 - Spacing characters have now their own caching system when GLC_GL_OBJECTS is

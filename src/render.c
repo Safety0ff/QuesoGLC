@@ -475,6 +475,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   __GLCglState GLState;
   __GLCcharacter prevCode = { 0, NULL };
   GLboolean saveGLObjects = GL_FALSE;
+  GLint shift = 1;
 
   /* Disable the internal management of GL objects when the user is currently
    * building a display list.
@@ -517,15 +518,16 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
   /* Render the string */
   ptr = inString;
+  if (inIsRightToLeft) {
+    ptr += inCount - 1;
+    shift = -1;
+  }
+
   for (i = 0; i < inCount; i++) {
-    if (*ptr < 32) {
-      /* Skip control characters */
-      ptr++;
-      continue;
-    }
-    else
-      __glcProcessChar(inContext, *(ptr++), &prevCode, inIsRightToLeft,
+    if (*ptr >= 32)
+      __glcProcessChar(inContext, *(ptr), &prevCode, inIsRightToLeft,
 		       __glcRenderChar, NULL);
+    ptr += shift;
   }
 
   /* Restore the values of the GL state if needed */
