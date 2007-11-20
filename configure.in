@@ -16,12 +16,19 @@ AC_CONFIG_SRCDIR([src/global.c])
 AC_CONFIG_AUX_DIR([build])
 
 AC_ARG_WITH([fribidi],
-  AC_HELP_STRING([--with-fribidi], [use the FriBiDi system library @<:@default=yes@:>@]),
-  [], [with_fribidi=yes]
+  AC_HELP_STRING([--with-fribidi],
+   [use the FriBiDi system library @<:@default=yes@:>@]),
+   [], [with_fribidi=yes]
 )
 AC_ARG_WITH([glew],
-  AC_HELP_STRING([--with-glew], [use the GLEW system library @<:@default=yes@:>@]),
-  [], [with_glew=yes]
+  AC_HELP_STRING([--with-glew],
+   [use the GLEW system library @<:@default=yes@:>@]),
+   [], [with_glew=yes]
+)
+AC_ARG_WITH([executables],
+  AC_HELP_STRING([--with-executables],
+   [build example and test executables @<:@default=yes@:>@]),
+   [], [with_executables=yes]
 )
 
 # Init automake.
@@ -145,13 +152,16 @@ if (test "x$no_glew" = "xyes"); then
   GLEW_OBJ="libGLC_la-glew.lo"
 fi
 
-AX_CHECK_GLUT
+if (test "x$with_executables" = "xyes"); then
+  AX_CHECK_GLUT
 
-if (test "x$no_glut" = "xyes"); then
-  AC_MSG_WARN([The GLUT library could not be found : example programs and some tests will not be built])
-else
-  EXAMPLES="examples"
-  TESTS_WITH_GLUT="test7 test8 test9.1 test9.2 test9.3 test9.4 test9.5 test9.6 test9.7 test9.8 test10 testrender"
+  if (test "x$no_glut" = "xyes"); then
+    AC_MSG_WARN([The GLUT library could not be found : example programs and some tests will not be built])
+    EXECUTABLES="tests"
+  else
+    EXECUTABLES="tests examples"
+    TESTS_WITH_GLUT="test7 test8 test9.1 test9.2 test9.3 test9.4 test9.5 test9.6 test9.7 test9.8 test10 testrender"
+  fi
 fi
 
 
@@ -164,7 +174,7 @@ AC_CONFIG_FILES(Makefile
                 tests/Makefile
                 examples/Makefile)
 
-AC_SUBST(EXAMPLES)
+AC_SUBST(EXECUTABLES)
 AC_SUBST(TESTS_WITH_GLUT)
 AC_SUBST(FRIBIDI_OBJ)
 AC_SUBST(GLEW_OBJ)

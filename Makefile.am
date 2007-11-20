@@ -1,4 +1,4 @@
-SUBDIRS = include build tests @EXAMPLES@
+SUBDIRS = include build @EXECUTABLES@
 
 EXTRA_DIST = Changelog \
              INSTALL \
