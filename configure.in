@@ -83,9 +83,14 @@ AC_CHECK_HEADERS([stdlib.h string.h unistd.h], [],
 # Checks for C library features.
 # ------------------------------
 
-AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
-AC_FUNC_REALLOC
+case $target_alias in
+mingw*) ;;
+*)
+  AC_FUNC_MALLOC
+  AC_FUNC_MEMCMP
+  AC_FUNC_REALLOC
+  ;;
+esac
 AC_FUNC_STAT
 AC_CHECK_FUNCS([atexit memmove memset strdup])
 
@@ -149,7 +154,21 @@ else
 fi
 
 if (test "x$no_glew" = "xyes"); then
+  GLEW_CFLAGS="-DGLEW_MX"
   GLEW_OBJ="libGLC_la-glew.lo"
+  case $target_alias in
+  mingw*)
+    GLEW_CFLAGS+=" -DGLEW_STATIC"
+    ;;
+  esac
+else
+  case $target_alias in
+  mingw*)
+    if (test "x$enable_static" = "xyes"); then
+      GLEW_CFLAGS="-DGLEW_STATIC"
+    fi
+    ;;
+  esac
 fi
 
 if (test "x$with_executables" = "xyes"); then
@@ -164,7 +183,6 @@ if (test "x$with_executables" = "xyes"); then
   fi
 fi
 
-
 # Output.
 # -------
 
@@ -178,4 +196,5 @@ AC_SUBST(EXECUTABLES)
 AC_SUBST(TESTS_WITH_GLUT)
 AC_SUBST(FRIBIDI_OBJ)
 AC_SUBST(GLEW_OBJ)
+AC_SUBST(GLEW_CFLAGS)
 AC_OUTPUT

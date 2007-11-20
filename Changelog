@@ -3,6 +3,8 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1834256 (part II) : The configure script now guesses the correct
+  flags to use in order to cross-compile QuesoGLC for MinGW32
 - Fixed bug #1834256 (part I) : An option has been added to the build scripts
   in order to disable the build of tests and examples 
 - Fixed bug #1640256 (RTL scripts were wrongly supported and the fix introduced
