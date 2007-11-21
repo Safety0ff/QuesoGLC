@@ -171,9 +171,9 @@ fi
 case $target_alias in
 mingw*)
   if (test "x$enable_static" = "xyes"); then
-    GLEW_CFLAGS+="-DGLEW_STATIC"
+    GLEW_CFLAGS+=" -DGLEW_STATIC"
   else
-    GLEW_CFLAGS+="-DGLEW_BUILD"
+    GLEW_CFLAGS+=" -DGLEW_BUILD"
   fi
   ;;
 esac
