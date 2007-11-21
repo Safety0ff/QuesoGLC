@@ -6,7 +6,7 @@ AC_PREREQ(2.57)
 # Init autoconf.
 # --------------
 
-AC_INIT([QuesoGLC], [0.6.5],
+AC_INIT([QuesoGLC], [0.6.9],
         [quesoglc-general@lists.sourceforge.net],
         [quesoglc])
 
@@ -14,6 +14,9 @@ AC_CONFIG_HEADER([include/qglc_config.h:include/qglc_config.hin])
 
 AC_CONFIG_SRCDIR([src/global.c])
 AC_CONFIG_AUX_DIR([build])
+
+# Optional parameters definition.
+# -------------------------------
 
 AC_ARG_WITH([fribidi],
   AC_HELP_STRING([--with-fribidi],
@@ -25,10 +28,10 @@ AC_ARG_WITH([glew],
    [use the GLEW system library @<:@default=yes@:>@]),
    [], [with_glew=yes]
 )
-AC_ARG_WITH([executables],
-  AC_HELP_STRING([--with-executables],
+AC_ARG_ENABLE([executables],
+  AC_HELP_STRING([--enable-executables],
    [build example and test executables @<:@default=yes@:>@]),
-   [], [with_executables=yes]
+   [], [enable_executables=yes]
 )
 
 # Init automake.
@@ -55,7 +58,7 @@ CC="$PTHREAD_CC"
 
 
 # Checks for TLS support.
-# ----------------------------------
+# -----------------------
 
 AX_CHECK_TLS
 
@@ -114,7 +117,7 @@ fi
 
 
 # Checks for Unicode libraries.
-# --------------------------
+# -----------------------------
 
 if (test "x$with_fribidi" = "xyes"); then
   AX_CHECK_FRIBIDI
@@ -126,7 +129,8 @@ else
 fi
 
 if (test "x$no_fribidi" = "xyes"); then
-  FRIBIDI_OBJ="libGLC_la-fribidi.lo libGLC_la-fribidi_char_type.lo libGLC_la-fribidi_mirroring.lo libGLC_la-fribidi_types.lo"
+  FRIBIDI_OBJ="libGLC_la-fribidi.lo libGLC_la-fribidi_char_type.lo \
+               libGLC_la-fribidi_mirroring.lo libGLC_la-fribidi_types.lo"
 fi
 
 # Checks for OpenGL and related libraries.
@@ -144,6 +148,9 @@ if (test "x$no_glu" = "xyes"); then
   AC_MSG_ERROR([GLU library not found])
 fi
 
+# Checks for GLEW library.
+# ------------------------
+
 if (test "x$with_glew" = "xyes"); then
   AX_CHECK_GLEW
   if (test "x$no_glew" = "xyes"); then
@@ -156,30 +163,35 @@ fi
 if (test "x$no_glew" = "xyes"); then
   GLEW_CFLAGS="-DGLEW_MX"
   GLEW_OBJ="libGLC_la-glew.lo"
-  case $target_alias in
-  mingw*)
-    GLEW_CFLAGS+=" -DGLEW_STATIC"
-    ;;
-  esac
-else
-  case $target_alias in
-  mingw*)
-    if (test "x$enable_static" = "xyes"); then
-      GLEW_CFLAGS="-DGLEW_STATIC"
-    fi
-    ;;
-  esac
 fi
 
-if (test "x$with_executables" = "xyes"); then
+# Special flags for MinGW32 build.
+# --------------------------------
+
+case $target_alias in
+mingw*)
+  if (test "x$enable_static" = "xyes"); then
+    GLEW_CFLAGS+="-DGLEW_STATIC"
+  else
+    GLEW_CFLAGS+="-DGLEW_BUILD"
+  fi
+  ;;
+esac
+
+# Determine whether to build (or not) test and examples executables.
+# ------------------------------------------------------------------
+
+if (test "x$enable_executables" = "xyes"); then
   AX_CHECK_GLUT
 
   if (test "x$no_glut" = "xyes"); then
-    AC_MSG_WARN([The GLUT library could not be found : example programs and some tests will not be built])
+    AC_MSG_WARN([The GLUT library could not be found : example programs and \
+                 some tests will not be built])
     EXECUTABLES="tests"
   else
     EXECUTABLES="tests examples"
-    TESTS_WITH_GLUT="test7 test8 test9.1 test9.2 test9.3 test9.4 test9.5 test9.6 test9.7 test9.8 test10 testrender"
+    TESTS_WITH_GLUT="test7 test8 test9.1 test9.2 test9.3 test9.4 test9.5 \
+                     test9.6 test9.7 test9.8 test10 testrender"
   fi
 fi
 
