@@ -182,6 +182,14 @@ esac
 # ------------------------------------------------------------------
 
 if (test "x$enable_executables" = "xyes"); then
+
+  case $target_alias in
+  mingw*) ;;
+  *)
+    TESTS_WITH_POSIX="test2 test3"
+    ;;
+  esac
+
   AX_CHECK_GLUT
 
   if (test "x$no_glut" = "xyes"); then
@@ -206,6 +214,7 @@ AC_CONFIG_FILES(Makefile
 
 AC_SUBST(EXECUTABLES)
 AC_SUBST(TESTS_WITH_GLUT)
+AC_SUBST(TESTS_WITH_POSIX)
 AC_SUBST(FRIBIDI_OBJ)
 AC_SUBST(GLEW_OBJ)
 AC_SUBST(GLEW_CFLAGS)
