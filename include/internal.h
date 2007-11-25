@@ -141,6 +141,8 @@ struct __GLCgeomBatchRec {
 struct __GLCcharacterRec {
   GLint code;
   __GLCfont* font;
+  GLuint displayList;
+  GLfloat advance[2];
 };
 
 /* Callback function type that is called by __glcProcessChar().

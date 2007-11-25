@@ -201,58 +201,6 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
-  /* Renders the display lists if they exist and if GLC_GL_OBJECTS is enabled
-   * then return.
-   */
-  if (inContext->enableState.glObjects) {
-    if (inIsRTL)
-      glTranslatef(-glyph->advance[0], glyph->advance[1], 0.);
-
-    if (glyph->isSpacingChar) {
-      if (!inIsRTL)
-	glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-      return NULL;
-    }
-
-    switch(inContext->renderState.renderStyle) {
-    case GLC_TEXTURE:
-      if (glyph->displayList[1]) {
-	glCallList(glyph->displayList[1]);
-	/* The glyph is put at the head of the atlas list, so that we keep track
-	 * of glyphes that are used often in order not to remove those ones from
-	 * the atlas when it is full.
-	 */
-	FT_List_Up(&inContext->atlasList, (FT_ListNode)glyph->textureObject);
-	if (!inIsRTL)
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-	return NULL;
-      }
-      break;
-    case GLC_LINE:
-      if (glyph->displayList[0]) {
-	glCallList(glyph->displayList[0]);
-	if (!inIsRTL)
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-	return NULL;
-      }
-      break;
-    case GLC_TRIANGLE:
-      if ((!inContext->enableState.extrude) && glyph->displayList[2]) {
-	glCallList(glyph->displayList[2]);
-	if (!inIsRTL)
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-	return NULL;
-      }
-      if (inContext->enableState.extrude && glyph->displayList[3]) {
-	glCallList(glyph->displayList[3]);
-	if (!inIsRTL)
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-	return NULL;
-      }
-      break;
-    }
-  }
-
   if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
                                scale_y, inContext))
     return NULL;
@@ -437,7 +385,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   }
 
   if (!node) {
-    __GLCcharacter prevCode = { 0, NULL };
+    __GLCcharacter prevCode = {0, NULL, 0, {0, 0}};
 
     __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
   }
@@ -461,9 +409,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   GLint i = 0;
   GLCchar32* ptr = NULL;
   __GLCglState GLState;
-  __GLCcharacter prevCode = { 0, NULL };
+  __GLCcharacter prevCode = {0, NULL, 0, {0, 0}};
   GLboolean saveGLObjects = GL_FALSE;
   GLint shift = 1;
+  __GLCcharacter* chars = NULL;
 
   /* Disable the internal management of GL objects when the user is currently
    * building a display list.
@@ -472,6 +421,15 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   if (listIndex) {
     saveGLObjects = inContext->enableState.glObjects;
     inContext->enableState.glObjects = GL_FALSE;
+  }
+
+  if (inContext->enableState.glObjects
+      && inContext->renderState.renderStyle != GLC_BITMAP) {
+    chars = (__GLCcharacter*)__glcMalloc(inCount * sizeof(__GLCcharacter));
+    if (!chars) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      return;
+    }
   }
 
   /* Save the value of the GL parameters */
@@ -511,15 +469,110 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     shift = -1;
   }
 
-  for (i = 0; i < inCount; i++) {
-    if (*ptr >= 32)
-      __glcProcessChar(inContext, *(ptr), &prevCode, inIsRightToLeft,
-		       __glcRenderChar, NULL);
-    ptr += shift;
+  if (inContext->enableState.glObjects
+      && inContext->renderState.renderStyle != GLC_BITMAP) {
+    __GLCfont* font = NULL;
+    __GLCglyph* glyph = NULL;
+    int length = 0;
+    int j = 0;
+    GLuint DLindex = inContext->renderState.renderStyle - 0x101;
+    FT_ListNode node = NULL;
+
+    if (inContext->renderState.renderStyle == GLC_TRIANGLE
+	&& inContext->enableState.extrude)
+      DLindex++;
+
+    for (i = 0; i < inCount; i++) {
+      if (*ptr >= 32) {
+ 	for (node = inContext->currentFontList.head; node ; node = node->next) {
+ 	  font = (__GLCfont*)node->data;
+ 	  glyph = __glcCharMapGetGlyph(font->charMap, *ptr);
+
+ 	  if (glyph) {
+ 	    if (!glyph->displayList[DLindex] && !glyph->isSpacingChar)
+ 	      continue;
+
+ 	    chars[length].displayList = glyph->displayList[DLindex];
+ 	    if (inContext->renderState.renderStyle == GLC_TEXTURE
+		&& !glyph->isSpacingChar)
+ 	      FT_List_Up(&inContext->atlasList,
+ 			 (FT_ListNode)glyph->textureObject);
+
+ 	    chars[length].advance[0] = glyph->advance[0];
+ 	    chars[length].advance[1] = glyph->advance[1];
+
+ 	    if (inContext->enableState.kerning) {
+ 	      __GLCcharacter* previous = NULL;
+
+ 	      if (length)
+ 		previous = &chars[length-1];
+ 	      else
+ 		previous = &prevCode;
+
+ 	      if (previous->code && previous->font == font) {
+ 		GLfloat kerning[2];
+ 		GLint leftCode = inIsRightToLeft ? *ptr : previous->code;
+ 		GLint rightCode = inIsRightToLeft ? previous->code : *ptr;
+
+ 		if (__glcFontGetKerning(font, leftCode, rightCode, kerning,
+ 					inContext, GLC_POINT_SIZE,
+ 					GLC_POINT_SIZE)) {
+ 		  if (inIsRightToLeft)
+ 		    chars[length].advance[0] -= kerning[0];
+ 		  else
+ 		    chars[length].advance[0] += kerning[0];
+
+ 		  chars[length].advance[1] += kerning[1];
+ 		}
+ 	      }
+ 	      if (glyph->isSpacingChar)
+ 		chars[length].code = 32;
+ 	      else
+ 		chars[length].code = *ptr;
+ 	      chars[length].font = font;
+ 	    }
+
+ 	    length++;
+ 	    break;
+ 	  }
+ 	}
+      }
+
+      if(!node || (i == inCount-1)) {
+	for (j = 0; j < length; j++) {
+	  if (inIsRightToLeft)
+	    glTranslatef(-chars[j].advance[0], chars[j].advance[1], 0.);
+	  if (chars[j].code != 32)
+	    glCallList(chars[j].displayList);
+	  if (!inIsRightToLeft)
+	    glTranslatef(chars[j].advance[0], chars[j].advance[1], 0.);
+	}
+	if (length) {
+	  prevCode.code = chars[length-1].code;
+	  prevCode.font = chars[length-1].font;
+	}
+	if (!node)
+	  __glcProcessChar(inContext, *ptr, &prevCode, inIsRightToLeft,
+			   __glcRenderChar, NULL);
+	length = 0;
+      }
+
+      ptr += shift;
+    }
+  }
+  else {
+    for (i = 0; i < inCount; i++) {
+      if (*ptr >= 32)
+	__glcProcessChar(inContext, *(ptr), &prevCode, inIsRightToLeft,
+			 __glcRenderChar, NULL);
+      ptr += shift;
+    }
   }
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, inContext, GL_FALSE);
+  if (inContext->enableState.glObjects)
+    __glcFree(chars);
   if (listIndex)
     inContext->enableState.glObjects = saveGLObjects;
 }
