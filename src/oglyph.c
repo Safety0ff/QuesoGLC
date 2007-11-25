@@ -78,8 +78,8 @@ void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext)
 void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext)
 {
   if (!inContext->isInGlobalCommand)
-    glDeleteLists(This->displayList[0], 1);
-  This->displayList[0] = 0;
+    glDeleteLists(This->displayList[1], 1);
+  This->displayList[1] = 0;
   This->textureObject = NULL;
 }
 
@@ -90,14 +90,14 @@ void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext)
  */
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 {
-  if (This->displayList[0]) {
+  if (This->displayList[1]) {
     __glcDeleteAtlasElement((__GLCatlasElement*)This->textureObject, inContext);
     __glcGlyphDestroyTexture(This, inContext);
   }
 
   if (!inContext->isInGlobalCommand) {
-    if (This->displayList[1])
-      glDeleteLists(This->displayList[1], 1);
+    if (This->displayList[0])
+      glDeleteLists(This->displayList[0], 1);
 
     if (This->displayList[2])
       glDeleteLists(This->displayList[2], 1);

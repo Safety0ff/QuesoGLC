@@ -405,8 +405,8 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
    * to the list of display lists
    */
   if (inContext->enableState.glObjects) {
-    inGlyph->displayList[0] = glGenLists(1);
-    if (!inGlyph->displayList[0]) {
+    inGlyph->displayList[1] = glGenLists(1);
+    if (!inGlyph->displayList[1]) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       if (pixBuffer)
         __glcFree(pixBuffer);
@@ -414,7 +414,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     }
 
     /* Create the display list */
-    glNewList(inGlyph->displayList[0], GL_COMPILE);
+    glNewList(inGlyph->displayList[1], GL_COMPILE);
     glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
 
     /* Modify the bouding box dimensions to compensate the glScalef() */
@@ -441,7 +441,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     /* Finish display list creation */
     glScalef(64. * scale_x, 64. * scale_y, 1.);
     glEndList();
-    glCallList(inGlyph->displayList[0]);
+    glCallList(inGlyph->displayList[1]);
   }
 
   if (pixBuffer)

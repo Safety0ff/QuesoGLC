@@ -569,7 +569,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 
   switch(inContext->renderState.renderStyle) {
   case GLC_LINE:
-    index = 1;
+    index = 0;
     break;
   case GLC_TRIANGLE:
     index = inContext->enableState.extrude ? 3 : 2;

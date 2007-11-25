@@ -216,8 +216,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
 
     switch(inContext->renderState.renderStyle) {
     case GLC_TEXTURE:
-      if (glyph->displayList[0]) {
-	glCallList(glyph->displayList[0]);
+      if (glyph->displayList[1]) {
+	glCallList(glyph->displayList[1]);
 	/* The glyph is put at the head of the atlas list, so that we keep track
 	 * of glyphes that are used often in order not to remove those ones from
 	 * the atlas when it is full.
@@ -229,8 +229,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
       }
       break;
     case GLC_LINE:
-      if (glyph->displayList[1]) {
-	glCallList(glyph->displayList[1]);
+      if (glyph->displayList[0]) {
+	glCallList(glyph->displayList[0]);
 	if (!inIsRTL)
 	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	return NULL;
@@ -344,7 +344,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   __GLCglState GLState;
   GLint listIndex = 0;
   GLboolean saveGLObjects = GL_FALSE;
-  __GLCglyph* glyph = NULL;
+  FT_ListNode node = NULL;
 
   GLC_INIT_THREAD();
 
@@ -402,53 +402,41 @@ void APIENTRY glcRenderChar(GLint inCode)
   if (ctx->enableState.glObjects
       && ctx->renderState.renderStyle != GLC_BITMAP) {
     /* Renders the display lists if they exist */
-    FT_ListNode node = NULL;
 
     for (node = ctx->currentFontList.head; node; node = node->next) {
       __GLCfont* font = (__GLCfont*)node->data;
+      __GLCglyph* glyph = __glcCharMapGetGlyph(font->charMap, code);
 
-      glyph = __glcCharMapGetGlyph(font->charMap, code);
+      if (glyph) {
+	GLuint DLindex = ctx->renderState.renderStyle - 0x101;
 
-      if (glyph && !glyph->isSpacingChar) {
-	switch(ctx->renderState.renderStyle) {
-	case GLC_TEXTURE:
-	  if (glyph->displayList[0]) {
-	    glCallList(glyph->displayList[0]);
+	if (glyph->isSpacingChar) {
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
+	  break;
+	}
+
+	if ((ctx->renderState.renderStyle == GLC_TRIANGLE)
+	    && (ctx->enableState.extrude))
+	  DLindex++;
+
+	if (glyph->displayList[DLindex]) {
+	  glCallList(glyph->displayList[DLindex]);
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
+
+	  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
 	    /* The glyph is put at the head of the atlas list, so that we keep
 	     * track of glyphes that are used often in order not to remove those
 	     * ones from the atlas when it is full.
 	     */
 	    FT_List_Up(&ctx->atlasList, (FT_ListNode)glyph->textureObject);
 	  }
-	  else
-	    glyph = NULL;
-	  break;
-	case GLC_LINE:
-	  if (glyph->displayList[1])
-	    glCallList(glyph->displayList[1]);
-	  else
-	    glyph = NULL;
-
-	  break;
-	case GLC_TRIANGLE:
-	  if ((!ctx->enableState.extrude) && glyph->displayList[2])
-	    glCallList(glyph->displayList[2]);
-	  else if (ctx->enableState.extrude && glyph->displayList[3])
-	    glCallList(glyph->displayList[3]);
-	  else
-	    glyph = NULL;
-
-	  break;
-	}
-	if (glyph){
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	  break;
 	}
       }
     }
   }
 
-  if (!glyph) {
+  if (!node) {
     __GLCcharacter prevCode = { 0, NULL };
 
     __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
