@@ -550,12 +550,13 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
  		  chars[length].advance[1] += kerning[1];
  		}
  	      }
- 	      if (glyph->isSpacingChar)
- 		chars[length].code = 32;
- 	      else
- 		chars[length].code = *ptr;
  	      chars[length].font = font;
  	    }
+
+	    if (glyph->isSpacingChar)
+	      chars[length].code = 32;
+	    else
+	      chars[length].code = *ptr;
 
  	    length++;
  	    break;
