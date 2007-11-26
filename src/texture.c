@@ -164,6 +164,31 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
   atlasNode->glyph = inGlyph;
   inGlyph->textureObject = atlasNode;
 
+  if (GLEW_ARB_vertex_buffer_object) {
+    /* Create a VBO, if none exists yet */
+    if (!inContext->atlas.bufferObjectID) {
+      glGenBuffersARB(1, &inContext->atlas.bufferObjectID);
+      if (!inContext->atlas.bufferObjectID) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	/* Even though we failed to create a VBO ID, the rendering of the glyph
+	 * can be processed without VBO, so we return GL_TRUE.
+	 */
+	return GL_TRUE;
+      }
+    }
+    /* Bind the buffer and define/update its size */
+    glBindBufferARB(GL_ARRAY_BUFFER_ARB, inContext->atlas.bufferObjectID);
+    /* Size of the buffer data is equal to the number of glyphes than can be
+     * stored in the texture times 20 GLfloat (4 vertices made of 3D coordinates
+     * plus 2D texture coordinates : 4 * (3 + 2) = 20)
+     */
+    glBufferDataARB(GL_ARRAY_BUFFER_ARB,
+		    inContext->atlasWidth * inContext->atlasHeight
+		    * 20 * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW_ARB);
+    glInterleavedArrays(GL_T2F_V3F, 0, NULL);
+  }
+
+
   return GL_TRUE;
 }
 
@@ -401,27 +426,69 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   width = (GLfloat)((boundingBox[2] - boundingBox[0]) / 64.);
   heigth = (GLfloat)((boundingBox[3] - boundingBox[1]) / 64.);
 
+  if (pixBuffer)
+    __glcFree(pixBuffer);
+
   /* Add the new texture to the texture list and the new display list
    * to the list of display lists
    */
   if (inContext->enableState.glObjects) {
-    inGlyph->displayList[1] = glGenLists(1);
-    if (!inGlyph->displayList[1]) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      if (pixBuffer)
-        __glcFree(pixBuffer);
+    if (GLEW_ARB_vertex_buffer_object) {
+      GLfloat data[20];
+      __GLCatlasElement* atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
+
+      /* The display list ID is used as a flag to declare that the VBO has been
+       * initialized and can be used.
+       */
+      inGlyph->displayList[1] = 0xffffffff;
+
+      data[0] = posX / texWidth;
+      data[1] = posY / texHeigth;
+      data[2] = boundingBox[0] / 64. / GLC_TEXTURE_SIZE;
+      data[3] = boundingBox[1] / 64. / GLC_TEXTURE_SIZE;
+      data[4] = 0.f;
+      data[5] = (posX + width) / texWidth;
+      data[6] = data[1];
+      data[7] = boundingBox[2] / 64. / GLC_TEXTURE_SIZE;
+      data[8] = data[3];
+      data[9] = 0.f;
+      data[10] = data[5];
+      data[11] = (posY + heigth) / texHeigth;
+      data[12] = data[7];
+      data[13] = boundingBox[3] / 64. / GLC_TEXTURE_SIZE;
+      data[14] = 0.f;
+      data[15] = data[0];
+      data[16] = data[11];
+      data[17] = data[2];
+      data[18] = data[13];
+      data[19] = 0.f;
+
+      glBufferSubDataARB(GL_ARRAY_BUFFER_ARB,
+			 atlasNode->position * 20 * sizeof(GLfloat),
+			 20 * sizeof(GLfloat), data);
+
+      /* Do the actual GL rendering */
+      glDrawArrays(GL_QUADS, atlasNode->position * 4, 4);
+
       return;
     }
+    else {
+      inGlyph->displayList[1] = glGenLists(1);
+      if (!inGlyph->displayList[1]) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
 
-    /* Create the display list */
-    glNewList(inGlyph->displayList[1], GL_COMPILE);
-    glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
+      /* Create the display list */
+      glNewList(inGlyph->displayList[1], GL_COMPILE);
+      glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
 
-    /* Modify the bouding box dimensions to compensate the glScalef() */
-    boundingBox[0] *= scale_x / GLC_TEXTURE_SIZE;
-    boundingBox[1] *= scale_y / GLC_TEXTURE_SIZE;
-    boundingBox[2] *= scale_x / GLC_TEXTURE_SIZE;
-    boundingBox[3] *= scale_y / GLC_TEXTURE_SIZE;
+      /* Modify the bouding box dimensions to compensate the glScalef() */
+      boundingBox[0] *= scale_x / GLC_TEXTURE_SIZE;
+      boundingBox[1] *= scale_y / GLC_TEXTURE_SIZE;
+      boundingBox[2] *= scale_x / GLC_TEXTURE_SIZE;
+      boundingBox[3] *= scale_y / GLC_TEXTURE_SIZE;
+    }
   }
 
   /* Do the actual GL rendering */
@@ -443,7 +510,4 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     glEndList();
     glCallList(inGlyph->displayList[1]);
   }
-
-  if (pixBuffer)
-    __glcFree(pixBuffer);
 }

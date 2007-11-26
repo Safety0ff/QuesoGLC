@@ -337,8 +337,13 @@ void APIENTRY glcRenderChar(GLint inCode)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (ctx->enableState.glObjects && ctx->atlas.id)
+    if (ctx->enableState.glObjects && ctx->atlas.id) {
       glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
+      if (GLEW_ARB_vertex_buffer_object && ctx->atlas.bufferObjectID) {
+	glBindBufferARB(GL_ARRAY_BUFFER_ARB, ctx->atlas.bufferObjectID);
+	glInterleavedArrays(GL_T2F_V3F, 0, NULL);
+      }
+    }
     else if (!ctx->enableState.glObjects && ctx->texture.id) {
       glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
       if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
@@ -368,16 +373,24 @@ void APIENTRY glcRenderChar(GLint inCode)
 	  DLindex++;
 
 	if (glyph->displayList[DLindex]) {
-	  glCallList(glyph->displayList[DLindex]);
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 
 	  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
+	    if (GLEW_ARB_vertex_buffer_object)
+	      glDrawArrays(GL_QUADS, 4 *
+			   ((__GLCatlasElement*)glyph->textureObject)->position,
+			   4);
+	    else
+	      glCallList(glyph->displayList[1]);
 	    /* The glyph is put at the head of the atlas list, so that we keep
 	     * track of glyphes that are used often in order not to remove those
 	     * ones from the atlas when it is full.
 	     */
 	    FT_List_Up(&ctx->atlasList, (FT_ListNode)glyph->textureObject);
 	  }
+	  else
+	    glCallList(glyph->displayList[DLindex]);
+
+	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	  break;
 	}
       }
@@ -452,8 +465,13 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (inContext->enableState.glObjects && inContext->atlas.id)
+    if (inContext->enableState.glObjects && inContext->atlas.id) {
       glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
+      if (GLEW_ARB_vertex_buffer_object && inContext->atlas.bufferObjectID) {
+	glBindBufferARB(GL_ARRAY_BUFFER_ARB, inContext->atlas.bufferObjectID);
+	glInterleavedArrays(GL_T2F_V3F, 0, NULL);
+      }
+    }
     else if (!inContext->enableState.glObjects && inContext->texture.id) {
       glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
       if (GLEW_ARB_pixel_buffer_object && inContext->texture.bufferObjectID)
@@ -492,11 +510,18 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
  	    if (!glyph->displayList[DLindex] && !glyph->isSpacingChar)
  	      continue;
 
- 	    chars[length].displayList = glyph->displayList[DLindex];
  	    if (inContext->renderState.renderStyle == GLC_TEXTURE
-		&& !glyph->isSpacingChar)
+		&& !glyph->isSpacingChar) {
  	      FT_List_Up(&inContext->atlasList,
  			 (FT_ListNode)glyph->textureObject);
+	      if (GLEW_ARB_vertex_buffer_object)
+		chars[length].glObjectID =
+		  ((__GLCatlasElement*)glyph->textureObject)->position * 4;
+	      else
+		chars[length].glObjectID = glyph->displayList[DLindex];
+	    }
+	    else
+	      chars[length].glObjectID = glyph->displayList[DLindex];
 
  	    chars[length].advance[0] = glyph->advance[0];
  	    chars[length].advance[1] = glyph->advance[1];
@@ -542,8 +567,13 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	for (j = 0; j < length; j++) {
 	  if (inIsRightToLeft)
 	    glTranslatef(-chars[j].advance[0], chars[j].advance[1], 0.);
-	  if (chars[j].code != 32)
-	    glCallList(chars[j].displayList);
+	  if (chars[j].code != 32) {
+	    if ((inContext->renderState.renderStyle == GLC_TEXTURE)
+		&& GLEW_ARB_vertex_buffer_object)
+	      glDrawArrays(GL_QUADS, chars[j].glObjectID, 4);
+	    else
+	      glCallList(chars[j].glObjectID);
+	  }
 	  if (!inIsRightToLeft)
 	    glTranslatef(chars[j].advance[0], chars[j].advance[1], 0.);
 	}

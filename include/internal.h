@@ -141,7 +141,7 @@ struct __GLCgeomBatchRec {
 struct __GLCcharacterRec {
   GLint code;
   __GLCfont* font;
-  GLuint displayList;
+  GLuint glObjectID;
   GLfloat advance[2];
 };
 
