@@ -45,7 +45,6 @@
  */
 
 #include "internal.h"
-#include "oglyph.h"
 
 
 
@@ -181,6 +180,12 @@ void APIENTRY glcDeleteGLObjects(void)
   if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID) {
     glDeleteBuffersARB(1, &ctx->texture.bufferObjectID);
     ctx->texture.bufferObjectID = 0;
+  }
+
+  /* Delete the vertex buffer object */
+  if (GLEW_ARB_vertex_buffer_object && ctx->atlas.bufferObjectID) {
+    glDeleteBuffersARB(1, &ctx->atlas.bufferObjectID);
+    ctx->atlas.bufferObjectID = 0;
   }
 }
 
