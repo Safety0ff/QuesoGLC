@@ -115,7 +115,7 @@ void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont)
     return;
   }
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   if (!__glcFaceDescOpen(inFont->faceDesc, inContext)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
@@ -185,7 +185,7 @@ static void __glcDeleteFont(__GLCfont* font, __GLCcontext* inContext)
   /* If the font has been found, remove it from the list */
   if (node) {
     FT_List_Remove(&inContext->currentFontList, node);
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
     __glcFaceDescClose(font->faceDesc);
 #endif
     __glcFree(node);
@@ -237,7 +237,7 @@ void APIENTRY glcDeleteFont(GLint inFont)
 
 
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
 /* Function called by FT_List_Finalize
  * Close the face of a font when GLC_CURRENT_FONT_LIST is deleted
  */
@@ -300,7 +300,7 @@ void APIENTRY glcFont(GLint inFont)
       FT_List_Remove(&ctx->currentFontList, node);
     }
     else {
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
       if (!__glcFaceDescOpen(font->faceDesc, ctx)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -313,7 +313,7 @@ void APIENTRY glcFont(GLint inFont)
         /* We keep the first node of the current font list in order not to need
          * to create a new one to store the font identified by 'inFont'
          */
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
         __GLCfont* dummyFont = (__GLCfont*)node->data;
 
         /* Close the face of the font stored in the first node */
@@ -328,7 +328,7 @@ void APIENTRY glcFont(GLint inFont)
         /* The list is empty, create a new node */
         node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
         if (!node) {
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
 	  __glcFaceDescClose(font->faceDesc);
 #endif
           __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -337,7 +337,7 @@ void APIENTRY glcFont(GLint inFont)
       }
     }
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
     /* Close the remaining fonts in GLC_CURRENT_FONT_LIST and empty the list */
     FT_List_Finalize(&ctx->currentFontList, __glcCloseFace,
 		     &__glcCommonArea.memoryManager, NULL);
@@ -352,7 +352,7 @@ void APIENTRY glcFont(GLint inFont)
   }
   else {
     /* Empties the list GLC_CURRENT_FONT_LIST */
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
     FT_List_Finalize(&ctx->currentFontList, __glcCloseFace,
                      &__glcCommonArea.memoryManager, NULL);
 #else
@@ -404,9 +404,9 @@ GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 
   __glcMasterDestroy(master);
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
-  if (FT_List_Find(&inContext->currentFontList, font)) {
+  if (FT_List_Find(&inContext->currentFontList, inFont)) {
 
     /* Open the new face */
     if (!__glcFaceDescOpen(faceDesc, inContext)) {
@@ -416,7 +416,7 @@ GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
     }
 
     /* Close the current face */
-    __glcFaceDescClose(font->faceDesc);
+    __glcFaceDescClose(inFont->faceDesc);
   }
 #endif
 

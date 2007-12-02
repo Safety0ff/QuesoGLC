@@ -31,7 +31,7 @@
 
 #include "internal.h"
 #include FT_GLYPH_H
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 #include FT_CACHE_H
 #endif
 #include FT_OUTLINE_H
@@ -129,7 +129,7 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
   This->node.prev = NULL;
   This->node.next = NULL;
   This->node.data = NULL;
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   This->face = NULL;
   This->faceRefCount = 0;
 #endif
@@ -172,7 +172,7 @@ void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext)
 
 
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
 /* Open a face, select a Unicode charmap. __glcFaceDesc maintains a reference
  * count for each face so that the face is open only once.
  */
@@ -286,7 +286,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
   }
 
   /* Open the face */
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
 #else
   face = __glcFaceDescOpen(This, inContext);
@@ -297,7 +297,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
   }
 
   /* Create a new glyph */
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   glyph = __glcGlyphCreate(FT_Get_Char_Index(face, inCode), inCode);
   if (!glyph)
     return NULL;
@@ -312,7 +312,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
    * face.
    */
   FT_List_Add(&This->glyphList, (FT_ListNode)glyph);
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   __glcFaceDescClose(This);
 #endif
   return glyph;
@@ -331,7 +331,7 @@ static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
 {
   FT_Face face = NULL;
   FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 # if FREETYPE_MAJOR == 2 \
      && (FREETYPE_MINOR < 1 \
          || (FREETYPE_MINOR == 1 && FREETYPE_PATCH < 8))
@@ -349,7 +349,7 @@ static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
     loadFlags |= FT_LOAD_NO_HINTING;
 
   /* Open the face */
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 # if FREETYPE_MAJOR == 2 \
      && (FREETYPE_MINOR < 1 \
          || (FREETYPE_MINOR == 1 && FREETYPE_PATCH < 8))
@@ -390,8 +390,8 @@ static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
   /* Select the size of the glyph */
   if (FT_Set_Char_Size(face, (FT_F26Dot6)(inScaleX * 64.),
 		       (FT_F26Dot6)(inScaleY * 64.),
-		       (GLCuint)inContext->resolution,
-		       (GLCuint)inContext->resolution)) {
+		       (GLCuint)inContext->renderState.resolution,
+		       (GLCuint)inContext->renderState.resolution)) {
     __glcFaceDescClose(This);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -401,7 +401,7 @@ static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
   /* Load the glyph */
   if (FT_Load_Glyph(face, inGlyphIndex, loadFlags)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
     __glcFaceDescClose(This);
 #endif
     return NULL;
@@ -459,7 +459,7 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
   outVec[3] = (GLfloat) boundBox.yMax / 64. / inScaleY;
 
   FT_Done_Glyph(glyph);
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   __glcFaceDescClose(This);
 #endif
   return outVec;
@@ -471,7 +471,7 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
  * inScaleY. The result is returned in outVec. 'inGlyphIndex' contains the
  * index of the glyph in the font file.
  */
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
@@ -498,7 +498,7 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
   outVec[0] = (GLfloat) face->glyph->advance.x / 64. / inScaleX;
   outVec[1] = (GLfloat) face->glyph->advance.y / 64. / inScaleY;
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   if (inCloseFile)
     __glcFaceDescClose(This);
 #endif
@@ -535,7 +535,7 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
   GLCchar8* result = NULL;
 
   /* Open the face */
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
 #else
   face = __glcFaceDescOpen(This, inContext);
@@ -552,7 +552,7 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
      * the existence of FT_XFREE86_H is checked.
      */
     result = (GLCchar8*)FT_Get_X11_Font_Format(face);
-#  ifndef FT_CACHE_H
+#  ifndef GLC_FT_CACHE
     __glcFaceDescClose(This);
 #  endif /* FT_CACHE_H */
     return result;
@@ -653,7 +653,7 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 #endif
   }
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   /* Close the face */
   __glcFaceDescClose(This);
 #endif
@@ -675,7 +675,7 @@ GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
 
   assert(outVec);
 
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face))
 #else
   face = __glcFaceDescOpen(This, inContext);
@@ -693,7 +693,7 @@ GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
   outVec[4] = (GLfloat)face->bbox.xMax * scale;
   outVec[5] = (GLfloat)face->bbox.xMin * scale;
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   __glcFaceDescClose(This);
 #endif
   return outVec;
@@ -728,7 +728,7 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
   error = FT_Get_Kerning(face, inPrevGlyphIndex, inGlyphIndex,
 			 FT_KERNING_DEFAULT, &kerning);
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   __glcFaceDescClose(This);
 #endif
 
@@ -893,7 +893,7 @@ GLboolean __glcFaceDescOutlineDecompose(__GLCfaceDescriptor* This,
   FT_Outline_Funcs outlineInterface;
   FT_Face face = NULL;
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   face = This->face;
 #else
   if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face)) {
@@ -959,7 +959,7 @@ GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
   FT_BBox boundingBox;
 
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   face = This->face;
   assert(face);
 #else
@@ -1051,7 +1051,7 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
   FT_Bitmap pixmap;
   FT_Matrix matrix;
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   face = This->face;
   assert(face);
 #else
@@ -1126,7 +1126,7 @@ GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This,
   FT_Face face = NULL;
   FT_Outline outline;
 
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   face = This->face;
   assert(face);
 #else

@@ -41,6 +41,11 @@
 #include "GL/glc.h"
 #ifdef HAVE_CONFIG_H
 #include "qglc_config.h"
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#if defined(HAVE_FT_CACHE) && defined(FT_CACHE_H)
+#define GLC_FT_CACHE
+#endif
 #endif
 
 #define GLCchar8  FcChar8
@@ -312,7 +317,7 @@ extern GLCchar32* __glcConvertCountedStringToVisualUcs4(__GLCcontext* inContext,
 							const GLCchar* inString,
 							const GLint inCount);
 
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 /* Callback function used by the FreeType cache manager to open a given face */
 extern FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 			      FT_Pointer inData, FT_Face* outFace);

@@ -67,7 +67,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 
   FT_Add_Default_Modules(This->library);
 
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   if (FTC_Manager_New(This->library, 0, 0, 0, __glcFileOpen, NULL,
 		      &This->cache)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -80,7 +80,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->config = FcInitLoadConfigAndFonts();
   if (!This->config) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -95,7 +95,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->catalogList = __glcArrayCreate(sizeof(GLCchar8*));
   if (!This->catalogList) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -108,7 +108,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   if (!This->masterHashTable) {
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -151,7 +151,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -169,7 +169,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -184,7 +184,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -200,7 +200,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -218,7 +218,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -237,7 +237,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->vertexIndices);
     __glcArrayDestroy(This->catalogList);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
     FT_Done_Library(This->library);
@@ -419,7 +419,7 @@ void __glcContextDestroy(__GLCcontext *This)
   if (This->geomBatches)
     __glcArrayDestroy(This->geomBatches);
 
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   FTC_Manager_Done(This->cache);
 #endif
   FT_Done_Library(This->library);

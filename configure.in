@@ -109,6 +109,9 @@ if (test "x$no_ft2" = "xyes"); then
   AC_MSG_ERROR([Unable to locate the required FreeType library])
 fi
 
+AC_CHECK_LIB(freetype, FTC_Manager_New,
+             AC_DEFINE([HAVE_FT_CACHE], [1], [Define if FreeType supports the caching routines]))
+
 AX_CHECK_FONTCONFIG
 
 if (test "x$no_fc" = "xyes"); then

@@ -201,9 +201,15 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
+#ifndef GLC_FT_CACHE
+  if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
+                               scale_y, GL_TRUE, inContext))
+    return NULL;
+#else
   if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
                                scale_y, inContext))
     return NULL;
+#endif
 
   sx64 = 64. * scale_x;
   sy64 = 64. * scale_y;
@@ -268,7 +274,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     if (!inIsRTL)
       glTranslatef(advance[0], advance[1], 0.);
   }
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   __glcFaceDescClose(inFont->faceDesc);
 #endif
   return NULL;

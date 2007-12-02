@@ -34,7 +34,7 @@ typedef struct __GLCfaceDescriptorRec __GLCfaceDescriptor;
 struct __GLCfaceDescriptorRec {
   FT_ListNodeRec node;
   FcPattern* pattern;
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
   FT_Face face;
   int faceRefCount;
 #endif
@@ -47,7 +47,7 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
 					 __GLCcontext* inContext);
 void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
-#ifndef FT_CACHE_H
+#ifndef GLC_FT_CACHE
 FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
 void __glcFaceDescClose(__GLCfaceDescriptor* This);
@@ -60,7 +60,7 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
 				     GLCulong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,
 				     __GLCcontext* inContext);
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,

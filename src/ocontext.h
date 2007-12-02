@@ -33,7 +33,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
 #include FT_CACHE_H
 #endif
 #include FT_LIST_H
@@ -115,7 +115,7 @@ struct __GLCcontextRec {
   GLint bufferSize;
 
   FT_Library library;
-#ifdef FT_CACHE_H
+#ifdef GLC_FT_CACHE
   FTC_Manager cache;
 #endif
   FcConfig *config;
