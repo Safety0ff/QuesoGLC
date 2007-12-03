@@ -203,7 +203,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
 
 #ifndef GLC_FT_CACHE
   if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
-                               scale_y, GL_TRUE, inContext))
+                               scale_y, GL_FALSE, inContext))
     return NULL;
 #else
   if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
