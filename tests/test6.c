@@ -33,7 +33,7 @@
 
 static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_attrib_stack"
     " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
-    " GLC_QSO_utf8 GLC_SGI_full_name";
+    " GLC_QSO_utf8 GLC_QSO_buffer_object GLC_SGI_full_name";
 static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
@@ -635,7 +635,7 @@ int main(void)
     return -1;
 
   if (strcmp(glcGetc(GLC_EXTENSIONS), __glcExtensions)) {
-    printf("GLC_EXTENSIONS : %s (expected to be %s)",
+    printf("GLC_EXTENSIONS : %s\n(expected to be %s)\n",
     	  (char*)glcGetc(GLC_EXTENSIONS), (char*)__glcExtensions);
     return -1;
   }
