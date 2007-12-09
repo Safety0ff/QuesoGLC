@@ -3,6 +3,9 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Added extension GLC_QSO_buffer_object to report the use of VBOs and PBOs
+  through glcGeti(GLC_BUFFER_OBJECT_COUNT_QSO) and its corresponding call to
+  glcGetListi(GLC_BUFFER_OBJECT_LIST_QSO, int).
 - GLC_TEXTURE mode now uses Vertex Buffer Objects (VBO) whenever the gfx card
   supports them
 - Fixed bug #1834256 (part II) : The configure script now guesses the correct

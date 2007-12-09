@@ -533,6 +533,7 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
   case GLC_FONT_LIST:
   case GLC_LIST_OBJECT_LIST:
   case GLC_TEXTURE_OBJECT_LIST:
+  case GLC_BUFFER_OBJECT_LIST_QSO: /* QuesoGLC extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -567,20 +568,16 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
 
     if (node)
       return ((__GLCfont*)node->data)->id;
-    else {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return 0;
-    }
+    else
+      break;
   case GLC_FONT_LIST:
     for (node = ctx->fontList.head; inIndex && node;
          node = node->next, inIndex--);
 
     if (node)
       return ((__GLCfont*)node->data)->id;
-    else {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
-      return 0;
-    }
+    else
+      break;
   case GLC_LIST_OBJECT_LIST:
     /* In order to get the display list name, we have to perform a search
      * through the list of display lists of every face descriptor.
@@ -601,8 +598,7 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
 	  inIndex -= count;
       }
     }
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return 0;
+    break;
   case GLC_TEXTURE_OBJECT_LIST:
     switch(inIndex) {
       /* QuesoGLC uses at most 2 textures : one for immediate mode rendering and
@@ -629,10 +625,38 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
       default:
 	break;
     }
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return 0;
+    break;
+  case GLC_BUFFER_OBJECT_LIST_QSO: /* QuesoGLC extension */
+    switch(inIndex) {
+      /* QuesoGLC uses at most 2 buffer objects : one PBO for immediate mode
+       * rendering and one VBO for the texture atlas. That's all. They are
+       * virtually stored in the following order : PBO for immediate mode first,
+       * then VBO for texture atlas.
+       */
+      case 0:
+	if (ctx->texture.bufferObjectID)
+	  return ctx->texture.bufferObjectID;
+	/* If the PBO for immediate mode does not exist, then the first buffer
+	 * object is the VBO for the texture atlas.
+	 * NOTE: if the texture atlas is created first and the PBO for
+	 * immediate mode is created after then this algorithm leads to a
+	 * modification of the order in which buffer objects are reported which
+	 * is not satisfying...
+	 */
+	if (ctx->atlas.bufferObjectID)
+	  return ctx->atlas.bufferObjectID;
+	break;
+      case 1:
+	if ((ctx->texture.bufferObjectID) && (ctx->atlas.bufferObjectID))
+	  return ctx->atlas.bufferObjectID;
+	break;
+      default:
+	break;
+    }
+    break;
   }
 
+  __glcRaiseError(GLC_PARAMETER_ERROR);
   return 0;
 }
 
@@ -713,7 +737,7 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
   static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_attrib_stack"
     " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
-    " GLC_QSO_utf8 GLC_SGI_full_name";
+    " GLC_QSO_utf8 GLC_QSO_buffer_object GLC_SGI_full_name";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 #ifdef HAVE_CONFIG_H
   static GLCchar* __glcRelease = (GLCchar*) PACKAGE_VERSION;
@@ -965,6 +989,7 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
   case GLC_ATTRIB_STACK_DEPTH_QSO:     /* QuesoGLC extension */
   case GLC_MAX_ATTRIB_STACK_DEPTH_QSO: /* QuesoGLC extension */
+  case GLC_BUFFER_OBJECT_COUNT_QSO:    /* QuesoGLC extension */
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -1016,8 +1041,8 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_STRING_TYPE:
     return ctx->stringState.stringType;
   case GLC_TEXTURE_OBJECT_COUNT:
-    count += (ctx->texture.id ? 1: 0);
-    count += (ctx->atlas.id ? 1:0);
+    count += (ctx->texture.id ? 1 : 0);
+    count += (ctx->atlas.id ? 1 : 0);
     return count;
   case GLC_VERSION_MAJOR:
     return __glcCommonArea.versionMajor;
@@ -1031,6 +1056,10 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
     return ctx->attribStackDepth;
   case GLC_MAX_ATTRIB_STACK_DEPTH_QSO: /* QuesoGLC extension */
     return GLC_MAX_ATTRIB_STACK_DEPTH;
+  case GLC_BUFFER_OBJECT_COUNT_QSO:    /* QuesoGLC extension */
+    count += (ctx->texture.bufferObjectID ? 1 : 0);
+    count += (ctx->atlas.bufferObjectID ? 1 : 0);
+    return count;
   }
 
   return 0;

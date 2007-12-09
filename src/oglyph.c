@@ -118,7 +118,7 @@ int __glcGlyphGetDisplayListCount(__GLCglyph* This)
   int count = 0;
 
   for (i = 0; i < 4; i++) {
-    if (This->displayList[i])
+    if (This->displayList[i] && (This->displayList[i] != 0xffffffff))
       count++;
   }
 
@@ -140,7 +140,7 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
   for (i = 0; i < 4; i++) {
     GLuint displayList = This->displayList[i];
 
-    if (displayList) {
+    if (displayList && (displayList != 0xffffffff)) {
       if (!inCount)
 	return displayList;
       inCount--;

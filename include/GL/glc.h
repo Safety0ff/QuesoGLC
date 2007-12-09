@@ -293,6 +293,10 @@ GLCAPI void APIENTRY glcPopMatrixQSO(void);
 GLCAPI void APIENTRY glcPushAttribQSO(GLbitfield inMask);
 GLCAPI void APIENTRY glcPopAttribQSO(void);
 
+#define GLC_QSO_buffer_object                     1
+#define GLC_BUFFER_OBJECT_COUNT_QSO               0x800E
+#define GLC_BUFFER_OBJECT_LIST_QSO                0x800F
+
 #if defined (__cplusplus)
 }
 #endif
