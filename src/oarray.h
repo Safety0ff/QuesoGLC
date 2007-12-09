@@ -26,8 +26,9 @@
 #ifndef __glc_oarray_h
 #define __glc_oarray_h
 
-#define GLC_ARRAY_DATA(array) (array)->data
-#define GLC_ARRAY_LENGTH(array) (array)->length
+#define GLC_ARRAY_DATA(array) ((array)->data)
+#define GLC_ARRAY_LENGTH(array) ((array)->length)
+#define GLC_ARRAY_SIZE(array) (((array)->length) * ((array)->elementSize))
 
 typedef struct __GLCarrayRec __GLCarray;
 

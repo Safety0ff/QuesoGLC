@@ -653,6 +653,28 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
       default:
 	break;
     }
+
+    if (ctx->texture.bufferObjectID)
+      inIndex--;
+    if (ctx->atlas.bufferObjectID)
+      inIndex--;
+
+    for (node = ctx->fontList.head; node; node = node->next) {
+      __GLCfaceDescriptor* faceDesc =
+		(__GLCfaceDescriptor*)(((__GLCfont*)(node->data))->faceDesc);
+      FT_ListNode glyphNode = NULL;
+
+      for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	   glyphNode = glyphNode->next) {
+	__GLCglyph* glyph = (__GLCglyph*)glyphNode;
+	int count = __glcGlyphGetBufferObjectCount(glyph);
+
+	if (inIndex < count)
+	  return __glcGlyphGetBufferObject(glyph, inIndex);
+	else
+	  inIndex -= count;
+      }
+    }
     break;
   }
 
@@ -1059,6 +1081,18 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_BUFFER_OBJECT_COUNT_QSO:    /* QuesoGLC extension */
     count += (ctx->texture.bufferObjectID ? 1 : 0);
     count += (ctx->atlas.bufferObjectID ? 1 : 0);
+    for (node = ctx->fontList.head; node; node = node->next) {
+      __GLCfaceDescriptor* faceDesc =
+		(__GLCfaceDescriptor*)(((__GLCfont*)(node->data))->faceDesc);
+      FT_ListNode glyphNode = NULL;
+
+      for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	   glyphNode = glyphNode->next) {
+	__GLCglyph* glyph = (__GLCglyph*)glyphNode;
+
+	count += __glcGlyphGetBufferObjectCount(glyph);
+      }
+    }
     return count;
   }
 

@@ -54,9 +54,12 @@ __GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
   This->codepoint = inCode;
   This->isSpacingChar = GL_FALSE;
   This->textureObject = NULL;
+  This->nContour = 0;
+  This->contours = NULL;
 
   /* A display list for each rendering mode (except GLC_BITMAP) may be built */
   memset(This->displayList, 0, 4 * sizeof(GLuint));
+  memset(This->bufferObject, 0, 3 * sizeof(GLuint));
   memset(This->boundingBox, 0, 4 * sizeof(GLfloat));
   memset(This->advance, 0, 2 * sizeof(GLfloat));
 
@@ -104,9 +107,26 @@ void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 
     if (This->displayList[3])
       glDeleteLists(This->displayList[3], 1);
+
+    memset(This->displayList, 0, 4 * sizeof(GLuint));
+
+    if (GLEW_ARB_vertex_buffer_object) {
+      int i = 0;
+
+      for (i = 0; i < 3; i++) {
+	if (This->bufferObject[i])
+	  glDeleteBuffersARB(1, &This->bufferObject[i]);
+      }
+
+      memset(This->bufferObject, 0, 3 * sizeof(GLuint));
+
+      if (This->contours)
+	__glcFree(This->contours);
+      This->nContour = 0;
+      This->contours = NULL;
+    }
   }
 
-  memset(This->displayList, 0, 4 * sizeof(GLuint));
 }
 
 
@@ -143,6 +163,51 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
     if (displayList && (displayList != 0xffffffff)) {
       if (!inCount)
 	return displayList;
+      inCount--;
+    }
+  }
+
+  /* The program is not supposed to reach the end of the function.
+   * The following return is there to prevent the compiler to issue
+   * a warning about 'control reaching the end of a non-void function'.
+   */
+  return 0xdeadbeef;
+}
+
+
+
+/* Returns the number of buffer objects that has been built for a glyph */
+int __glcGlyphGetBufferObjectCount(__GLCglyph* This)
+{
+  int i = 0;
+  int count = 0;
+
+  for (i = 0; i < 3; i++) {
+    if (This->bufferObject[i])
+      count++;
+  }
+
+  return count;
+}
+
+
+
+/* Returns the ID of the inCount-th buffer object that has been built for a
+ * glyph.
+ */
+GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount)
+{
+  int i = 0;
+
+  assert(inCount >= 0);
+  assert(inCount < __glcGlyphGetBufferObjectCount(This));
+
+  for (i = 0; i < 3; i++) {
+    GLuint bufferObject = This->bufferObject[i];
+
+    if (bufferObject) {
+      if (!inCount)
+	return bufferObject;
       inCount--;
     }
   }

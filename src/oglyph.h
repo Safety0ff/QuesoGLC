@@ -38,6 +38,9 @@ struct __GLCglyphRec {
   /* GL objects management */
   void* textureObject;
   GLuint displayList[4];
+  GLuint bufferObject[3];
+  GLint nContour;
+  GLint* contours;
   /* Measurement infos */
   GLfloat boundingBox[4];
   GLfloat advance[2];
@@ -49,4 +52,6 @@ void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext);
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext);
 int __glcGlyphGetDisplayListCount(__GLCglyph* This);
 GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount);
+int __glcGlyphGetBufferObjectCount(__GLCglyph* This);
+GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount);
 #endif

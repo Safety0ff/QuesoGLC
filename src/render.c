@@ -380,7 +380,8 @@ void APIENTRY glcRenderChar(GLint inCode)
 
 	if (glyph->displayList[DLindex]) {
 
-	  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
+	  switch(ctx->renderState.renderStyle) {
+	  case GLC_TEXTURE:
 	    if (GLEW_ARB_vertex_buffer_object)
 	      glDrawArrays(GL_QUADS, 4 *
 			   ((__GLCatlasElement*)glyph->textureObject)->position,
@@ -392,9 +393,25 @@ void APIENTRY glcRenderChar(GLint inCode)
 	     * ones from the atlas when it is full.
 	     */
 	    FT_List_Up(&ctx->atlasList, (FT_ListNode)glyph->textureObject);
-	  }
-	  else
+	    break;
+	  case GLC_LINE:
+	    if (GLEW_ARB_vertex_buffer_object && glyph->bufferObject[0]) {
+	      int i = 0;
+
+	      glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->bufferObject[0]);
+	      glVertexPointer(2, GL_FLOAT, 0, NULL);
+	      glNormal3f(0.f, 0.f, 1.f);
+	      for (i = 0; i < glyph->nContour; i++)
+		glDrawArrays(GL_LINE_LOOP, glyph->contours[i],
+			     glyph->contours[i+1] - glyph->contours[i]);
+	      break;
+	    }
 	    glCallList(glyph->displayList[DLindex]);
+	    break;
+	  case GLC_TRIANGLE:
+	    glCallList(glyph->displayList[DLindex]);
+	    break;
+	  }
 
 	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
 	  break;
@@ -404,7 +421,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   }
 
   if (!node) {
-    __GLCcharacter prevCode = {0, NULL, 0, {0, 0}};
+    __GLCcharacter prevCode = {0, NULL, NULL};
 
     __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
   }
@@ -428,7 +445,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   GLint i = 0;
   GLCchar32* ptr = NULL;
   __GLCglState GLState;
-  __GLCcharacter prevCode = {0, NULL, 0, {0, 0}};
+  __GLCcharacter prevCode = {0, NULL, NULL};
   GLboolean saveGLObjects = GL_FALSE;
   GLint shift = 1;
   __GLCcharacter* chars = NULL;
@@ -516,21 +533,14 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
  	    if (!glyph->displayList[DLindex] && !glyph->isSpacingChar)
  	      continue;
 
- 	    if (inContext->renderState.renderStyle == GLC_TEXTURE
-		&& !glyph->isSpacingChar) {
- 	      FT_List_Up(&inContext->atlasList,
- 			 (FT_ListNode)glyph->textureObject);
-	      if (GLEW_ARB_vertex_buffer_object)
-		chars[length].glObjectID =
-		  ((__GLCatlasElement*)glyph->textureObject)->position * 4;
-	      else
-		chars[length].glObjectID = glyph->displayList[DLindex];
-	    }
-	    else
-	      chars[length].glObjectID = glyph->displayList[DLindex];
+	    if (!glyph->isSpacingChar
+		&& (inContext->renderState.renderStyle == GLC_TEXTURE))
+	      FT_List_Up(&inContext->atlasList,
+			 (FT_ListNode)glyph->textureObject);
 
- 	    chars[length].advance[0] = glyph->advance[0];
- 	    chars[length].advance[1] = glyph->advance[1];
+	    chars[length].glyph = glyph;
+	    chars[length].advance[0] = glyph->advance[0];
+	    chars[length].advance[1] = glyph->advance[1];
 
  	    if (inContext->enableState.kerning) {
  	      __GLCcharacter* previous = NULL;
@@ -575,11 +585,35 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	  if (inIsRightToLeft)
 	    glTranslatef(-chars[j].advance[0], chars[j].advance[1], 0.);
 	  if (chars[j].code != 32) {
-	    if ((inContext->renderState.renderStyle == GLC_TEXTURE)
-		&& GLEW_ARB_vertex_buffer_object)
-	      glDrawArrays(GL_QUADS, chars[j].glObjectID, 4);
-	    else
-	      glCallList(chars[j].glObjectID);
+	    __GLCglyph* glyph = chars[j].glyph;
+
+	    switch(inContext->renderState.renderStyle) {
+	    case GLC_TEXTURE:
+	      if (GLEW_ARB_vertex_buffer_object)
+		glDrawArrays(GL_QUADS,
+		  ((__GLCatlasElement*)glyph->textureObject)->position * 4,
+			     4);
+	      else
+		glCallList(glyph->displayList[1]);
+	      break;
+	    case GLC_LINE:
+	      if (GLEW_ARB_vertex_buffer_object && glyph->bufferObject[0]) {
+		int k = 0;
+
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->bufferObject[0]);
+		glVertexPointer(2, GL_FLOAT, 0, NULL);
+		glNormal3f(0.f, 0.f, 1.f);
+		for (k = 0; k < glyph->nContour; k++)
+		  glDrawArrays(GL_LINE_LOOP, glyph->contours[k],
+			       glyph->contours[k+1] - glyph->contours[k]);
+		break;
+	      }
+	      glCallList(glyph->displayList[0]);
+	      break;
+	    case GLC_TRIANGLE:
+	      glCallList(glyph->displayList[DLindex]);
+	      break;
+	    }
 	  }
 	  if (!inIsRightToLeft)
 	    glTranslatef(chars[j].advance[0], chars[j].advance[1], 0.);

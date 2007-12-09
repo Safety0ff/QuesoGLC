@@ -560,11 +560,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   if (!__glcArrayAppend(rendererData.endContour,
 			&GLC_ARRAY_LENGTH(rendererData.vertexArray))) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
-    GLC_ARRAY_LENGTH(inContext->endContour) = 0;
-    GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
-    GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
-    return;
+    goto reset;
   }
 
   switch(inContext->renderState.renderStyle) {
@@ -578,18 +574,26 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 
   /* Prepare the display list compilation if needed */
   if (inContext->enableState.glObjects) {
-    inGlyph->displayList[index] = glGenLists(1);
-    if (!inGlyph->displayList[index]) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
-      GLC_ARRAY_LENGTH(inContext->endContour) = 0;
-      GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
-      GLC_ARRAY_LENGTH(inContext->geomBatches) = 0;
-      return;
+    if (GLEW_ARB_vertex_buffer_object
+	&& (inContext->renderState.renderStyle == GLC_LINE)) {
+      glGenBuffersARB(1, &inGlyph->bufferObject[0]);
+      if (!inGlyph->bufferObject[0]) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	goto reset;
+      }
+      inGlyph->displayList[index] = 0xffffffff;
+      glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->bufferObject[0]);
     }
+    else {
+      inGlyph->displayList[index] = glGenLists(1);
+      if (!inGlyph->displayList[index]) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	goto reset;
+      }
 
-    glNewList(inGlyph->displayList[index], GL_COMPILE);
-    glScalef(1./sx64, 1./sy64, 1.);
+      glNewList(inGlyph->displayList[index], GL_COMPILE);
+      glScalef(1./sx64, 1./sy64, 1.);
+    }
   }
 
   if (inContext->renderState.renderStyle == GLC_TRIANGLE) {
@@ -726,18 +730,47 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
 
     glNormal3f(0., 0., 1.);
-    glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
+    if (GLEW_ARB_vertex_buffer_object && inContext->enableState.glObjects) {
+      GLfloat (*vertexArray)[2] =
+	(GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
+
+      inGlyph->nContour = GLC_ARRAY_LENGTH(rendererData.endContour) - 1;
+      inGlyph->contours = __glcMalloc(GLC_ARRAY_SIZE(rendererData.endContour));
+      if (!inGlyph->contours) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	goto reset;
+      }
+      memcpy(inGlyph->contours, GLC_ARRAY_DATA(rendererData.endContour),
+	     GLC_ARRAY_SIZE(rendererData.endContour));
+
+      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.vertexArray); i++) {
+	vertexArray[i][0] /= sx64;
+	vertexArray[i][1] /= sy64;
+      }
+
+      glBufferDataARB(GL_ARRAY_BUFFER_ARB,
+		      GLC_ARRAY_SIZE(rendererData.vertexArray),
+		      GLC_ARRAY_DATA(rendererData.vertexArray),
+		      GL_STATIC_DRAW_ARB);
+      glVertexPointer(2, GL_FLOAT, 0, NULL);
+    }
+    else
+      glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
 
     for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
       glDrawArrays(GL_LINE_LOOP, endContour[i], endContour[i+1]-endContour[i]);
   }
 
   if (inContext->enableState.glObjects) {
-    glScalef(sx64, sy64, 1.);
-    glEndList();
-    glCallList(inGlyph->displayList[index]);
+    if (!GLEW_ARB_vertex_buffer_object
+	|| (inContext->renderState.renderStyle != GLC_LINE)) {
+      glScalef(sx64, sy64, 1.);
+      glEndList();
+      glCallList(inGlyph->displayList[index]);
+    }
   }
 
+ reset:
   GLC_ARRAY_LENGTH(inContext->vertexArray) = 0;
   GLC_ARRAY_LENGTH(inContext->endContour) = 0;
   GLC_ARRAY_LENGTH(inContext->vertexIndices) = 0;
