@@ -44,6 +44,7 @@ AM_INIT_AUTOMAKE([dist-bzip2])
 # --------------------
 
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
@@ -209,11 +210,11 @@ fi
 # Output.
 # -------
 
-AC_CONFIG_FILES(Makefile
-                build/Makefile
-                include/Makefile
-                tests/Makefile
-                examples/Makefile)
+AC_CONFIG_FILES([Makefile
+                 build/Makefile
+                 include/Makefile
+                 tests/Makefile
+                 examples/Makefile])
 
 AC_SUBST(EXECUTABLES)
 AC_SUBST(TESTS_WITH_GLUT)
