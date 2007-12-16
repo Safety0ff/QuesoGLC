@@ -175,13 +175,8 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
   }
 
   /* Otherwise, we must extract the advance from the face file */
-#ifdef GLC_FT_CACHE
   if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
 			       inScaleX, inScaleY, inContext)) {
-#else
-  if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
-			       inScaleX, inScaleY, GL_TRUE, inContext)) {
-#endif
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
@@ -211,3 +206,91 @@ GLfloat* __glcFontGetKerning(__GLCfont* This, GLint inCode, GLint inPrevCode,
   return __glcFaceDescGetKerning(This->faceDesc, glyph->index, prevGlyph->index,
 				 inScaleX, inScaleY, outVec, inContext);
 }
+
+
+
+/* This internal function tries to open the face file which name is identified
+ * by 'inFace'. If it succeeds, it closes the previous face and stores the new
+ * face attributes in the __GLCfont object "inFont". Otherwise, it leaves the
+ * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
+ * succeeded or not.
+ */
+GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
+			__GLCcontext *inContext)
+{
+  __GLCfaceDescriptor *faceDesc = NULL;
+  __GLCmaster *master = NULL;
+  __GLCcharMap* newCharMap = NULL;
+
+  /* TODO : Verify if the font has already the required face activated */
+
+  master = __glcMasterCreate(This->parentMasterID, inContext);
+  if (!master) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return GL_FALSE;
+  }
+
+  /* Get the face descriptor of the face identified by the string inFace */
+  faceDesc = __glcFaceDescCreate(master, inFace, inContext);
+  if (!faceDesc) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcMasterDestroy(master);
+    return GL_FALSE;
+  }
+
+  newCharMap = __glcCharMapCreate(master);
+  if (!newCharMap) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    __glcFaceDescDestroy(faceDesc, inContext);
+    __glcMasterDestroy(master);
+    return GL_FALSE;
+  }
+
+  __glcMasterDestroy(master);
+
+#ifndef GLC_FT_CACHE
+  /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
+  if (FT_List_Find(&inContext->currentFontList, This)) {
+
+    /* Open the new face */
+    if (!__glcFaceDescOpen(faceDesc, inContext)) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcFaceDescDestroy(faceDesc, inContext);
+      __glcCharMapDestroy(newCharMap);
+      return GL_FALSE;
+    }
+
+    /* Close the current face */
+    __glcFontClose(This);
+  }
+#endif
+
+  /* Destroy the current charmap */
+  if (This->charMap)
+    __glcCharMapDestroy(This->charMap);
+
+  This->charMap = newCharMap;
+
+  __glcFaceDescDestroy(This->faceDesc, inContext);
+  This->faceDesc = faceDesc;
+
+  return GL_TRUE;
+}
+
+
+
+#ifndef GLC_FT_CACHE
+/* Open the font file */
+void* __glcFontOpen(__GLCfont* This, __GLCcontext* inContext)
+{
+  return __glcFaceDescOpen(This->faceDesc, inContext);
+}
+
+
+
+/* Close the font file */
+void __glcFontClose(__GLCfont* This)
+{
+   __glcFaceDescClose(This->faceDesc);
+}
+#endif

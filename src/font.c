@@ -116,7 +116,7 @@ void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont)
   }
 
 #ifndef GLC_FT_CACHE
-  if (!__glcFaceDescOpen(inFont->faceDesc, inContext)) {
+  if (!__glcFontOpen(inFont, inContext)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
     return;
@@ -186,7 +186,7 @@ static void __glcDeleteFont(__GLCfont* font, __GLCcontext* inContext)
   if (node) {
     FT_List_Remove(&inContext->currentFontList, node);
 #ifndef GLC_FT_CACHE
-    __glcFaceDescClose(font->faceDesc);
+    __glcFontClose(font);
 #endif
     __glcFree(node);
   }
@@ -241,13 +241,13 @@ void APIENTRY glcDeleteFont(GLint inFont)
 /* Function called by FT_List_Finalize
  * Close the face of a font when GLC_CURRENT_FONT_LIST is deleted
  */
-static void __glcCloseFace(FT_Memory inMemory, void* data, void* user)
+static void __glcCloseFace(FT_Memory GLC_UNUSED_ARG(inMemory), void* data,
+			   void* GLC_UNUSED_ARG(user))
 {
   __GLCfont* font = (__GLCfont*)data;
 
   assert(font);
-  assert(font->faceDesc);
-  __glcFaceDescClose(font->faceDesc);
+  __glcFontClose(font);
 }
 #endif
 
@@ -301,7 +301,7 @@ void APIENTRY glcFont(GLint inFont)
     }
     else {
 #ifndef GLC_FT_CACHE
-      if (!__glcFaceDescOpen(font->faceDesc, ctx)) {
+      if (!__glcFontOpen(font, ctx)) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
       }
@@ -317,7 +317,7 @@ void APIENTRY glcFont(GLint inFont)
         __GLCfont* dummyFont = (__GLCfont*)node->data;
 
         /* Close the face of the font stored in the first node */
-	__glcFaceDescClose(dummyFont->faceDesc);
+	__glcFontClose(dummyFont);
 #endif
         /* Remove the first node of the list to prevent it to be deleted by
          * FT_List_Finalize().
@@ -329,7 +329,7 @@ void APIENTRY glcFont(GLint inFont)
         node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
         if (!node) {
 #ifndef GLC_FT_CACHE
-	  __glcFaceDescClose(font->faceDesc);
+	  __glcFontClose(font);
 #endif
           __glcRaiseError(GLC_RESOURCE_ERROR);
           return;
@@ -360,76 +360,6 @@ void APIENTRY glcFont(GLint inFont)
                      &__glcCommonArea.memoryManager, NULL);
 #endif
   }
-}
-
-
-
-/* This internal function tries to open the face file which name is identified
- * by 'inFace'. If it succeeds, it closes the previous face and stores the new
- * face attributes in the __GLCfont object "inFont". Otherwise, it leaves the
- * font unchanged. GL_TRUE or GL_FALSE are returned to indicate if the function
- * succeeded or not.
- */
-GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
-			__GLCcontext *inContext)
-{
-  __GLCfaceDescriptor *faceDesc = NULL;
-  __GLCmaster *master = NULL;
-  __GLCcharMap* newCharMap = NULL;
-
-  GLC_INIT_THREAD();
-
-  /* TODO : Verify if the font has already the required face activated */
-
-  master = __glcMasterCreate(inFont->parentMasterID, inContext);
-  if (!master) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GL_FALSE;
-  }
-
-  /* Get the face descriptor of the face identified by the string inFace */
-  faceDesc = __glcFaceDescCreate(master, inFace, inContext);
-  if (!faceDesc) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcMasterDestroy(master);
-    return GL_FALSE;
-  }
-
-  newCharMap = __glcCharMapCreate(master);
-  if (!newCharMap) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcMasterDestroy(master);
-    return GL_FALSE;
-  }
-
-  __glcMasterDestroy(master);
-
-#ifndef GLC_FT_CACHE
-  /* If the font belongs to GLC_CURRENT_FONT_LIST then open the font file */
-  if (FT_List_Find(&inContext->currentFontList, inFont)) {
-
-    /* Open the new face */
-    if (!__glcFaceDescOpen(faceDesc, inContext)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      __glcCharMapDestroy(newCharMap);
-      return GL_FALSE;
-    }
-
-    /* Close the current face */
-    __glcFaceDescClose(inFont->faceDesc);
-  }
-#endif
-
-  /* Destroy the current charmap */
-  if (inFont->charMap)
-    __glcCharMapDestroy(inFont->charMap);
-
-  inFont->charMap = newCharMap;
-
-  __glcFaceDescDestroy(inFont->faceDesc, inContext);
-  inFont->faceDesc = faceDesc;
-
-  return GL_TRUE;
 }
 
 
@@ -524,12 +454,8 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
       faceDesc = __glcFaceDescCreate(master, UinFace, ctx);
       __glcMasterDestroy(master);
       if (!faceDesc) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
-	return GL_FALSE;
-      }
-
-      if (!faceDesc) {
 	/* No face identified by UinFace has been found in the font */
+	__glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(UinFace);
 	return GL_FALSE;
       }

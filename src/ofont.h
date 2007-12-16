@@ -48,4 +48,8 @@ GLfloat* __glcFontGetAdvance(__GLCfont *This, GLint inCode, GLfloat* outVec,
 GLfloat* __glcFontGetKerning(__GLCfont* This, GLint inCode, GLint inPrevCode,
 			     GLfloat* outVec, __GLCcontext* inContext,
 			     GLfloat inScaleX, GLfloat inScaleY);
+#ifndef GLC_FT_CACHE
+void* __glcFontOpen(__GLCfont* This, __GLCcontext* inContext);
+void __glcFontClose(__GLCfont* This);
+#endif
 #endif /* __glc_ofont_h */

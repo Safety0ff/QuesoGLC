@@ -176,6 +176,11 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   if ((scale_x == 0.f) || (scale_y == 0.f))
     return NULL;
 
+#ifndef GLC_FT_CACHE
+  if (!__glcFontOpen(inFont, inContext))
+    return NULL;
+#endif
+
   if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
     GLint leftCode = inIsRTL ? inCode : inPrevCode;
@@ -201,15 +206,13 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
+  if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
+                               scale_y, inContext)) {
 #ifndef GLC_FT_CACHE
-  if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
-                               scale_y, GL_FALSE, inContext))
-    return NULL;
-#else
-  if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
-                               scale_y, inContext))
-    return NULL;
+    __glcFontClose(inFont);
 #endif
+    return NULL;
+  }
 
   sx64 = 64. * scale_x;
   sy64 = 64. * scale_y;
@@ -230,6 +233,9 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
 	glyph->advance[1] = advance[1];
 	glyph->isSpacingChar = GL_TRUE;
       }
+#ifndef GLC_FT_CACHE
+      __glcFontClose(inFont);
+#endif
       return NULL;
     }
 
@@ -275,7 +281,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
       glTranslatef(advance[0], advance[1], 0.);
   }
 #ifndef GLC_FT_CACHE
-  __glcFaceDescClose(inFont->faceDesc);
+  __glcFontClose(inFont);
 #endif
   return NULL;
 }
@@ -421,7 +427,7 @@ void APIENTRY glcRenderChar(GLint inCode)
   }
 
   if (!node) {
-    __GLCcharacter prevCode = {0, NULL, NULL};
+    __GLCcharacter prevCode = {0, NULL, NULL, {0.f, 0.f}};
 
     __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
   }
@@ -445,7 +451,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   GLint i = 0;
   GLCchar32* ptr = NULL;
   __GLCglState GLState;
-  __GLCcharacter prevCode = {0, NULL, NULL};
+  __GLCcharacter prevCode = {0, NULL, NULL, {0.f, 0.f}};
   GLboolean saveGLObjects = GL_FALSE;
   GLint shift = 1;
   __GLCcharacter* chars = NULL;
@@ -566,8 +572,9 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
  		  chars[length].advance[1] += kerning[1];
  		}
  	      }
- 	      chars[length].font = font;
  	    }
+
+	    chars[length].font = font;
 
 	    if (glyph->isSpacingChar)
 	      chars[length].code = 32;

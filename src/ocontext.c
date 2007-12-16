@@ -343,6 +343,22 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 
 
 
+#ifndef GLC_FT_CACHE
+/* This function is called from FT_List_Finalize() to close all the fonts
+ * of the GLC_CURRENT_FONT_LIST
+ */
+static void __glcFontClosure(FT_Memory GLC_UNUSED_ARG(inMemory), void* inData,
+			     void* GLC_UNUSED_ARG(inUser))
+{
+  __GLCfont *font = (__GLCfont*)inData;
+
+  assert(font);
+  __glcFontClose(font);
+}
+#endif
+
+
+
 /* This function is called from FT_List_Finalize() to destroy all
  * remaining fonts
  */
@@ -353,9 +369,8 @@ static void __glcFontDestructor(FT_Memory GLC_UNUSED_ARG(inMemory),
   __GLCcontext* ctx = (__GLCcontext*)inUser;
 
   assert(ctx);
-
-  if (font)
-    __glcFontDestroy(font, ctx);
+  assert(font);
+  __glcFontDestroy(font, ctx);
 }
 
 
@@ -385,8 +400,13 @@ void __glcContextDestroy(__GLCcontext *This)
   __glcArrayDestroy(This->catalogList);
 
   /* Destroy GLC_CURRENT_FONT_LIST */
+#ifdef GLC_FT_CACHE
   FT_List_Finalize(&This->currentFontList, NULL,
 		   &__glcCommonArea.memoryManager, NULL);
+#else
+  FT_List_Finalize(&This->currentFontList, __glcFontClosure,
+		   &__glcCommonArea.memoryManager, NULL);
+#endif
 
   /* Destroy GLC_FONT_LIST */
   FT_List_Finalize(&This->fontList, __glcFontDestructor,

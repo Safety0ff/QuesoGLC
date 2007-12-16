@@ -23,7 +23,6 @@
  */
 
 #include "internal.h"
-#include "omaster.h"
 
 
 
@@ -273,7 +272,11 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
   case GLC_MASTER_FORMAT:
     faceDesc = __glcFaceDescCreate(This, NULL, inContext);
 
+#ifdef GLC_FT_CACHE
     if (!faceDesc) {
+#else
+    if (!faceDesc || !__glcFaceDescOpen(faceDesc, inContext)) {
+#endif
       __glcRaiseError(GLC_RESOURCE_ERROR);
       return NULL;
     }
@@ -293,8 +296,12 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
   else
     __glcRaiseError(GLC_RESOURCE_ERROR);
 
-  if (faceDesc)
+  if (faceDesc) {
+#ifndef GLC_FT_CACHE
+    __glcFaceDescClose(faceDesc);
+#endif
     __glcFaceDescDestroy(faceDesc, inContext);
+  }
 
   return buffer;
 }

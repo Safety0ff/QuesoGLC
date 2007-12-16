@@ -147,6 +147,10 @@ void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext)
   FT_ListNode node = NULL;
   FT_ListNode next = NULL;
 
+#ifndef GLC_FT_CACHE
+  assert(!This->faceRefCount && !This->face);
+#endif
+
   /* Don't use FT_List_Finalize here, since __glcGlyphDestroy also destroys
    * the node itself.
    */
@@ -157,7 +161,7 @@ void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext)
     node = next;
   }
 
-#if defined(FT_CACHE_H) \
+#if defined(GLC_FT_CACHE) \
   && (FREETYPE_MAJOR > 2 \
      || (FREETYPE_MAJOR == 2 \
          && (FREETYPE_MINOR > 1 \
@@ -234,7 +238,7 @@ void __glcFaceDescClose(__GLCfaceDescriptor* This)
 
 
 
-#else /* FT_CACHE_H */
+#else /* GLC_FT_CACHE */
 /* Callback function used by the FreeType cache manager to open a given face */
 FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 		       FT_Pointer GLC_UNUSED_ARG(inData), FT_Face* outFace)
@@ -266,7 +270,7 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 
   return error;
 }
-#endif /* FT_CACHE_H */
+#endif /* GLC_FT_CACHE */
 
 
 
@@ -367,11 +371,13 @@ static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
   }
 # else
   scaler.face_id = (FTC_FaceID)This;
-  scaler.width = (FT_F26Dot6)(inScaleX * 64.);
-  scaler.height = (FT_F26Dot6)(inScaleY * 64.);
-  scaler.pixel = 0;
-  scaler.x_res = (GLCuint)inContext->renderState.resolution;
-  scaler.y_res = (GLCuint)inContext->renderState.resolution;
+  scaler.width = (FT_UInt)(inScaleX * 64.);
+  scaler.height = (FT_UInt)(inScaleY * 64.);
+  scaler.pixel = (FT_Int)0;
+  scaler.x_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
+			   72 : inContext->renderState.resolution);
+  scaler.y_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
+			   72 : inContext->renderState.resolution);
 
   if (FTC_Manager_LookupSize(inContext->cache, &scaler, &size)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -390,8 +396,8 @@ static FT_Face __glcFaceDescLoadFreeTypeGlyph(__GLCfaceDescriptor* This,
   /* Select the size of the glyph */
   if (FT_Set_Char_Size(face, (FT_F26Dot6)(inScaleX * 64.),
 		       (FT_F26Dot6)(inScaleY * 64.),
-		       (GLCuint)inContext->renderState.resolution,
-		       (GLCuint)inContext->renderState.resolution)) {
+		       (FT_UInt)inContext->renderState.resolution,
+		       (FT_UInt)inContext->renderState.resolution)) {
     __glcFaceDescClose(This);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -471,18 +477,10 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
  * inScaleY. The result is returned in outVec. 'inGlyphIndex' contains the
  * index of the glyph in the font file.
  */
-#ifdef GLC_FT_CACHE
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext)
-#else
-GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
-				 GLCulong inGlyphIndex, GLfloat* outVec,
-				 GLfloat inScaleX, GLfloat inScaleY,
-                                 GLboolean inCloseFile,
-				 __GLCcontext* inContext)
-#endif
 {
   FT_Face face = __glcFaceDescLoadFreeTypeGlyph(This, inContext, inScaleX,
 						inScaleY, inGlyphIndex);
@@ -499,8 +497,7 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
   outVec[1] = (GLfloat) face->glyph->advance.y / 64. / inScaleY;
 
 #ifndef GLC_FT_CACHE
-  if (inCloseFile)
-    __glcFaceDescClose(This);
+  __glcFaceDescClose(This);
 #endif
   return outVec;
 }
@@ -554,7 +551,7 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
     result = (GLCchar8*)FT_Get_X11_Font_Format(face);
 #  ifndef GLC_FT_CACHE
     __glcFaceDescClose(This);
-#  endif /* FT_CACHE_H */
+#  endif /* GLC_FT_CACHE */
     return result;
   }
 #endif /* FT_XFREE86_H */
@@ -564,6 +561,9 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
     switch(inAttrib) {
 #ifndef FT_XFREE86_H
     case GLC_MASTER_FORMAT:
+#ifndef GLC_FT_CACHE
+      __glcFaceDescClose(This);
+#endif
       return masterFormat1;
 #endif
     case GLC_FULL_NAME_SGI:
@@ -991,7 +991,7 @@ GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
     boundingBox.xMax = (boundingBox.xMax + 63) & -64;	/* ceiling(xMax) */
     boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
-    /* Calculate pitch to upper 8 byte boundary for 1 bit / pixel, i.e. ceil() */
+    /* Calculate pitch to upper 8 byte boundary for 1 bit/pixel, i.e. ceil() */
     pitch = (boundingBox.xMax - boundingBox.xMin + 511) >> 9;
     *outWidth = pitch << 3;
     *outHeight = (boundingBox.yMax - boundingBox.yMin) >> 6;
@@ -1069,7 +1069,7 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
   pixmap.buffer = inBuffer;
 
   if (inContext->renderState.renderStyle == GLC_BITMAP) {
-    /* Calculate pitch to upper 8 byte boundary for 1 bit / pixel, i.e. ceil() */
+    /* Calculate pitch to upper 8 byte boundary for 1 bit/pixel, i.e. ceil() */
     pixmap.pitch = -(pixmap.width >> 3);
 
     /* Fill the pixmap descriptor and the pixmap buffer */
@@ -1077,7 +1077,7 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
   }
   else {
     /* Flip the picture */
-    pixmap.pitch = -pixmap.width; /* 8 bits / pixel */
+    pixmap.pitch = -pixmap.width; /* 8 bits/pixel */
 
     /* Fill the pixmap descriptor and the pixmap buffer */
     pixmap.pixel_mode = ft_pixel_mode_grays; /* Anti-aliased rendering */

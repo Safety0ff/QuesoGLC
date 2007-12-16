@@ -60,18 +60,10 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
 				     GLCulong inGlyphIndex, GLfloat* outVec,
 				     GLfloat inScaleX, GLfloat inScaleY,
 				     __GLCcontext* inContext);
-#ifdef GLC_FT_CACHE
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext);
-#else
-GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
-				 GLCulong inGlyphIndex, GLfloat* outVec,
-				 GLfloat inScaleX, GLfloat inScaleY,
-                                 GLboolean inCloseFile,
-				 __GLCcontext* inContext);
-#endif
 GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 				    __GLCcontext* inContext,
 				    GLCenum inAttrib);
