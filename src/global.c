@@ -440,8 +440,6 @@ void APIENTRY glcDeleteContext(GLint inContext)
  */
 void APIENTRY glcContext(GLint inContext)
 {
-  char *version = NULL;
-  char *extension = NULL;
   __GLCcontext *currentContext = NULL;
   __GLCcontext *ctx = NULL;
   __GLCthreadArea *area = NULL;
@@ -545,19 +543,21 @@ void APIENTRY glcContext(GLint inContext)
   if (!inContext)
     return;
 
-  /* Some OpenGL implementations return a void pointer if the function
-   * glGetString() is called while no GL context is bound to the current thread.
-   * However this behaviour is not required by the GL specs, so those calls may
-   * just fail or lead to weird results or even crash the app (Mac OSX). There
-   * is nothing that we can do against that : the GLC specs make it very clear
-   * that glGetString() is called by glcContext() and the QuesoGLC docs tell
-   * that the behaviour of GLC is undefined if no GL context is current while
-   * issuing GL commands.
+  /* During its initialization, GLEW calls glGetString(GL_VERSION) and
+   * glGetString(GL_EXTENSIONS) so, not only glewInit() allows to determine the
+   * available extensions, but it also allows to be conformant with GLC specs
+   * which require to issue those GL commands. 
+   *
+   * Notice however that some OpenGL implementations return a void pointer if
+   * the function glGetString() is called while no GL context is bound to the
+   * current thread. However this behaviour is not required by the GL specs, so
+   * those calls may just fail or lead to weird results or even crash the app
+   * (on Mac OSX). There is nothing that we can do against that : the GLC specs
+   * make it very clear that glGetString() is called by glcContext() and the
+   * QuesoGLC docs tell that the behaviour of GLC is undefined if no GL context
+   * is current while issuing GL commands.
    */
-  version = (char *)glGetString(GL_VERSION);
-  extension = (char *)glGetString(GL_EXTENSIONS);
-
-  if (version && extension && (glewInit() != GLEW_OK))
+  if (glewInit() != GLEW_OK)
     __glcRaiseError(GLC_RESOURCE_ERROR);
 }
 
