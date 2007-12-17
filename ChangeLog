@@ -3,6 +3,7 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1843710 (Code to handle missing FTC_Manager_* is broken).
 - GLC_LINE mode now uses Vertex Buffer Objects (VBO) whenever the gfx card
   supports them
 - Added extension GLC_QSO_buffer_object to report the use of VBOs and PBOs
