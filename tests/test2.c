@@ -26,6 +26,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 pthread_mutex_t mutex;
 pthread_cond_t cond;
@@ -90,11 +95,16 @@ void* thread2(void *arg)
   return NULL;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
   pthread_t t2;
   int i;
   int ctx;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test2");
 
   /* Initialize the mutex and the condition variable */
   if (pthread_mutex_init(&mutex, NULL)) {

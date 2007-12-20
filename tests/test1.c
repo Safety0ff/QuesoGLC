@@ -25,13 +25,23 @@
 #include "GL/glc.h"
 #include <stdio.h>
 #include <stdlib.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
-int main(void)
+int main(int argc, char **argv)
 {
   GLint ctx;
   GLint *list;
   GLCenum err;
   int i;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test1");
 
   /* 1. Check that no error is pending */
   err = glcGetError();

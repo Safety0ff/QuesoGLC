@@ -27,6 +27,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 #define QUESOGLC_MAJOR 0
 #define QUESOGLC_MINOR 2
@@ -162,7 +167,7 @@ GLboolean convertStringUCS4(GLCchar** inString, GLCchar* inStringUCS1)
   return GL_TRUE;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
   GLint ctx = glcGenContext();
   GLint count = 0;
@@ -190,6 +195,11 @@ int main(void)
 
   if (!convertStringUCS4(&__glcVendorUCS4, __glcVendor))
     return -1;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test6");
 
   glcContext(ctx);
 

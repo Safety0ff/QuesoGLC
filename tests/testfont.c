@@ -27,14 +27,24 @@
 
 #include "GL/glc.h"
 #include <stdio.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
-int main(void)
+int main(int argc, char **argv)
 {
   int ctx = 0;
   int font = 0;
   int i = 0;
   int last = 0;
   int count = 0;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("testfont");
 
   ctx = glcGenContext();
   glcContext(ctx);

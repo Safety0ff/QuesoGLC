@@ -28,6 +28,11 @@
 #include "GL/glc.h"
 #include <pthread.h>
 #include <stdio.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 GLint ctx;
 int magic = 0xdeadbeef;
@@ -35,6 +40,8 @@ int magic = 0xdeadbeef;
 void* da_thread(void *arg)
 {
   GLCenum err;
+
+  glutCreateWindow("test3.1");
 
   glcContext(ctx);
   err = glcGetError();
@@ -59,12 +66,17 @@ void* da_thread(void *arg)
   return NULL;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
   pthread_t thread;
   GLCenum err;
   void *return_value = NULL;
   GLint ctx2;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test3");
 
   ctx2 = glcGenContext();
   ctx = glcGenContext();

@@ -1,18 +1,14 @@
 
 ## Process this file with automake to produce Makefile.in.
 
-noinst_PROGRAMS = test1 \
-                  test4 \
-                  test5 \
-                  test6 \
-                  testcontex \
-                  testfont \
-                  testmaster \
-                  @TESTS_WITH_POSIX@ \
+noinst_PROGRAMS = test4 \
                   @TESTS_WITH_GLUT@
 
-EXTRA_PROGRAMS = test2 \
+EXTRA_PROGRAMS = test1 \
+                 test2 \
                  test3 \
+                 test5 \
+                 test6 \
                  test7 \
                  test8 \
                  test9.1 \
@@ -24,6 +20,9 @@ EXTRA_PROGRAMS = test2 \
                  test9.7 \
                  test9.8 \
                  test10 \
+                 testcontex \
+                 testfont \
+                 testmaster \
                  testrender
 
 TESTS = $(noinst_PROGRAMS)

@@ -25,6 +25,11 @@
 #include "GL/glc.h"
 #include <stdio.h>
 #include <math.h>
+#if defined __APPLE__ && defined __MACH__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 
 /* Check the transform routines */
 
@@ -72,13 +77,18 @@ GLboolean checkError(GLCenum expectedError)
   }
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
   GLint ctx = glcGenContext();
   GLfloat ref[4] = {1., 0., 0., 1.};
   GLint stackDepth = 0;
   GLint maxStackDepth = 0;
   GLint i = 0;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test5");
 
   glcContext(ctx);
   if (!checkError(GLC_NONE))
