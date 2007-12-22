@@ -611,7 +611,7 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
     return;
   }
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
+			       NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -779,10 +779,10 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
 
     if (!master) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
-      return;
+      continue;
     }
     /* Check if the hash value of the master is in the hash table */
-    hashValue = FcPatternHash(master->pattern);
+    hashValue = GLC_MASTER_HASH_VALUE(master);
     for (i = 0; i < length; i++) {
       if (hashValue == hashTable[i])
 	break;

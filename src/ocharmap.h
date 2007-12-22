@@ -43,7 +43,7 @@ struct __GLCcharMapRec {
   __GLCarray* map;
 };
 
-__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster);
+__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext);
 void __glcCharMapDestroy(__GLCcharMap* This);
 void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode,
 			 __GLCglyph* inGlyph);

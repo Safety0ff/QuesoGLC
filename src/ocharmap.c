@@ -35,7 +35,7 @@
  * The user must give the FcPattern of the font or the master (which may be NULL
  * in which case the character map will be empty).
  */
-__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster)
+__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
 {
   __GLCcharMap* This = NULL;
 
@@ -45,21 +45,65 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster)
     return NULL;
   }
 
-  if (inMaster) {
-    FcCharSet* charSet = NULL;
-    FcResult result = FcResultMatch;
-
-    result = FcPatternGetCharSet(inMaster->pattern, FC_CHARSET, 0, &charSet);
-    assert(result != FcResultTypeMismatch);
-    This->charSet = FcCharSetCopy(charSet);
-  }
-  else
-    This->charSet = FcCharSetCreate();
-
+  This->charSet = FcCharSetCreate();
   if (!This->charSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
     return NULL;
+  }
+
+  if (inMaster) {
+    FcCharSet* charSet = NULL;
+    FcFontSet* fontSet = NULL;
+    int i = 0;
+    FcObjectSet* objectSet = FcObjectSetBuild(FC_CHARSET, FC_OUTLINE, NULL);
+
+    if (!objectSet) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcCharSetDestroy(This->charSet);
+      __glcFree(This);
+      return NULL;
+    }
+
+    fontSet = FcFontList(inContext->config, inMaster->pattern, objectSet);
+    FcObjectSetDestroy(objectSet);
+    if (!fontSet) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcCharSetDestroy(This->charSet);
+      __glcFree(This);
+      return NULL;
+    }
+
+    for (i = 0; i < fontSet->nfont; i++) {
+      FcBool outline = FcFalse;
+      FcResult result = FcResultMatch;
+
+      /* Check whether the glyphs are outlines */
+      result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+      assert(result != FcResultTypeMismatch);
+
+      if (outline) {
+        result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+        assert(result != FcResultTypeMismatch);
+
+        if (!FcCharSetIsSubset(charSet, This->charSet)) {
+          FcCharSet* newCharSet = FcCharSetUnion(This->charSet, charSet);
+
+          if (!newCharSet) {
+            __glcRaiseError(GLC_RESOURCE_ERROR);
+            FcCharSetDestroy(This->charSet);
+            FcFontSetDestroy(fontSet);
+            __glcFree(This);
+            return NULL;
+          }
+
+          FcCharSetDestroy(This->charSet);
+          This->charSet = newCharSet;
+        }
+      }
+    }
+
+    FcFontSetDestroy(fontSet);
   }
 
   /* The array 'map' will contain the actual character map */

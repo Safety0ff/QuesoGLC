@@ -55,7 +55,7 @@ __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
     return NULL;
   }
 
-  This->charMap = __glcCharMapCreate(inMaster);
+  This->charMap = __glcCharMapCreate(inMaster, inContext);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(This->faceDesc, inContext);
@@ -238,7 +238,7 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
     return GL_FALSE;
   }
 
-  newCharMap = __glcCharMapCreate(master);
+  newCharMap = __glcCharMapCreate(master, inContext);
   if (!newCharMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(faceDesc, inContext);

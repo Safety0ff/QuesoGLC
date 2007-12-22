@@ -46,7 +46,7 @@ __GLCmaster* __glcMasterCreate(GLint inMaster, __GLCcontext* inContext)
     return NULL;
   }
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
+			       NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -131,7 +131,7 @@ __GLCcharMap* __glcMasterGetCharMap(__GLCmaster* This, __GLCcontext* inContext)
     return GLC_NONE;
   }
 
-  charMap = __glcCharMapCreate(NULL);
+  charMap = __glcCharMapCreate(NULL, inContext);
   if (!charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcFontSetDestroy(fontSet);
@@ -331,7 +331,7 @@ __GLCmaster* __glcMasterFromFamily(__GLCcontext* inContext, GLCchar8* inFamily)
   }
 
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
+			       NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -450,7 +450,7 @@ __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode)
    * (otherwise the hash value will not match any value of the hash table).
    */
   objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_OUTLINE, FC_SPACING,
-			       FC_CHARSET, NULL);
+			       NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcFontSetDestroy(fontSet);
