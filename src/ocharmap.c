@@ -83,23 +83,22 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
       assert(result != FcResultTypeMismatch);
 
       if (outline) {
+        FcCharSet* newCharSet = NULL;
+
         result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
         assert(result != FcResultTypeMismatch);
 
-        if (!FcCharSetIsSubset(charSet, This->charSet)) {
-          FcCharSet* newCharSet = FcCharSetUnion(This->charSet, charSet);
-
-          if (!newCharSet) {
-            __glcRaiseError(GLC_RESOURCE_ERROR);
-            FcCharSetDestroy(This->charSet);
-            FcFontSetDestroy(fontSet);
-            __glcFree(This);
-            return NULL;
-          }
-
+        newCharSet = FcCharSetUnion(This->charSet, charSet);
+		if (!newCharSet) {
+          __glcRaiseError(GLC_RESOURCE_ERROR);
           FcCharSetDestroy(This->charSet);
-          This->charSet = newCharSet;
-        }
+          FcFontSetDestroy(fontSet);
+          __glcFree(This);
+          return NULL;
+		}
+
+		FcCharSetDestroy(This->charSet);
+		This->charSet = newCharSet;
       }
     }
 
