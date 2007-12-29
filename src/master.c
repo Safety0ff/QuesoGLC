@@ -168,7 +168,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   /* return the requested attribute */
   switch(inAttrib) {
   case GLC_CHAR_LIST:
-    charMap = __glcMasterGetCharMap(master, ctx);
+    charMap = __glcCharMapCreate(master, ctx);
     if (!charMap) {
       __glcMasterDestroy(master);
       return GLC_NONE;
@@ -244,7 +244,7 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
     GLCchar* result = NULL;
     GLint code = 0;
 
-    charMap = __glcMasterGetCharMap(master, ctx);
+    charMap = __glcCharMapCreate(master, ctx);
     if (!charMap) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcMasterDestroy(master);
@@ -416,7 +416,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   }
 
   if (inAttrib != GLC_FACE_COUNT) {
-    charMap = __glcMasterGetCharMap(master, ctx);
+    charMap = __glcCharMapCreate(master, ctx);
     if (!charMap) {
       __glcMasterDestroy(master);
       return GLC_NONE;

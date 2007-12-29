@@ -111,61 +111,6 @@ void __glcMasterDestroy(__GLCmaster* This)
 
 
 
-/* Extract the charmap of the master */
-__GLCcharMap* __glcMasterGetCharMap(__GLCmaster* This, __GLCcontext* inContext)
-{
-  FcObjectSet* objectSet = NULL;
-  FcFontSet *fontSet = NULL;
-  __GLCcharMap* charMap = NULL;
-  int i = 0;
-
-  objectSet = FcObjectSetBuild(FC_CHARSET, NULL);
-  if (!objectSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
-  }
-  fontSet = FcFontList(inContext->config, This->pattern, objectSet);
-  FcObjectSetDestroy(objectSet);
-  if (!fontSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
-  }
-
-  charMap = __glcCharMapCreate(NULL, inContext);
-  if (!charMap) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcFontSetDestroy(fontSet);
-    return NULL;
-  }
-
-  for (i = 0; i < fontSet->nfont; i++) {
-    FcResult result = FcResultMatch;
-    FcCharSet* charSet = NULL;
-    FcCharSet* merged = NULL;
-
-    result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
-    assert(result != FcResultTypeMismatch);
-
-    /* Add the character set to the charmap */
-    merged = FcCharSetUnion(charMap->charSet, charSet);
-    if (!merged) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      __glcCharMapDestroy(charMap);
-      FcFontSetDestroy(fontSet);
-      return NULL;
-    }
-
-    /* Destroy the previous FcCharSet and replace it by the new one */
-    FcCharSetDestroy(charMap->charSet);
-    charMap->charSet = merged;
-  }
-
-  FcFontSetDestroy(fontSet);
-  return charMap;
-}
-
-
-
 /* Get the style name of the face identified by inIndex  */
 GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
 				 GLint inIndex)
@@ -463,6 +408,8 @@ __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode)
     FcFontSetDestroy(fontSet);
     return NULL;
   }
+
+  assert(fontSet2->nfont);
 
   This = (__GLCmaster*)__glcMalloc(sizeof(__GLCmaster));
   if (!This) {
