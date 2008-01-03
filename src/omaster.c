@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -215,7 +215,7 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
   case GLC_VERSION:
   case GLC_FULL_NAME_SGI:
   case GLC_MASTER_FORMAT:
-    faceDesc = __glcFaceDescCreate(This, NULL, inContext);
+    faceDesc = __glcFaceDescCreate(This, NULL, inContext, 0);
 
 #ifdef GLC_FT_CACHE
     if (!faceDesc) {

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,7 @@
  * The user must give the master 'inParent' which the font will instantiate.
  */
 __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
-			   __GLCcontext* inContext)
+			   __GLCcontext* inContext, GLint inCode)
 {
   __GLCfont *This = NULL;
 
@@ -48,14 +48,14 @@ __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
   /* At font creation, the default face is the first one.
    * glcFontFace() can change the face.
    */
-  This->faceDesc = __glcFaceDescCreate(inMaster, NULL, inContext);
+  This->faceDesc = __glcFaceDescCreate(inMaster, NULL, inContext, inCode);
   if (!This->faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
     return NULL;
   }
 
-  This->charMap = __glcCharMapCreate(inMaster, inContext);
+  This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inContext);
   if (!This->charMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(This->faceDesc, inContext);
@@ -231,14 +231,14 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
   }
 
   /* Get the face descriptor of the face identified by the string inFace */
-  faceDesc = __glcFaceDescCreate(master, inFace, inContext);
+  faceDesc = __glcFaceDescCreate(master, inFace, inContext, 0);
   if (!faceDesc) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcMasterDestroy(master);
     return GL_FALSE;
   }
 
-  newCharMap = __glcCharMapCreate(master, inContext);
+  newCharMap = __glcFaceDescGetCharMap(faceDesc, inContext);
   if (!newCharMap) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(faceDesc, inContext);

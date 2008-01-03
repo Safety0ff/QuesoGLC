@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -451,7 +451,7 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
       assert(master);
 
       /* Get the face descriptor of the face identified by the string inFace */
-      faceDesc = __glcFaceDescCreate(master, UinFace, ctx);
+      faceDesc = __glcFaceDescCreate(master, UinFace, ctx, 0);
       __glcMasterDestroy(master);
       if (!faceDesc) {
 	/* No face identified by UinFace has been found in the font */
@@ -911,12 +911,10 @@ GLboolean APIENTRY glcIsFont(GLint inFont)
  */
 __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 				  __GLCmaster* inMaster,
-				  __GLCcontext *inContext)
+				  __GLCcontext *inContext, GLint inCode)
 {
   FT_ListNode node = NULL;
   __GLCfont* font = NULL;
-
-  GLC_INIT_THREAD();
 
   /* Create a new entry for GLC_FONT_LIST */
   node = (FT_ListNode)__glcMalloc(sizeof(FT_ListNodeRec));
@@ -930,7 +928,7 @@ __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
     __glcDeleteFont(inFont, inContext);
 
   /* Create a new font and add it to the list GLC_FONT_LIST */
-  font = __glcFontCreate(inFontID, inMaster, inContext);
+  font = __glcFontCreate(inFontID, inMaster, inContext, inCode);
   if (!font) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
@@ -999,7 +997,7 @@ GLint APIENTRY glcNewFontFromMaster(GLint inFont, GLint inMaster)
     font = NULL;
 
   /* Create and return the new font */
-  font = __glcNewFontFromMaster(font, inFont, master, ctx);
+  font = __glcNewFontFromMaster(font, inFont, master, ctx, 0);
   __glcMasterDestroy(master);
   return font->id;
 }
@@ -1077,7 +1075,7 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
     font = NULL;
 
   /* Create and return the new font */
-  font = __glcNewFontFromMaster(font, inFont, master, ctx);
+  font = __glcNewFontFromMaster(font, inFont, master, ctx, 0);
   __glcMasterDestroy(master);
   return font->id;
 }

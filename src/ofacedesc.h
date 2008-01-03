@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -44,7 +44,7 @@ struct __GLCfaceDescriptorRec {
 
 __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
 					 const GLCchar8* inFace,
-					 __GLCcontext* inContext);
+					 __GLCcontext* inContext, GLint inCode);
 void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
 #ifndef GLC_FT_CACHE
@@ -87,4 +87,6 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
                                  __GLCcontext* inContext);
 GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This,
                                     __GLCcontext* inContext);
+__GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
+				      __GLCcontext* inContext);
 #endif /* __glc_ofacedesc_h */

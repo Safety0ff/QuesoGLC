@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -256,7 +256,7 @@ extern void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont);
  */
 extern __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
 				  __GLCmaster* inMaster,
-				  __GLCcontext *inContext);
+					 __GLCcontext *inContext, GLint inCode);
 
 /* This internal function tries to open the face file which name is identified
  * by 'inFace'. If it succeeds, it closes the previous face and stores the new
