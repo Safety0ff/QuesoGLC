@@ -47,6 +47,7 @@ int main(int argc, char **argv) {
   GLCenum err;
   GLint length = 0;
   GLint i, j, n;
+  GLint font = 0;
   GLfloat baseline1[4], baseline2[4];
   GLfloat boundingBox1[8], boundingBox2[8];
   GLfloat v1, v2, norm, area;
@@ -186,9 +187,12 @@ int main(int argc, char **argv) {
     v2 = fabs(baseline1[2]);
     norm = v1 > v2 ? v1 : v2;
     if ((fabs(v1 - v2) <= EPSILON * norm) || (baseline1[2] < baseline1[0])) {
-      printf("Right and left side of the baseline are swapped\n");
+      printf("Right and left side of the max baseline are swapped\n");
       printf("%f %f %f %f\n", baseline1[0], baseline1[1], baseline1[2],
 	     baseline1[3]);
+      font = glcGetListi(GLC_FONT_LIST, 0);
+      printf("Family : %s\n", (char*)glcGetFontc(font, GLC_FAMILY));
+      printf("Face : %s\n", (char*)glcGetFontFace(font));
       return -1;
     }
   }
@@ -232,6 +236,8 @@ int main(int argc, char **argv) {
 
     if (!glcGetCharMetric(' ', GLC_BOUNDS, boundingBox1)) {
       printf("Failed to get the bounding box of the space character\n");
+      printf("Family : %s\n", (char*)glcGetFontc(font, GLC_FAMILY));
+      printf("Face : %s\n", (char*)glcGetFontFace(font));
       return -1;
     }
 
@@ -239,6 +245,8 @@ int main(int argc, char **argv) {
 
     if (!glcGetCharMetric(' ', GLC_BASELINE, baseline1)) {
       printf("Failed to get the baseline of the space character\n");
+      printf("Family : %s\n", (char*)glcGetFontc(font, GLC_FAMILY));
+      printf("Face : %s\n", (char*)glcGetFontFace(font));
       return -1;
     }
 
@@ -256,6 +264,8 @@ int main(int argc, char **argv) {
         printf("Right and left side of the baseline are swapped\n");
         printf("%f %f %f %f\n", baseline1[0], baseline1[1], baseline1[2],
                baseline1[3]);
+	printf("Family : %s\n", (char*)glcGetFontc(font, GLC_FAMILY));
+	printf("Face : %s\n", (char*)glcGetFontFace(font));
         return -1;
       }
     }
