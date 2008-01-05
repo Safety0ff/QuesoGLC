@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -43,6 +43,8 @@
  * of commands that refer to the corresponding display lists or textures is
  * undefined.
  */
+
+#include <string.h>
 
 #include "internal.h"
 
@@ -509,6 +511,12 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
  *      <td>\<empty list\></td>
  *      <td><b>GLC_TEXTURE_OBJECT_COUNT</b></td>
  *    </tr>
+ *    <tr>
+ *      <td><b>GLC_BUFFER_OBJECT_LIST_QSO</b></td>
+ *      <td>0x800F</td>
+ *      <td>\<empty list\></td>
+ *      <td><b>GLC_BUFFER_OBJECT_COUNT_QSO</b></td>
+ *    </tr>
  *  </table>
  *  </center>
  *
@@ -533,8 +541,17 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
   case GLC_FONT_LIST:
   case GLC_LIST_OBJECT_LIST:
   case GLC_TEXTURE_OBJECT_LIST:
-  case GLC_BUFFER_OBJECT_LIST_QSO: /* QuesoGLC extension */
     break;
+  case GLC_BUFFER_OBJECT_LIST_QSO: /* QuesoGLC extension */
+    /* This parameter is available only if the corresponding GL extensions are
+     * supported by the GL driver.
+     */
+    if (GLEW_ARB_vertex_buffer_object || GLEW_ARB_pixel_buffer_object)
+      break;
+    else {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return 0;
+    }
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0;
@@ -757,9 +774,10 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
-  static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_attrib_stack"
-    " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
-    " GLC_QSO_utf8 GLC_QSO_buffer_object GLC_SGI_full_name";
+  static const char* __glcExtensions1 = "GLC_QSO_attrib_stack";
+  static const char* __glcExtensions2 = " GLC_QSO_buffer_object";
+  static const char* __glcExtensions3 = " GLC_QSO_extrude GLC_QSO_hinting"
+    " GLC_QSO_kerning GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name";
   static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 #ifdef HAVE_CONFIG_H
   static GLCchar* __glcRelease = (GLCchar*) PACKAGE_VERSION;
@@ -792,13 +810,26 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   /* Translate the string to the relevant Unicode format */
   switch(inAttrib) {
   case GLC_EXTENSIONS:
-    return __glcConvertFromUtf8ToBuffer(ctx, __glcExtensions,
-					ctx->stringState.stringType);
+    {
+      char __glcExtensions[256];
+
+      assert((strlen(__glcExtensions1) + strlen(__glcExtensions2)
+	      + strlen(__glcExtensions3)) <= 256);
+
+      /* Build the extensions string depending on the available GL extensions */
+      strcpy((char*)__glcExtensions, __glcExtensions1);
+      if (GLEW_ARB_vertex_buffer_object || GLEW_ARB_pixel_buffer_object)
+	strcat((char*)__glcExtensions, __glcExtensions2);
+      strcat((char*)__glcExtensions, __glcExtensions3);
+
+      return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcExtensions,
+					  ctx->stringState.stringType);
+    }
   case GLC_RELEASE:
     return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcRelease,
 					ctx->stringState.stringType);
   case GLC_VENDOR:
-    return __glcConvertFromUtf8ToBuffer(ctx, __glcVendor,
+    return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcVendor,
 					ctx->stringState.stringType);
   default:
     return GLC_NONE;
@@ -976,6 +1007,9 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
  *    <td>0x800D</td>
  *    <td>\<implementation specific\></td>
  *  </tr>
+ *  <tr>
+ *    <td><b>GLC_BUFFER_OBJECT_COUNT_QSO</b></td> <td>0x800E</td> <td>0</td>
+ *  </tr>
  *  </table>
  *  </center>
  *  \param inAttrib Attribute for which an integer variable is requested.
@@ -1011,18 +1045,27 @@ GLint APIENTRY glcGeti(GLCenum inAttrib)
   case GLC_MAX_MATRIX_STACK_DEPTH_QSO: /* QuesoGLC extension */
   case GLC_ATTRIB_STACK_DEPTH_QSO:     /* QuesoGLC extension */
   case GLC_MAX_ATTRIB_STACK_DEPTH_QSO: /* QuesoGLC extension */
-  case GLC_BUFFER_OBJECT_COUNT_QSO:    /* QuesoGLC extension */
     break;
+  case GLC_BUFFER_OBJECT_COUNT_QSO:    /* QuesoGLC extension */
+    /* This parameter is available only if the corresponding GL extensions are
+     * supported by the GL driver.
+     */
+    if (GLEW_ARB_vertex_buffer_object || GLEW_ARB_pixel_buffer_object)
+      break;
+    else {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return 0;
+    }
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return 0;
   }
 
   /* Check if the thread has a current context */
   ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {
     __glcRaiseError(GLC_STATE_ERROR);
-    return GLC_NONE;
+    return 0;
   }
 
   /* Returns the requested value */

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2006, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@
  * errors.
  */
 
+#include <GL/glu.h>
 #include <GL/glc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +37,12 @@
 #define QUESOGLC_MAJOR 0
 #define QUESOGLC_MINOR 2
 
-static GLCchar* __glcExtensions = (GLCchar*) "GLC_QSO_attrib_stack"
-    " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
-    " GLC_QSO_utf8 GLC_QSO_buffer_object GLC_SGI_full_name";
+static GLCchar* __glcExtensions1 = (GLCchar*) "GLC_QSO_attrib_stack"
+  " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
+  " GLC_QSO_utf8 GLC_SGI_full_name";
+static GLCchar* __glcExtensions2 = (GLCchar*) "GLC_QSO_attrib_stack"
+  " GLC_QSO_buffer_object GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning"
+  " GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name";
 static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
@@ -174,6 +178,20 @@ int main(int argc, char **argv)
   GLint maxStackDepth = 0;
   GLint stackDepth = 0;
   GLint i = 0;
+  GLCchar* __glcExtensions = NULL;
+
+  /* Needed to initialize an OpenGL context */
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+  glutCreateWindow("test6");
+
+  if (gluCheckExtension((const GLubyte*)"GL_ARB_pixel_buffer_object",
+			glGetString(GL_EXTENSIONS))
+      || gluCheckExtension((const GLubyte*)"GL_ARB_vertex_buffer_object",
+			   glGetString(GL_EXTENSIONS)))
+    __glcExtensions = __glcExtensions2;
+  else
+    __glcExtensions = __glcExtensions1;
 
   if (!checkError(GLC_NONE))
     return -1;
@@ -195,11 +213,6 @@ int main(int argc, char **argv)
 
   if (!convertStringUCS4(&__glcVendorUCS4, __glcVendor))
     return -1;
-
-  /* Needed to initialize an OpenGL context */
-  glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-  glutCreateWindow("test6");
 
   glcContext(ctx);
 
