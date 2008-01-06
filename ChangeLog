@@ -3,6 +3,8 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1856336 (glcFontFace reports GLC_RESOURCE_ERROR on Windows when
+  selecting the "Arial Regular" font face).
 - Removed explicit calls to glGetString(GL_VERSION) and
   glGetString(GL_EXTENSIONS) in glcContext() since GLEW already takes care of
   that.

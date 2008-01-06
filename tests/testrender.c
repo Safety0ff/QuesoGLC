@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002-2005, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,17 @@
 #include <GL/glut.h>
 #endif
 #include <stdlib.h>
+
+#ifdef __WIN32__
+/* Font face "Arial Regular" for Windows in order to make a regression test for
+ * bug #1856336.
+ */
+#define FAMILY "Arial"
+#define FACE "Regular"
+#else
+#define FAMILY "Courier"
+#define FACE "Italic"
+#endif
 
 void display(void)
 {
@@ -110,10 +121,10 @@ void keyboard(unsigned char key, int x, int y)
   switch(key) {
   case 27: /* Escape Key */
     printf("Textures : %d\n", glcGeti(GLC_TEXTURE_OBJECT_COUNT));
-    for (i = 1; i <= glcGeti(GLC_TEXTURE_OBJECT_COUNT); i++)
+    for (i = 0; i < glcGeti(GLC_TEXTURE_OBJECT_COUNT); i++)
       printf("Texture #%d : %d\n", i, glcGetListi(GLC_TEXTURE_OBJECT_LIST, i));
     printf("Display Lists : %d\n", glcGeti(GLC_LIST_OBJECT_COUNT));
-    for (i = 1; i <= glcGeti(GLC_LIST_OBJECT_COUNT); i++)
+    for (i = 0; i < glcGeti(GLC_LIST_OBJECT_COUNT); i++)
       printf("Display List#%d : %d\n", i, glcGetListi(GLC_LIST_OBJECT_LIST, i));
     glcDeleteGLObjects();
     glcDeleteContext(glcGetCurrentContext());
@@ -128,6 +139,7 @@ int main(int argc, char **argv)
 {
   int ctx = 0;
   int font = 0;
+  GLCenum error = 0;
 
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -139,13 +151,19 @@ int main(int argc, char **argv)
 
   ctx = glcGenContext();
   glcContext(ctx);
-#ifdef __WIN32__
-  font = glcNewFontFromFamily(glcGenFontID(), "Courier New");
-#else
-  font = glcNewFontFromFamily(glcGenFontID(), "Courier");
-#endif
+  font = glcNewFontFromFamily(glcGenFontID(), FAMILY);
   glcFont(font);
-  glcFontFace(font, "Italic");
+  error = glcGetError();
+  glcFontFace(font, FACE);
+
+#ifdef __WIN32__
+  /* Regression test for bug #1856336 */
+  error = glcGetError();
+  if (error == GLC_RESOURCE_ERROR) {
+    printf("Unable to select the font %s %s\n", FAMILY, FACE);
+    return -1;
+  }
+#endif
 
   glutMainLoop();
   return 0;
