@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -524,7 +524,7 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 
 
 /* Function for GLEW so that it can get a context */
-GLEWContext* glewGetContext(void)
+GLEWAPI GLEWContext* glewGetContext(void)
 {
   __GLCcontext* ctx = GLC_GET_CURRENT_CONTEXT();
 

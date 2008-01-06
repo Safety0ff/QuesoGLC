@@ -23,7 +23,14 @@
  * errors.
  */
 
-#include <GL/glu.h>
+#ifdef HAVE_CONFIG_H
+#include "qglc_config.h"
+#endif
+#ifdef HAVE_LIBGLEW
+#include <GL/glew.h>
+#else
+#include "GL/glew.h"
+#endif
 #include <GL/glc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +43,8 @@
 
 #define QUESOGLC_MAJOR 0
 #define QUESOGLC_MINOR 2
+
+GLEWAPI GLEWContext* glewGetContext(void);
 
 static GLCchar* __glcExtensions1 = (GLCchar*) "GLC_QSO_attrib_stack"
   " GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning GLC_QSO_matrix_stack"
@@ -185,10 +194,10 @@ int main(int argc, char **argv)
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
   glutCreateWindow("test6");
 
-  if (gluCheckExtension((const GLubyte*)"GL_ARB_pixel_buffer_object",
-			glGetString(GL_EXTENSIONS))
-      || gluCheckExtension((const GLubyte*)"GL_ARB_vertex_buffer_object",
-			   glGetString(GL_EXTENSIONS)))
+  glcContext(ctx);
+
+  if (glewIsSupported("GL_ARB_pixel_buffer_object")
+      || glewIsSupported("GL_ARB_vertex_buffer_object"))
     __glcExtensions = __glcExtensions2;
   else
     __glcExtensions = __glcExtensions1;
@@ -213,8 +222,6 @@ int main(int argc, char **argv)
 
   if (!convertStringUCS4(&__glcVendorUCS4, __glcVendor))
     return -1;
-
-  glcContext(ctx);
 
   if (!checkError(GLC_NONE))
     return -1;

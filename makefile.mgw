@@ -69,7 +69,7 @@ clean:
 	del tests\*.exe
 
 tests/%.exe : tests/%.c build/$(LIBRARY)
-	$(CC) $(CFLAGS) $(GLUT_FLAGS) -DQUESOGLC_VERSION=\"$(QUESOGLC_VERSION)\" $< -o $@ $(LIBS) $(GLUT_LIBS)
+	$(CC) $(CFLAGS) $(GLUT_FLAGS) -DGLEW_MX -DQUESOGLC_VERSION=\"$(QUESOGLC_VERSION)\" $< -o $@ $(LIBS) $(GLUT_LIBS)
 
 build/trackball.o : examples/trackball.c
 	$(CC) -c $(CFLAGS) $< -o $@

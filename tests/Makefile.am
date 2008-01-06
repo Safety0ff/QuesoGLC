@@ -51,7 +51,7 @@ test4_SOURCES = test4.c
 test5_SOURCES = test5.c
 
 test6_SOURCES = test6.c
-test6_CFLAGS = $(CFLAGS) -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\"
+test6_CFLAGS = $(CFLAGS) -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" -DGLEW_MX
 
 testcontex_SOURCES = testcontex.c
 
