@@ -16,7 +16,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="..\build\$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="..\build\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -86,7 +86,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="..\build\$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="..\build\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool

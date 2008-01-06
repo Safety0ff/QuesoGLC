@@ -16,7 +16,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="..\build\$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="..\build\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -85,7 +85,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="..\build\$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="..\build\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -160,6 +160,24 @@
 			<File
 				RelativePath="unicode.c"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName).1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName).1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName).1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName).1.xdc"
+					/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter

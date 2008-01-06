@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="tutorial2"
-	ProjectGUID="{5EB2886A-A906-4623-8AEA-6D4A7CEB020A}"
+	Name="test10"
+	ProjectGUID="{40CE30BF-012C-468D-BCB2-5C059E2C578A}"
 	>
 	<Platforms>
 		<Platform
@@ -158,7 +158,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="tutorial2.c"
+				RelativePath="test10.c"
 				>
 			</File>
 		</Filter>

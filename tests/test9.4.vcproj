@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="tutorial2"
-	ProjectGUID="{5EB2886A-A906-4623-8AEA-6D4A7CEB020A}"
+	Name="test9.4"
+	ProjectGUID="{615569E0-4AFE-48E6-B330-E3EBC772973E}"
 	>
 	<Platforms>
 		<Platform
@@ -38,6 +38,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
+				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE;WITH_USER_LIST;WITH_GL_OBJECTS"
 				ExceptionHandling="0"
 				DebugInformationFormat="1"
 				CompileAs="1"
@@ -106,6 +107,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
+				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE;WITH_USER_LIST;WITH_GL_OBJECTS"
 				ExceptionHandling="0"
 				CompileAs="1"
 			/>
@@ -158,8 +160,26 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="tutorial2.c"
+				RelativePath="test9.c"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName).4.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName).4.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName).4.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName).4.xdc"
+					/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
