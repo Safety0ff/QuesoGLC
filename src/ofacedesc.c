@@ -77,32 +77,6 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     }
   }
 
-  if (inCode) {
-    FcCharSet* charSet = FcCharSetCreate();
-
-    if (!charSet) {
-      FcPatternDestroy(pattern);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return NULL;
-    }
-
-    if (!FcCharSetAddChar(charSet, inCode)) {
-      FcCharSetDestroy(charSet);
-      FcPatternDestroy(pattern);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return NULL;
-    }
-
-    if (!FcPatternAddCharSet(pattern, FC_CHARSET, charSet)) {
-      FcCharSetDestroy(charSet);
-      FcPatternDestroy(pattern);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      return NULL;
-    }
-
-    FcCharSetDestroy(charSet);
-  }
-
   objectSet = FcObjectSetBuild(FC_STYLE, FC_SPACING, FC_FILE, FC_INDEX,
 			       FC_OUTLINE, FC_CHARSET, NULL);
   if (!objectSet) {
@@ -121,6 +95,12 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
   for (i = 0; i < fontSet->nfont; i++) {
     FcBool outline = FcFalse;
     FcResult result = FcResultMatch;
+    FcCharSet* charSet = NULL;
+
+    result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+    assert(result != FcResultTypeMismatch);
+    if (inCode && !FcCharSetHasChar(charSet, inCode))
+      continue;
 
     /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);

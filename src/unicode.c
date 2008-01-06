@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -283,7 +283,11 @@ GLCchar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
     /* If the string is already encoded in UTF-8 format then all we need to do
      * is to make a copy of it.
      */
+#ifdef __WIN32__
+    string = (GLCchar8*)_strdup((const char*)inString);
+#else
     string = (GLCchar8*)strdup((const char*)inString);
+#endif
     break;
   default:
     return NULL;

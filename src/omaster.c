@@ -124,25 +124,33 @@ GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
   objectSet = FcObjectSetBuild(FC_STYLE, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
   fontSet = FcFontList(inContext->config, This->pattern, objectSet);
   FcObjectSetDestroy(objectSet);
   if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
 
   if (inIndex >= fontSet->nfont) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     FcFontSetDestroy(fontSet);
-    return GLC_NONE;
+    return NULL;
   }
   result = FcPatternGetString(fontSet->fonts[inIndex], FC_STYLE, 0, &string);
   assert(result != FcResultTypeMismatch);
 
+#ifdef __WIN32__
+  faceName = (GLCchar8*)_strdup((const char*)string);
+#else
   faceName = (GLCchar8*)strdup((const char*)string);
+#endif
   FcFontSetDestroy(fontSet);
+  if (!faceName) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
 
   return faceName;
 }

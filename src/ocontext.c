@@ -268,20 +268,9 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     char *path = NULL;
     char *begin = NULL;
     char *sepPos = NULL;
-    char *separator = NULL;
-
-    /* Read the paths of fonts file.
-     * First, try GLC_CATALOG_LIST...
-     */
-    if (getenv("GLC_CATALOG_LIST"))
-      path = strdup(getenv("GLC_CATALOG_LIST"));
-    else if (getenv("GLC_PATH")) {
-      /* Try GLC_PATH which uses the same format than PATH */
-      path = strdup(getenv("GLC_PATH"));
-    }
+    char *separator = getenv("GLC_LIST_SEPARATOR");
 
     /* Get the list separator */
-    separator = getenv("GLC_LIST_SEPARATOR");
     if (!separator) {
 #ifdef __WIN32__
 	/* Windows can not use a colon-separated list since the colon sign is
@@ -297,6 +286,24 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 #endif
     }
 
+    /* Read the paths of fonts file.
+     * First, try GLC_CATALOG_LIST...
+     */
+    if (getenv("GLC_CATALOG_LIST"))
+#ifdef __WIN32__
+      path = _strdup(getenv("GLC_CATALOG_LIST"));
+#else
+      path = strdup(getenv("GLC_CATALOG_LIST"));
+#endif
+    else if (getenv("GLC_PATH")) {
+      /* Try GLC_PATH which uses the same format than PATH */
+#ifdef __WIN32__
+      path = _strdup(getenv("GLC_PATH"));
+#else
+      path = strdup(getenv("GLC_PATH"));
+#endif
+    }
+
     if (path) {
       /* Get each path and add the corresponding masters to the current
        * context */
@@ -309,7 +316,11 @@ __GLCcontext* __glcContextCreate(GLint inContext)
         if (*sepPos)
 	  *(sepPos++) = 0;
 
+#ifdef __WIN32__
+        dup = (GLCchar8*)_strdup(begin);
+#else
         dup = (GLCchar8*)strdup(begin);
+#endif
         if (!dup) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
         }
@@ -669,7 +680,11 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
 /* Append a catalog to the context catalog list */
 void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 {
+#ifdef __WIN32__
+  GLCchar8* dup = (GLCchar8*)_strdup(inCatalog);
+#else
   GLCchar8* dup = (GLCchar8*)strdup(inCatalog);
+#endif
 
   if (!dup) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -696,7 +711,11 @@ void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 /* Prepend a catalog to the context catalog list */
 void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 {
+#ifdef __WIN32__
+  GLCchar8* dup = (GLCchar8*)_strdup(inCatalog);
+#else
   GLCchar8* dup = (GLCchar8*)strdup(inCatalog);
+#endif
 
   if (!dup) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
