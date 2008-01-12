@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -56,17 +56,29 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
     FcCharSet* charSet = NULL;
     FcFontSet* fontSet = NULL;
     int i = 0;
-    FcObjectSet* objectSet = FcObjectSetBuild(FC_CHARSET, FC_OUTLINE, NULL);
+    FcObjectSet* objectSet = NULL;
+    FcPattern* pattern = FcPatternCreate();
 
-    if (!objectSet) {
+    if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcCharSetDestroy(This->charSet);
       __glcFree(This);
       return NULL;
     }
 
-    fontSet = FcFontList(inContext->config, inMaster->pattern, objectSet);
+    objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_SPACING, FC_OUTLINE,
+				 FC_CHARSET, NULL);
+    if (!objectSet) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcPatternDestroy(pattern);
+      FcCharSetDestroy(This->charSet);
+      __glcFree(This);
+      return NULL;
+    }
+
+    fontSet = FcFontList(inContext->config, pattern, objectSet);
     FcObjectSetDestroy(objectSet);
+    FcPatternDestroy(pattern);
     if (!fontSet) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcCharSetDestroy(This->charSet);
@@ -75,30 +87,58 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
     }
 
     for (i = 0; i < fontSet->nfont; i++) {
+      FcChar8* family = NULL;
+      int fixed = 0;
+      FcChar8* foundry = NULL;
       FcBool outline = FcFalse;
       FcResult result = FcResultMatch;
+      FcBool equal = FcFalse;
 
       /* Check whether the glyphs are outlines */
       result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
       assert(result != FcResultTypeMismatch);
 
-      if (outline) {
+      if (!outline)
+	continue;
+
+      result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+      assert(result != FcResultTypeMismatch);
+      result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+      assert(result != FcResultTypeMismatch);
+      result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+      assert(result != FcResultTypeMismatch);
+
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+      if (!pattern) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	FcCharSetDestroy(This->charSet);
+	FcFontSetDestroy(fontSet);
+	__glcFree(This);
+	return NULL;
+      }
+
+      equal = FcPatternEqual(pattern, inMaster->pattern);
+      FcPatternDestroy(pattern);
+      if (equal) {
         FcCharSet* newCharSet = NULL;
 
-        result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+        result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0,
+				     &charSet);
         assert(result != FcResultTypeMismatch);
 
         newCharSet = FcCharSetUnion(This->charSet, charSet);
-		if (!newCharSet) {
+	if (!newCharSet) {
           __glcRaiseError(GLC_RESOURCE_ERROR);
           FcCharSetDestroy(This->charSet);
           FcFontSetDestroy(fontSet);
           __glcFree(This);
           return NULL;
-		}
+	}
 
-		FcCharSetDestroy(This->charSet);
-		This->charSet = newCharSet;
+	FcCharSetDestroy(This->charSet);
+	This->charSet = newCharSet;
       }
     }
 

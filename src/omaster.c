@@ -23,6 +23,7 @@
  */
 
 #include "internal.h"
+#include <string.h>
 
 
 
@@ -66,36 +67,51 @@ __GLCmaster* __glcMasterCreate(GLint inMaster, __GLCcontext* inContext)
   for (i = 0; i < fontSet->nfont; i++) {
     FcBool outline = FcFalse;
     FcResult result = FcResultMatch;
+    FcChar8* family = NULL;
+    int fixed = 0;
+    FcChar8* foundry = NULL;
 
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
     assert(result != FcResultTypeMismatch);
     if (!outline)
       continue;
 
-    if (hashValue == FcPatternHash(fontSet->fonts[i]))
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
+			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
+			     fixed, NULL);
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+
+    if (hashValue == FcPatternHash(pattern))
       break;
+
+    FcPatternDestroy(pattern);
   }
 
   assert(i < fontSet->nfont);
+  FcFontSetDestroy(fontSet);
 
   This = (__GLCmaster*)__glcMalloc(sizeof(__GLCmaster));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcFontSetDestroy(fontSet);
+    FcPatternDestroy(pattern);
     return NULL;
   }
 
   /* Duplicate the pattern of the found font (otherwise it will be deleted with
    * the font set).
    */
-  This->pattern = FcPatternDuplicate(fontSet->fonts[i]);
-  FcFontSetDestroy(fontSet);
-  if (!This->pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(This);
-    return NULL;
-  }
-
+  This->pattern = pattern;
   return This;
 }
 
@@ -120,25 +136,77 @@ GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
   FcResult result = FcResultMatch;
   GLCchar8* string = NULL;
   GLCchar8* faceName;
+  int i = 0;
+  FcPattern* pattern = FcPatternCreate();
 
-  objectSet = FcObjectSetBuild(FC_STYLE, NULL);
-  if (!objectSet) {
+  if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
-  fontSet = FcFontList(inContext->config, This->pattern, objectSet);
+
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_SPACING, FC_OUTLINE,
+			       FC_STYLE, NULL);
+  if (!objectSet) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
+    return NULL;
+  }
+  fontSet = FcFontList(inContext->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
+  FcPatternDestroy(pattern);
   if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
-  if (inIndex >= fontSet->nfont) {
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcChar8* family = NULL;
+    int fixed = 0;
+    FcChar8* foundry = NULL;
+    FcBool outline = FcFalse;
+    FcResult result = FcResultMatch;
+    FcBool equal = FcFalse;
+
+    /* Check whether the glyphs are outlines */
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+
+    if (!outline)
+      continue;
+
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			     FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			     FcTypeInteger, fixed, NULL);
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+
+    equal = FcPatternEqual(pattern, This->pattern);
+    FcPatternDestroy(pattern);
+    if (equal) {
+      if (inIndex)
+	inIndex--;
+      else
+	break;
+    }
+  }
+
+  if (i == fontSet->nfont) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     FcFontSetDestroy(fontSet);
     return NULL;
   }
-  result = FcPatternGetString(fontSet->fonts[inIndex], FC_STYLE, 0, &string);
+
+  result = FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &string);
   assert(result != FcResultTypeMismatch);
 
 #ifdef __WIN32__
@@ -176,22 +244,67 @@ GLint __glcMasterFaceCount(__GLCmaster* This, __GLCcontext* inContext)
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
   GLint count = 0;
+  int i = 0;
+  FcPattern* pattern = FcPatternCreate();
 
-  objectSet = FcObjectSetBuild(FC_STYLE, NULL);
+  if (!pattern) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return 0;
+  }
+
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_SPACING, FC_OUTLINE,
+			       FC_STYLE, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
+    FcPatternDestroy(pattern);
+    return 0;
   }
-  fontSet = FcFontList(inContext->config, This->pattern, objectSet);
+  fontSet = FcFontList(inContext->config, pattern, objectSet);
   FcObjectSetDestroy(objectSet);
+  FcPatternDestroy(pattern);
   if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
+    return 0;
   }
 
-  count = fontSet->nfont;
-  FcFontSetDestroy(fontSet);
+  for (i = 0; i < fontSet->nfont; i++) {
+    FcChar8* family = NULL;
+    int fixed = 0;
+    FcChar8* foundry = NULL;
+    FcBool outline = FcFalse;
+    FcResult result = FcResultMatch;
+    FcBool equal = FcFalse;
 
+    /* Check whether the glyphs are outlines */
+    result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+    assert(result != FcResultTypeMismatch);
+
+    if (!outline)
+      continue;
+
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			     FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			     FcTypeInteger, fixed, NULL);
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return 0;
+    }
+
+    equal = FcPatternEqual(pattern, This->pattern);
+    FcPatternDestroy(pattern);
+    if (equal)
+      count++;
+  }
+
+  FcFontSetDestroy(fontSet);
   return count;
 }
 
@@ -264,22 +377,13 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
 /* Create a master on the basis of the family name */
 __GLCmaster* __glcMasterFromFamily(__GLCcontext* inContext, GLCchar8* inFamily)
 {
-  __GLCmaster* This = NULL;
-  FcPattern* pattern = NULL;
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
-  FcResult result = FcResultMatch;
   int i = 0;
+  FcPattern* pattern = FcPatternCreate();
 
-  pattern = FcPatternCreate();
   if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return NULL;
-  }
-
-  if (!FcPatternAddString(pattern, FC_FAMILY, inFamily)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
     return NULL;
   }
 
@@ -300,39 +404,46 @@ __GLCmaster* __glcMasterFromFamily(__GLCcontext* inContext, GLCchar8* inFamily)
 
   for (i = 0; i < fontSet->nfont; i++) {
     FcBool outline = FcFalse;
+    FcResult result = FcResultMatch;
+    FcChar8* family = NULL;
+    int fixed = 0;
+    FcChar8* foundry = NULL;
 
-    /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
     assert(result != FcResultTypeMismatch);
-    if (outline)
-      break;
+    if (!outline)
+      continue;
+
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    if (strcmp((const char*)family, (const char*)inFamily))
+      continue;
+
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
+			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
+			     fixed, NULL);
+    if (pattern) {
+      __GLCmaster* This = (__GLCmaster*)__glcMalloc(sizeof(__GLCmaster));
+      if (!This) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	FcFontSetDestroy(fontSet);
+	return NULL;
+      }
+
+      This->pattern = pattern;
+      FcFontSetDestroy(fontSet);
+      return This;
+    }
   }
 
-  if (i == fontSet->nfont) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcFontSetDestroy(fontSet);
-    return NULL;
-  }
-
-  This = (__GLCmaster*)__glcMalloc(sizeof(__GLCmaster));
-  if (!This) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcFontSetDestroy(fontSet);
-    return NULL;
-  }
-
-  /* Duplicate the pattern of the found font (otherwise it will be deleted with
-   * the font set).
-   */
-  This->pattern = FcPatternDuplicate(fontSet->fonts[i]);
+  __glcRaiseError(GLC_RESOURCE_ERROR);
   FcFontSetDestroy(fontSet);
-  if (!This->pattern) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(This);
-    return NULL;
-  }
-
-  return This;
+  return NULL;
 }
 
 
@@ -344,14 +455,16 @@ __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode)
 {
   __GLCmaster* This = NULL;
   FcPattern* pattern = NULL;
-  FcCharSet* charSet = NULL;
   FcFontSet* fontSet = NULL;
   FcFontSet* fontSet2 = NULL;
   FcObjectSet* objectSet = NULL;
   FcResult result = FcResultMatch;
   int f = 0;
+  FcChar8* family = NULL;
+  int fixed = 0;
+  FcChar8* foundry = NULL;
+  FcCharSet* charSet = FcCharSetCreate();
 
-  charSet = FcCharSetCreate();
   if (!charSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
@@ -430,15 +543,25 @@ __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode)
   /* Duplicate the pattern of the found font (otherwise it will be deleted with
    * the font set).
    */
-  This->pattern = FcPatternDuplicate(fontSet2->fonts[0]);
+  result = FcPatternGetString(fontSet2->fonts[0], FC_FAMILY, 0, &family);
+  assert(result != FcResultTypeMismatch);
+  result = FcPatternGetString(fontSet2->fonts[0], FC_FOUNDRY, 0, &foundry);
+  assert(result != FcResultTypeMismatch);
+  result = FcPatternGetInteger(fontSet2->fonts[0], FC_SPACING, 0, &fixed);
+  assert(result != FcResultTypeMismatch);
+
+  pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
+			   FcTypeString, foundry, FC_SPACING, FcTypeInteger,
+			   fixed, NULL);
   FcFontSetDestroy(fontSet2);
   FcFontSetDestroy(fontSet);
-  if (!This->pattern) {
+  if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(This);
     return NULL;
   }
 
+  This->pattern = pattern;
   return This;
 }
 

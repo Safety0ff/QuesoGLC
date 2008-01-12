@@ -645,6 +645,9 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
     int length = GLC_ARRAY_LENGTH(This->masterHashTable);
     GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(This->masterHashTable);
     FcBool outline = FcFalse;
+    FcChar8* family = NULL;
+    int fixed = 0;
+    FcChar8* foundry = NULL;
     FcResult result = FcResultMatch;
 
     /* Check whether the glyphs are outlines */
@@ -653,8 +656,25 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
     if (!outline)
       continue;
 
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
+			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
+			     fixed, NULL);
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return;
+    }
+
     /* Check if the font is already registered in the hash table */
-    hashValue = FcPatternHash(fontSet->fonts[i]);
+    hashValue = FcPatternHash(pattern);
+    FcPatternDestroy(pattern);
     for (j = 0; j < length; j++) {
       if (hashTable[j] == hashValue)
 	break;
@@ -800,6 +820,7 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
       __glcRaiseError(GLC_RESOURCE_ERROR);
       continue;
     }
+
     /* Check if the hash value of the master is in the hash table */
     hashValue = GLC_MASTER_HASH_VALUE(master);
     for (i = 0; i < length; i++) {

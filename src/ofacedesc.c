@@ -62,23 +62,15 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
   int i = 0;
-  FcPattern* pattern = FcPatternDuplicate(inMaster->pattern);
+  FcPattern* pattern = FcPatternCreate();
 
   if (!pattern) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
-  if (inFace) {
-    if (!FcPatternAddString(pattern, FC_STYLE, inFace)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FcPatternDestroy(pattern);
-      return NULL;
-    }
-  }
-
-  objectSet = FcObjectSetBuild(FC_STYLE, FC_SPACING, FC_FILE, FC_INDEX,
-			       FC_OUTLINE, FC_CHARSET, NULL);
+  objectSet = FcObjectSetBuild(FC_FAMILY, FC_FOUNDRY, FC_STYLE, FC_SPACING,
+			       FC_FILE, FC_INDEX, FC_OUTLINE, FC_CHARSET, NULL);
   if (!objectSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     FcPatternDestroy(pattern);
@@ -89,13 +81,19 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
   FcPatternDestroy(pattern);
   if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
+    FcPatternDestroy(pattern);
     return NULL;
   }
 
   for (i = 0; i < fontSet->nfont; i++) {
+    FcChar8* family = NULL;
+    int fixed = 0;
+    FcChar8* foundry = NULL;
+    FcChar8* style = NULL;
     FcBool outline = FcFalse;
-    FcResult result = FcResultMatch;
     FcCharSet* charSet = NULL;
+    FcResult result = FcResultMatch;
+    FcBool equal = FcFalse;
 
     result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
     assert(result != FcResultTypeMismatch);
@@ -105,8 +103,36 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
     assert(result != FcResultTypeMismatch);
-    if (outline)
+    if (!outline)
+      continue;
+
+    result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    assert(result != FcResultTypeMismatch);
+    result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+    assert(result != FcResultTypeMismatch);
+
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
+			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
+			     fixed, NULL);
+    if (!pattern) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      FcFontSetDestroy(fontSet);
+      return NULL;
+    }
+
+    equal = FcPatternEqual(pattern, inMaster->pattern);
+    FcPatternDestroy(pattern);
+    if (equal) {
+      if (inFace) {
+	result = FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &style);
+	assert(result != FcResultTypeMismatch);
+	if (strcmp((const char*)style, (const char*)inFace))
+	  continue;
+      }
       break;
+    }
   }
 
   if (i == fontSet->nfont) {
