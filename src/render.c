@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -288,158 +288,6 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
 
 
 
-/** \ingroup render
- *  This command renders the character that \e inCode is mapped to.
- *  \param inCode The character to render
- *  \sa glcRenderString()
- *  \sa glcRenderCountedString()
- *  \sa glcReplacementCode()
- *  \sa glcRenderStyle()
- *  \sa glcCallbackFunc()
- */
-void APIENTRY glcRenderChar(GLint inCode)
-{
-  __GLCcontext *ctx = NULL;
-  GLint code = 0;
-  __GLCglState GLState;
-  GLint listIndex = 0;
-  GLboolean saveGLObjects = GL_FALSE;
-  FT_ListNode node = NULL;
-
-  GLC_INIT_THREAD();
-
-  /* Check if the current thread owns a context state */
-  ctx = GLC_GET_CURRENT_CONTEXT();
-  if (!ctx) {
-    __glcRaiseError(GLC_STATE_ERROR);
-    return;
-  }
-
-  /* Get the character code converted to the UCS-4 format */
-  code = __glcConvertGLintToUcs4(ctx, inCode);
-  if (code < 32)
-    return; /* Skip control characters and unknown characters */
-
-  /* Disable the internal management of GL objects when the user is currently
-   * building a display list.
-   */
-  glGetIntegerv(GL_LIST_INDEX, &listIndex);
-  if (listIndex) {
-    saveGLObjects = ctx->enableState.glObjects;
-    ctx->enableState.glObjects = GL_FALSE;
-  }
-
-  /* Save the value of the GL parameters */
-  __glcSaveGLState(&GLState, ctx, GL_FALSE);
-
-  if (ctx->renderState.renderStyle == GLC_LINE ||
-      ctx->renderState.renderStyle == GLC_TRIANGLE) {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_INDEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_EDGE_FLAG_ARRAY);
-  }
-
-  /* Set the texture environment if the render style is GLC_TEXTURE */
-  if (ctx->renderState.renderStyle == GLC_TEXTURE) {
-    /* Set the new values of the parameters */
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (ctx->enableState.glObjects && ctx->atlas.id) {
-      glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
-      if (GLEW_ARB_vertex_buffer_object && ctx->atlas.bufferObjectID) {
-	glBindBufferARB(GL_ARRAY_BUFFER_ARB, ctx->atlas.bufferObjectID);
-	glInterleavedArrays(GL_T2F_V3F, 0, NULL);
-      }
-    }
-    else if (!ctx->enableState.glObjects && ctx->texture.id) {
-      glBindTexture(GL_TEXTURE_2D, ctx->texture.id);
-      if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID)
-	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
-			ctx->texture.bufferObjectID);
-    }
-  }
-
-  if (ctx->enableState.glObjects
-      && ctx->renderState.renderStyle != GLC_BITMAP) {
-    /* Renders the display lists if they exist */
-
-    for (node = ctx->currentFontList.head; node; node = node->next) {
-      __GLCfont* font = (__GLCfont*)node->data;
-      __GLCglyph* glyph = __glcCharMapGetGlyph(font->charMap, code);
-
-      if (glyph) {
-	GLuint DLindex = ctx->renderState.renderStyle - 0x101;
-
-	if (glyph->isSpacingChar) {
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-	  break;
-	}
-
-	if ((ctx->renderState.renderStyle == GLC_TRIANGLE)
-	    && (ctx->enableState.extrude))
-	  DLindex++;
-
-	if (glyph->displayList[DLindex]) {
-
-	  switch(ctx->renderState.renderStyle) {
-	  case GLC_TEXTURE:
-	    if (GLEW_ARB_vertex_buffer_object)
-	      glDrawArrays(GL_QUADS, 4 *
-			   ((__GLCatlasElement*)glyph->textureObject)->position,
-			   4);
-	    else
-	      glCallList(glyph->displayList[1]);
-	    /* The glyph is put at the head of the atlas list, so that we keep
-	     * track of glyphes that are used often in order not to remove those
-	     * ones from the atlas when it is full.
-	     */
-	    FT_List_Up(&ctx->atlasList, (FT_ListNode)glyph->textureObject);
-	    break;
-	  case GLC_LINE:
-	    if (GLEW_ARB_vertex_buffer_object && glyph->bufferObject[0]) {
-	      int i = 0;
-
-	      glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->bufferObject[0]);
-	      glVertexPointer(2, GL_FLOAT, 0, NULL);
-	      glNormal3f(0.f, 0.f, 1.f);
-	      for (i = 0; i < glyph->nContour; i++)
-		glDrawArrays(GL_LINE_LOOP, glyph->contours[i],
-			     glyph->contours[i+1] - glyph->contours[i]);
-	      break;
-	    }
-	    glCallList(glyph->displayList[DLindex]);
-	    break;
-	  case GLC_TRIANGLE:
-	    glCallList(glyph->displayList[DLindex]);
-	    break;
-	  }
-
-	  glTranslatef(glyph->advance[0], glyph->advance[1], 0.);
-	  break;
-	}
-      }
-    }
-  }
-
-  if (!node) {
-    __GLCcharacter prevCode = {0, NULL, NULL, {0.f, 0.f}};
-
-    __glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcRenderChar, NULL);
-  }
-
-  /* Restore the values of the GL state if needed */
-  __glcRestoreGLState(&GLState, ctx, GL_FALSE);
-  if (listIndex)
-    ctx->enableState.glObjects = saveGLObjects;
-}
-
-
-
 /* This internal function is used by both glcRenderString() and
  * glcRenderCountedString(). The string 'inString' must be sorted in visual
  * order and stored using UCS4 format.
@@ -549,17 +397,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	    chars[length].advance[1] = glyph->advance[1];
 
  	    if (inContext->enableState.kerning) {
- 	      __GLCcharacter* previous = NULL;
-
- 	      if (length)
- 		previous = &chars[length-1];
- 	      else
- 		previous = &prevCode;
-
- 	      if (previous->code && previous->font == font) {
+ 	      if (prevCode.code && prevCode.font == font) {
  		GLfloat kerning[2];
- 		GLint leftCode = inIsRightToLeft ? *ptr : previous->code;
- 		GLint rightCode = inIsRightToLeft ? previous->code : *ptr;
+ 		GLint leftCode = inIsRightToLeft ? *ptr : prevCode.code;
+ 		GLint rightCode = inIsRightToLeft ? prevCode.code : *ptr;
 
  		if (__glcFontGetKerning(font, leftCode, rightCode, kerning,
  					inContext, GLC_POINT_SIZE,
@@ -574,7 +415,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
  	      }
  	    }
 
-	    chars[length].font = font;
+	    prevCode.font = font;
+	    prevCode.code = *ptr;
 
 	    if (glyph->isSpacingChar)
 	      chars[length].code = 32;
@@ -625,10 +467,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	  if (!inIsRightToLeft)
 	    glTranslatef(chars[j].advance[0], chars[j].advance[1], 0.);
 	}
-	if (length) {
-	  prevCode.code = chars[length-1].code;
-	  prevCode.font = chars[length-1].font;
-	}
+
 	if (!node)
 	  __glcProcessChar(inContext, *ptr, &prevCode, inIsRightToLeft,
 			   __glcRenderChar, NULL);
@@ -653,6 +492,39 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     __glcFree(chars);
   if (listIndex)
     inContext->enableState.glObjects = saveGLObjects;
+}
+
+
+
+/** \ingroup render
+ *  This command renders the character that \e inCode is mapped to.
+ *  \param inCode The character to render
+ *  \sa glcRenderString()
+ *  \sa glcRenderCountedString()
+ *  \sa glcReplacementCode()
+ *  \sa glcRenderStyle()
+ *  \sa glcCallbackFunc()
+ */
+void APIENTRY glcRenderChar(GLint inCode)
+{
+  __GLCcontext *ctx = NULL;
+  GLint code = 0;
+
+  GLC_INIT_THREAD();
+
+  /* Check if the current thread owns a context state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
+  if (!ctx) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
+
+  /* Get the character code converted to the UCS-4 format */
+  code = __glcConvertGLintToUcs4(ctx, inCode);
+  if (code < 32)
+    return; /* Skip control characters and unknown characters */
+
+  __glcRenderCountedString(ctx, (GLCchar*)&code, GL_FALSE, 1);
 }
 
 
