@@ -145,6 +145,7 @@ GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
 
   /* Copy the result to outVec and return */
   memcpy(outVec, glyph->boundingBox, 4 * sizeof(GLfloat));
+  glyph->boundingBoxCached = GL_TRUE;
   return outVec;
 }
 
@@ -183,6 +184,7 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
 
   /* Copy the result to outVec and return */
   memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
+  glyph->advanceCached = GL_TRUE;
   return outVec;
 }
 

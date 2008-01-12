@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -444,7 +444,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  \sa glcMeasureString()
  */
 GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
-				GLfloat *outVec)
+					 GLfloat *outVec)
 {
   __GLCcontext *ctx = NULL;
   GLfloat (*measurementBuffer)[12] = NULL;
@@ -560,8 +560,9 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
  * The string inString is encoded in UCS4 and is stored in visual order.
  */
 static GLint __glcMeasureCountedString(__GLCcontext *inContext,
-				GLboolean inMeasureChars, GLint inCount,
-				const GLCchar32* inString, GLboolean inIsRTL)
+				       GLboolean inMeasureChars, GLint inCount,
+				       const GLCchar32* inString,
+				       GLboolean inIsRTL)
 {
   GLint i = 0;
   GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
@@ -572,6 +573,7 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
   GLfloat yMin = 0., yMax = 0.;
   GLfloat* outVec = inContext->measurementStringBuffer;
   __GLCcharacter prevCode = { 0, NULL };
+  GLint shift = 1;
 
   if (inContext->renderState.renderStyle == GLC_BITMAP) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
@@ -589,6 +591,11 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
    * gathered in the context state
    */
   ptr = inString;
+  if (inIsRTL) {
+    ptr += inCount - 1;
+    shift = -1;
+  }
+
   for (i = 0; i < inCount; i++) {
     if (*ptr < 32) {
       /* Control characters have no metrics. However they must not be skipped
@@ -596,12 +603,73 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
        * this would make troubles when the user calls glcGetStringCharMetric().
        */
       memset(metrics, 0, 14 * sizeof(GLfloat));
-      ptr++;
     }
     else {
-      __glcProcessChar(inContext, *(ptr++), &prevCode, inIsRTL,
-                       __glcGetCharMetric, metrics);
+      if (inContext->enableState.glObjects
+	  && inContext->renderState.renderStyle) {
+	__GLCfont* font = NULL;
+	__GLCglyph* glyph = NULL;
+	GLuint DLindex = inContext->renderState.renderStyle - 0x101;
+	FT_ListNode node = NULL;
+
+	for (node = inContext->currentFontList.head; node ; node = node->next) {
+ 	  font = (__GLCfont*)node->data;
+ 	  glyph = __glcCharMapGetGlyph(font->charMap, *ptr);
+
+	  metrics[0] = 0.;
+	  metrics[1] = 0.;
+
+	  if (!glyph || !glyph->advanceCached)
+	    __glcFontGetAdvance(font, *ptr, &metrics[2], inContext,
+				GLC_POINT_SIZE, GLC_POINT_SIZE);
+	  else {
+	    metrics[2] = glyph->advance[0];
+	    metrics[3] = glyph->advance[1];
+	  }
+
+	  if (!glyph || !glyph->boundingBoxCached) {
+	    __glcFontGetBoundingBox(font, *ptr, &metrics[4], inContext,
+				    GLC_POINT_SIZE, GLC_POINT_SIZE);
+	    metrics[9] = metrics[7];
+	  }
+	  else {
+	    metrics[4] = glyph->boundingBox[0];
+	    metrics[5] = glyph->boundingBox[1];
+	    metrics[6] = glyph->boundingBox[2];
+	    metrics[9] = glyph->boundingBox[3];
+	  }
+
+	  metrics[7] = metrics[5];
+	  metrics[8] = metrics[6];
+	  metrics[10] = metrics[4];
+	  metrics[11] = metrics[9];
+
+	  if (inContext->enableState.kerning) {
+	    if (prevCode.code && prevCode.font == font) {
+	      GLint leftCode = inIsRTL ? *ptr : prevCode.code;
+	      GLint rightCode = inIsRTL ? prevCode.code : *ptr;
+
+	      __glcFontGetKerning(font, leftCode, rightCode, &metrics[12],
+				  inContext, GLC_POINT_SIZE, GLC_POINT_SIZE);
+	    }
+	  }
+
+	  prevCode.font = font;
+	  prevCode.code = *ptr;
+	  break;
+	}
+
+	if (!node)
+	  __glcProcessChar(inContext, *ptr, &prevCode, inIsRTL,
+			   __glcGetCharMetric, metrics);
+      }
+      else {
+	__glcProcessChar(inContext, *ptr, &prevCode, inIsRTL,
+			 __glcGetCharMetric, metrics);
+      }
     }
+
+    ptr += shift;
 
     /* If characters are to be measured then store the results */
     if (inMeasureChars)
@@ -702,7 +770,7 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
  *  \sa glcGetStringMetric()
  */
 GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
-			      const GLCchar* inString)
+				       const GLCchar* inString)
 {
   __GLCcontext *ctx = NULL;
   GLint count = 0;
@@ -767,7 +835,6 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   GLCchar32* UinString = NULL;
   GLint count = 0;
   GLint length = 0;
-  GLCchar32* ucs4 = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
   GLC_INIT_THREAD();
