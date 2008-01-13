@@ -234,6 +234,12 @@ int main(int argc, char **argv) {
 
     CheckError();
 
+    if (!glcGetFontMap(font, ' ')) {
+      printf("INFO : Family %s %s has no space character\n",
+	     (char*)glcGetFontc(font, GLC_FAMILY), (char*)glcGetFontFace(font));
+      continue;
+    }
+
     if (!glcGetCharMetric(' ', GLC_BOUNDS, boundingBox1)) {
       printf("Failed to get the bounding box of the space character\n");
       printf("Family : %s\n", (char*)glcGetFontc(font, GLC_FAMILY));
