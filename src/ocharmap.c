@@ -298,10 +298,12 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
       start = middle + 1;
   }
 
-  if ((!code) || FcCharSetHasChar(This->charSet, inCode))
-    code = inCode;
-  else
-    return NULL;
+  if (!code) {
+    if (FcCharSetHasChar(This->charSet, inCode))
+      code = inCode;
+    else
+      return NULL;
+  }
 
   name = __glcNameFromCode(code);
   if (!name) {
