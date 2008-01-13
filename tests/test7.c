@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -182,11 +182,11 @@ int main(int argc, char **argv) {
   v2 = fabs(baseline1[3]);
   norm = v1 > v2 ? v1 : v2;
 
-  if (fabs(v1 - v2) <= EPSILON * norm) {
+  if (fabs(v1 - v2) < EPSILON * norm) {
     v1 = fabs(baseline1[0]);
     v2 = fabs(baseline1[2]);
     norm = v1 > v2 ? v1 : v2;
-    if ((fabs(v1 - v2) <= EPSILON * norm) || (baseline1[2] < baseline1[0])) {
+    if ((fabs(v1 - v2) < EPSILON * norm) || (baseline1[2] < baseline1[0])) {
       printf("Right and left side of the max baseline are swapped\n");
       printf("%f %f %f %f\n", baseline1[0], baseline1[1], baseline1[2],
 	     baseline1[3]);
@@ -256,11 +256,11 @@ int main(int argc, char **argv) {
     v2 = fabs(baseline1[3]);
     norm = v1 > v2 ? v1 : v2;
 
-    if (fabs(v1 - v2) <= EPSILON * norm) {
+    if (fabs(v1 - v2) < EPSILON * norm) {
       v1 = fabs(baseline1[0]);
       v2 = fabs(baseline1[2]);
       norm = v1 > v2 ? v1 : v2;
-      if ((fabs(v1 - v2) <= EPSILON * norm) || (baseline1[2] < baseline1[0])) {
+      if ((fabs(v1 - v2) < EPSILON * norm) || (baseline1[2] < baseline1[0])) {
         printf("Right and left side of the baseline are swapped\n");
         printf("%f %f %f %f\n", baseline1[0], baseline1[1], baseline1[2],
                baseline1[3]);

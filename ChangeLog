@@ -3,11 +3,13 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Updated test7 in order not to report an error when testing fonts which defines
+  a space character with no width.
 - glcGenFontID() now creates an empty font in order to reserve the ID for a
   future use. The new ID can be freed by deleting it with glcDeleteFont().
 - Measurement datas of glyphes are now cached in order to accelerate the
   measurement commands when GLC_GL_OBJECTS is enabled.
-- Fonts which belong to the same family are now grouped in the master.
+- Fonts which belong to the same family are now grouped in the same master.
 - Added project files for Microsoft Visual C++ 2005
 - Fixed bug #1856336 (glcFontFace reports GLC_RESOURCE_ERROR on Windows when
   selecting the "Arial Regular" font face).
