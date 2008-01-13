@@ -263,7 +263,7 @@ void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
 /* Get the Unicode character name of the character which codepoint is inCode.
  * Note : since the character maps of the fonts can be altered, this function
  * can return 'LATIN CAPITAL LETTER B' whereas inCode contained 65 (which is
- * the Unicode code point of 'LATIN CAPITAL LETTER A'.
+ * the Unicode code point of 'LATIN CAPITAL LETTER A').
  */
 GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
 				 __GLCcontext* inContext)
@@ -272,6 +272,7 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
   GLCchar8* name = NULL;
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
+  GLint code = 0;
 
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
@@ -288,7 +289,7 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
   while (start <= end) {
     middle = (start + end) >> 1;
     if (element[middle].mappedCode == (GLCulong)inCode) {
-      inCode = element[middle].glyph->codepoint;
+      code = element[middle].glyph->codepoint;
       break;
     }
     else if (element[middle].mappedCode > (GLCulong)inCode)
@@ -297,14 +298,15 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
       start = middle + 1;
   }
 
-  /* If we have not found the character in the character map, it means that
-   * the mapped code is equal to 'inCode' otherwise inCode is modified to
-   * contain the mapped code.
-   */
-  name = __glcNameFromCode(inCode);
+  if ((!code) || FcCharSetHasChar(This->charSet, inCode))
+    code = inCode;
+  else
+    return NULL;
+
+  name = __glcNameFromCode(code);
   if (!name) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
 
   /* Convert the Unicode to the current string type */
@@ -312,7 +314,7 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
 					inContext->stringState.stringType);
   if (!buffer) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
 
   return buffer;

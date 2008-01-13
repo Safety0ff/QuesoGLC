@@ -3,6 +3,8 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- glcGetFontMap() and glcGetMasterMap() now return GLC_NONE if the font/master
+  does not map 'inCode'.
 - Updated test7 in order not to report an error when testing fonts which defines
   a space character with no width.
 - glcGenFontID() now creates an empty font in order to reserve the ID for a
