@@ -3,6 +3,8 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- glcGenFontID() now creates an empty font in order to reserve the ID for a
+  future use. The new ID can be freed by deleting it with glcDeleteFont().
 - Measurement datas of glyphes are now cached in order to accelerate the
   measurement commands when GLC_GL_OBJECTS is enabled.
 - Fonts which belong to the same family are now grouped in the master.

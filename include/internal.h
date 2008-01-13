@@ -254,8 +254,7 @@ extern void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont);
  * creates a new font based on the pattern 'inPattern'. The resulting font is
  * added to the list GLC_FONT_LIST.
  */
-extern __GLCfont* __glcNewFontFromMaster(__GLCfont* inFont, GLint inFontID,
-				  __GLCmaster* inMaster,
+extern __GLCfont* __glcNewFontFromMaster(GLint inFontID, __GLCmaster* inMaster,
 					 __GLCcontext *inContext, GLint inCode);
 
 /* This internal function tries to open the face file which name is identified

@@ -38,32 +38,41 @@ __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
   __GLCfont *This = NULL;
 
   assert(inContext);
-  assert(inMaster);
 
   This = (__GLCfont*)__glcMalloc(sizeof(__GLCfont));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
-  /* At font creation, the default face is the first one.
-   * glcFontFace() can change the face.
-   */
-  This->faceDesc = __glcFaceDescCreate(inMaster, NULL, inContext, inCode);
-  if (!This->faceDesc) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFree(This);
-    return NULL;
+
+  if (inMaster) {
+    /* At font creation, the default face is the first one.
+     * glcFontFace() can change the face.
+     */
+    This->faceDesc = __glcFaceDescCreate(inMaster, NULL, inContext, inCode);
+    if (!This->faceDesc) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcFree(This);
+      return NULL;
+    }
+
+    This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inContext);
+    if (!This->charMap) {
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcFaceDescDestroy(This->faceDesc, inContext);
+      __glcFree(This);
+      return NULL;
+    }
+
+    This->parentMasterID = __glcMasterGetID(inMaster, inContext);
+  }
+  else {
+    /* Creates an empty font (used by glcGenFontID() to reserve font IDs) */
+    This->faceDesc = NULL;
+    This->charMap = NULL;
+    This->parentMasterID = 0;
   }
 
-  This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inContext);
-  if (!This->charMap) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    __glcFaceDescDestroy(This->faceDesc, inContext);
-    __glcFree(This);
-    return NULL;
-  }
-
-  This->parentMasterID = __glcMasterGetID(inMaster, inContext);
   This->id = inID;
 
   return This;
