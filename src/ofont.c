@@ -138,8 +138,7 @@ GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
   /* If the bounding box of the glyph is cached then copy it to outVec and
    * return.
    */
-  if (glyph->boundingBox[0] || glyph->boundingBox[1] || glyph->boundingBox[2]
-      || glyph->boundingBox[3]) {
+  if (glyph->boundingBoxCached) {
     memcpy(outVec, glyph->boundingBox, 4 * sizeof(GLfloat));
     return outVec;
   }
@@ -179,7 +178,7 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
   /* If the advance of the glyph is cached then copy it to outVec and
    * return.
    */
-  if (glyph->advance[0] || glyph->advance[1]) {
+  if (glyph->advanceCached) {
     memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
     return outVec;
   }

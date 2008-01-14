@@ -667,9 +667,14 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
 
-    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
-			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
-			     fixed, NULL);
+    if (foundry)
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+    else
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_SPACING, FcTypeInteger, fixed, NULL);
+
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);

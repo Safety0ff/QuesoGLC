@@ -83,9 +83,14 @@ __GLCmaster* __glcMasterCreate(GLint inMaster, __GLCcontext* inContext)
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
 
-    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
-			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
-			     fixed, NULL);
+    if (foundry)
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+    else
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_SPACING, FcTypeInteger, fixed, NULL);
+
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
@@ -181,9 +186,14 @@ GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
 
-    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
-			     FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
-			     FcTypeInteger, fixed, NULL);
+    if (foundry)
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+    else
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_SPACING, FcTypeInteger, fixed, NULL);
+
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
@@ -289,9 +299,14 @@ GLint __glcMasterFaceCount(__GLCmaster* This, __GLCcontext* inContext)
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
 
-    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
-			     FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
-			     FcTypeInteger, fixed, NULL);
+    if (foundry)
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+    else
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_SPACING, FcTypeInteger, fixed, NULL);
+
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
@@ -344,6 +359,7 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
     if (!faceDesc || !__glcFaceDescOpen(faceDesc, inContext)) {
 #endif
       __glcRaiseError(GLC_RESOURCE_ERROR);
+      __glcFaceDescDestroy(faceDesc, inContext);
       return NULL;
     }
 
@@ -424,9 +440,14 @@ __GLCmaster* __glcMasterFromFamily(__GLCcontext* inContext, GLCchar8* inFamily)
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
 
-    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
-			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
-			     fixed, NULL);
+    if (foundry)
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+    else
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_SPACING, FcTypeInteger, fixed, NULL);
+
     if (pattern) {
       __GLCmaster* This = (__GLCmaster*)__glcMalloc(sizeof(__GLCmaster));
       if (!This) {
@@ -550,9 +571,14 @@ __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode)
   result = FcPatternGetInteger(fontSet2->fonts[0], FC_SPACING, 0, &fixed);
   assert(result != FcResultTypeMismatch);
 
-  pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
-			   FcTypeString, foundry, FC_SPACING, FcTypeInteger,
-			   fixed, NULL);
+  if (foundry)
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
+			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
+			     fixed, NULL);
+  else
+    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_SPACING,
+			     FcTypeInteger, fixed, NULL);
+
   FcFontSetDestroy(fontSet2);
   FcFontSetDestroy(fontSet);
   if (!pattern) {

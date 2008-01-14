@@ -609,7 +609,6 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 	  && inContext->renderState.renderStyle) {
 	__GLCfont* font = NULL;
 	__GLCglyph* glyph = NULL;
-	GLuint DLindex = inContext->renderState.renderStyle - 0x101;
 	FT_ListNode node = NULL;
 
 	for (node = inContext->currentFontList.head; node ; node = node->next) {

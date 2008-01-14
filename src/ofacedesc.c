@@ -113,9 +113,14 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
 
-    pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family, FC_FOUNDRY,
-			     FcTypeString, foundry, FC_SPACING, FcTypeInteger,
-			     fixed, NULL);
+    if (foundry)
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_FOUNDRY, FcTypeString, foundry, FC_SPACING,
+			       FcTypeInteger, fixed, NULL);
+    else
+      pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
+			       FC_SPACING, FcTypeInteger, fixed, NULL);
+
     if (!pattern) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
@@ -233,13 +238,7 @@ FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
     }
 
     /* select a Unicode charmap */
-    if (FT_Select_Charmap(This->face, ft_encoding_unicode)) {
-      /* No Unicode charmap is available */
-      __glcRaiseError(GLC_RESOURCE_ERROR);
-      FT_Done_Face(This->face);
-      This->face = NULL;
-      return NULL;
-    }
+    FT_Select_Charmap(This->face, ft_encoding_unicode);
 
     This->faceRefCount = 1;
   }
@@ -294,9 +293,7 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
   }
 
   /* select a Unicode charmap */
-  error = FT_Select_Charmap(*outFace, ft_encoding_unicode);
-  if (error)
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  FT_Select_Charmap(*outFace, ft_encoding_unicode);
 
   return error;
 }
