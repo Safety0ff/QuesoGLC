@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -184,7 +184,7 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
      */
     glBufferDataARB(GL_ARRAY_BUFFER_ARB,
 		    inContext->atlasWidth * inContext->atlasHeight
-		    * 20 * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW_ARB);
+		    * 20 * sizeof(GLfloat), NULL, GL_STATIC_DRAW_ARB);
     glInterleavedArrays(GL_T2F_V3F, 0, NULL);
   }
 
@@ -302,7 +302,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       return;
 
     /* Compute the size of the pixmap where the glyph will be rendered */
-    atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
+    atlasNode = inGlyph->textureObject;
 
     __glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
                                boundingBox, scale_x, scale_y, 0, inContext);
@@ -352,7 +352,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   do {
     if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects) {
       pixBuffer = (GLubyte *)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
-						GL_WRITE_ONLY);
+						GL_WRITE_ONLY_ARB);
       if (!pixBuffer) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -435,7 +435,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   if (inContext->enableState.glObjects) {
     if (GLEW_ARB_vertex_buffer_object) {
       GLfloat data[20];
-      __GLCatlasElement* atlasNode = (__GLCatlasElement*)inGlyph->textureObject;
+      __GLCatlasElement* atlasNode = inGlyph->textureObject;
 
       /* The display list ID is used as a flag to declare that the VBO has been
        * initialized and can be used.

@@ -28,6 +28,7 @@
 #define __glc_oglyph_h
 
 typedef struct __GLCglyphRec __GLCglyph;
+typedef struct __GLCatlasElementRec __GLCatlasElement;
 
 struct __GLCglyphRec {
   FT_ListNodeRec node;
@@ -36,7 +37,7 @@ struct __GLCglyphRec {
   GLCulong codepoint;
   GLboolean isSpacingChar;
   /* GL objects management */
-  void* textureObject;
+  __GLCatlasElement* textureObject;
   GLuint displayList[4];
   GLuint bufferObject[3];
   GLint nContour;
