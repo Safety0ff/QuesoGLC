@@ -1,7 +1,7 @@
 /*
 ** The OpenGL Extension Wrangler Library
-** Copyright (C) 2002-2006, Milan Ikits <milan ikits[]ieee org>
-** Copyright (C) 2002-2006, Marcelo E. Magallon <mmagallo[]debian org>
+** Copyright (C) 2002-2008, Milan Ikits <milan ikits[]ieee org>
+** Copyright (C) 2002-2008, Marcelo E. Magallon <mmagallo[]debian org>
 ** Copyright (C) 2002, Lev Povalahev
 ** All rights reserved.
 ** 
@@ -27,6 +27,29 @@
 ** CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ** ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 ** THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*
+** Copyright (c) 2007 The Khronos Group Inc.
+** 
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+** 
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+** 
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 */
 
 #ifndef __wglew_h__
@@ -124,12 +147,12 @@ GLEWAPI GLboolean wglewContextIsSupported (WGLEWContext* ctx, const char* name);
 #define wglewInit() wglewContextInit(wglewGetContext())
 #define wglewIsSupported(x) wglewContextIsSupported(wglewGetContext(), x)
 
-#define WGLEW_GET_VAR(x) wglewGetContext()->x
+#define WGLEW_GET_VAR(x) (*(const GLboolean*)&(wglewGetContext()->x))
 #define WGLEW_GET_FUN(x) wglewGetContext()->x
 
 #else /* GLEW_MX */
 
-#define WGLEW_GET_VAR(x) x
+#define WGLEW_GET_VAR(x) (*(const GLboolean*)&x)
 #define WGLEW_GET_FUN(x) x
 
 GLEWAPI GLboolean wglewIsSupported (const char* name);

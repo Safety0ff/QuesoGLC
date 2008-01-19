@@ -1,7 +1,7 @@
 /*
 ** The OpenGL Extension Wrangler Library
-** Copyright (C) 2002-2006, Milan Ikits <milan ikits[]ieee org>
-** Copyright (C) 2002-2006, Marcelo E. Magallon <mmagallo[]debian org>
+** Copyright (C) 2002-2008, Milan Ikits <milan ikits[]ieee org>
+** Copyright (C) 2002-2008, Marcelo E. Magallon <mmagallo[]debian org>
 ** Copyright (C) 2002, Lev Povalahev
 ** All rights reserved.
 ** 
@@ -30,22 +30,50 @@
 */
 
 /*
-** The contents of this file are subject to the GLX Public License Version 1.0
-** (the "License"). You may not use this file except in compliance with the
-** License. You may obtain a copy of the License at Silicon Graphics, Inc.,
-** attn: Legal Services, 2011 N. Shoreline Blvd., Mountain View, CA 94043
-** or at http://www.sgi.com/software/opensource/glx/license.html.
-**
-** Software distributed under the License is distributed on an "AS IS"
-** basis. ALL WARRANTIES ARE DISCLAIMED, INCLUDING, WITHOUT LIMITATION, ANY
-** IMPLIED WARRANTIES OF MERCHANTABILITY, OF FITNESS FOR A PARTICULAR
-** PURPOSE OR OF NON- INFRINGEMENT. See the License for the specific
-** language governing rights and limitations under the License.
-**
-** The Original Software is GLX version 1.2 source code, released February,
-** 1999. The developer of the Original Software is Silicon Graphics, Inc.
-** Those portions of the Subject Software created by Silicon Graphics, Inc.
-** are Copyright (c) 1991-9 Silicon Graphics, Inc. All Rights Reserved.
+ * Mesa 3-D graphics library
+ * Version:  7.0
+ *
+ * Copyright (C) 1999-2007  Brian Paul   All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * BRIAN PAUL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/*
+** Copyright (c) 2007 The Khronos Group Inc.
+** 
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+** 
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+** 
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 */
 
 #ifndef __glxew_h__
@@ -55,9 +83,13 @@
 #ifdef __glxext_h_
 #error glxext.h included before glxew.h
 #endif
+#ifdef GLX_H
+#error glx.h included before glxew.h
+#endif
 
 #define __glxext_h_
 #define __GLX_glx_h__
+#define GLX_H
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -101,7 +133,7 @@ extern "C" {
 typedef XID GLXDrawable;
 typedef XID GLXPixmap;
 #ifdef __sun
-typedef struct __glXcontextRec *GLXContext;
+typedef struct __glXContextRec *GLXContext;
 #else
 typedef struct __GLXcontextRec *GLXContext;
 #endif
@@ -115,7 +147,7 @@ extern void glXDestroyGLXPixmap (Display *dpy, GLXPixmap pix);
 extern GLXContext glXCreateContext (Display *dpy, XVisualInfo *vis, GLXContext shareList, Bool direct);
 extern void glXDestroyContext (Display *dpy, GLXContext ctx);
 extern Bool glXIsDirect (Display *dpy, GLXContext ctx);
-extern void glXCopyContext (Display *dpy, GLXContext src, GLXContext dst, GLuint mask);
+extern void glXCopyContext (Display *dpy, GLXContext src, GLXContext dst, GLulong mask);
 extern Bool glXMakeCurrent (Display *dpy, GLXDrawable drawable, GLXContext ctx);
 extern GLXContext glXGetCurrentContext (void);
 extern GLXDrawable glXGetCurrentDrawable (void);
@@ -224,8 +256,24 @@ typedef XID GLXFBConfigID;
 typedef XID GLXWindow;
 typedef XID GLXPbuffer;
 typedef struct __GLXFBConfigRec *GLXFBConfig;
-typedef struct { int event_type; int draw_type; unsigned long serial; Bool send_event; Display *display; GLXDrawable drawable; unsigned int buffer_mask; unsigned int aux_buffer; int x, y; int width, height; int count; } GLXPbufferClobberEvent;
-typedef union __GLXEvent { GLXPbufferClobberEvent glxpbufferclobber; long pad[24]; } GLXEvent;
+
+typedef struct {
+  int event_type; 
+  int draw_type; 
+  unsigned long serial; 
+  Bool send_event; 
+  Display *display; 
+  GLXDrawable drawable; 
+  unsigned int buffer_mask; 
+  unsigned int aux_buffer; 
+  int x, y; 
+  int width, height; 
+  int count; 
+} GLXPbufferClobberEvent;
+typedef union __GLXEvent {
+  GLXPbufferClobberEvent glxpbufferclobber; 
+  long pad[24]; 
+} GLXEvent;
 
 typedef GLXFBConfig* ( * PFNGLXCHOOSEFBCONFIGPROC) (Display *dpy, int screen, const int *attrib_list, int *nelements);
 typedef GLXContext ( * PFNGLXCREATENEWCONTEXTPROC) (Display *dpy, GLXFBConfig config, int render_type, GLXContext share_list, Bool direct);
@@ -347,12 +395,12 @@ extern GLboolean glxewContextIsSupported (GLXEWContext* ctx, const char* name);
 #define glxewInit() glxewContextInit(glxewGetContext())
 #define glxewIsSupported(x) glxewContextIsSupported(glxewGetContext(), x)
 
-#define GLXEW_GET_VAR(x) glxewGetContext()->x
+#define GLXEW_GET_VAR(x) (*(const GLboolean*)&(glxewGetContext()->x))
 #define GLXEW_GET_FUN(x) x
 
 #else /* GLEW_MX */
 
-#define GLXEW_GET_VAR(x) x
+#define GLXEW_GET_VAR(x) (*(const GLboolean*)&x)
 #define GLXEW_GET_FUN(x) x
 
 extern GLboolean glxewIsSupported (const char* name);
