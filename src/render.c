@@ -480,7 +480,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   else {
     for (i = 0; i < inCount; i++) {
       if (*ptr >= 32)
-	__glcProcessChar(inContext, *(ptr), &prevCode, inIsRightToLeft,
+	__glcProcessChar(inContext, *ptr, &prevCode, inIsRightToLeft,
 			 __glcRenderChar, NULL);
       ptr += shift;
     }
@@ -488,7 +488,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, inContext, GL_FALSE);
-  if (inContext->enableState.glObjects)
+  if (inContext->enableState.glObjects
+      && inContext->renderState.renderStyle != GLC_BITMAP)
     __glcFree(chars);
   if (listIndex)
     inContext->enableState.glObjects = saveGLObjects;
