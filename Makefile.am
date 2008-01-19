@@ -1,9 +1,9 @@
 SUBDIRS = include build @EXECUTABLES@
 
-EXTRA_DIST = Changelog \
+EXTRA_DIST = ChangeLog \
              INSTALL \
              INSTALL.win \
-             LICENSE \
+             COPYING \
              makefile.mgw \
              database/buildDB.py \
              $(DOCS)
