@@ -138,22 +138,24 @@ GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
   /* If the bounding box of the glyph is cached then copy it to outVec and
    * return.
    */
-  if (glyph->boundingBoxCached) {
+  if (glyph->boundingBoxCached && inContext->enableState.glObjects) {
     memcpy(outVec, glyph->boundingBox, 4 * sizeof(GLfloat));
     return outVec;
   }
 
   /* Otherwise, we must extract the bounding box from the face file */
-  if (!__glcFaceDescGetBoundingBox(This->faceDesc, glyph->index,
-				   glyph->boundingBox, inScaleX, inScaleY,
-				   inContext)) {
+  if (!__glcFaceDescGetBoundingBox(This->faceDesc, glyph->index, outVec,
+				   inScaleX, inScaleY, inContext)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
   /* Copy the result to outVec and return */
-  memcpy(outVec, glyph->boundingBox, 4 * sizeof(GLfloat));
-  glyph->boundingBoxCached = GL_TRUE;
+  if (inContext->enableState.glObjects) {
+    memcpy(glyph->boundingBox, outVec, 4 * sizeof(GLfloat));
+    glyph->boundingBoxCached = GL_TRUE;
+  }
+
   return outVec;
 }
 
@@ -178,21 +180,24 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
   /* If the advance of the glyph is cached then copy it to outVec and
    * return.
    */
-  if (glyph->advanceCached) {
+  if (glyph->advanceCached && inContext->enableState.glObjects) {
     memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
     return outVec;
   }
 
   /* Otherwise, we must extract the advance from the face file */
-  if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, glyph->advance,
-			       inScaleX, inScaleY, inContext)) {
+  if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, outVec, inScaleX,
+			       inScaleY, inContext)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
 
   /* Copy the result to outVec and return */
-  memcpy(outVec, glyph->advance, 2 * sizeof(GLfloat));
-  glyph->advanceCached = GL_TRUE;
+  if (inContext->enableState.glObjects) {
+    memcpy(glyph->advance, outVec, 2 * sizeof(GLfloat));
+    glyph->advanceCached = GL_TRUE;
+  }
+
   return outVec;
 }
 
