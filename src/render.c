@@ -107,8 +107,8 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
   void* pixBuffer = NULL;
   GLint boundingBox[4] = {0, 0, 0, 0};
 
-  __glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
-                             boundingBox, scale_x, scale_y, 0, inContext);
+  __glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, boundingBox, scale_x,
+			 scale_y, 0, inContext);
 
   pixBuffer = (GLubyte *)__glcMalloc(pixWidth * pixHeight);
   if (!pixBuffer) {
@@ -117,8 +117,7 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
   }
 
   /* render the glyph */
-  if (!__glcFaceDescGetBitmap(inFont->faceDesc, pixWidth, pixHeight,
-                              pixBuffer, inContext)) {
+  if (!__glcFontGetBitmap(inFont, pixWidth, pixHeight, pixBuffer, inContext)) {
     __glcFree(pixBuffer);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
@@ -199,15 +198,23 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
 		 + kerning[1] * inContext->bitmapMatrix[3],
 		 NULL);
       else
-	glTranslatef(kerning[0], kerning[1], 0.);
+	glTranslatef(kerning[0], kerning[1], 0.f);
     }
+  }
+
+  if (!__glcFontGetAdvance(inFont, inCode, advance, inContext, scale_x,
+			   scale_y)) {
+#ifndef GLC_FT_CACHE
+    __glcFontClose(inFont);
+#endif
+    return NULL;
   }
 
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
-  if (!__glcFaceDescGetAdvance(inFont->faceDesc, glyph->index, advance, scale_x,
-                               scale_y, inContext)) {
+  if (!__glcFontPrepareGlyph(inFont, inContext, scale_x, scale_y,
+			     glyph->index)) {
 #ifndef GLC_FT_CACHE
     __glcFontClose(inFont);
 #endif
@@ -219,20 +226,17 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
     if (inIsRTL)
-      glTranslatef(-advance[0], advance[1], 0.);
+      glTranslatef(-advance[0], advance[1], 0.f);
 
     /* If the outline contains no point then the glyph represents a space
      * character and there is no need to continue the process of rendering.
      */
-    if (!__glcFaceDescOutlineEmpty(inFont->faceDesc, inContext)) {
+    if (!__glcFontOutlineEmpty(inFont, inContext)) {
       /* Update the advance and return */
       if (!inIsRTL)
-        glTranslatef(advance[0], advance[1], 0.);
-      if (inContext->enableState.glObjects) {
-	glyph->advance[0] = advance[0];
-	glyph->advance[1] = advance[1];
+        glTranslatef(advance[0], advance[1], 0.f);
+      if (inContext->enableState.glObjects)
 	glyph->isSpacingChar = GL_TRUE;
-      }
 #ifndef GLC_FT_CACHE
       __glcFontClose(inFont);
 #endif
@@ -243,11 +247,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
      * divide the scale by 2^6
      */
     if (!inContext->enableState.glObjects)
-      glScalef(1. / sx64, 1. / sy64, 1.);
-    else {
-      glyph->advance[0] = advance[0];
-      glyph->advance[1] = advance[1];
-    }
+      glScalef(1. / sx64, 1. / sy64, 1.f);
   }
 
   /* Call the appropriate function depending on the rendering mode. It first

@@ -347,7 +347,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     GLfloat temp[6];
     __GLCfont* font = (__GLCfont*)node->data;
 
-    if (!__glcFaceDescGetMaxMetric(font->faceDesc, temp, ctx))
+    if (!__glcFontGetMaxMetric(font, temp, ctx))
       return NULL;
 
     advance_x = temp[0] > advance_x ? temp[0] : advance_x;

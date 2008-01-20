@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -553,8 +553,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   }
 
   /* Parse the outline of the glyph */
-  if (!__glcFaceDescOutlineDecompose(inFont->faceDesc, &rendererData,
-                                     inContext))
+  if (!__glcFontOutlineDecompose(inFont, &rendererData, inContext))
     return;
 
   if (!__glcArrayAppend(rendererData.endContour,
@@ -598,7 +597,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 
   if (inContext->renderState.renderStyle == GLC_TRIANGLE) {
     /* Tesselate the polygon defined by the contour returned by
-     * __glcFaceDescOutlineDecompose().
+     * __glcFontOutlineDecompose().
      */
     GLUtesselator *tess = gluNewTess();
     GLuint j = 0;

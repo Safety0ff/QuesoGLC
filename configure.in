@@ -68,6 +68,7 @@ AX_CHECK_TLS
 # --------------------------------------------------------------
 
 AC_C_CONST
+AC_C_INLINE
 
 AC_TYPE_SIZE_T
 
