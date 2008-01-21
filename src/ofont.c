@@ -51,14 +51,12 @@ __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
      */
     This->faceDesc = __glcFaceDescCreate(inMaster, NULL, inContext, inCode);
     if (!This->faceDesc) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFree(This);
       return NULL;
     }
 
     This->charMap = __glcFaceDescGetCharMap(This->faceDesc, inContext);
     if (!This->charMap) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFaceDescDestroy(This->faceDesc, inContext);
       __glcFree(This);
       return NULL;
@@ -106,10 +104,9 @@ __GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
   if (!glyph) {
     /* If it fails, we must extract the glyph from the face */
     glyph = __glcFaceDescGetGlyph(This->faceDesc, inCode, inContext);
-    if (!glyph) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
+    if (!glyph)
       return NULL;
-    }
+
     /* Update the character map so that the glyph will be cached */
     __glcCharMapAddChar(This->charMap, inCode, glyph);
   }
@@ -145,10 +142,8 @@ GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
 
   /* Otherwise, we must extract the bounding box from the face file */
   if (!__glcFaceDescGetBoundingBox(This->faceDesc, glyph->index, outVec,
-				   inScaleX, inScaleY, inContext)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+				   inScaleX, inScaleY, inContext))
     return NULL;
-  }
 
   /* Copy the result to outVec and return */
   if (inContext->enableState.glObjects) {
@@ -187,10 +182,8 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
 
   /* Otherwise, we must extract the advance from the face file */
   if (!__glcFaceDescGetAdvance(This->faceDesc, glyph->index, outVec, inScaleX,
-			       inScaleY, inContext)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+			       inScaleY, inContext))
     return NULL;
-  }
 
   /* Copy the result to outVec and return */
   if (inContext->enableState.glObjects) {
@@ -240,22 +233,18 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
   /* TODO : Verify if the font has already the required face activated */
 
   master = __glcMasterCreate(This->parentMasterID, inContext);
-  if (!master) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!master)
     return GL_FALSE;
-  }
 
   /* Get the face descriptor of the face identified by the string inFace */
   faceDesc = __glcFaceDescCreate(master, inFace, inContext, 0);
   if (!faceDesc) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcMasterDestroy(master);
     return GL_FALSE;
   }
 
   newCharMap = __glcFaceDescGetCharMap(faceDesc, inContext);
   if (!newCharMap) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFaceDescDestroy(faceDesc, inContext);
     __glcMasterDestroy(master);
     return GL_FALSE;
@@ -269,7 +258,6 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
 
     /* Open the new face */
     if (!__glcFaceDescOpen(faceDesc, inContext)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFaceDescDestroy(faceDesc, inContext);
       __glcCharMapDestroy(newCharMap);
       return GL_FALSE;

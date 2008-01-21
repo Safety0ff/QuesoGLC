@@ -117,7 +117,6 @@ void __glcAppendFont(__GLCcontext* inContext, __GLCfont* inFont)
 
 #ifndef GLC_FT_CACHE
   if (!__glcFontOpen(inFont, inContext)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
     return;
   }
@@ -324,10 +323,8 @@ void APIENTRY glcFont(GLint inFont)
     }
     else {
 #ifndef GLC_FT_CACHE
-      if (!__glcFontOpen(font, ctx)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
+      if (!__glcFontOpen(font, ctx))
 	return;
-      }
 #endif
 
       /* Append the font identified by inFont to GLC_CURRENT_FONT_LIST */
@@ -432,10 +429,8 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
   }
 
   UinFace = __glcConvertToUtf8(inFace, ctx->stringState.stringType);
-  if (!UinFace) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!UinFace)
     return GL_FALSE;
-  }
 
   if (inFont) {
     GLboolean result = GL_FALSE;
@@ -478,7 +473,6 @@ GLboolean APIENTRY glcFontFace(GLint inFont, const GLCchar* inFace)
       __glcMasterDestroy(master);
       if (!faceDesc) {
 	/* No face identified by UinFace has been found in the font */
-	__glcRaiseError(GLC_RESOURCE_ERROR);
 	__glcFree(UinFace);
 	return GL_FALSE;
       }
@@ -546,15 +540,12 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
      * The result is stored into 'buffer'.
      */
     buffer = __glcConvertToUtf8(inCharName, ctx->stringState.stringType);
-    if (!buffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
+    if (!buffer)
       return;
-    }
 
     /* Retrieve the Unicode code from its name */
     error = __glcCodeFromName(buffer);
     if (error < 0) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
       __glcFree(buffer);
       return;
     }
@@ -563,7 +554,6 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     /* Get the glyph that corresponds to the mapped code */
     glyph = __glcFaceDescGetGlyph(font->faceDesc, mappedCode, ctx);
     if (!glyph) {
-      __glcRaiseError(GLC_PARAMETER_ERROR);
       __glcFree(buffer);
       return;
     }
@@ -636,7 +626,6 @@ GLint APIENTRY glcGenFontID(void)
   /* Create an empty font */
   font = __glcFontCreate(id, NULL, ctx, 0);
   if (!font) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
     return 0;
   }
@@ -670,10 +659,8 @@ const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
     /* Convert the string name of the face into the current string type */
     buffer = __glcConvertFromUtf8ToBuffer(ctx, __glcFaceDescGetStyleName(font->faceDesc),
 					  ctx->stringState.stringType);
-    if (!buffer) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
+    if (!buffer)
       return GLC_NONE;
-    }
 
     /* returns the name */
     return buffer;
@@ -1005,7 +992,6 @@ __GLCfont* __glcNewFontFromMaster(GLint inFontID, __GLCmaster* inMaster,
   /* Create a new font and add it to the list GLC_FONT_LIST */
   font = __glcFontCreate(inFontID, inMaster, inContext, inCode);
   if (!font) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcFree(node);
     return NULL;
   }
@@ -1111,10 +1097,8 @@ GLint APIENTRY glcNewFontFromFamily(GLint inFont, const GLCchar* inFamily)
 
   /* Convert the family name in UTF-8 encoding */
   UinFamily = __glcConvertToUtf8(inFamily, ctx->stringState.stringType);
-  if (!UinFamily) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!UinFamily)
     return 0;
-  }
 
   master = __glcMasterFromFamily(ctx, UinFamily);
 

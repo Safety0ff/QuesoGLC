@@ -363,11 +363,12 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     if (!__glcFaceDescGetBitmap(inFont->faceDesc, pixWidth, pixHeight,
                                 pixBuffer, inContext)) {
       glPopClientAttrib();
+
       if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects)
         glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
       else
         __glcFree(pixBuffer);
-      __glcRaiseError(GLC_RESOURCE_ERROR);
+
       return;
     }
 

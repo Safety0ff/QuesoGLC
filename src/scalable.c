@@ -96,7 +96,6 @@ int __glcdeCasteljauConic(void *inUserData)
 			GLC_ARRAY_LENGTH(data->controlPoints), 3);
 
   if (!cp) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
@@ -108,7 +107,6 @@ int __glcdeCasteljauConic(void *inUserData)
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
   if (!__glcArrayAppend(data->vertexArray, cp)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
@@ -161,7 +159,6 @@ int __glcdeCasteljauConic(void *inUserData)
 						   2*arc+1, 2);
 
       if (!pm) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
 	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
@@ -206,7 +203,6 @@ int __glcdeCasteljauConic(void *inUserData)
        * added to the vertex array
        */
       if (!__glcArrayInsert(data->vertexArray, rank+1, pm)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
 	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
@@ -241,7 +237,6 @@ int __glcdeCasteljauCubic(void *inUserData)
 			GLC_ARRAY_LENGTH(data->controlPoints), 4);
 
   if (!cp) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
@@ -254,7 +249,6 @@ int __glcdeCasteljauCubic(void *inUserData)
   /* Append the first vertex of the curve to the vertex array */
   rank = GLC_ARRAY_LENGTH(data->vertexArray);
   if (!__glcArrayAppend(data->vertexArray, cp)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     GLC_ARRAY_LENGTH(data->controlPoints) = 0;
     return 1;
   }
@@ -314,7 +308,6 @@ int __glcdeCasteljauCubic(void *inUserData)
 						   3*arc+1, 3);
 
       if (!pm) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
 	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
@@ -379,7 +372,6 @@ int __glcdeCasteljauCubic(void *inUserData)
        * added to the vertex array
        */
       if (!__glcArrayInsert(data->vertexArray, rank+1, pm)) {
-	__glcRaiseError(GLC_RESOURCE_ERROR);
 	GLC_ARRAY_LENGTH(data->controlPoints) = 0;
 	return 1;
       }
@@ -417,10 +409,8 @@ static void CALLBACK __glcCombineCallback(GLdouble coords[3],
   /* Compute the new vertex and append it to the vertex array */
   vertex[0] = (GLfloat)coords[0];
   vertex[1] = (GLfloat)coords[1];
-  if (!__glcArrayAppend(data->vertexArray, vertex)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!__glcArrayAppend(data->vertexArray, vertex))
     return;
-  }
 
   /* Returns the index of the new vertex in the vertex array */
   uintInPtr.i = GLC_ARRAY_LENGTH(data->vertexArray)-1;
@@ -451,10 +441,9 @@ static void CALLBACK __glcVertexCallback(void* vertex_data, void* inUserData)
 							geomBatch->start;
   geomBatch->end = (uintInPtr.i > geomBatch->end) ? uintInPtr.i :
 						    geomBatch->end;
-  if (!__glcArrayAppend(data->vertexIndices, &uintInPtr.i)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!__glcArrayAppend(data->vertexIndices, &uintInPtr.i))
     return;
-  }
+
   geomBatch->length++;
 }
 
@@ -470,10 +459,7 @@ static void CALLBACK __glcBeginCallback(GLenum mode, void* inUserData)
   geomBatch.start = 0xffffffff;
   geomBatch.end = 0;
 
-  if (!__glcArrayAppend(data->geomBatches, &geomBatch)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-    return;
-  }
+  __glcArrayAppend(data->geomBatches, &geomBatch);
 }
 
 
@@ -557,10 +543,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     return;
 
   if (!__glcArrayAppend(rendererData.endContour,
-			&GLC_ARRAY_LENGTH(rendererData.vertexArray))) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+			&GLC_ARRAY_LENGTH(rendererData.vertexArray)))
     goto reset;
-  }
 
   switch(inContext->renderState.renderStyle) {
   case GLC_LINE:

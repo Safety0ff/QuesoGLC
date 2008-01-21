@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -581,10 +581,8 @@ GLint APIENTRY glcGenContext(void)
 
   /* Create a new context */
   ctx = __glcContextCreate(0);
-  if (!ctx) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!ctx)
     return 0;
-  }
 
   /* Lock the "Common Area" in order to prevent race conditions */
   __glcLock();

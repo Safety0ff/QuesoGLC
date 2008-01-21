@@ -36,12 +36,16 @@ GLCchar* __glcNameFromCode(GLint code)
 {
   GLint position = -1;
 
-  if ((code < 0) || (code > __glcMaxCode))
+  if ((code < 0) || (code > __glcMaxCode)) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
+  }
 
   position = __glcNameFromCodeArray[code];
-  if (position == -1)
+  if (position == -1) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
     return GLC_NONE;
+  }
 
   return __glcCodeFromNameArray[position].name;
 }
@@ -70,6 +74,8 @@ GLint __glcCodeFromName(GLCchar* name)
     return __glcCodeFromNameArray[start].code;
   if (strcmp(name, __glcCodeFromNameArray[end].name) == 0)
     return __glcCodeFromNameArray[end].code;
+
+  __glcRaiseError(GLC_PARAMETER_ERROR);
   return -1;
 }
 
@@ -326,7 +332,6 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 				&len_buffer);
 	if (shift < 0) {
 	  /* There is an ill-formed character in the UTF-8 string, abort */
-	  __glcRaiseError(GLC_PARAMETER_ERROR);
 	  return NULL;
 	}
 	utf8 += shift;
@@ -363,7 +368,6 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 				&len_buffer);
 	if (shift < 0) {
 	  /* There is an ill-formed character in the UTF-8 string, abort */
-	  __glcRaiseError(GLC_PARAMETER_ERROR);
 	  return NULL;
 	}
 	utf8 += shift;
@@ -597,7 +601,6 @@ GLCchar32* __glcConvertToVisualUcs4(__GLCcontext* inContext,
 	shift = FcUtf8ToUcs4(utf8, &buffer, strlen((const char*)utf8));
 	if (shift < 0) {
 	  /* There is an ill-formed character in the UTF-8 string, abort */
-	  __glcRaiseError(GLC_PARAMETER_ERROR);
 	  return NULL;
 	}
 	utf8 += shift;

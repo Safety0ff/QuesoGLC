@@ -153,7 +153,6 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
   /* The array 'map' will contain the actual character map */
   This->map = __glcArrayCreate(sizeof(__GLCcharMapElement));
   if (!This->map) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     FcCharSetDestroy(This->charSet);
     __glcFree(This);
     return NULL;
@@ -311,18 +310,14 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
   }
 
   name = __glcNameFromCode(code);
-  if (!name) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
+  if (!name)
     return NULL;
-  }
 
   /* Convert the Unicode to the current string type */
   buffer = __glcConvertFromUtf8ToBuffer(inContext, name,
 					inContext->stringState.stringType);
-  if (!buffer) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!buffer)
     return NULL;
-  }
 
   return buffer;
 }
@@ -457,18 +452,14 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
 	    GLCchar8* name = __glcNameFromCode(base + (i << 5) + j);
 	    GLCchar* buffer = NULL;
 
-	    if (!name) {
-	      __glcRaiseError(GLC_PARAMETER_ERROR);
+	    if (!name)
 	      return GLC_NONE;
-	    }
 
 	    /* Performs the conversion to the current string type */
 	    buffer = __glcConvertFromUtf8ToBuffer(inContext, name,
 					inContext->stringState.stringType);
-	    if (!buffer) {
-	      __glcRaiseError(GLC_RESOURCE_ERROR);
+	    if (!buffer)
 	      return GLC_NONE;
-	    }
 
 	    return buffer;
 	  }

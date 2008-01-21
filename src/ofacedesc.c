@@ -412,10 +412,8 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
   This->face = size->face;
 # endif /* FREETYPE_MAJOR */
 #else
-  if (!__glcFaceDescOpen(This, inContext)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!__glcFaceDescOpen(This, inContext))
     return GL_FALSE;
-  }
 
   /* Select the size of the glyph */
   if (FT_Set_Char_Size(This->face, (FT_F26Dot6)(inScaleX * 64.),
@@ -805,10 +803,8 @@ static int __glcMoveTo(FT_Vector *inVecTo, void* inUserData)
    */
 
   if (!__glcArrayAppend(data->endContour,
-			&GLC_ARRAY_LENGTH(data->vertexArray))) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+			&GLC_ARRAY_LENGTH(data->vertexArray)))
     return 1;
-  }
 
   data->vector[0] = (GLfloat) inVecTo->x;
   data->vector[1] = (GLfloat) inVecTo->y;
@@ -829,10 +825,8 @@ static int __glcLineTo(FT_Vector *inVecTo, void* inUserData)
 {
   __GLCrendererData *data = (__GLCrendererData *) inUserData;
 
-  if (!__glcArrayAppend(data->vertexArray, data->vector)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!__glcArrayAppend(data->vertexArray, data->vector))
     return 1;
-  }
 
   data->vector[0] = (GLfloat) inVecTo->x;
   data->vector[1] = (GLfloat) inVecTo->y;
@@ -1150,7 +1144,6 @@ __GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
 
   newCharSet = FcCharSetCopy(charSet);
   if (!newCharSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     __glcCharMapDestroy(charMap);
     return NULL;
   }

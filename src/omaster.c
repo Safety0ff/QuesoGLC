@@ -358,7 +358,6 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
 #else
     if (!faceDesc || !__glcFaceDescOpen(faceDesc, inContext)) {
 #endif
-      __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcFaceDescDestroy(faceDesc, inContext);
       return NULL;
     }
@@ -371,9 +370,6 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
     /* Convert the string and store it in the context buffer */
     buffer = __glcConvertFromUtf8ToBuffer(inContext, string,
 					  inContext->stringState.stringType);
-
-    if (!buffer)
-      __glcRaiseError(GLC_RESOURCE_ERROR);
   }
   else
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -486,12 +482,10 @@ __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode)
   FcChar8* foundry = NULL;
   FcCharSet* charSet = FcCharSetCreate();
 
-  if (!charSet) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!charSet)
     return NULL;
-  }
+
   if (!FcCharSetAddChar(charSet, inCode)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     FcCharSetDestroy(charSet);
     return NULL;
   }

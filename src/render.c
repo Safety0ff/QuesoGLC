@@ -119,7 +119,6 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
   /* render the glyph */
   if (!__glcFontGetBitmap(inFont, pixWidth, pixHeight, pixBuffer, inContext)) {
     __glcFree(pixBuffer);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
@@ -571,10 +570,9 @@ void APIENTRY glcRenderCountedString(GLint inCount, const GLCchar *inString)
    */
   UinString = __glcConvertCountedStringToVisualUcs4(ctx, &isRightToLeft,
 						    inString, inCount);
-  if (!UinString) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!UinString)
     return;
-  }
+
 
   __glcRenderCountedString(ctx, UinString, isRightToLeft, inCount);
 }
@@ -612,10 +610,8 @@ void APIENTRY glcRenderString(const GLCchar *inString)
    * that means that inString is read in the current string format.
    */
   UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, &length, inString);
-  if (!UinString) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!UinString)
     return;
-  }
 
   __glcRenderCountedString(ctx, UinString, isRightToLeft, length);
 }

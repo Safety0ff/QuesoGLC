@@ -94,7 +94,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 
   This->catalogList = __glcArrayCreate(sizeof(GLCchar8*));
   if (!This->catalogList) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -107,7 +106,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->masterHashTable = __glcArrayCreate(sizeof(GLCchar32));
   if (!This->masterHashTable) {
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -152,7 +150,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   if (!This->measurementBuffer) {
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -169,7 +166,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -184,7 +180,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -200,7 +195,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -218,7 +212,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->masterHashTable);
     __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -237,7 +230,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->vertexIndices);
     __glcArrayDestroy(This->catalogList);
-    __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
 #endif
@@ -326,10 +318,8 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
         }
         else {
-	  if (!__glcArrayAppend(This->catalogList, &dup)) {
-            __glcRaiseError(GLC_RESOURCE_ERROR);
+	  if (!__glcArrayAppend(This->catalogList, &dup))
             free(dup);
-          }
           else if (!FcConfigAppFontAddDir(This->config,
                                           (const unsigned char*)begin)) {
             __glcArrayRemove(This->catalogList,
@@ -695,7 +685,6 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
 
     /* Register the font (i.e. append its hash value to the hash table) */
     if (!__glcArrayAppend(This->masterHashTable, &hashValue)) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
       FcFontSetDestroy(fontSet);
       return;
     }
@@ -721,7 +710,6 @@ void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
   }
 
   if (!__glcArrayAppend(This->catalogList, &dup)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     free(dup);
     return;
   }
@@ -752,7 +740,6 @@ void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog)
   }
 
   if (!__glcArrayInsert(This->catalogList, 0, &dup)) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
     free(dup);
     return;
   }
@@ -819,16 +806,14 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
    */
   for (node = This->fontList.head; node; node = node->next) {
     __GLCfont* font = (__GLCfont*)(node->data);
-    __GLCmaster* master = __glcMasterCreate(font->parentMasterID, This);
     GLCchar32 hashValue = 0;
     GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(This->masterHashTable);
     int length = GLC_ARRAY_LENGTH(This->masterHashTable);
     int i = 0;
+    __GLCmaster* master = __glcMasterCreate(font->parentMasterID, This);
 
-    if (!master) {
-      __glcRaiseError(GLC_RESOURCE_ERROR);
+    if (!master)
       continue;
-    }
 
     /* Check if the hash value of the master is in the hash table */
     hashValue = GLC_MASTER_HASH_VALUE(master);

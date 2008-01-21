@@ -797,10 +797,8 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
 
   UinString = __glcConvertCountedStringToVisualUcs4(ctx, &isRightToLeft,
 						    inString, inCount);
-  if (!UinString) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!UinString)
     return 0;
-  }
 
   count = __glcMeasureCountedString(ctx, inMeasureChars, inCount, UinString,
 				    isRightToLeft);
@@ -850,10 +848,8 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
     return 0;
 
   UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, &length, inString);
-  if (!UinString) {
-    __glcRaiseError(GLC_RESOURCE_ERROR);
+  if (!UinString)
     return 0;
-  }
 
   count = __glcMeasureCountedString(ctx, inMeasureChars, length, UinString,
 				    isRightToLeft);
