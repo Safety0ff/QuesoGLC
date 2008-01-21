@@ -464,12 +464,12 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
     glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
     glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
-    if (GLEW_ARB_pixel_buffer_object && (!inContext->enableState.glObjects))
+    if ((!inContext->enableState.glObjects) && GLEW_ARB_pixel_buffer_object)
       glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING_ARB,
 		    &inGLState->bufferObjectID);
   }
 
-  if (GLEW_ARB_vertex_buffer_object && inContext->enableState.glObjects)
+  if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB, &inGLState->bufferObjectID);
 
   if (inAll || inContext->renderState.renderStyle == GLC_LINE ||
@@ -491,7 +491,7 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 {
   if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE) {
     glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
-    if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects)
+    if ((!inContext->enableState.glObjects) && GLEW_ARB_pixel_buffer_object)
       glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, inGLState->bufferObjectID);
     if (!inGLState->texture2D)
       glDisable(GL_TEXTURE_2D);
@@ -501,7 +501,7 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
     glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
   }
 
-  if (GLEW_ARB_vertex_buffer_object && inContext->enableState.glObjects)
+  if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
     glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGLState->bufferObjectID);
 
   if (inAll || inContext->renderState.renderStyle == GLC_LINE ||

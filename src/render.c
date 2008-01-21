@@ -212,7 +212,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   /* Get and load the glyph which unicode code is identified by inCode */
   glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
-  if (!__glcFontPrepareGlyph(inFont, inContext, scale_x, scale_y,
+  if (inContext->enableState.glObjects
+      && !__glcFontPrepareGlyph(inFont, inContext, scale_x, scale_y,
 			     glyph->index)) {
 #ifndef GLC_FT_CACHE
     __glcFontClose(inFont);
