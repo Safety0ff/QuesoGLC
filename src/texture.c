@@ -440,7 +440,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       /* The display list ID is used as a flag to declare that the VBO has been
        * initialized and can be used.
        */
-      inGlyph->displayList[1] = 0xffffffff;
+      inGlyph->glObject[1] = 0xffffffff;
 
       data[0] = posX / texWidth;
       data[1] = posY / texHeigth;
@@ -473,14 +473,14 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       return;
     }
     else {
-      inGlyph->displayList[1] = glGenLists(1);
-      if (!inGlyph->displayList[1]) {
+      inGlyph->glObject[1] = glGenLists(1);
+      if (!inGlyph->glObject[1]) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
       }
 
       /* Create the display list */
-      glNewList(inGlyph->displayList[1], GL_COMPILE);
+      glNewList(inGlyph->glObject[1], GL_COMPILE);
       glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
 
       /* Modify the bouding box dimensions to compensate the glScalef() */
@@ -508,6 +508,6 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     /* Finish display list creation */
     glScalef(64. * scale_x, 64. * scale_y, 1.);
     glEndList();
-    glCallList(inGlyph->displayList[1]);
+    glCallList(inGlyph->glObject[1]);
   }
 }

@@ -38,8 +38,7 @@ struct __GLCglyphRec {
   GLboolean isSpacingChar;
   /* GL objects management */
   __GLCatlasElement* textureObject;
-  GLuint displayList[4];
-  GLuint bufferObject[3];
+  GLuint glObject[4];
   GLint nContour;
   GLint* contours;
   /* Measurement infos */

@@ -575,22 +575,21 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   if (inContext->enableState.glObjects) {
     if (GLEW_ARB_vertex_buffer_object
 	&& (inContext->renderState.renderStyle == GLC_LINE)) {
-      glGenBuffersARB(1, &inGlyph->bufferObject[0]);
-      if (!inGlyph->bufferObject[0]) {
+      glGenBuffersARB(1, &inGlyph->glObject[0]);
+      if (!inGlyph->glObject[0]) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	goto reset;
       }
-      inGlyph->displayList[index] = 0xffffffff;
-      glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->bufferObject[0]);
+      glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->glObject[0]);
     }
     else {
-      inGlyph->displayList[index] = glGenLists(1);
-      if (!inGlyph->displayList[index]) {
+      inGlyph->glObject[index] = glGenLists(1);
+      if (!inGlyph->glObject[index]) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	goto reset;
       }
 
-      glNewList(inGlyph->displayList[index], GL_COMPILE);
+      glNewList(inGlyph->glObject[index], GL_COMPILE);
       glScalef(1./sx64, 1./sy64, 1.);
     }
   }
@@ -765,7 +764,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	|| (inContext->renderState.renderStyle != GLC_LINE)) {
       glScalef(sx64, sy64, 1.);
       glEndList();
-      glCallList(inGlyph->displayList[index]);
+      glCallList(inGlyph->glObject[index]);
     }
   }
 

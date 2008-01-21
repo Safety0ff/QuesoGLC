@@ -58,8 +58,7 @@ __GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
   This->contours = NULL;
 
   /* A display list for each rendering mode (except GLC_BITMAP) may be built */
-  memset(This->displayList, 0, 4 * sizeof(GLuint));
-  memset(This->bufferObject, 0, 3 * sizeof(GLuint));
+  memset(This->glObject, 0, 4 * sizeof(GLuint));
   memset(This->boundingBox, 0, 4 * sizeof(GLfloat));
   memset(This->advance, 0, 2 * sizeof(GLfloat));
 
@@ -83,9 +82,9 @@ void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext)
 /* Remove all GL objects related to the texture of the glyph */
 void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext)
 {
-  if (!inContext->isInGlobalCommand)
-    glDeleteLists(This->displayList[1], 1);
-  This->displayList[1] = 0;
+  if (!inContext->isInGlobalCommand && !GLEW_ARB_vertex_buffer_object)
+    glDeleteLists(This->glObject[1], 1);
+  This->glObject[1] = 0;
   This->textureObject = NULL;
 }
 
@@ -96,38 +95,31 @@ void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext)
  */
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 {
-  if (This->displayList[1]) {
+  if (This->glObject[1]) {
     __glcDeleteAtlasElement(This->textureObject, inContext);
     __glcGlyphDestroyTexture(This, inContext);
   }
 
   if (!inContext->isInGlobalCommand) {
-    if (This->displayList[0])
-      glDeleteLists(This->displayList[0], 1);
-
-    if (This->displayList[2])
-      glDeleteLists(This->displayList[2], 1);
-
-    if (This->displayList[3])
-      glDeleteLists(This->displayList[3], 1);
-
-    memset(This->displayList, 0, 4 * sizeof(GLuint));
-
-    if (GLEW_ARB_vertex_buffer_object) {
-      int i = 0;
-
-      for (i = 0; i < 3; i++) {
-	if (This->bufferObject[i])
-	  glDeleteBuffersARB(1, &This->bufferObject[i]);
+    if (This->glObject[0]) {
+      if (GLEW_ARB_vertex_buffer_object) {
+	glDeleteBuffersARB(1, &This->glObject[0]);
+	if (This->contours)
+	  __glcFree(This->contours);
+	This->nContour = 0;
+	This->contours = NULL;
       }
-
-      memset(This->bufferObject, 0, 3 * sizeof(GLuint));
-
-      if (This->contours)
-	__glcFree(This->contours);
-      This->nContour = 0;
-      This->contours = NULL;
+      else
+	glDeleteLists(This->glObject[0], 1);
     }
+
+    if (This->glObject[2])
+      glDeleteLists(This->glObject[2], 1);
+
+    if (This->glObject[3])
+      glDeleteLists(This->glObject[3], 1);
+
+    memset(This->glObject, 0, 4 * sizeof(GLuint));
   }
 
 }
@@ -140,8 +132,8 @@ int __glcGlyphGetDisplayListCount(__GLCglyph* This)
   int i = 0;
   int count = 0;
 
-  for (i = 0; i < 4; i++) {
-    if (This->displayList[i] && (This->displayList[i] != 0xffffffff))
+  for (i = GLEW_ARB_vertex_buffer_object ? 2 : 0; i < 4; i++) {
+    if (This->glObject[i])
       count++;
   }
 
@@ -160,10 +152,10 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetDisplayListCount(This));
 
-  for (i = 0; i < 4; i++) {
-    GLuint displayList = This->displayList[i];
+  for (i = GLEW_ARB_vertex_buffer_object ? 2 : 0; i < 4; i++) {
+    GLuint displayList = This->glObject[i];
 
-    if (displayList && (displayList != 0xffffffff)) {
+    if (displayList) {
       if (!inCount)
 	return displayList;
       inCount--;
@@ -185,8 +177,10 @@ int __glcGlyphGetBufferObjectCount(__GLCglyph* This)
   int i = 0;
   int count = 0;
 
-  for (i = 0; i < 3; i++) {
-    if (This->bufferObject[i])
+  assert(GLEW_ARB_vertex_buffer_object);
+
+  for (i = 0; i < 1; i++) {
+    if (This->glObject[i])
       count++;
   }
 
@@ -202,11 +196,12 @@ GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount)
 {
   int i = 0;
 
+  assert(GLEW_ARB_vertex_buffer_object);
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetBufferObjectCount(This));
 
-  for (i = 0; i < 3; i++) {
-    GLuint bufferObject = This->bufferObject[i];
+  for (i = 0; i < 1; i++) {
+    GLuint bufferObject = This->glObject[i];
 
     if (bufferObject) {
       if (!inCount)

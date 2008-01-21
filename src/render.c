@@ -370,12 +370,12 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     __GLCglyph* glyph = NULL;
     int length = 0;
     int j = 0;
-    GLuint DLindex = inContext->renderState.renderStyle - 0x101;
+    GLuint GLObjectIndex = inContext->renderState.renderStyle - 0x101;
     FT_ListNode node = NULL;
 
     if (inContext->renderState.renderStyle == GLC_TRIANGLE
 	&& inContext->enableState.extrude)
-      DLindex++;
+      GLObjectIndex++;
 
     for (i = 0; i < inCount; i++) {
       if (*ptr >= 32) {
@@ -384,7 +384,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
  	  glyph = __glcCharMapGetGlyph(font->charMap, *ptr);
 
  	  if (glyph) {
- 	    if (!glyph->displayList[DLindex] && !glyph->isSpacingChar)
+ 	    if (!glyph->glObject[GLObjectIndex] && !glyph->isSpacingChar)
  	      continue;
 
 	    if (!glyph->isSpacingChar
@@ -441,13 +441,13 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	      if (GLEW_ARB_vertex_buffer_object)
 		glDrawArrays(GL_QUADS, glyph->textureObject->position * 4, 4);
 	      else
-		glCallList(glyph->displayList[1]);
+		glCallList(glyph->glObject[1]);
 	      break;
 	    case GLC_LINE:
-	      if (GLEW_ARB_vertex_buffer_object && glyph->bufferObject[0]) {
+	      if (GLEW_ARB_vertex_buffer_object && glyph->glObject[0]) {
 		int k = 0;
 
-		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->bufferObject[0]);
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
 		glVertexPointer(2, GL_FLOAT, 0, NULL);
 		glNormal3f(0.f, 0.f, 1.f);
 		for (k = 0; k < glyph->nContour; k++)
@@ -455,10 +455,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 			       glyph->contours[k+1] - glyph->contours[k]);
 		break;
 	      }
-	      glCallList(glyph->displayList[0]);
+	      glCallList(glyph->glObject[0]);
 	      break;
 	    case GLC_TRIANGLE:
-	      glCallList(glyph->displayList[DLindex]);
+	      glCallList(glyph->glObject[GLObjectIndex]);
 	      break;
 	    }
 	  }
