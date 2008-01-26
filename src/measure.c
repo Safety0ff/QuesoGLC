@@ -271,6 +271,8 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
    * or issue the replacement code or the character sequence \<xxx> and call
    * __glcGetCharMetric()
    */
+  memset(vector, 0, 14 * sizeof(GLfloat));
+
   if (__glcProcessChar(ctx, code, &prevCode, GL_FALSE, __glcGetCharMetric,
 		       vector)) {
     switch(inMetric) {
@@ -565,8 +567,7 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 				       GLboolean inIsRTL)
 {
   GLint i = 0;
-  GLfloat metrics[14] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-			 0.};
+  GLfloat metrics[14];
   const GLCchar32* ptr = NULL;
   const GLint storeRenderStyle = inContext->renderState.renderStyle;
   GLfloat xMin = 0., xMax = 0.;
@@ -595,6 +596,8 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
     ptr += inCount - 1;
     shift = -1;
   }
+
+  memset(metrics, 0, 14 * sizeof(GLfloat));
 
   for (i = 0; i < inCount; i++) {
     if (*ptr < 32) {
@@ -690,8 +693,6 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
       /* Takes the kerning into account */
       outVec[2] += metrics[12];
       outVec[3] += metrics[13];
-      outVec[0] = outVec[2];
-      outVec[1] = outVec[3];
     }
 
     xMin = metrics[4] + outVec[2];
