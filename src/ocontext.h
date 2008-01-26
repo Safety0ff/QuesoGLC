@@ -84,19 +84,12 @@ struct __GLCstringStateRec {
 };
 
 struct __GLCglStateRec {
-  GLboolean texture2D;
   GLint textureID;
   GLint textureEnvMode;
   GLint bufferObjectID;
   GLboolean blend;
   GLint blendSrc;
   GLint blendDst;
-  GLboolean vertexArray;
-  GLboolean normalArray;
-  GLboolean colorArray;
-  GLboolean indexArray;
-  GLboolean texCoordArray;
-  GLboolean edgeFlagArray;
 };
 
 struct __GLCattribStackLevelRec {

@@ -327,6 +327,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
   if (inContext->renderState.renderStyle == GLC_LINE ||
       inContext->renderState.renderStyle == GLC_TRIANGLE) {
+    glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
     glEnableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
@@ -338,18 +339,21 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (inContext->renderState.renderStyle == GLC_TEXTURE) {
     /* Set the new values of the parameters */
-    glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    if (inContext->enableState.glObjects && inContext->atlas.id) {
-      glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
-      if (GLEW_ARB_vertex_buffer_object && inContext->atlas.bufferObjectID) {
-	glBindBufferARB(GL_ARRAY_BUFFER_ARB, inContext->atlas.bufferObjectID);
-	glInterleavedArrays(GL_T2F_V3F, 0, NULL);
+    if (inContext->enableState.glObjects) {
+      if (inContext->atlas.id)
+	glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
+      if (GLEW_ARB_vertex_buffer_object) {
+	glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
+	if (inContext->atlas.bufferObjectID) {
+	  glBindBufferARB(GL_ARRAY_BUFFER_ARB, inContext->atlas.bufferObjectID);
+	  glInterleavedArrays(GL_T2F_V3F, 0, NULL);
+	}
       }
     }
-    else if (!inContext->enableState.glObjects && inContext->texture.id) {
+    else if (inContext->texture.id) {
       glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
       if (GLEW_ARB_pixel_buffer_object && inContext->texture.bufferObjectID)
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
@@ -486,11 +490,16 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, inContext, GL_FALSE);
-  if (inContext->enableState.glObjects
-      && inContext->renderState.renderStyle != GLC_BITMAP)
-    __glcFree(chars);
   if (listIndex)
     inContext->enableState.glObjects = saveGLObjects;
+
+  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+    if (inContext->enableState.glObjects)
+      __glcFree(chars);
+    else if (inContext->renderState.renderStyle == GLC_TEXTURE)
+      return;
+    glPopClientAttrib();
+  }
 }
 
 

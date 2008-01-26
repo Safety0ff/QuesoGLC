@@ -3,6 +3,8 @@ Changes made from the "0.6.5" release to the "0.7" release:
 
 * Bertrand Coconnier:
 
+- Simplified a bit the GL state management (enabling of GL_TEXTURE_2D should now
+  be done by the user when the rendering style is GLC_TEXTURE)
 - Updated GLEW source code to release 1.5.0
 - glcGetFontMap() and glcGetMasterMap() now return GLC_NONE if the font/master
   does not map 'inCode'.

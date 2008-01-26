@@ -558,6 +558,7 @@ main(int argc, char **argv)
    glutMotionFunc(my_motion);
    glutIdleFunc(animate);
 
+   glEnable(GL_TEXTURE_2D);
    glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
 
    create_menu();

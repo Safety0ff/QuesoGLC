@@ -149,6 +149,8 @@ int main(int argc, char **argv)
   glutReshapeFunc(reshape);
   glutKeyboardFunc(keyboard);
 
+  glEnable(GL_TEXTURE_2D);
+
   ctx = glcGenContext();
   glcContext(ctx);
   font = glcNewFontFromFamily(glcGenFontID(), FAMILY);
@@ -166,5 +168,6 @@ int main(int argc, char **argv)
 #endif
 
   glutMainLoop();
+  glcDeleteContext(ctx);
   return 0;
 }
