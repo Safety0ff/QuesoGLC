@@ -22,15 +22,14 @@
  * defines the object __GLCcontext which is used to manage the contexts.
  */
 
-#include "internal.h"
-
-#include <sys/stat.h>
-#ifndef __WIN32__
-#include <unistd.h>
-#else
+#if defined(__WIN32__) || defined(_MSC_VER)
 #include <io.h>
+#else
+#include <unistd.h>
 #endif
+#include <sys/stat.h>
 
+#include "internal.h"
 #include "texture.h"
 #include FT_MODULE_H
 
