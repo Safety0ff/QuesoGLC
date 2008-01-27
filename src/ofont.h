@@ -27,6 +27,11 @@
 
 #include "ofacedesc.h"
 
+/* It seems that Visual C++ does not recognize the inline keyword !?! */
+#ifdef _MSC_VER
+#define inline
+#endif
+
 struct __GLCfontRec {
   GLint id;
   __GLCfaceDescriptor* faceDesc;

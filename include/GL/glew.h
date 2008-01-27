@@ -157,6 +157,14 @@ typedef _W64 int ptrdiff_t;
 #  define _PTRDIFF_T_DEFINED
 #  define _PTRDIFF_T_
 #endif
+/* <stdint.h> */
+#ifdef _WIN64
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+#else
+typedef _W64 int int64_t;
+typedef _W64 unsigned int uint64_t;
+#endif
 
 #ifndef GLAPI
 #  if defined(__MINGW32__)
