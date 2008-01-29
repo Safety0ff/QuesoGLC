@@ -490,16 +490,18 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, inContext, GL_FALSE);
-  if (listIndex)
-    inContext->enableState.glObjects = saveGLObjects;
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
     if (inContext->enableState.glObjects)
       __glcFree(chars);
-    else if (inContext->renderState.renderStyle == GLC_TEXTURE)
-      return;
-    glPopClientAttrib();
+    if (inContext->renderState.renderStyle != GLC_TEXTURE)
+      glPopClientAttrib();
+    else if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
+      glPopClientAttrib();
   }
+
+  if (listIndex)
+    inContext->enableState.glObjects = saveGLObjects;
 }
 
 
