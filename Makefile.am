@@ -6,7 +6,36 @@ EXTRA_DIST = ChangeLog \
              COPYING \
              makefile.mgw \
              database/buildDB.py \
-             $(DOCS)
+             $(DOCS) \
+             $(VCPROJS)
+
+VCPROJS = QuesoGLC.sln \
+          build/QuesoGLC.vcproj \
+          tests/test1.vcproj \
+          tests/test4.vcproj \
+          tests/test5.vcproj \
+          tests/test6.vcproj \
+          tests/test7.vcproj \
+          tests/test8.vcproj \
+          tests/test9.1.vcproj \
+          tests/test9.2.vcproj \
+          tests/test9.3.vcproj \
+          tests/test9.4.vcproj \
+          tests/test9.5.vcproj \
+          tests/test9.6.vcproj \
+          tests/test9.7.vcproj \
+          tests/test9.8.vcproj \
+          tests/test10.vcproj \
+          tests/testcontex.vcproj \
+          tests/testfont.vcproj \
+          tests/testmaster.vcproj \
+          tests/testrender.vcproj \
+          examples/demo.vcproj \
+          examples/glcdemo.vcproj \
+          examples/glclogo.vcproj \
+          examples/tutorial.vcproj \
+          examples/tutorial2.vcproj \
+          examples/unicode.vcproj
 
 DOCS = docs/body_comparison.eps \
        docs/body_comparison.png \

@@ -1,8 +1,9 @@
-Changes made from the "0.6.5" release to the "0.7" release:
+Changes made from the "0.6.5" release to the "0.7.0" release:
 -----------------------------------------------------------
 
 * Bertrand Coconnier:
 
+- Added a workaround for bug #1852883 : VBOs are disabled on Mac OSX platforms
 - Fixed a bug in the measurement routines which caused the advance vector of
   strings to be wrongly computed.
 - Simplified a bit the GL state management (enabling of GL_TEXTURE_2D should now

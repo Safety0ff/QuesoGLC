@@ -38,7 +38,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="RENDER_STYLE=GLC_TRIANGLE;WITH_USER_LIST"
+				PreprocessorDefinitions="RENDER_STYLE=GLC_TRIANGLE;WITH_USER_LIST;WITH_GL_OBJECTS"
 				ExceptionHandling="0"
 				DebugInformationFormat="1"
 				CompileAs="1"
@@ -107,7 +107,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="RENDER_STYLE=GLC_TRIANGLE;WITH_USER_LIST"
+				PreprocessorDefinitions="RENDER_STYLE=GLC_TRIANGLE;WITH_USER_LIST;WITH_GL_OBJECTS"
 				ExceptionHandling="0"
 				CompileAs="1"
 			/>

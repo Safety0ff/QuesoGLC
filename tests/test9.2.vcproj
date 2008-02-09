@@ -38,7 +38,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE;WITH_GL_OBJECTS"
+				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE"
 				ExceptionHandling="0"
 				DebugInformationFormat="1"
 				CompileAs="1"
@@ -107,7 +107,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE;WITH_GL_OBJECTS"
+				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE"
 				ExceptionHandling="0"
 				CompileAs="1"
 			/>

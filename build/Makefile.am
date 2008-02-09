@@ -62,7 +62,7 @@ libGLC_la_LIBADD = @GLU_LIBS@ \
 
 libGLC_la_DEPENDENCIES = @FRIBIDI_OBJ@ @GLEW_OBJ@
 
-libGLC_la_LDFLAGS = -version-info 0:2
+libGLC_la_LDFLAGS = -version-info 0:7:0
 
 $(top_builddir)/src/database.c: $(top_builddir)/database/buildDB.py
 	cd $(top_builddir)/database && python buildDB.py && cd $(top_builddir)/src
