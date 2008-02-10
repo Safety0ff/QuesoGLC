@@ -93,7 +93,16 @@ QuesoGLC users are :
    convertion between string encodings and generic selection of font properties.
 -# <a href="http://sourceforge.net/projects/glguia/">GlGuiA</a> a set of
    packages for Ada 2006 that can be used to create Graphical User Interfaces,
-   relaying (almost) only on OpenGL. Hence should be rather platform-independant.
+   relaying (almost) only on OpenGL. Hence should be rather
+   platform-independant.
+-# <a href="http://navit.sourceforge.net/">NavIt</a> a modular touch screen
+   friendly car navigation system with GPS tracking, realtime routing engine and
+   support for various vector map formats. There's a GTK+ and a SDL user
+   interface and also a GL accelerated 3D view.
+-# The <a href="http://wz2100.net/">Warzone Resurrection Project</a> which aims
+   to make Warzone 2100 one of the top free software games available. Warzone
+   2100 was one of the first 3D RTS games ever. It was released commercially by
+   Pumpkin Studios in 1999, and released in 2004 under the GPL.
 
 If you know other projects that use QuesoGLC please let
 <a href="mailto:bcoconni@users.sourceforge.net">me</a> know.

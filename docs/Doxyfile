@@ -1,6 +1,6 @@
 # QuesoGLC
 # A free implementation of the OpenGL Character Renderer (GLC)
-# Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+# Copyright (c) 2002, 2004-2008, Bertrand Coconnier
 #
 #  This library is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU Lesser General Public
@@ -41,7 +41,7 @@ PROJECT_NAME           = QuesoGLC
 # This could be handy for archiving the generated documentation or 
 # if some version control system is used.
 
-PROJECT_NUMBER         = Version 0.6.5
+PROJECT_NUMBER         = Version 0.7.0
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
