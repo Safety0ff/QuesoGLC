@@ -95,7 +95,7 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
      */
     glGenTextures(1, &inContext->atlas.id);
     inContext->atlas.width = size;
-    inContext->atlas.heigth = size;
+    inContext->atlas.height = size;
     inContext->atlasWidth = size / GLC_TEXTURE_SIZE;
     inContext->atlasHeight = size / GLC_TEXTURE_SIZE;
     inContext->atlasCount = 0;
@@ -207,12 +207,16 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
   if (inContext->texture.id) {
     /* Check if the texture size is large enough to store the glyph */
     if ((inWidth > inContext->texture.width)
-	|| (inHeight > inContext->texture.heigth)) {
+	|| (inHeight > inContext->texture.height)) {
       /* The texture is not large enough so we destroy the current texture */
       glDeleteTextures(1, &inContext->texture.id);
+      inWidth = (inWidth > inContext->texture.width) ?
+	inWidth : inContext->texture.width;
+      inHeight = (inHeight > inContext->texture.height) ?
+	inHeight : inContext->texture.height;
       inContext->texture.id = 0;
       inContext->texture.width = 0;
-      inContext->texture.heigth = 0;
+      inContext->texture.height = 0;
     }
     else {
       /* The texture is large enough, it is already bound to the current
@@ -253,7 +257,7 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
   inContext->texture.width = inWidth;
-  inContext->texture.heigth = inHeight;
+  inContext->texture.height = inHeight;
 
   if (GLEW_ARB_pixel_buffer_object) {
     /* Create a PBO, if none exists yet */
@@ -308,7 +312,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
                                boundingBox, scale_x, scale_y, 0, inContext);
 
     texWidth = inContext->atlas.width;
-    texHeigth = inContext->atlas.heigth;
+    texHeigth = inContext->atlas.height;
     posY = (atlasNode->position / inContext->atlasWidth);
     posX = (atlasNode->position - posY*inContext->atlasWidth)*GLC_TEXTURE_SIZE;
     posY *= GLC_TEXTURE_SIZE;
@@ -327,7 +331,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     } while (!__glcTextureGetImmediate(inContext, pixWidth, pixHeight));
 
     texWidth = inContext->texture.width;
-    texHeigth = inContext->texture.heigth;
+    texHeigth = inContext->texture.height;
     posX = 0;
     posY = 0;
   }

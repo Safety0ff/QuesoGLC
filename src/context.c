@@ -175,7 +175,7 @@ void APIENTRY glcDeleteGLObjects(void)
     glDeleteTextures(1, &ctx->texture.id);
     ctx->texture.id = 0;
     ctx->texture.width = 0;
-    ctx->texture.heigth = 0;
+    ctx->texture.height = 0;
   }
 
   /* Delete the pixel buffer object */

@@ -58,7 +58,7 @@ typedef struct __GLCfontRec __GLCfont;
 struct __GLCtextureRec {
   GLuint id;
   GLsizei width;
-  GLsizei heigth;
+  GLsizei height;
   GLuint bufferObjectID;
 };
 
