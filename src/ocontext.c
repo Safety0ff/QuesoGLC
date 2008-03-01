@@ -246,6 +246,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->atlas.id = 0;
   This->atlas.width = 0;
   This->atlas.height = 0;
+  This->atlas.bufferObjectID = 0;
   This->atlasList.head = NULL;
   This->atlasList.tail = NULL;
   This->atlasWidth = 0;
