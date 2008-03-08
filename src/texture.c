@@ -473,6 +473,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 			 20 * sizeof(GLfloat), data);
 
       /* Do the actual GL rendering */
+      glNormal3f(0.f, 0.f, 1.f);
       glDrawArrays(GL_QUADS, atlasNode->position * 4, 4);
 
       return;
@@ -498,7 +499,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
-  glNormal3f(0., 0., 1.);
+  glNormal3f(0.f, 0.f, 1.f);
   glTexCoord2f(posX / texWidth, posY / texHeigth);
   glVertex2i(boundingBox[0], boundingBox[1]);
   glTexCoord2f((posX + width) / texWidth, posY / texHeigth);

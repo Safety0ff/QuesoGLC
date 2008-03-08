@@ -442,8 +442,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
 	    switch(inContext->renderState.renderStyle) {
 	    case GLC_TEXTURE:
-	      if (GLEW_ARB_vertex_buffer_object)
+	      if (GLEW_ARB_vertex_buffer_object) {
+		glNormal3f(0.f, 0.f, 1.f);
 		glDrawArrays(GL_QUADS, glyph->textureObject->position * 4, 4);
+	      }
 	      else
 		glCallList(glyph->glObject[1]);
 	      break;

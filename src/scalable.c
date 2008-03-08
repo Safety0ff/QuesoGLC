@@ -711,8 +711,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     int i = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
 
-    glNormal3f(0., 0., 1.);
-    if (GLEW_ARB_vertex_buffer_object && inContext->enableState.glObjects) {
+    glNormal3f(0.f, 0.f, 1.f);
+    if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
       GLfloat (*vertexArray)[2] =
 	(GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
 
