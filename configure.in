@@ -237,3 +237,46 @@ AC_SUBST(FRIBIDI_OBJ)
 AC_SUBST(GLEW_OBJ)
 AC_SUBST(GLEW_CFLAGS)
 AC_OUTPUT
+
+
+echo ""
+echo "Configure Summary"
+echo "================="
+
+echo "Prefix: $prefix"
+echo "CFLAGS: $CFLAGS"
+echo ""
+
+if (test "x$no_fribidi" = "xyes"); then
+  echo "FriBiDi: Embedded"
+else
+  echo "FriBiDi: Use system library"
+fi
+
+if (test "x$no_glew" = "xyes"); then
+  if (test "x$enable_glew_multiple_contexts" = "xyes"); then
+    echo "GLEW: Embedded with support for multiple rendering contexts"
+  else
+    echo "GLEW: Embedded with support for a single rendering context"
+  fi
+else
+  if (test "x$enable_glew_multiple_contexts" = "xyes"); then
+    echo "GLEW: Use system library with support for multiple rendering contexts"
+  else
+    echo "GLEW: Use system library with support for a single rendering context"
+  fi
+fi
+
+if (test "x$enable_tls" = "xyes"); then
+    echo "Support for ELF TLS: Enabled"
+else
+    echo "Support for ELF TLS: Disabled"
+fi
+
+if (test "x$enable_executables" = "xyes"); then
+    echo "Build examples and tests: Yes"
+else
+    echo "Build examples and tests: No"
+fi
+
+echo ""
