@@ -327,7 +327,6 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
   if (inContext->renderState.renderStyle == GLC_LINE ||
       inContext->renderState.renderStyle == GLC_TRIANGLE) {
-    glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
     glEnableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
@@ -346,7 +345,6 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
       if (inContext->atlas.id)
 	glBindTexture(GL_TEXTURE_2D, inContext->atlas.id);
       if (GLEW_ARB_vertex_buffer_object) {
-	glPushClientAttrib(GL_CLIENT_VERTEX_ARRAY_BIT);
 	if (inContext->atlas.bufferObjectID) {
 	  glBindBufferARB(GL_ARRAY_BUFFER_ARB, inContext->atlas.bufferObjectID);
 	  glInterleavedArrays(GL_T2F_V3F, 0, NULL);
@@ -493,14 +491,9 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   /* Restore the values of the GL state if needed */
   __glcRestoreGLState(&GLState, inContext, GL_FALSE);
 
-  if (inContext->renderState.renderStyle != GLC_BITMAP) {
-    if (inContext->enableState.glObjects)
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && inContext->enableState.glObjects)
       __glcFree(chars);
-    if (inContext->renderState.renderStyle != GLC_TEXTURE)
-      glPopClientAttrib();
-    else if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
-      glPopClientAttrib();
-  }
 
   if (listIndex)
     inContext->enableState.glObjects = saveGLObjects;

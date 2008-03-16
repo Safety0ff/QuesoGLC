@@ -470,6 +470,31 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 
   if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB, &inGLState->bufferObjectID);
+
+  if (inAll || inContext->renderState.renderStyle == GLC_LINE
+      || inContext->renderState.renderStyle == GLC_TRIANGLE
+      || (inContext->renderState.renderStyle == GLC_TEXTURE
+	  && inContext->enableState.glObjects
+	  && GLEW_ARB_vertex_buffer_object)) {
+    inGLState->vertexArray = glIsEnabled(GL_VERTEX_ARRAY);
+    glGetIntegerv(GL_VERTEX_ARRAY_SIZE, &inGLState->vertexArraySize);
+    glGetIntegerv(GL_VERTEX_ARRAY_TYPE, &inGLState->vertexArrayType);
+    glGetIntegerv(GL_VERTEX_ARRAY_STRIDE, &inGLState->vertexArrayStride);
+    glGetPointerv(GL_VERTEX_ARRAY_POINTER, &inGLState->vertexArrayPointer);
+    inGLState->normalArray = glIsEnabled(GL_NORMAL_ARRAY);
+    inGLState->colorArray = glIsEnabled(GL_COLOR_ARRAY);
+    inGLState->indexArray = glIsEnabled(GL_INDEX_ARRAY);
+    inGLState->texCoordArray = glIsEnabled(GL_TEXTURE_COORD_ARRAY);
+    if (inContext->renderState.renderStyle == GLC_TEXTURE) {
+      glGetIntegerv(GL_TEXTURE_COORD_ARRAY_SIZE, &inGLState->texCoordArraySize);
+      glGetIntegerv(GL_TEXTURE_COORD_ARRAY_TYPE, &inGLState->texCoordArrayType);
+      glGetIntegerv(GL_TEXTURE_COORD_ARRAY_STRIDE,
+		    &inGLState->texCoordArrayStride);
+      glGetPointerv(GL_TEXTURE_COORD_ARRAY_POINTER,
+		    &inGLState->texCoordArrayPointer);
+    }
+    inGLState->edgeFlagArray = glIsEnabled(GL_EDGE_FLAG_ARRAY);
+  }
 }
 
 
@@ -490,6 +515,33 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 
   if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
     glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGLState->bufferObjectID);
+
+  if (inAll || inContext->renderState.renderStyle == GLC_LINE
+      || inContext->renderState.renderStyle == GLC_TRIANGLE
+      || (inContext->renderState.renderStyle == GLC_TEXTURE
+	  && inContext->enableState.glObjects
+	  && GLEW_ARB_vertex_buffer_object)) {
+    if (!inGLState->vertexArray)
+      glDisableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(inGLState->vertexArraySize, inGLState->vertexArrayType,
+		    inGLState->vertexArrayStride,
+		    inGLState->vertexArrayPointer);
+    if (!inGLState->normalArray)
+      glDisableClientState(GL_NORMAL_ARRAY);
+    if (!inGLState->colorArray)
+      glDisableClientState(GL_COLOR_ARRAY);
+    if (!inGLState->indexArray)
+      glDisableClientState(GL_INDEX_ARRAY);
+    if (!inGLState->texCoordArray)
+      glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    if (inContext->renderState.renderStyle == GLC_TEXTURE)
+      glTexCoordPointer(inGLState->texCoordArraySize,
+			inGLState->texCoordArrayType,
+			inGLState->texCoordArrayStride,
+			inGLState->texCoordArrayPointer);
+    if (!inGLState->edgeFlagArray)
+      glDisableClientState(GL_EDGE_FLAG_ARRAY);
+  }
 }
 
 

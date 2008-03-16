@@ -90,6 +90,20 @@ struct __GLCglStateRec {
   GLboolean blend;
   GLint blendSrc;
   GLint blendDst;
+  GLboolean vertexArray;
+  GLboolean normalArray;
+  GLboolean colorArray;
+  GLboolean indexArray;
+  GLboolean texCoordArray;
+  GLboolean edgeFlagArray;
+  GLint vertexArraySize;
+  GLint vertexArrayType;
+  GLint vertexArrayStride;
+  GLvoid* vertexArrayPointer;
+  GLint texCoordArraySize;
+  GLint texCoordArrayType;
+  GLint texCoordArrayStride;
+  GLvoid* texCoordArrayPointer;
 };
 
 struct __GLCattribStackLevelRec {
