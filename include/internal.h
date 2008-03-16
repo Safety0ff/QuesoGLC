@@ -337,8 +337,10 @@ extern void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 extern void __glcRestoreGLState(__GLCglState* inGLState,
 				__GLCcontext* inContext, GLboolean inAll);
 
+#ifdef GLEW_MX
 /* Function for GLEW so that it can get a context */
 GLEWAPI GLEWContext* glewGetContext(void);
+#endif
 
 #ifndef HAVE_TLS
 /* This function initializes the thread management of QuesoGLC when TLS is not

@@ -3,6 +3,10 @@ Changes made from the "0.7.1" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- GLEW thread-safe support for multiple rendering contexts is now an option of
+  the build process. It is disabled by default in order to use the standard
+  system library (and eventually to improve speed).
+
 Changes made from the "0.7.0" release to the "0.7.1" release:
 -------------------------------------------------------------
 

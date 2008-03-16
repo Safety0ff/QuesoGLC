@@ -133,7 +133,9 @@ struct __GLCcontextRec {
   __GLCarray* vertexIndices;	/* Array of vertex indices */
   __GLCarray* geomBatches;	/* Array of geometric batches */
 
+#ifdef GLEW_MX
   GLEWContext glewContext;	/* GLEW context for OpenGL extensions */
+#endif
   __GLCtexture texture;		/* Texture for immediate mode rendering */
 
   __GLCtexture atlas;

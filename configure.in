@@ -28,6 +28,12 @@ AC_ARG_WITH([glew],
    [use the GLEW system library @<:@default=yes@:>@]),
    [], [with_glew=yes]
 )
+AC_ARG_ENABLE([glew-multiple-contexts],
+  AC_HELP_STRING([--enable-glew-multiple-contexts],
+   [enable GLEW thread-safe support for multiple rendering contexts \
+    @<:@default=no@:>@]),
+   [], [enable_glew_multiple_contexts=no]
+)
 AC_ARG_ENABLE([executables],
   AC_HELP_STRING([--enable-executables],
    [build example and test executables @<:@default=yes@:>@]),
@@ -112,7 +118,8 @@ if (test "x$no_ft2" = "xyes"); then
 fi
 
 AC_CHECK_LIB(freetype, FTC_Manager_New,
-             AC_DEFINE([HAVE_FT_CACHE], [1], [Define if FreeType supports the caching routines]))
+             AC_DEFINE([HAVE_FT_CACHE], [1],
+                       [Define if FreeType supports the caching routines]))
 
 AX_CHECK_FONTCONFIG
 
@@ -165,8 +172,11 @@ else
   no_glew="yes"
 fi
 
-if (test "x$no_glew" = "xyes"); then
+if (test "x$enable_glew_multiple_contexts" = "xyes"); then
   GLEW_CFLAGS="-DGLEW_MX"
+fi
+
+if (test "x$no_glew" = "xyes"); then
   GLEW_OBJ="libGLC_la-glew.lo"
 fi
 
