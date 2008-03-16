@@ -178,16 +178,7 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
     }
     /* Bind the buffer and define/update its size */
     glBindBufferARB(GL_ARRAY_BUFFER_ARB, inContext->atlas.bufferObjectID);
-    /* Size of the buffer data is equal to the number of glyphes than can be
-     * stored in the texture times 20 GLfloat (4 vertices made of 3D coordinates
-     * plus 2D texture coordinates : 4 * (3 + 2) = 20)
-     */
-    glBufferDataARB(GL_ARRAY_BUFFER_ARB,
-		    inContext->atlasWidth * inContext->atlasHeight
-		    * 20 * sizeof(GLfloat), NULL, GL_STATIC_DRAW_ARB);
-    glInterleavedArrays(GL_T2F_V3F, 0, NULL);
   }
-
 
   return GL_TRUE;
 }
@@ -290,14 +281,14 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 			    GLfloat scale_x, GLfloat scale_y,
 			    __GLCglyph* inGlyph)
 {
-  GLfloat width = 0, heigth = 0;
+  GLfloat width = 0, height = 0;
   GLint level = 0;
   GLint posX = 0, posY = 0;
   GLint pixWidth = 0, pixHeight = 0;
   void* pixBuffer = NULL;
   GLint boundingBox[4] = {0, 0, 0, 0};
   int minSize = (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod) ? 2 : 1;
-  GLfloat texWidth = 0, texHeigth = 0;
+  GLfloat texWidth = 0, texHeight = 0;
 
   if (inContext->enableState.glObjects) {
     __GLCatlasElement* atlasNode = NULL;
@@ -312,7 +303,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
                                boundingBox, scale_x, scale_y, 0, inContext);
 
     texWidth = inContext->atlas.width;
-    texHeigth = inContext->atlas.height;
+    texHeight = inContext->atlas.height;
     posY = (atlasNode->position / inContext->atlasWidth);
     posX = (atlasNode->position - posY*inContext->atlasWidth)*GLC_TEXTURE_SIZE;
     posY *= GLC_TEXTURE_SIZE;
@@ -331,7 +322,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     } while (!__glcTextureGetImmediate(inContext, pixWidth, pixHeight));
 
     texWidth = inContext->texture.width;
-    texHeigth = inContext->texture.height;
+    texHeight = inContext->texture.height;
     posX = 0;
     posY = 0;
   }
@@ -429,7 +420,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
   /* Compute the size of the glyph */
   width = (GLfloat)((boundingBox[2] - boundingBox[0]) / 64.);
-  heigth = (GLfloat)((boundingBox[3] - boundingBox[1]) / 64.);
+  height = (GLfloat)((boundingBox[3] - boundingBox[1]) / 64.);
 
   if (pixBuffer)
     __glcFree(pixBuffer);
@@ -439,16 +430,44 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
    */
   if (inContext->enableState.glObjects) {
     if (GLEW_ARB_vertex_buffer_object) {
-      GLfloat data[20];
+      GLfloat* buffer = NULL;
+      GLfloat* data = NULL;
       __GLCatlasElement* atlasNode = inGlyph->textureObject;
+
+      buffer = __glcMalloc(inContext->atlasWidth * inContext->atlasHeight * 20
+			   * sizeof(GLfloat));
+      if (!buffer) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	return;
+      }
 
       /* The display list ID is used as a flag to declare that the VBO has been
        * initialized and can be used.
        */
       inGlyph->glObject[1] = 0xffffffff;
 
+      /* Here we do not use the GL command glBufferSubData() since it seems to
+       * be buggy on some GL drivers (the DRI Intel specifically).
+       * Instead, we use a workaround: the current values of the VBO are stored
+       * in memory and new values are appended to them. Then, the content of
+       * the resulting array replaces all the values previously stored in the
+       * VBO.
+       */
+      if (inContext->atlasCount > 1) {
+	data = glMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_ONLY);
+	if (!data) {
+	  __glcRaiseError(GLC_RESOURCE_ERROR);
+	  __glcFree(buffer);
+	  return;
+	}
+	memcpy(buffer, data, inContext->atlasCount * 20 * sizeof(GLfloat));
+	glUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
+      }
+
+      data = buffer + atlasNode->position * 20;
+
       data[0] = posX / texWidth;
-      data[1] = posY / texHeigth;
+      data[1] = posY / texHeight;
       data[2] = boundingBox[0] / 64. / GLC_TEXTURE_SIZE;
       data[3] = boundingBox[1] / 64. / GLC_TEXTURE_SIZE;
       data[4] = 0.f;
@@ -458,7 +477,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       data[8] = data[3];
       data[9] = 0.f;
       data[10] = data[5];
-      data[11] = (posY + heigth) / texHeigth;
+      data[11] = (posY + height) / texHeight;
       data[12] = data[7];
       data[13] = boundingBox[3] / 64. / GLC_TEXTURE_SIZE;
       data[14] = 0.f;
@@ -468,11 +487,18 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       data[18] = data[13];
       data[19] = 0.f;
 
-      glBufferSubDataARB(GL_ARRAY_BUFFER_ARB,
-			 atlasNode->position * 20 * sizeof(GLfloat),
-			 20 * sizeof(GLfloat), data);
+      /* Size of the buffer data is equal to the number of glyphes than can be
+       * stored in the texture times 20 GLfloat (4 vertices made of 3D
+       * coordinates plus 2D texture coordinates : 4 * (3 + 2) = 20)
+       */
+      glBufferDataARB(GL_ARRAY_BUFFER_ARB,
+		      inContext->atlasWidth * inContext->atlasHeight
+		      * 20 * sizeof(GLfloat), buffer, GL_STATIC_DRAW_ARB);
+
+      __glcFree(buffer);
 
       /* Do the actual GL rendering */
+      glInterleavedArrays(GL_T2F_V3F, 0, NULL);
       glNormal3f(0.f, 0.f, 1.f);
       glDrawArrays(GL_QUADS, atlasNode->position * 4, 4);
 
@@ -500,13 +526,13 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glNormal3f(0.f, 0.f, 1.f);
-  glTexCoord2f(posX / texWidth, posY / texHeigth);
+  glTexCoord2f(posX / texWidth, posY / texHeight);
   glVertex2i(boundingBox[0], boundingBox[1]);
-  glTexCoord2f((posX + width) / texWidth, posY / texHeigth);
+  glTexCoord2f((posX + width) / texWidth, posY / texHeight);
   glVertex2i(boundingBox[2], boundingBox[1]);
-  glTexCoord2f((posX + width) / texWidth, (posY + heigth) / texHeigth);
+  glTexCoord2f((posX + width) / texWidth, (posY + height) / texHeight);
   glVertex2i(boundingBox[2], boundingBox[3]);
-  glTexCoord2f(posX / texWidth, (posY + heigth) / texHeigth);
+  glTexCoord2f(posX / texWidth, (posY + height) / texHeight);
   glVertex2i(boundingBox[0], boundingBox[3]);
   glEnd();
 
