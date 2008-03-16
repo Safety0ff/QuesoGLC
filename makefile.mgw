@@ -30,7 +30,7 @@ GLUT_LIBS=c:\mingw\lib\libglut.a
 #                                    #
 ######################################
 
-QUESOGLC_VERSION=0.7.0
+QUESOGLC_VERSION=0.7.9
 
 C_FILES=context.c database.c except.c font.c global.c master.c measure.c misc.c oarray.c ocharmap.c ocontext.c \
 	  ofacedesc.c ofont.c oglyph.c render.c scalable.c transform.c texture.c unicode.c glew.c omaster.c

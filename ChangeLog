@@ -1,5 +1,19 @@
+Changes made from the "0.7.1" release to the "0.8.0" release:
+-------------------------------------------------------------
+
+* Bertrand Coconnier:
+
+Changes made from the "0.7.0" release to the "0.7.1" release:
+-------------------------------------------------------------
+
+* Bertrand Coconnier:
+
+- Fixed the bugs #1852883 and #1890660 (VBOs had an erratic behaviour on some
+  Mac OS X platforms and Intel X3100 gfx cards under Linux).
+- Removed the workaround for bug #1852883
+
 Changes made from the "0.6.5" release to the "0.7.0" release:
------------------------------------------------------------
+-------------------------------------------------------------
 
 * Bertrand Coconnier:
 
@@ -82,7 +96,7 @@ Changes made from the "0.6" release to the "0.6.5" release:
   each newly rendered glyph.
 
 Changes made from the "0.5" release to the "0.6" release:
------------------------------------------------------------
+---------------------------------------------------------
 
 * Bertrand Coconnier:
 
@@ -208,7 +222,7 @@ Changes made from the "0.5" release to the "0.6" release:
   calculation.
 
 Changes made from the "0.4" release to the "0.5" release:
------------------------------------------------------------
+---------------------------------------------------------
 
 - Fixed the #include so that QuesoGLC can be built with MSVC++
 - Added an attribute stack to save and restore the GLC state variables.
@@ -236,7 +250,7 @@ Changes made from the "0.4" release to the "0.5" release:
 - Thomas Zimmermann greatly improved the building scripts.
 
 Changes made from the "0.3" release to the "0.4" release:
------------------------------------------------------------
+---------------------------------------------------------
 
 - Modified the GLC_PATH parser code in order to use semicolon-separated lists
   for Win32 and colon-separated for POSIX platforms.
@@ -351,7 +365,7 @@ Changes made from the "0.3" release to the "0.4" release:
 - Charmaps now use arrays of variable size (__glcArray)
 
 Changes made from the "0.2" release to the "0.3" release:
------------------------------------------------------------
+---------------------------------------------------------
 
 - Fixed a bug in glcRenderChar(), glcRenderString() and glcRenderCountedString()
   that prevented the replacement code or the character sequence '\<hexcode>' to
@@ -426,7 +440,7 @@ Changes made from the "0.2" release to the "0.3" release:
 - Pablo Barbáchano fixed the install process of QuesoGLC
 
 Changes made from the "0.1" release to the "0.2" release:
------------------------------------------------------------
+---------------------------------------------------------
 
 - Textures in GLC_TEXTURE mode are now of variable size instead of fixed size
   (previously 64x64).It both optimizes the texture memory and removes the

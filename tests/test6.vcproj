@@ -38,7 +38,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.6.5\&quot;;GLEW_MX"
+				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.7.9\&quot;;GLEW_MX"
 				ExceptionHandling="0"
 				DebugInformationFormat="1"
 				CompileAs="1"
@@ -107,7 +107,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.6.5\&quot;;GLEW_MX"
+				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.7.9\&quot;;GLEW_MX"
 				ExceptionHandling="0"
 				CompileAs="1"
 			/>
