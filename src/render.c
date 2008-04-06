@@ -743,6 +743,12 @@ void APIENTRY glcResolution(GLfloat inVal)
 
   GLC_INIT_THREAD();
 
+  /* Negative resolutions are illegal */
+  if (inVal < 0) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
   /* Check if the current thread owns a current state */
   ctx = GLC_GET_CURRENT_CONTEXT();
   if (!ctx) {

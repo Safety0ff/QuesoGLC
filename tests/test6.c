@@ -437,12 +437,14 @@ int main(int argc, char **argv)
 
   glcDisable(GLC_GL_OBJECTS);
 
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_TRUE, GL_FALSE, GL_FALSE,
+		      GL_FALSE))
     return -1;
 
   glcDisable(GLC_MIPMAP);
 
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE,
+		      GL_FALSE))
     return -1;
 
   glcPushAttribQSO(GLC_ENABLE_BIT_QSO);
@@ -451,7 +453,8 @@ int main(int argc, char **argv)
 
   glcEnable(GLC_AUTO_FONT);
 
-  if (!checkIsEnabled(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
+  if (!checkIsEnabled(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE,
+		      GL_FALSE))
     return -1;
 
   glcEnable(GLC_GL_OBJECTS);
@@ -467,7 +470,8 @@ int main(int argc, char **argv)
   glcPopAttribQSO();
   if (!checkError(GLC_NONE))
     return -1;
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE,
+		      GL_FALSE))
     return -1;
 
   glcEnable((GLCenum)0);
@@ -569,7 +573,8 @@ int main(int argc, char **argv)
   glcEnable(GLC_KERNING_QSO);
   if (!checkError(GLC_NONE))
     return -1;
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE,
+		      GL_TRUE))
     return -1;
   glcPushAttribQSO(GLC_ENABLE_BIT_QSO|GLC_STRING_BIT_QSO);
   if (!checkError(GLC_NONE))
@@ -636,7 +641,8 @@ int main(int argc, char **argv)
   glcPopAttribQSO();
   if (!checkError(GLC_NONE))
     return -1;
-  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE))
+  if (!checkIsEnabled(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE,
+		      GL_TRUE))
     return -1;
   if (glcGeti(GLC_STRING_TYPE) != GLC_UCS1) {
     printf("String type was expected to be GLC_UCS1\n");
@@ -810,13 +816,24 @@ int main(int argc, char **argv)
   if (!checkError(GLC_NONE))
     return -1;
 
+  glcResolution(-10.);
+  if (!checkError(GLC_PARAMETER_ERROR)) {
+    printf("Negative resolutions are illegal and should raise a GLC_PARAMETER_ERROR\n");
+    return -1;
+  }
+  if ((glcGetf(GLC_RESOLUTION)-72.) > 1E-5) {
+    printf("Initial value of GLC_RESOLUTION has been altered %f (expected 72.)\n",
+	   glcGetf(GLC_RESOLUTION));
+    return -1;
+  }
+
   glcResolution(90.);
 
   if (!checkError(GLC_NONE))
     return -1;
 
   if ((glcGetf(GLC_RESOLUTION)-90.) > 1E-5) {
-    printf("Initial value of GLC_RESOLUTION is %f (expected 90.)\n",
+    printf("Current value of GLC_RESOLUTION is %f (expected 90.)\n",
 	   glcGetf(GLC_RESOLUTION));
     return -1;
   }
