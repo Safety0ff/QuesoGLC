@@ -61,6 +61,7 @@
 #define GLC_EPSILON		1E-6
 #define GLC_POINT_SIZE		128
 #define GLC_TEXTURE_SIZE        64
+#define GLC_TEXTURE_PADDING     4
 
 #if defined(__GNUC__)
 # define GLC_UNUSED_ARG(_arg) GLC_UNUSED_ ## _arg __attribute__((unused))

@@ -135,12 +135,15 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
 	     advance[1] * transform[2] - advance[0] * transform[0],
 	     advance[1] * transform[3] - advance[0] * transform[1],
 	     NULL);
-    glBitmap(pixWidth, pixHeight, -boundingBox[0] >> 6,
-	     -boundingBox[1] >> 6, 0., 0., pixBuffer);
+    glBitmap(pixWidth, pixHeight,
+	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[0] >> 6),
+	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[1] >> 6), 0., 0.,
+	     pixBuffer);
   }
   else
-    glBitmap(pixWidth, pixHeight, -boundingBox[0] >> 6,
-	     -boundingBox[1] >> 6,
+    glBitmap(pixWidth, pixHeight,
+	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[0] >> 6),
+	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[1] >> 6),
 	     advance[0] * transform[0] + advance[1] * transform[2],
 	     advance[0] * transform[1] + advance[1] * transform[3],
 	     pixBuffer);

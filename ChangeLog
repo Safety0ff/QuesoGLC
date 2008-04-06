@@ -1,8 +1,10 @@
-Changes made from the "0.7.1" release to the "0.8.0" release:
+Changes made from the "0.7.0" release to the "0.8.0" release:
 -------------------------------------------------------------
 
 * Bertrand Coconnier:
 
+- Added padding for GLC_TEXTURE rendering mode so that the antialiasing is not
+  jeopardized when a glyph touches the border of the texture.
 - Fixed bug #1935557 (Fonts are not rendered correctly when the resolution is
   changed using glcResolution).
 - The configure script now exports a summary of the parameters values
@@ -11,12 +13,6 @@ Changes made from the "0.7.1" release to the "0.8.0" release:
 - GLEW thread-safe support for multiple rendering contexts is now an option of
   the build process. It is disabled by default in order to use the standard
   system library (and eventually to improve speed).
-
-Changes made from the "0.7.0" release to the "0.7.1" release:
--------------------------------------------------------------
-
-* Bertrand Coconnier:
-
 - Fixed the bugs #1852883 and #1890660 (VBOs had an erratic behaviour on some
   Mac OS X platforms and Intel X3100 gfx cards under Linux).
 - Removed the workaround for bug #1852883

@@ -1020,23 +1020,27 @@ GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
     boundingBox.yMax = (boundingBox.yMax + 63) & -64;	/* ceiling(yMax) */
 
     /* Calculate pitch to upper 8 byte boundary for 1 bit/pixel, i.e. ceil() */
-    pitch = (boundingBox.xMax - boundingBox.xMin + 511) >> 9;
+    pitch = (boundingBox.xMax - boundingBox.xMin + (GLC_TEXTURE_PADDING << 6)
+	     + 511) >> 9;
     *outWidth = pitch << 3;
-    *outHeight = (boundingBox.yMax - boundingBox.yMin) >> 6;
+    *outHeight = ((boundingBox.yMax - boundingBox.yMin) >> 6)
+      + GLC_TEXTURE_PADDING;
   }
   else {
     matrix.xy = 0;
     matrix.yx = 0;
 
     if (inContext->enableState.glObjects) {
-      matrix.xx = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / inScaleX);
-      matrix.yy = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / inScaleY);
+      matrix.xx = (FT_Fixed)(((GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING) << 16)
+			     / inScaleX);
+      matrix.yy = (FT_Fixed)(((GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING) << 16)
+			     / inScaleY);
 
       FT_Outline_Transform(&outline, &matrix);
       FT_Outline_Get_CBox(&outline, &boundingBox);
 
-      *outWidth = GLC_TEXTURE_SIZE;
-      *outHeight = GLC_TEXTURE_SIZE;
+      *outWidth = GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING;
+      *outHeight = GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING;
 
       outline.flags |= FT_OUTLINE_HIGH_PRECISION;
     }
@@ -1048,9 +1052,11 @@ GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
       FT_Outline_Get_CBox(&outline, &boundingBox);
 
       *outWidth = __glcNextPowerOf2(
-              (boundingBox.xMax - boundingBox.xMin + 63) >> 6); /* ceil() */
+	      ((boundingBox.xMax - boundingBox.xMin + 63) >> 6) /* ceil() */
+	      + GLC_TEXTURE_PADDING);
       *outHeight = __glcNextPowerOf2(
-              (boundingBox.yMax - boundingBox.yMin + 63) >> 6); /* ceil() */
+	      ((boundingBox.yMax - boundingBox.yMin + 63) >> 6) /* ceil() */
+	      + GLC_TEXTURE_PADDING);
 
       /* If the texture size is too small then give up */
       if ((*outWidth < 4) || (*outHeight < 4))
@@ -1110,7 +1116,8 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
   /* translate the outline to match (0,0) with the glyph's lower left
    * corner
    */
-  FT_Outline_Translate(&outline, -boundingBox.xMin, -boundingBox.yMin);
+  FT_Outline_Translate(&outline, (GLC_TEXTURE_PADDING << 5) - boundingBox.xMin,
+		       (GLC_TEXTURE_PADDING << 5) - boundingBox.yMin);
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
