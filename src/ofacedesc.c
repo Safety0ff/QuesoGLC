@@ -369,6 +369,8 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
   FTC_ScalerRec scaler;
 # endif
   FT_Size size = NULL;
+#else
+  FT_Error error;
 #endif
 
   /* If GLC_HINTING_QSO is enabled then perform hinting on the glyph while
@@ -383,12 +385,19 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
      && (FREETYPE_MINOR < 1 \
          || (FREETYPE_MINOR == 1 && FREETYPE_PATCH < 8))
   font.face_id = (FTC_FaceID)This;
-  font.pix_width = (FT_UShort) (inScaleX *
+
+  if (inContext->enableState.glObjects) {
+    font.pix_width = (FT_UShort) inScaleX;
+    font.pix_height = (FT_UShort) inScaleY;
+  }
+  else {
+    font.pix_width = (FT_UShort) (inScaleX *
       (inContext->renderState.resolution < GLC_EPSILON ?
        72. : inContext->renderState.resolution) / 72.);
-  font.pix_height = (FT_UShort) (inScaleY *
+    font.pix_height = (FT_UShort) (inScaleY *
       (inContext->renderState.resolution < GLC_EPSILON ?
        72. : inContext->renderState.resolution) / 72.);
+  }
 
   if (FTC_Manager_Lookup_Size(inContext->cache, &font, &This->face, &size)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -399,10 +408,17 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
   scaler.width = (FT_UInt)(inScaleX * 64.);
   scaler.height = (FT_UInt)(inScaleY * 64.);
   scaler.pixel = (FT_Int)0;
-  scaler.x_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
-			   72 : inContext->renderState.resolution);
-  scaler.y_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
-			   72 : inContext->renderState.resolution);
+
+  if (inContext->enableState.glObjects) {
+    scaler.x_res = 72;
+    scaler.y_res = 72;
+  }
+  else {
+    scaler.x_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
+			     72 : inContext->renderState.resolution);
+    scaler.y_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
+			     72 : inContext->renderState.resolution);
+  }
 
   if (FTC_Manager_LookupSize(inContext->cache, &scaler, &size)) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -416,10 +432,17 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
     return GL_FALSE;
 
   /* Select the size of the glyph */
-  if (FT_Set_Char_Size(This->face, (FT_F26Dot6)(inScaleX * 64.),
-		       (FT_F26Dot6)(inScaleY * 64.),
-		       (FT_UInt)inContext->renderState.resolution,
-		       (FT_UInt)inContext->renderState.resolution)) {
+  if (inContext->enableState.glObjects) {
+    error = FT_Set_Char_Size(This->face, (FT_F26Dot6)(inScaleX * 64.),
+			     (FT_F26Dot6)(inScaleY * 64.), 0, 0);
+  }
+  else {
+    error = FT_Set_Char_Size(This->face, (FT_F26Dot6)(inScaleX * 64.),
+			     (FT_F26Dot6)(inScaleY * 64.),
+			     (FT_UInt)inContext->renderState.resolution,
+			     (FT_UInt)inContext->renderState.resolution);
+  }
+  if (error) {
     __glcFaceDescClose(This);
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return GL_FALSE;

@@ -3,6 +3,8 @@ Changes made from the "0.7.1" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1935557 (Fonts are not rendered correctly when the resolution is
+  changed using glcResolution).
 - The configure script now exports a summary of the parameters values
 - Replaced glPush/PopClientAttrib() for vertex arrays and VBOs by explicit
   save/restore management in order to improve speed.

@@ -20,6 +20,12 @@ EXTRA_PROGRAMS = test1 \
                  test9.7 \
                  test9.8 \
                  test10 \
+                 test11.1 \
+                 test11.2 \
+                 test11.3 \
+                 test11.4 \
+                 test11.5 \
+                 test11.6 \
                  testcontex \
                  testfont \
                  testmaster \
@@ -106,6 +112,30 @@ test9_8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE \
 test9_8_LDADD = @GLUT_LIBS@ $(LDADD)
 
 test10_SOURCES = test10.c
+
+test11_1_SOURCES = test11.c
+test11_1_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE
+test11_1_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test11_2_SOURCES = test11.c
+test11_2_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE -DWITH_GL_OBJECTS
+test11_2_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test11_3_SOURCES = test11.c
+test11_3_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE
+test11_3_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test11_4_SOURCES = test11.c
+test11_4_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE -DWITH_GL_OBJECTS
+test11_4_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test11_5_SOURCES = test11.c
+test11_5_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_LINE
+test11_5_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test11_6_SOURCES = test11.c
+test11_6_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_LINE -DWITH_GL_OBJECTS
+test11_6_LDADD = @GLUT_LIBS@ $(LDADD)
 
 testrender_SOURCES = testrender.c
 testrender_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@

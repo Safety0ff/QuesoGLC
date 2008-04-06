@@ -166,6 +166,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   __GLCglyph* glyph = NULL;
   GLfloat sx64 = 0., sy64 = 0.;
   GLfloat advance[2] = {0., 0.};
+  GLfloat resolution = 1.;
 
   assert(inFont);
 
@@ -221,12 +222,16 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     return NULL;
   }
 
-  sx64 = 64. * scale_x;
-  sy64 = 64. * scale_y;
+  if (inContext->enableState.glObjects)
+    resolution = (inContext->renderState.resolution < GLC_EPSILON ?
+		  72. : inContext->renderState.resolution) / 72.;
+
+  sx64 = 64. * scale_x * resolution;
+  sy64 = 64. * scale_y * resolution;
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
     if (inIsRTL)
-      glTranslatef(-advance[0], advance[1], 0.f);
+      glTranslatef(-advance[0] * resolution, advance[1] * resolution, 0.f);
 
     /* If the outline contains no point then the glyph represents a space
      * character and there is no need to continue the process of rendering.
@@ -234,7 +239,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     if (!__glcFontOutlineEmpty(inFont, inContext)) {
       /* Update the advance and return */
       if (!inIsRTL)
-        glTranslatef(advance[0], advance[1], 0.f);
+        glTranslatef(advance[0] * resolution, advance[1] * resolution, 0.f);
       if (inContext->enableState.glObjects)
 	glyph->isSpacingChar = GL_TRUE;
 #ifndef GLC_FT_CACHE
@@ -278,7 +283,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     if (!inContext->enableState.glObjects)
       glScalef(sx64, sy64, 1.);
     if (!inIsRTL)
-      glTranslatef(advance[0], advance[1], 0.);
+      glTranslatef(advance[0] * resolution, advance[1] * resolution, 0.f);
   }
 #ifndef GLC_FT_CACHE
   __glcFontClose(inFont);
@@ -374,6 +379,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     int j = 0;
     GLuint GLObjectIndex = inContext->renderState.renderStyle - 0x101;
     FT_ListNode node = NULL;
+    float resolution = (inContext->renderState.resolution < GLC_EPSILON ?
+			72. : inContext->renderState.resolution) / 72.;
 
     if (inContext->renderState.renderStyle == GLC_TRIANGLE
 	&& inContext->enableState.extrude)
@@ -432,6 +439,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
       }
 
       if(!node || (i == inCount-1)) {
+	glScalef(resolution, resolution, 1.f);
+
 	for (j = 0; j < length; j++) {
 	  if (inIsRightToLeft)
 	    glTranslatef(-chars[j].advance[0], chars[j].advance[1], 0.);
@@ -470,6 +479,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	    glTranslatef(chars[j].advance[0], chars[j].advance[1], 0.);
 	}
 
+	glScalef(1./resolution, 1./resolution, 1.f);
 	if (!node)
 	  __glcProcessChar(inContext, *ptr, &prevCode, inIsRightToLeft,
 			   __glcRenderChar, NULL);
