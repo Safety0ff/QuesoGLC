@@ -391,12 +391,10 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
     font.pix_height = (FT_UShort) inScaleY;
   }
   else {
-    font.pix_width = (FT_UShort) (inScaleX *
-      (inContext->renderState.resolution < GLC_EPSILON ?
-       72. : inContext->renderState.resolution) / 72.);
-    font.pix_height = (FT_UShort) (inScaleY *
-      (inContext->renderState.resolution < GLC_EPSILON ?
-       72. : inContext->renderState.resolution) / 72.);
+    font.pix_width = (FT_UShort) (inScaleX * inContext->renderState.resolution
+				  / 72.);
+    font.pix_height = (FT_UShort) (inScaleY * inContext->renderState.resolution
+				   / 72.);
   }
 
   if (FTC_Manager_Lookup_Size(inContext->cache, &font, &This->face, &size)) {
@@ -414,10 +412,8 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
     scaler.y_res = 72;
   }
   else {
-    scaler.x_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
-			     72 : inContext->renderState.resolution);
-    scaler.y_res = (FT_UInt)(inContext->renderState.resolution < GLC_EPSILON ?
-			     72 : inContext->renderState.resolution);
+    scaler.x_res = (FT_UInt)inContext->renderState.resolution;
+    scaler.y_res = (FT_UInt)inContext->renderState.resolution;
   }
 
   if (FTC_Manager_LookupSize(inContext->cache, &scaler, &size)) {
@@ -711,9 +707,7 @@ GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
 				   __GLCcontext* inContext)
 {
   FT_Face face = NULL;
-  /* If the resolution of the context is zero then use the default 72 dpi */
-  GLfloat scale = (inContext->renderState.resolution < GLC_EPSILON ?
-		   72. : inContext->renderState.resolution) / 72.;
+  GLfloat scale = inContext->renderState.resolution / 72.;
 
   assert(outVec);
 

@@ -801,8 +801,8 @@ int main(int argc, char **argv)
   if (!checkError(GLC_NONE))
     return -1;
 
-  if (glcGetf(GLC_RESOLUTION) > 1E-5) {
-    printf("Initial value of GLC_RESOLUTION is %f (expected 0.)\n",
+  if ((glcGetf(GLC_RESOLUTION)-72.) > 1E-5) {
+    printf("Initial value of GLC_RESOLUTION is %f (expected 72.)\n",
 	   glcGetf(GLC_RESOLUTION));
     return -1;
   }
@@ -810,13 +810,13 @@ int main(int argc, char **argv)
   if (!checkError(GLC_NONE))
     return -1;
 
-  glcResolution(72.);
+  glcResolution(90.);
 
   if (!checkError(GLC_NONE))
     return -1;
 
-  if ((glcGetf(GLC_RESOLUTION)-72.) > 1E-5) {
-    printf("Initial value of GLC_RESOLUTION is %f (expected 72.)\n",
+  if ((glcGetf(GLC_RESOLUTION)-90.) > 1E-5) {
+    printf("Initial value of GLC_RESOLUTION is %f (expected 90.)\n",
 	   glcGetf(GLC_RESOLUTION));
     return -1;
   }

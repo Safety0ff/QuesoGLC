@@ -136,7 +136,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->enableState.hinting = GL_FALSE;
   This->enableState.extrude = GL_FALSE;
   This->enableState.kerning = GL_FALSE;
-  This->renderState.resolution = 0.;
+  This->renderState.resolution = 72.;
   This->renderState.renderStyle = GLC_BITMAP;
   This->bitmapMatrixStackDepth = 1;
   This->bitmapMatrix = This->bitmapMatrixStack;

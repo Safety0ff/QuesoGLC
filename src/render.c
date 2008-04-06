@@ -377,8 +377,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     int j = 0;
     GLuint GLObjectIndex = inContext->renderState.renderStyle - 0x101;
     FT_ListNode node = NULL;
-    float resolution = (inContext->renderState.resolution < GLC_EPSILON ?
-			72. : inContext->renderState.resolution) / 72.;
+    float resolution = inContext->renderState.resolution / 72.;
 
     if (inContext->renderState.renderStyle == GLC_TRIANGLE
 	&& inContext->enableState.extrude)
@@ -736,7 +735,7 @@ void APIENTRY glcReplacementCode(GLint inCode)
  *  The resolution is given in \e dpi (dots per inch). If \e inVal is zero, the
  *  resolution defaults to 72 dpi.
  *  \param inVal A floating point number to be used as resolution.
- *  \sa glcGeti() with argument GLC_RESOLUTION
+ *  \sa glcGetf() with argument GLC_RESOLUTION
  */
 void APIENTRY glcResolution(GLfloat inVal)
 {
@@ -752,7 +751,7 @@ void APIENTRY glcResolution(GLfloat inVal)
   }
 
   /* Stores the resolution */
-  ctx->renderState.resolution = inVal;
+  ctx->renderState.resolution = (inVal < GLC_EPSILON) ? 72. : inVal;
 
   return;
 }
