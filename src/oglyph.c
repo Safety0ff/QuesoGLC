@@ -56,6 +56,8 @@ __GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
   This->textureObject = NULL;
   This->nContour = 0;
   This->contours = NULL;
+  This->nGeomBatch = 0;
+  This->geomBatches = NULL;
 
   /* A display list for each rendering mode (except GLC_BITMAP) may be built */
   memset(This->glObject, 0, 4 * sizeof(GLuint));
@@ -113,8 +115,17 @@ void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 	glDeleteLists(This->glObject[0], 1);
     }
 
-    if (This->glObject[2])
-      glDeleteLists(This->glObject[2], 1);
+    if (This->glObject[2]) {
+      if (GLEW_ARB_vertex_buffer_object) {
+	glDeleteBuffersARB(1, &This->glObject[2]);
+	if (This->geomBatches)
+	  __glcFree(This->geomBatches);
+	This->nGeomBatch = 0;
+	This->geomBatches = NULL;
+      }
+      else
+	glDeleteLists(This->glObject[2], 1);
+    }
 
     if (This->glObject[3])
       glDeleteLists(This->glObject[3], 1);
@@ -132,7 +143,7 @@ int __glcGlyphGetDisplayListCount(__GLCglyph* This)
   int i = 0;
   int count = 0;
 
-  for (i = GLEW_ARB_vertex_buffer_object ? 2 : 0; i < 4; i++) {
+  for (i = GLEW_ARB_vertex_buffer_object ? 3 : 0; i < 4; i++) {
     if (This->glObject[i])
       count++;
   }
@@ -152,7 +163,7 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetDisplayListCount(This));
 
-  for (i = GLEW_ARB_vertex_buffer_object ? 2 : 0; i < 4; i++) {
+  for (i = GLEW_ARB_vertex_buffer_object ? 3 : 0; i < 4; i++) {
     GLuint displayList = This->glObject[i];
 
     if (displayList) {
@@ -179,7 +190,7 @@ int __glcGlyphGetBufferObjectCount(__GLCglyph* This)
 
   assert(GLEW_ARB_vertex_buffer_object);
 
-  for (i = 0; i < 1; i++) {
+  for (i = 0; i < 3; i += 2) {
     if (This->glObject[i])
       count++;
   }
@@ -200,7 +211,7 @@ GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount)
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetBufferObjectCount(This));
 
-  for (i = 0; i < 1; i++) {
+  for (i = 0; i < 3; i += 2) {
     GLuint bufferObject = This->glObject[i];
 
     if (bufferObject) {

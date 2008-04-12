@@ -87,6 +87,7 @@ struct __GLCglStateRec {
   GLint textureID;
   GLint textureEnvMode;
   GLint bufferObjectID;
+  GLint elementBufferObjectID;
   GLboolean blend;
   GLint blendSrc;
   GLint blendDst;

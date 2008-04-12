@@ -454,7 +454,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 		glCallList(glyph->glObject[1]);
 	      break;
 	    case GLC_LINE:
-	      if (GLEW_ARB_vertex_buffer_object && glyph->glObject[0]) {
+	      if (glyph->glObject[0] && GLEW_ARB_vertex_buffer_object) {
 		int k = 0;
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
@@ -468,6 +468,27 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	      glCallList(glyph->glObject[0]);
 	      break;
 	    case GLC_TRIANGLE:
+	      if (glyph->glObject[2] && GLEW_ARB_vertex_buffer_object) {
+		int k = 0;
+		GLuint* indices = NULL;
+
+		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
+		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+				glyph->glObject[2]);
+		glVertexPointer(2, GL_FLOAT, 0, NULL);
+		glNormal3f(0.f, 0.f, 1.f);
+
+		for (k = 0; k < glyph->nGeomBatch; k++) {
+		  glDrawRangeElements(glyph->geomBatches[k].mode,
+				      glyph->geomBatches[k].start,
+				      glyph->geomBatches[k].end,
+				      glyph->geomBatches[k].length,
+				      GL_UNSIGNED_INT, indices);
+		  indices += glyph->geomBatches[k].length;
+		}
+
+		break;
+	      }
 	      glCallList(glyph->glObject[GLObjectIndex]);
 	      break;
 	    }

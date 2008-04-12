@@ -115,7 +115,6 @@
 #endif
 
 typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
-typedef struct __GLCgeomBatchRec __GLCgeomBatch;
 typedef struct __GLCcharacterRec __GLCcharacter;
 
 struct __GLCrendererDataRec {
