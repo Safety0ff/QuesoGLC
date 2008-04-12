@@ -143,7 +143,10 @@ int __glcGlyphGetDisplayListCount(__GLCglyph* This)
   int i = 0;
   int count = 0;
 
-  for (i = GLEW_ARB_vertex_buffer_object ? 3 : 0; i < 4; i++) {
+  if (GLEW_ARB_vertex_buffer_object)
+    return 0;
+
+  for (i = 0; i < 4; i++) {
     if (This->glObject[i])
       count++;
   }
@@ -163,7 +166,10 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetDisplayListCount(This));
 
-  for (i = GLEW_ARB_vertex_buffer_object ? 3 : 0; i < 4; i++) {
+  if (GLEW_ARB_vertex_buffer_object)
+    return 0;
+
+  for (i = 0; i < 4; i++) {
     GLuint displayList = This->glObject[i];
 
     if (displayList) {
@@ -190,7 +196,10 @@ int __glcGlyphGetBufferObjectCount(__GLCglyph* This)
 
   assert(GLEW_ARB_vertex_buffer_object);
 
-  for (i = 0; i < 3; i += 2) {
+  for (i = 0; i < 4; i++) {
+    if (i == 1)
+      continue;
+
     if (This->glObject[i])
       count++;
   }
@@ -211,8 +220,11 @@ GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount)
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetBufferObjectCount(This));
 
-  for (i = 0; i < 3; i += 2) {
+  for (i = 0; i < 4; i++) {
     GLuint bufferObject = This->glObject[i];
+
+    if (i == 1)
+      continue;
 
     if (bufferObject) {
       if (!inCount)
