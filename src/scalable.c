@@ -555,7 +555,11 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     break;
   }
 
-  /* Prepare the display list compilation if needed */
+  /* Prepare the display list if needed. For optimization reasons, if we use
+   * VBOs we build them for the 3 rendering modes (GLC_LINE, GLC_TRIANGLE,
+   * extrusion) in a row. (Vertices are common to all rendering modes and
+   * contours are common to GLC_LINE an extrude).
+   */
   if (inContext->enableState.glObjects) {
     if (GLEW_ARB_vertex_buffer_object) {
       int i = 0;
@@ -593,6 +597,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	}
 	goto reset;
       }
+      /* Create the VBO for GLC_LINE rendering mode */
       glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->glObject[0]);
 
       glBufferDataARB(GL_ARRAY_BUFFER_ARB,
@@ -614,11 +619,11 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     }
   }
 
+  /* Tesselate the polygon defined by the contour returned by
+   * __glcFontOutlineDecompose().
+   */
   if (inContext->renderState.renderStyle == GLC_TRIANGLE
       || (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)) {
-    /* Tesselate the polygon defined by the contour returned by
-     * __glcFontOutlineDecompose().
-     */
     GLUtesselator *tess = gluNewTess();
     GLuint j = 0;
     int i = 0;
@@ -689,102 +694,194 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     }
   }
 
+  /* Now that the tesselation is done, the actual rendering for GLC_TRIANGLE 
+   * begins.
+   */
   if (inContext->renderState.renderStyle == GLC_TRIANGLE) {
-      int i = 0;
+    int i = 0;
     __GLCgeomBatch* geomBatch =
       (__GLCgeomBatch*)GLC_ARRAY_DATA(rendererData.geomBatches);
+    GLboolean extrude = GL_FALSE;
 
     glNormal3f(0.f, 0.f, 1.f);
+    
+    do {
+      if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+	GLuint* indices = NULL;
 
+	glVertexPointer(2, GL_FLOAT, 0, NULL);
+
+	for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
+	  glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
+			      geomBatch[i].end, geomBatch[i].length,
+			      GL_UNSIGNED_INT, indices);
+	  indices += geomBatch[i].length;
+	}
+      }
+      else {
+	GLuint* vertexIndices =
+	  (GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
+
+	glVertexPointer(2, GL_FLOAT, 0,
+			GLC_ARRAY_DATA(rendererData.vertexArray));
+
+	for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
+	  glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
+			      geomBatch[i].end, geomBatch[i].length,
+			      GL_UNSIGNED_INT, (void*)vertexIndices);
+	  vertexIndices += geomBatch[i].length;
+	}
+      }
+
+      /* If the extrusion is selected, the vertex array of the GLC_TRIANGLE will
+       * be rendered a second time translated along the axis.
+       */
+      if (inContext->enableState.extrude) {
+	if (extrude)
+	  glTranslatef(0.f, 0.f, 1.f);
+	else {
+	  glNormal3f(0.f, 0.f, -1.f);
+	  glTranslatef(0.f, 0.f, -1.f);
+	}
+	extrude = (!extrude);
+      }
+    } while (extrude);
+  }
+
+  /* For extruded glyphes : close the contours */
+  if ((inContext->renderState.renderStyle == GLC_TRIANGLE
+       && inContext->enableState.extrude)
+      || (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)) {
+    GLfloat ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f;
+    GLfloat nx = 0.f, ny = 0.f, n0x = 0.f, n0y = 0.f, length = 0.f;
+    GLuint* endContour = (GLuint*)GLC_ARRAY_DATA(rendererData.endContour);
+    GLfloat (*vertexArray)[2] =
+      (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
+    int i = 0, j = 0;
+    GLfloat* extrudeArray = NULL;
+    GLfloat* interleavedArray = NULL;
+
+    /* Prepare the VBO for the contour */
     if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
-      GLuint* indices = NULL;
-
-      glVertexPointer(2, GL_FLOAT, 0, NULL);
-
-      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
-	glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
-			    geomBatch[i].end, geomBatch[i].length,
-			    GL_UNSIGNED_INT, indices);
-	indices += geomBatch[i].length;
+      GLuint nVertices = 0;
+	
+      glGenBuffersARB(1, &inGlyph->glObject[3]);
+      if (!inGlyph->glObject[3]) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	goto reset;
       }
+
+      /* Compute the total number of vertices that will be stored in the VBO */
+      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
+	nVertices += endContour[i+1] - endContour[i] + 1;
+
+      /* The array stores (3D vertices + 3D normal) * 2 for each point of the
+       * contour.
+       */
+      extrudeArray = (GLfloat*)__glcMalloc(12 * sizeof(GLfloat)
+						 * nVertices);
+      if (!extrudeArray) {
+	__glcRaiseError(GLC_RESOURCE_ERROR);
+	glDeleteBuffers(1, &inGlyph->glObject[3]);
+	inGlyph->glObject[3] = 0;
+	goto reset;
+      }
+
+      interleavedArray = extrudeArray;
     }
-    else {
-      GLuint* vertexIndices =
-	(GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
 
-      glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
-
-      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
-	glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
-			    geomBatch[i].end, geomBatch[i].length,
-			    GL_UNSIGNED_INT, (void*)vertexIndices);
-	vertexIndices += geomBatch[i].length;
-      }
-    }
-
-    /* For extruded glyphes : render the other side and close the contours */
-    if (inContext->enableState.extrude) {
-      GLfloat ax = 0.f, bx = 0.f, ay = 0.f, by = 0.f;
-      GLfloat nx = 0.f, ny = 0.f, n0x = 0.f, n0y = 0.f, length = 0.f;
-      GLuint* endContour = (GLuint*)GLC_ARRAY_DATA(rendererData.endContour);
-      GLfloat (*vertexArray)[2] =
-	(GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
-      GLuint* vertexIndices =
-	(GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
-      int j = 0;
-
-      glTranslatef(0.0f, 0.0f, -1.0f);
-      glNormal3f(0.f, 0.f, -1.f);
-
-      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
-	glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
-			    geomBatch[i].end, geomBatch[i].length,
-			    GL_UNSIGNED_INT, (void*)vertexIndices);
-	vertexIndices += geomBatch[i].length;
-      }
-      glTranslatef(0.0f, 0.0f, 1.0f);
-
-      for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
+    /* Compute the vertices and the normals of the contour */
+    for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++) {
+      if (!(inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)) 
 	glBegin(GL_TRIANGLE_STRIP);
-	for (j = endContour[i]; j < endContour[i+1]; j++) {
-	  if (j == endContour[i]) {
-	    ax = vertexArray[endContour[i+1]-1][0];
-	    ay = vertexArray[endContour[i+1]-1][1];
-	    bx = vertexArray[j+1][0];
-	    by = vertexArray[j+1][1];
-	    n0x = ay - by;
-	    n0y = bx - ax;
-	  }
-	  else if (j == (endContour[i+1] - 1)) {
-	    ax = vertexArray[j-1][0];
-	    ay = vertexArray[j-1][1];
-	    bx = vertexArray[endContour[i]][0];
-	    by = vertexArray[endContour[i]][1];
-	  }
-	  else {
-	    ax = vertexArray[j-1][0];
-	    ay = vertexArray[j-1][1];
-	    bx = vertexArray[j+1][0];
-	    by = vertexArray[j+1][1];
-	  }
 
-	  nx = ay - by;
-	  ny = bx - ax;
-	  length = sqrt(nx*nx + ny*ny);
+      for (j = endContour[i]; j < endContour[i+1]; j++) {
+	if (j == endContour[i]) {
+	  ax = vertexArray[endContour[i+1]-1][0];
+	  ay = vertexArray[endContour[i+1]-1][1];
+	  bx = vertexArray[j+1][0];
+	  by = vertexArray[j+1][1];
+	  n0x = ay - by;
+	  n0y = bx - ax;
+	}
+	else if (j == (endContour[i+1] - 1)) {
+	  ax = vertexArray[j-1][0];
+	  ay = vertexArray[j-1][1];
+	  bx = vertexArray[endContour[i]][0];
+	  by = vertexArray[endContour[i]][1];
+	}
+	else {
+	  ax = vertexArray[j-1][0];
+	  ay = vertexArray[j-1][1];
+	  bx = vertexArray[j+1][0];
+	  by = vertexArray[j+1][1];
+	}
+
+	nx = ay - by;
+	ny = bx - ax;
+	length = sqrt(nx*nx + ny*ny);
+
+	if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+	  interleavedArray[0] = nx / length;
+	  interleavedArray[1] = nx / length;
+	  interleavedArray[2] = 0.f;
+	  interleavedArray[3] = vertexArray[j][0];
+	  interleavedArray[4] = vertexArray[j][1];
+	  interleavedArray[5] = 0.f;
+	  memcpy(interleavedArray + 6, interleavedArray, 5 * sizeof(GLfloat));
+	  interleavedArray[11] = -1.f;
+	  interleavedArray += 12;
+	}
+	else {
 	  glNormal3f(nx/length, ny/length, 0.f);
 	  glVertex2fv(vertexArray[j]);
 	  glVertex3f(vertexArray[j][0], vertexArray[j][1], -1.f);
 	}
-	length = sqrt(n0x*n0x + n0y*n0y);
+      }
+      length = sqrt(n0x*n0x + n0y*n0y);
+
+      /* Close the contour (repeat the first vertex at the end of the array) */
+      if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+	interleavedArray[0] = n0x / length;
+	interleavedArray[1] = n0x / length;
+	interleavedArray[2] = 0.f;
+	interleavedArray[3] = vertexArray[endContour[i]][0];
+	interleavedArray[4] = vertexArray[endContour[i]][1];
+	interleavedArray[5] = 0.f;
+	memcpy(interleavedArray + 6, interleavedArray, 5 * sizeof(GLfloat));
+	interleavedArray[11] = -1.f;
+	interleavedArray += 12;
+      }
+      else {
 	glNormal3f(n0x/length, n0y/length, 0.f);
 	glVertex2fv(vertexArray[endContour[i]]);
-	glVertex3f(vertexArray[endContour[i]][0], vertexArray[endContour[i]][1],
-		   -1.f);
+	glVertex3f(vertexArray[endContour[i]][0],
+		   vertexArray[endContour[i]][1], -1.f);
+      }
+
+      if (!(inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object))
 	glEnd();
+    }
+
+    /* Create the VBO of the contour */
+    if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+      glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->glObject[3]);
+      glBufferDataARB(GL_ARRAY_BUFFER_ARB, (interleavedArray - extrudeArray)
+		      * 12 * sizeof(GLfloat), extrudeArray,
+		      GL_STATIC_DRAW_ARB);
+
+      /* Render the contour */
+      if (inContext->enableState.extrude) {
+	glInterleavedArrays(GL_N3F_V3F, 0, NULL);
+
+	for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
+	  glDrawArrays(GL_TRIANGLE_STRIP, endContour[i] * 2,
+		       (endContour[i+1] - endContour[i] + 1) * 2);
       }
     }
   }
-  else {
+
+  if (inContext->renderState.renderStyle == GLC_LINE) {
     /* For GLC_LINE, there is no need to tesselate. The vertices are contained
      * in an array so we use the OpenGL function glDrawArrays().
      */
@@ -792,8 +889,10 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
 
     glNormal3f(0.f, 0.f, 1.f);
-    if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
+    if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+      glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->glObject[0]);
       glVertexPointer(2, GL_FLOAT, 0, NULL);
+    }
     else
       glVertexPointer(2, GL_FLOAT, 0, GLC_ARRAY_DATA(rendererData.vertexArray));
 

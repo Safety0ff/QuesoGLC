@@ -3,7 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
-- GLC_TRIANGLE mode now uses VBOs whenever the gfx card supports them.
+- Extrusion and GLC_TRIANGLE mode now uses VBOs whenever the gfx card supports
+  them.
 - Negative values passed to glcResolution() now raise GLC_PARAMETER_ERROR
 - Simplified a bit the internal management of the resolution
 - Added padding for GLC_TEXTURE rendering mode so that the antialiasing is not

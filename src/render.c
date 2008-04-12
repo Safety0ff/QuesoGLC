@@ -454,7 +454,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 		glCallList(glyph->glObject[1]);
 	      break;
 	    case GLC_LINE:
-	      if (glyph->glObject[0] && GLEW_ARB_vertex_buffer_object) {
+	      if (GLEW_ARB_vertex_buffer_object) {
 		int k = 0;
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
@@ -468,9 +468,9 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	      glCallList(glyph->glObject[0]);
 	      break;
 	    case GLC_TRIANGLE:
-	      if (glyph->glObject[2] && GLEW_ARB_vertex_buffer_object) {
+	      if (GLEW_ARB_vertex_buffer_object) {
 		int k = 0;
-		GLuint* indices = NULL;
+		GLboolean extrude = GL_FALSE;
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
@@ -478,14 +478,37 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 		glVertexPointer(2, GL_FLOAT, 0, NULL);
 		glNormal3f(0.f, 0.f, 1.f);
 
-		for (k = 0; k < glyph->nGeomBatch; k++) {
-		  glDrawRangeElements(glyph->geomBatches[k].mode,
-				      glyph->geomBatches[k].start,
-				      glyph->geomBatches[k].end,
-				      glyph->geomBatches[k].length,
-				      GL_UNSIGNED_INT, indices);
-		  indices += glyph->geomBatches[k].length;
-		}
+		do {
+		  GLuint* indices = NULL;
+
+		  for (k = 0; k < glyph->nGeomBatch; k++) {
+		    glDrawRangeElements(glyph->geomBatches[k].mode,
+					glyph->geomBatches[k].start,
+					glyph->geomBatches[k].end,
+					glyph->geomBatches[k].length,
+					GL_UNSIGNED_INT, indices);
+		    indices += glyph->geomBatches[k].length;
+		  }
+
+		  if (inContext->enableState.extrude) {
+		    if (extrude) {
+		      glTranslatef(0.f, 0.f, 1.f);
+		      glBindBufferARB(GL_ARRAY_BUFFER_ARB,
+				      glyph->glObject[3]);
+		      glInterleavedArrays(GL_N3F_V3F, 0, NULL);
+
+		      for (k = 0; k < glyph->nContour; k++)
+			glDrawArrays(GL_TRIANGLE_STRIP, glyph->contours[k] * 2,
+				     (glyph->contours[k+1] - glyph->contours[k]
+				      + 1) * 2);
+		    }
+		    else {
+		      glNormal3f(0.f, 0.f, -1.f);
+		      glTranslatef(0.f, 0.f, -1.f);
+		    }
+		    extrude = (!extrude);
+		  }
+		} while(extrude);
 
 		break;
 	      }
