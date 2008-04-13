@@ -91,6 +91,7 @@ struct __GLCglStateRec {
   GLboolean blend;
   GLint blendSrc;
   GLint blendDst;
+  GLboolean normalize;
   GLboolean vertexArray;
   GLboolean normalArray;
   GLboolean colorArray;

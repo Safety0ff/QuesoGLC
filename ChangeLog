@@ -3,6 +3,7 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Added backface culling to the extruded rendering mode
 - Extrusion and GLC_TRIANGLE mode now uses VBOs whenever the gfx card supports
   them.
 - Negative values passed to glcResolution() now raise GLC_PARAMETER_ERROR

@@ -468,11 +468,19 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 		    &inGLState->bufferObjectID);
   }
 
-  if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+  if ((inAll || (inContext->enableState.glObjects
+		 && inContext->renderState.renderStyle != GLC_BITMAP))
+      && GLEW_ARB_vertex_buffer_object) {
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB, &inGLState->bufferObjectID);
-    glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB,
-		  &inGLState->elementBufferObjectID);
+    if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE))
+      glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB,
+		    &inGLState->elementBufferObjectID);
   }
+
+  if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE
+		&& inContext->enableState.glObjects
+		&& inContext->enableState.extrude))
+    inGLState->normalize = glIsEnabled(GL_NORMALIZE);
 
   if (inAll || inContext->renderState.renderStyle == GLC_LINE
       || inContext->renderState.renderStyle == GLC_TRIANGLE
@@ -516,11 +524,20 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
       glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, inGLState->bufferObjectID);
   }
 
-  if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
+  if ((inAll || (inContext->enableState.glObjects
+		 && inContext->renderState.renderStyle != GLC_BITMAP))
+      && GLEW_ARB_vertex_buffer_object) {
     glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGLState->bufferObjectID);
-    glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
-		    inGLState->elementBufferObjectID);
+    if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE))
+      glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
+		      inGLState->elementBufferObjectID);
   }
+
+  if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE
+		&& inContext->enableState.glObjects
+		&& inContext->enableState.extrude))
+    if (!inGLState->normalize)
+      glDisable(GL_NORMALIZE);
 
   if (inAll || inContext->renderState.renderStyle == GLC_LINE
       || inContext->renderState.renderStyle == GLC_TRIANGLE

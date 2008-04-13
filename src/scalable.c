@@ -491,12 +491,16 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   GLfloat sx64 = 64. * scale_x;
   GLfloat sy64 = 64. * scale_y;
   int index = 0;
+  GLfloat orientation = 1.f;
 
   rendererData.vertexArray = inContext->vertexArray;
   rendererData.controlPoints = inContext->controlPoints;
   rendererData.endContour = inContext->endContour;
   rendererData.vertexIndices = inContext->vertexIndices;
   rendererData.geomBatches = inContext->geomBatches;
+
+  if (inContext->enableState.extrude)
+    orientation = -inTransformMatrix[11];
 
   /* If no display list is planned to be built then compute distances in pixels
    * otherwise use the object space.
@@ -587,10 +591,12 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	inGlyph->nContour = 0;
 	__glcFree(inGlyph->contours);
 	inGlyph->contours= NULL;
+
 	if (inGlyph->glObject[0]) {
 	  glDeleteBuffersARB(1, &inGlyph->glObject[0]);
 	  inGlyph->glObject[0] = 0;
 	}
+
 	if (inGlyph->glObject[2]) {
 	  glDeleteBuffersARB(1, &inGlyph->glObject[2]);
 	  inGlyph->glObject[2] = 0;
@@ -677,6 +683,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
       inGlyph->nGeomBatch = GLC_ARRAY_LENGTH(rendererData.geomBatches);
       inGlyph->geomBatches =
 	__glcMalloc(GLC_ARRAY_SIZE(rendererData.geomBatches));
+
       if (!inGlyph->geomBatches) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	glDeleteBuffersARB(1, &inGlyph->glObject[2]);
@@ -706,32 +713,24 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     glNormal3f(0.f, 0.f, 1.f);
     
     do {
-      if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
-	GLuint* indices = NULL;
+      GLuint* vertexIndices = NULL;
 
+      if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object)
 	glVertexPointer(2, GL_FLOAT, 0, NULL);
-
-	for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
-	  glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
-			      geomBatch[i].end, geomBatch[i].length,
-			      GL_UNSIGNED_INT, indices);
-	  indices += geomBatch[i].length;
-	}
-      }
       else {
-	GLuint* vertexIndices =
-	  (GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
+	vertexIndices = (GLuint*)GLC_ARRAY_DATA(rendererData.vertexIndices);
 
 	glVertexPointer(2, GL_FLOAT, 0,
 			GLC_ARRAY_DATA(rendererData.vertexArray));
+      }
 
+      if (inContext->enableState.glObjects || (orientation > 0.f))
 	for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.geomBatches); i++) {
 	  glDrawRangeElements(geomBatch[i].mode, geomBatch[i].start,
 			      geomBatch[i].end, geomBatch[i].length,
-			      GL_UNSIGNED_INT, (void*)vertexIndices);
+			      GL_UNSIGNED_INT, vertexIndices);
 	  vertexIndices += geomBatch[i].length;
 	}
-      }
 
       /* If the extrusion is selected, the vertex array of the GLC_TRIANGLE will
        * be rendered a second time translated along the axis.
@@ -742,6 +741,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	else {
 	  glNormal3f(0.f, 0.f, -1.f);
 	  glTranslatef(0.f, 0.f, -1.f);
+	  orientation = -orientation;
 	}
 	extrude = (!extrude);
       }
@@ -901,9 +901,9 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   }
 
   if (inContext->enableState.glObjects && !GLEW_ARB_vertex_buffer_object) {
-      glScalef(sx64, sy64, 1.);
-      glEndList();
-      glCallList(inGlyph->glObject[index]);
+    glScalef(sx64, sy64, 1.);
+    glEndList();
+    glCallList(inGlyph->glObject[index]);
   }
 
  reset:

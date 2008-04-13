@@ -329,7 +329,9 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
   __glcSaveGLState(&GLState, inContext, GL_FALSE);
 
   if (inContext->renderState.renderStyle == GLC_LINE ||
-      inContext->renderState.renderStyle == GLC_TRIANGLE) {
+      (inContext->renderState.renderStyle == GLC_TRIANGLE
+       && !(inContext->enableState.glObjects
+	    && inContext->enableState.extrude))) {
     glEnableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_COLOR_ARRAY);
@@ -337,6 +339,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_EDGE_FLAG_ARRAY);
   }
+
+  if (inContext->renderState.renderStyle == GLC_TRIANGLE
+      && inContext->enableState.glObjects && inContext->enableState.extrude)
+    glEnable(GL_NORMALIZE);
 
   /* Set the texture environment if the render style is GLC_TEXTURE */
   if (inContext->renderState.renderStyle == GLC_TEXTURE) {
@@ -378,10 +384,22 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
     GLuint GLObjectIndex = inContext->renderState.renderStyle - 0x101;
     FT_ListNode node = NULL;
     float resolution = inContext->renderState.resolution / 72.;
+    GLfloat orientation = 1.f;
 
     if (inContext->renderState.renderStyle == GLC_TRIANGLE
-	&& inContext->enableState.extrude)
+	&& inContext->enableState.extrude) {
+      GLfloat transformMatrix[16];
+      GLfloat scale_x = GLC_POINT_SIZE;
+      GLfloat scale_y = GLC_POINT_SIZE;
+
+      __glcGetScale(inContext, transformMatrix, &scale_x, &scale_y);
+
+      if ((scale_x == 0.f) || (scale_y == 0.f))
+	return;
+
+      orientation = -transformMatrix[11];
       GLObjectIndex++;
+    }
 
     for (i = 0; i < inCount; i++) {
       if (*ptr >= 32) {
@@ -447,7 +465,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 	    switch(inContext->renderState.renderStyle) {
 	    case GLC_TEXTURE:
 	      if (GLEW_ARB_vertex_buffer_object) {
-		glNormal3f(0.f, 0.f, 1.f);
+		glNormal3f(0.f, 0.f, 1.f / resolution);
 		glDrawArrays(GL_QUADS, glyph->textureObject->position * 4, 4);
 	      }
 	      else
@@ -459,7 +477,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
 		glVertexPointer(2, GL_FLOAT, 0, NULL);
-		glNormal3f(0.f, 0.f, 1.f);
+		glNormal3f(0.f, 0.f, 1.f / resolution);
 		for (k = 0; k < glyph->nContour; k++)
 		  glDrawArrays(GL_LINE_LOOP, glyph->contours[k],
 			       glyph->contours[k+1] - glyph->contours[k]);
@@ -476,18 +494,20 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
 				glyph->glObject[2]);
 		glVertexPointer(2, GL_FLOAT, 0, NULL);
-		glNormal3f(0.f, 0.f, 1.f);
+		glNormal3f(0.f, 0.f, 1.f / resolution);
 
 		do {
-		  GLuint* indices = NULL;
+		  GLuint* vertexIndices = NULL;
 
-		  for (k = 0; k < glyph->nGeomBatch; k++) {
-		    glDrawRangeElements(glyph->geomBatches[k].mode,
-					glyph->geomBatches[k].start,
-					glyph->geomBatches[k].end,
-					glyph->geomBatches[k].length,
-					GL_UNSIGNED_INT, indices);
-		    indices += glyph->geomBatches[k].length;
+		  if (orientation > 0.f) {
+		    for (k = 0; k < glyph->nGeomBatch; k++) {
+		      glDrawRangeElements(glyph->geomBatches[k].mode,
+					  glyph->geomBatches[k].start,
+					  glyph->geomBatches[k].end,
+					  glyph->geomBatches[k].length,
+					  GL_UNSIGNED_INT, vertexIndices);
+		      vertexIndices += glyph->geomBatches[k].length;
+		    }
 		  }
 
 		  if (inContext->enableState.extrude) {
@@ -503,8 +523,9 @@ static void __glcRenderCountedString(__GLCcontext* inContext, GLCchar* inString,
 				      + 1) * 2);
 		    }
 		    else {
-		      glNormal3f(0.f, 0.f, -1.f);
+		      glNormal3f(0.f, 0.f, -1.f / resolution);
 		      glTranslatef(0.f, 0.f, -1.f);
+		      orientation = -orientation;
 		    }
 		    extrude = (!extrude);
 		  }
