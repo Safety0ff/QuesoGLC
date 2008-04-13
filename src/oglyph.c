@@ -127,12 +127,15 @@ void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 	glDeleteLists(This->glObject[2], 1);
     }
 
-    if (This->glObject[3])
-      glDeleteLists(This->glObject[3], 1);
+    if (This->glObject[3]) {
+      if (GLEW_ARB_vertex_buffer_object)
+	glDeleteBuffersARB(1, &This->glObject[3]);
+      else
+	glDeleteLists(This->glObject[3], 1);
+    }
 
     memset(This->glObject, 0, 4 * sizeof(GLuint));
   }
-
 }
 
 
