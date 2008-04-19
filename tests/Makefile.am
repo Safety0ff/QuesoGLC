@@ -26,6 +26,7 @@ EXTRA_PROGRAMS = test1 \
                  test11.4 \
                  test11.5 \
                  test11.6 \
+                 test11.7 \
                  testcontex \
                  testfont \
                  testmaster \
@@ -136,6 +137,10 @@ test11_5_LDADD = @GLUT_LIBS@ $(LDADD)
 test11_6_SOURCES = test11.c
 test11_6_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_LINE -DWITH_GL_OBJECTS
 test11_6_LDADD = @GLUT_LIBS@ $(LDADD)
+
+test11_7_SOURCES = test11.c
+test11_7_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_BITMAP
+test11_7_LDADD = @GLUT_LIBS@ $(LDADD)
 
 testrender_SOURCES = testrender.c
 testrender_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@

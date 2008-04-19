@@ -66,14 +66,26 @@ void display(void)
 
   /* Render "Hello world!" */
   glColor3f(1.f, 0.f, 0.f);
+#if (RENDER_STYLE == GLC_BITMAP)
+  glcLoadIdentity();
+  glcScale(100.f, 100.f);
+  glRasterPos2f(50.f, 50.f);
+#else
   glLoadIdentity();
   glScalef(100.f, 100.f, 1.f);
-  glTranslatef(0.3f, 0.5f, 0.f);
+  glTranslatef(0.5f, 0.5f, 0.f);
+#endif
   glcResolution(75.);
   glcRenderCountedString(4, "ABCDE");
+#if (RENDER_STYLE == GLC_BITMAP)
+  glcLoadIdentity();
+  glcScale(62.5f, 62.5f);
+  glRasterPos2f(50.f, 150.f);
+#else
   glLoadIdentity();
   glScalef(62.5f, 62.5f, 1.f);
-  glTranslatef(0.5f, 2.5f, 0.f);
+  glTranslatef(0.8f, 2.4f, 0.f);
+#endif
   glcResolution(120.);
   /* If the bug is not fixed, this string does not look same as the one above */
   glcRenderString("ABCDEFJ");
@@ -117,6 +129,8 @@ int main(int argc, char **argv)
   printf("Render style : GLC_TRIANGLE");
 #elif (RENDER_STYLE == GLC_LINE)
   printf("Render style : GLC_LINE");
+#elif (RENDER_STYLE == GLC_BITMAP)
+  printf("Render style : GLC_BITMAP");
 #endif
 
 #ifdef WITH_GL_OBJECTS
