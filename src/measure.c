@@ -234,7 +234,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
   __GLCcontext *ctx = NULL;
   GLint code = 0;
   GLfloat vector[14];
-  __GLCcharacter prevCode = { 0, NULL };
+  __GLCcharacter prevCode = { 0, NULL, NULL, {0.f, 0.f}};
 
   GLC_INIT_THREAD();
 
@@ -573,7 +573,7 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
   GLfloat* outVec = inContext->measurementStringBuffer;
-  __GLCcharacter prevCode = { 0, NULL };
+  __GLCcharacter prevCode = { 0, NULL, NULL, {0.f, 0.f}};
   GLint shift = 1;
 
   if (inContext->renderState.renderStyle == GLC_BITMAP) {

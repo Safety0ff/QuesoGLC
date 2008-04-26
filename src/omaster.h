@@ -37,11 +37,11 @@ struct __GLCmasterRec {
 
 __GLCmaster* __glcMasterCreate(GLint inMaster, __GLCcontext* inContext);
 void __glcMasterDestroy(__GLCmaster* This);
-GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
-				 GLint inIndex);
+const GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
+				       __GLCcontext* inContext, GLint inIndex);
 GLboolean __glcMasterIsFixedPitch(__GLCmaster* This);
 GLint __glcMasterFaceCount(__GLCmaster* This, __GLCcontext* inContext);
-GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
+const GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
 			     GLCenum inAttrib);
 __GLCmaster* __glcMasterFromFamily(__GLCcontext* inContext, GLCchar8* inFamily);
 __GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode);

@@ -72,6 +72,5 @@ inline GLboolean __glcFontOutlineDecompose(__GLCfont* This,
 inline GLboolean __glcFontGetBitmap(__GLCfont* This, GLint inWidth,
 				    GLint inHeight, void* inBuffer,
 				    __GLCcontext* inContext);
-inline GLboolean __glcFontOutlineEmpty(__GLCfont* This,
-				       __GLCcontext* inContext);
+inline GLboolean __glcFontOutlineEmpty(__GLCfont* This);
 #endif /* __glc_ofont_h */

@@ -132,7 +132,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   __GLCcontext *ctx = NULL;
   __GLCmaster *master = NULL;
   __GLCcharMap *charMap = NULL;
-  GLCchar8* string = NULL;
+  const GLCchar8* string = NULL;
   GLCchar* element = NULL;
 
   GLC_INIT_THREAD();
@@ -174,7 +174,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
       __glcMasterDestroy(master);
       return GLC_NONE;
     }
-    string = __glcCharMapGetCharNameByIndex(charMap, inIndex, ctx);
+    string = __glcCharMapGetCharNameByIndex(charMap, inIndex);
     if (!string) {
       __glcMasterDestroy(master);
       __glcCharMapDestroy(charMap);
@@ -197,8 +197,6 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   __glcMasterDestroy(master);
   if (charMap)
     __glcCharMapDestroy(charMap);
-  else
-      free(string);
 
   return element;
 }
@@ -244,25 +242,31 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
     __GLCcharMap* charMap = NULL;
     GLCchar* result = NULL;
     GLint code = 0;
+    const GLCchar8* name = NULL;
 
     charMap = __glcCharMapCreate(master, ctx);
     if (!charMap) {
       __glcMasterDestroy(master);
-      return GLC_NONE;
+      return NULL;
     }
 
     /* Get the character code converted to the UCS-4 format */
     code = __glcConvertGLintToUcs4(ctx, inCode);
     if (code < 0)
-      return GLC_NONE;
+      return NULL;
 
-    result = __glcCharMapGetCharName(charMap, code, ctx);
+    name = __glcCharMapGetCharName(charMap, code);
+    if (!name)
+      return NULL;
+
+    result = __glcConvertFromUtf8ToBuffer(ctx, name,
+					  ctx->stringState.stringType);
     __glcMasterDestroy(master);
     __glcCharMapDestroy(charMap);
     return result;
   }
   else
-    return GLC_NONE;
+    return NULL;
 }
 
 
@@ -304,6 +308,7 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
 const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
   __GLCcontext *ctx = NULL;
+  const GLCchar8* info = NULL;
   GLCchar *buffer = NULL;
   __GLCmaster* master = NULL;
 
@@ -330,7 +335,8 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
-  buffer = __glcMasterGetInfo(master, ctx, inAttrib);
+  info = __glcMasterGetInfo(master, ctx, inAttrib);
+  buffer = __glcConvertFromUtf8ToBuffer(ctx, info, ctx->stringState.stringType);
   __glcMasterDestroy(master);
 
   return buffer;
@@ -465,14 +471,14 @@ static void __glcAddCatalog(const GLCchar* inCatalog, GLboolean inAppend)
   #ifdef __WIN32__
   if (_access((const char*)inCatalog, 0)) {
   #else
-  if (access((char *)inCatalog, R_OK) < 0) {
+  if (access((const char *)inCatalog, R_OK) < 0) {
   #endif
     /* May be something more explicit should be done */
     __glcRaiseError(GLC_PARAMETER_ERROR);
 	return;
   }
   /* Check that 'inCatalog' is a directory */
-  if (stat((char *)inCatalog, &dirStat) < 0) {
+  if (stat((const char *)inCatalog, &dirStat) < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
 	return;
   }

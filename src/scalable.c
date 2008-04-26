@@ -490,7 +490,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 				       1., 0., 0., 0., 0., 1.};
   GLfloat sx64 = 64. * scale_x;
   GLfloat sy64 = 64. * scale_y;
-  int index = 0;
+  int objectIndex = 0;
   GLfloat orientation = 1.f;
 
   rendererData.vertexArray = inContext->vertexArray;
@@ -552,10 +552,10 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 
   switch(inContext->renderState.renderStyle) {
   case GLC_LINE:
-    index = 0;
+    objectIndex = 0;
     break;
   case GLC_TRIANGLE:
-    index = inContext->enableState.extrude ? 3 : 2;
+    objectIndex = inContext->enableState.extrude ? 3 : 2;
     break;
   }
 
@@ -571,7 +571,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
 	(GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
 
       inGlyph->nContour = GLC_ARRAY_LENGTH(rendererData.endContour) - 1;
-      inGlyph->contours = __glcMalloc(GLC_ARRAY_SIZE(rendererData.endContour));
+      inGlyph->contours =
+	(GLint*)__glcMalloc(GLC_ARRAY_SIZE(rendererData.endContour));
       if (!inGlyph->contours) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	goto reset;
@@ -614,13 +615,13 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
       glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, inGlyph->glObject[2]);
     }
     else {
-      inGlyph->glObject[index] = glGenLists(1);
-      if (!inGlyph->glObject[index]) {
+      inGlyph->glObject[objectIndex] = glGenLists(1);
+      if (!inGlyph->glObject[objectIndex]) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	goto reset;
       }
 
-      glNewList(inGlyph->glObject[index], GL_COMPILE);
+      glNewList(inGlyph->glObject[objectIndex], GL_COMPILE);
       glScalef(1./sx64, 1./sy64, 1.);
     }
   }
@@ -684,7 +685,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
       inGlyph->nGeomBatch = GLC_ARRAY_LENGTH(rendererData.geomBatches);
       inGlyph->geomBatches =
-	__glcMalloc(GLC_ARRAY_SIZE(rendererData.geomBatches));
+	(__GLCgeomBatch*)__glcMalloc(GLC_ARRAY_SIZE(rendererData.geomBatches));
 
       if (!inGlyph->geomBatches) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
@@ -759,7 +760,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     GLuint* endContour = (GLuint*)GLC_ARRAY_DATA(rendererData.endContour);
     GLfloat (*vertexArray)[2] =
       (GLfloat(*)[2])GLC_ARRAY_DATA(rendererData.vertexArray);
-    int i = 0, j = 0;
+    int i = 0;
+    GLuint j = 0;
     GLfloat* extrudeArray = NULL;
     GLfloat* interleavedArray = NULL;
 
@@ -905,7 +907,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   if (inContext->enableState.glObjects && !GLEW_ARB_vertex_buffer_object) {
     glScalef(sx64, sy64, 1.);
     glEndList();
-    glCallList(inGlyph->glObject[index]);
+    glCallList(inGlyph->glObject[objectIndex]);
   }
 
  reset:

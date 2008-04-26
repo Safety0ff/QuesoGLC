@@ -60,6 +60,15 @@
 #include "internal.h"
 #include <stdlib.h>
 
+#ifdef __GNUC__
+__attribute__((constructor)) void init(void);
+__attribute__((destructor)) void fini(void);
+#else
+void _init(void);
+void _fini(void);
+#endif
+
+
 
 
 /* Since the common area can be accessed by any thread, this function should

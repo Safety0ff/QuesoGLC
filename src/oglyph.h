@@ -36,7 +36,6 @@ struct __GLCglyphRec {
 
   GLCulong index;
   GLCulong codepoint;
-  GLboolean isSpacingChar;
   /* GL objects management */
   __GLCatlasElement* textureObject;
   GLuint glObject[4];
@@ -49,6 +48,7 @@ struct __GLCglyphRec {
   GLfloat advance[2];
   GLboolean advanceCached;
   GLboolean boundingBoxCached;
+  GLboolean isSpacingChar;
 };
 
 __GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode);

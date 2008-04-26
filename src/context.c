@@ -235,8 +235,8 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
   case GLC_MIPMAP:
     ctx->enableState.mipmap = value;
     if (ctx->atlas.id) {
-      GLint boundTexture = 0;
-      glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTexture);
+      GLuint boundTexture = 0;
+      glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&boundTexture);
       glBindTexture(GL_TEXTURE_2D, ctx->atlas.id);
       if (ctx->enableState.mipmap)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -413,7 +413,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
   __GLCcontext *ctx = NULL;
   GLCchar8* catalog = NULL;
   GLCchar* buffer = NULL;
-  int length = 0;
+  size_t length = 0;
 
   GLC_INIT_THREAD();
 
@@ -778,11 +778,11 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   static const char* __glcExtensions2 = " GLC_QSO_buffer_object";
   static const char* __glcExtensions3 = " GLC_QSO_extrude GLC_QSO_hinting"
     " GLC_QSO_kerning GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name";
-  static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
+  static const GLCchar8* __glcVendor = (const GLCchar8*) "The QuesoGLC Project";
 #ifdef HAVE_CONFIG_H
-  static GLCchar* __glcRelease = (GLCchar*) PACKAGE_VERSION;
+  static const GLCchar8* __glcRelease = (const GLCchar8*) PACKAGE_VERSION;
 #else
-  static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
+  static const GLCchar8* __glcRelease = (const GLCchar8*) QUESOGLC_VERSION;
 #endif
 
   __GLCcontext *ctx = NULL;
@@ -811,7 +811,7 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   switch(inAttrib) {
   case GLC_EXTENSIONS:
     {
-      char __glcExtensions[256];
+      GLCchar8 __glcExtensions[256];
 
       assert((strlen(__glcExtensions1) + strlen(__glcExtensions2)
 	      + strlen(__glcExtensions3)) <= 256);
@@ -822,14 +822,14 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 	strcat((char*)__glcExtensions, __glcExtensions2);
       strcat((char*)__glcExtensions, __glcExtensions3);
 
-      return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcExtensions,
+      return __glcConvertFromUtf8ToBuffer(ctx, __glcExtensions,
 					  ctx->stringState.stringType);
     }
   case GLC_RELEASE:
-    return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcRelease,
+    return __glcConvertFromUtf8ToBuffer(ctx, __glcRelease,
 					ctx->stringState.stringType);
   case GLC_VENDOR:
-    return __glcConvertFromUtf8ToBuffer(ctx, (GLCchar*)__glcVendor,
+    return __glcConvertFromUtf8ToBuffer(ctx, __glcVendor,
 					ctx->stringState.stringType);
   default:
     return GLC_NONE;

@@ -48,12 +48,11 @@ void __glcCharMapDestroy(__GLCcharMap* This);
 void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode,
 			 __GLCglyph* inGlyph);
 void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode);
-GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
-				 __GLCcontext* inContext);
+const GLCchar8* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode);
 __GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode);
 GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode);
-GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
-					__GLCcontext* inContext);
+const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
+					       GLint inIndex);
 GLint __glcCharMapGetCount(__GLCcharMap* This);
 GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This);
 GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This);

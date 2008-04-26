@@ -47,25 +47,25 @@ void* __glcRealloc(void *ptr, size_t size)
 
 
 /* Find a token in a list of tokens separated by 'separator' */
-GLCchar* __glcFindIndexList(const GLCchar* inString, GLuint inIndex,
-			    const GLCchar* inSeparator)
+GLCchar8* __glcFindIndexList(GLCchar8* inString, GLuint inIndex,
+			     const GLCchar8* inSeparator)
 {
-    GLuint occurence = 0;
-    char *s = (char *)inString;
-    char *sep = (char *)inSeparator;
+  GLuint occurence = 0;
+  GLCchar8* s = inString;
+  const GLCchar8* sep = inSeparator;
 
-    if (!inIndex)
-	return (GLCchar *)inString;
+  if (!inIndex)
+    return s;
 
-    for (; *s != '\0'; s++) {
-        if (*s == *sep) {
-            occurence++;
-            if (occurence == inIndex)
-                break;
-        }
+  for (; *s != '\0'; s++) {
+    if (*s == *sep) {
+      occurence++;
+      if (occurence == inIndex)
+	break;
     }
+  }
 
-    return (GLCchar *) s;
+  return (GLCchar8 *) s;
 }
 
 

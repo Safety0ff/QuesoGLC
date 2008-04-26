@@ -258,10 +258,10 @@ __GLCcontext* __glcContextCreate(GLint inContext)
    */
   /*Check if the GLC_PATH environment variables are exported */
   if (getenv("GLC_CATALOG_LIST") || getenv("GLC_PATH")) {
-    char *path = NULL;
-    char *begin = NULL;
-    char *sepPos = NULL;
-    char *separator = getenv("GLC_LIST_SEPARATOR");
+    GLCchar8 *path = NULL;
+    GLCchar8 *begin = NULL;
+    GLCchar8 *sepPos = NULL;
+    const GLCchar8 *separator = (GLCchar8*)getenv("GLC_LIST_SEPARATOR");
 
     /* Get the list separator */
     if (!separator) {
@@ -270,12 +270,12 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 	 * used after the drive letter. The semicolon is used for the PATH
 	 * variable, so we use it for consistency.
 	 */
-	separator = (char *)";";
+      separator = (const GLCchar8*)";";
 #else
 	/* POSIX platforms uses colon-separated lists for the paths variables
 	 * so we keep with it for consistency.
 	 */
-	separator = (char *)":";
+	separator = (const GLCchar8*)":";
 #endif
     }
 
@@ -284,48 +284,48 @@ __GLCcontext* __glcContextCreate(GLint inContext)
      */
     if (getenv("GLC_CATALOG_LIST"))
 #ifdef __WIN32__
-      path = _strdup(getenv("GLC_CATALOG_LIST"));
+      path = (GLCchar8*)_strdup(getenv("GLC_CATALOG_LIST"));
 #else
-      path = strdup(getenv("GLC_CATALOG_LIST"));
+    path = (GLCchar8*)strdup(getenv("GLC_CATALOG_LIST"));
 #endif
     else if (getenv("GLC_PATH")) {
       /* Try GLC_PATH which uses the same format than PATH */
 #ifdef __WIN32__
-      path = _strdup(getenv("GLC_PATH"));
+      path = (GLCchar8*)_strdup(getenv("GLC_PATH"));
 #else
-      path = strdup(getenv("GLC_PATH"));
+      path = (GLCchar8*)strdup(getenv("GLC_PATH"));
 #endif
     }
 
     if (path) {
       /* Get each path and add the corresponding masters to the current
        * context */
-      GLCchar8* dup = NULL;
+      GLCchar8* duplicated = NULL;
 
       begin = path;
       do {
-	sepPos = (char *)__glcFindIndexList(begin, 1, separator);
+	sepPos = __glcFindIndexList(begin, 1, separator);
 
         if (*sepPos)
 	  *(sepPos++) = 0;
 
 #ifdef __WIN32__
-        dup = (GLCchar8*)_strdup(begin);
+        duplicated = (GLCchar8*)_strdup((char*)begin);
 #else
-        dup = (GLCchar8*)strdup(begin);
+        duplicated = (GLCchar8*)strdup((char*)begin);
 #endif
-        if (!dup) {
+        if (!duplicated) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
         }
         else {
-	  if (!__glcArrayAppend(This->catalogList, &dup))
-            free(dup);
+	  if (!__glcArrayAppend(This->catalogList, &duplicated))
+            free(duplicated);
           else if (!FcConfigAppFontAddDir(This->config,
                                           (const unsigned char*)begin)) {
             __glcArrayRemove(This->catalogList,
                              GLC_ARRAY_LENGTH(This->catalogList));
 	    __glcRaiseError(GLC_RESOURCE_ERROR);
-            free(dup);
+            free(duplicated);
           }
         }
 
@@ -578,7 +578,7 @@ __GLCfont* __glcContextGetFont(__GLCcontext *This, GLint inCode)
  * is provided to reduce its size so it should be freed and re-allocated
  * manually in case of emergency ;-)
  */
-GLCchar* __glcContextQueryBuffer(__GLCcontext *This, int inSize)
+GLCchar* __glcContextQueryBuffer(__GLCcontext *This, size_t inSize)
 {
   GLCchar* buffer;
 
@@ -699,25 +699,25 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
 void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 {
 #ifdef __WIN32__
-  GLCchar8* dup = (GLCchar8*)_strdup(inCatalog);
+  GLCchar8* duplicated = (GLCchar8*)_strdup((const char*)inCatalog);
 #else
-  GLCchar8* dup = (GLCchar8*)strdup(inCatalog);
+  GLCchar8* duplicated = (GLCchar8*)strdup((const char*)inCatalog);
 #endif
 
-  if (!dup) {
+  if (!duplicated) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  if (!__glcArrayAppend(This->catalogList, &dup)) {
-    free(dup);
+  if (!__glcArrayAppend(This->catalogList, &duplicated)) {
+    free(duplicated);
     return;
   }
 
   if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)inCatalog)) {
     __glcArrayRemove(This->catalogList, GLC_ARRAY_LENGTH(This->catalogList));
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    free(dup);
+    free(duplicated);
     return;
   }
   __glcContextUpdateHashTable(This);
@@ -729,25 +729,25 @@ void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 {
 #ifdef __WIN32__
-  GLCchar8* dup = (GLCchar8*)_strdup(inCatalog);
+  GLCchar8* duplicated = (GLCchar8*)_strdup((const char*)inCatalog);
 #else
-  GLCchar8* dup = (GLCchar8*)strdup(inCatalog);
+  GLCchar8* duplicated = (GLCchar8*)strdup((const char*)inCatalog);
 #endif
 
-  if (!dup) {
+  if (!duplicated) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return;
   }
 
-  if (!__glcArrayInsert(This->catalogList, 0, &dup)) {
-    free(dup);
+  if (!__glcArrayInsert(This->catalogList, 0, &duplicated)) {
+    free(duplicated);
     return;
   }
 
   if (!FcConfigAppFontAddDir(This->config, (const unsigned char*)inCatalog)) {
     __glcArrayRemove(This->catalogList, 0);
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    free(dup);
+    free(duplicated);
     return;
   }
   __glcContextUpdateHashTable(This);
@@ -809,7 +809,6 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
     GLCchar32 hashValue = 0;
     GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(This->masterHashTable);
     int length = GLC_ARRAY_LENGTH(This->masterHashTable);
-    int i = 0;
     __GLCmaster* master = __glcMasterCreate(font->parentMasterID, This);
 
     if (!master)

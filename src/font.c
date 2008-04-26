@@ -531,7 +531,7 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
     /* Remove the character from the map */
     __glcCharMapRemoveChar(font->charMap, code);
   else {
-    GLCchar* buffer = NULL;
+    GLCchar8* buffer = NULL;
     GLCulong mappedCode  = 0;
     __GLCglyph* glyph = NULL;
     GLint error = 0;
@@ -595,11 +595,11 @@ GLint APIENTRY glcGenFontID(void)
     font = (__GLCfont*)node->data;
 
     if (font->id == id) {
-      id++;
-      if (id > 0x7fffffff) {
+      if (id >= 0x7fffffff) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return 0;
       }
+      id++;
       node = ctx->fontList.head;
     }
   }
@@ -608,11 +608,11 @@ GLint APIENTRY glcGenFontID(void)
     font = (__GLCfont*)node->data;
 
     if (font->id == id) {
-      id++;
-      if (id > 0x7fffffff) {
+      if (id >= 0x7fffffff) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return 0;
       }
+      id++;
       node = ctx->genFontList.head;
     }
   }
@@ -719,13 +719,14 @@ const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib,
 {
   __GLCfont* font = NULL;
   __GLCcontext* ctx = NULL;
+  const GLCchar8* name = NULL;
 
   GLC_INIT_THREAD();
 
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
   if (!font)
-    return GLC_NONE;
+    return NULL;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
 
@@ -733,10 +734,15 @@ const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib,
   case GLC_FACE_LIST:
     return glcGetMasterListc(font->parentMasterID, inAttrib, inIndex);
   case GLC_CHAR_LIST:
-    return __glcCharMapGetCharNameByIndex(font->charMap, inIndex, ctx);
+    name = __glcCharMapGetCharNameByIndex(font->charMap, inIndex);
+    if (!name)
+      return NULL;
+
+    return __glcConvertFromUtf8ToBuffer(ctx, name,
+					ctx->stringState.stringType);
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
 }
 
@@ -782,7 +788,10 @@ const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
   if (code < 0)
     return GLC_NONE;
 
-  return __glcCharMapGetCharName(font->charMap, code, ctx);
+  return __glcConvertFromUtf8ToBuffer(ctx,
+				      __glcCharMapGetCharName(font->charMap,
+							      code),
+				      ctx->stringState.stringType);
 }
 
 

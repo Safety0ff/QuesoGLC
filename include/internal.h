@@ -133,7 +133,7 @@ struct __GLCrendererDataRec {
 
 struct __GLCdataCodeFromNameRec {
   GLint code;
-  GLCchar* name;
+  const char* name;
 };
 
 struct __GLCgeomBatchRec {
@@ -187,8 +187,8 @@ extern void __glcFree(void* ptr);
 extern void* __glcRealloc(void* ptr, size_t size);
 
 /* Find a token in a list of tokens separated by 'separator' */
-extern GLCchar* __glcFindIndexList(const GLCchar* inList, GLuint inIndex,
-				   const GLCchar* inSeparator);
+extern GLCchar8* __glcFindIndexList(GLCchar8* inList, GLuint inIndex,
+				    const GLCchar8* inSeparator);
 
 /* Arrays that contain the Unicode name of characters */
 extern const __GLCdataCodeFromName __glcCodeFromNameArray[];
@@ -197,10 +197,10 @@ extern const GLint __glcMaxCode;
 extern const GLint __glcCodeFromNameSize;
 
 /* Find a Unicode name from its code */
-extern GLCchar* __glcNameFromCode(GLint code);
+extern const GLCchar8* __glcNameFromCode(GLint code);
 
 /* Find a Unicode code from its name */
-extern GLint __glcCodeFromName(GLCchar* name);
+extern GLint __glcCodeFromName(GLCchar8* name);
 
 /* Duplicate a string and convert if from any Unicode format to UTF-8 format */
 extern GLCchar8* __glcConvertToUtf8(const GLCchar* inString,

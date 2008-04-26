@@ -269,11 +269,8 @@ void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
  * can return 'LATIN CAPITAL LETTER B' whereas inCode contained 65 (which is
  * the Unicode code point of 'LATIN CAPITAL LETTER A').
  */
-GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
-				 __GLCcontext* inContext)
+const GLCchar8* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode)
 {
-  GLCchar *buffer = NULL;
-  GLCchar8* name = NULL;
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
   GLint code = 0;
@@ -309,17 +306,7 @@ GLCchar* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode,
       return NULL;
   }
 
-  name = __glcNameFromCode(code);
-  if (!name)
-    return NULL;
-
-  /* Convert the Unicode to the current string type */
-  buffer = __glcConvertFromUtf8ToBuffer(inContext, name,
-					inContext->stringState.stringType);
-  if (!buffer)
-    return NULL;
-
-  return buffer;
+  return __glcNameFromCode(code);
 }
 
 
@@ -408,8 +395,8 @@ static GLCchar32 __glcCharSetPopCount(GLCchar32 c1)
 /* Get the name of the character which is stored at rank 'inIndex' in the
  * FcCharSet of the face.
  */
-GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
-					__GLCcontext* inContext)
+const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
+					       GLint inIndex)
 {
   int i = 0;
   int j = 0;
@@ -449,19 +436,7 @@ GLCchar* __glcCharMapGetCharNameByIndex(__GLCcharMap* This, GLint inIndex,
 	  /* Check if we have reached the rank inIndex */
 	  if (count == (GLCchar32)inIndex + 1) {
 	    /* Get the character name */
-	    GLCchar8* name = __glcNameFromCode(base + (i << 5) + j);
-	    GLCchar* buffer = NULL;
-
-	    if (!name)
-	      return GLC_NONE;
-
-	    /* Performs the conversion to the current string type */
-	    buffer = __glcConvertFromUtf8ToBuffer(inContext, name,
-					inContext->stringState.stringType);
-	    if (!buffer)
-	      return GLC_NONE;
-
-	    return buffer;
+	    return __glcNameFromCode(base + (i << 5) + j);
 	  }
 	}
       }

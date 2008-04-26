@@ -67,9 +67,9 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 GLCulong inGlyphIndex, GLfloat* outVec,
 				 GLfloat inScaleX, GLfloat inScaleY,
 				 __GLCcontext* inContext);
-GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
-				    __GLCcontext* inContext,
-				    GLCenum inAttrib);
+const GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
+					   __GLCcontext* inContext,
+					   GLCenum inAttrib);
 GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
 				   __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
@@ -88,8 +88,7 @@ GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
 GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
                                  GLint inHeight, void* inBuffer,
                                  __GLCcontext* inContext);
-GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This,
-                                    __GLCcontext* inContext);
+GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This);
 __GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
 				      __GLCcontext* inContext);
 #endif /* __glc_ofacedesc_h */

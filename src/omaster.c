@@ -133,8 +133,8 @@ void __glcMasterDestroy(__GLCmaster* This)
 
 
 /* Get the style name of the face identified by inIndex  */
-GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
-				 GLint inIndex)
+const GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
+				       __GLCcontext* inContext, GLint inIndex)
 {
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
@@ -169,7 +169,6 @@ GLCchar8* __glcMasterGetFaceName(__GLCmaster* This, __GLCcontext* inContext,
     int fixed = 0;
     FcChar8* foundry = NULL;
     FcBool outline = FcFalse;
-    FcResult result = FcResultMatch;
     FcBool equal = FcFalse;
 
     /* Check whether the glyphs are outlines */
@@ -330,24 +329,24 @@ GLint __glcMasterFaceCount(__GLCmaster* This, __GLCcontext* inContext)
  * accesses, informations such as the master format, full name or version are
  * read "just in time" i.e. only when the user requests them.
  */
-GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
-			     GLCenum inAttrib)
+const GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
+				   GLCenum inAttrib)
 {
   __GLCfaceDescriptor* faceDesc = NULL;
   FcResult result = FcResultMatch;
-  GLCchar8* string = NULL;
-  GLCchar *buffer = NULL;
+  GLCchar8 *string = NULL;
+  const GLCchar8 *buffer = NULL;
 
   /* Get the Unicode string which corresponds to the requested attribute */
   switch(inAttrib) {
   case GLC_FAMILY:
     result = FcPatternGetString(This->pattern, FC_FAMILY, 0, &string);
     assert(result != FcResultTypeMismatch);
-    break;
+    return string;
   case GLC_VENDOR:
     result = FcPatternGetString(This->pattern, FC_FOUNDRY, 0, &string);
     assert(result != FcResultTypeMismatch);
-    break;
+    return string;
   case GLC_VERSION:
   case GLC_FULL_NAME_SGI:
   case GLC_MASTER_FORMAT:
@@ -362,26 +361,23 @@ GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
       return NULL;
     }
 
-    string = __glcFaceDescGetFontFormat(faceDesc, inContext, inAttrib);
-    break;
-  }
-
-  if (string) {
-    /* Convert the string and store it in the context buffer */
-    buffer = __glcConvertFromUtf8ToBuffer(inContext, string,
-					  inContext->stringState.stringType);
-  }
-  else
-    __glcRaiseError(GLC_RESOURCE_ERROR);
-
-  if (faceDesc) {
+    buffer = __glcFaceDescGetFontFormat(faceDesc, inContext, inAttrib);
+    if (faceDesc) {
 #ifndef GLC_FT_CACHE
-    __glcFaceDescClose(faceDesc);
+      __glcFaceDescClose(faceDesc);
 #endif
-    __glcFaceDescDestroy(faceDesc, inContext);
+      __glcFaceDescDestroy(faceDesc, inContext);
+    }
+
+    return buffer;
   }
 
-  return buffer;
+
+  /* The program is not supposed to reach the end of the function.
+   * The following return is there to prevent the compiler to issue
+   * a warning about 'control reaching the end of a non-void function'.
+   */
+    return (const GLCchar8*)"";
 }
 
 

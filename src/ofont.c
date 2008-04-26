@@ -368,7 +368,7 @@ inline GLboolean __glcFontGetBitmap(__GLCfont* This, GLint inWidth,
 /* Chek if the outline of the glyph is empty (which means it is a spacing
  * character).
  */
-inline GLboolean __glcFontOutlineEmpty(__GLCfont* This, __GLCcontext* inContext)
+inline GLboolean __glcFontOutlineEmpty(__GLCfont* This)
 {
-  return __glcFaceDescOutlineEmpty(This->faceDesc, inContext);
+  return __glcFaceDescOutlineEmpty(This->faceDesc);
 }

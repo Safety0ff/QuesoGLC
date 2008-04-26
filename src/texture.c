@@ -436,8 +436,9 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
       GLfloat* data = NULL;
       __GLCatlasElement* atlasNode = inGlyph->textureObject;
 
-      buffer = __glcMalloc(inContext->atlasWidth * inContext->atlasHeight * 20
-			   * sizeof(GLfloat));
+      buffer = (GLfloat*)__glcMalloc(inContext->atlasWidth
+				     * inContext->atlasHeight * 20
+				     * sizeof(GLfloat));
       if (!buffer) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -456,7 +457,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
        * VBO.
        */
       if (inContext->atlasCount > 1) {
-	data = glMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_ONLY);
+	data = (GLfloat*)glMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_ONLY);
 	if (!data) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
 	  __glcFree(buffer);

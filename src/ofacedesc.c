@@ -274,7 +274,7 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 {
   __GLCfaceDescriptor* file = (__GLCfaceDescriptor*)inFile;
   GLCchar8 *fileName = NULL;
-  int index = 0;
+  int fileIndex = 0;
   FcResult result = FcResultMatch;
   FT_Error error;
 
@@ -282,10 +282,10 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
   result = FcPatternGetString(file->pattern, FC_FILE, 0, &fileName);
   assert(result != FcResultTypeMismatch);
   /* get the index of the font in font file */
-  result = FcPatternGetInteger(file->pattern, FC_INDEX, 0, &index);
+  result = FcPatternGetInteger(file->pattern, FC_INDEX, 0, &fileIndex);
   assert(result != FcResultTypeMismatch);
 
-  error = FT_New_Face(inLibrary, (const char*)fileName, index, outFace);
+  error = FT_New_Face(inLibrary, (const char*)fileName, fileIndex, outFace);
 
   if (error) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -545,9 +545,9 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 /* Use FreeType to determine in which format the face is stored in its file :
  * Type1, TrueType, OpenType, ...
  */
-GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
-				     __GLCcontext* inContext,
-				     GLCenum inAttrib)
+const GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
+					   __GLCcontext* inContext,
+					   GLCenum inAttrib)
 {
   static GLCchar8 unknown[] = "Unknown";
 #ifndef FT_XFREE86_H
@@ -567,7 +567,7 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
   FT_WinFNT_HeaderRec aheader;
 #endif
   GLCuint count = 0;
-  GLCchar8* result = NULL;
+  const GLCchar8* result = NULL;
 
   /* Open the face */
 #ifdef GLC_FT_CACHE
@@ -586,7 +586,7 @@ GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
      * added to the public API. It can be safely used nonetheless as long as
      * the existence of FT_XFREE86_H is checked.
      */
-    result = (GLCchar8*)FT_Get_X11_Font_Format(face);
+    result = (const GLCchar8*)FT_Get_X11_Font_Format(face);
 #  ifndef GLC_FT_CACHE
     __glcFaceDescClose(This);
 #  endif /* GLC_FT_CACHE */
@@ -1086,7 +1086,7 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
 
   pixmap.width = inWidth;
   pixmap.rows = inHeight;
-  pixmap.buffer = inBuffer;
+  pixmap.buffer = (unsigned char*)inBuffer;
 
   if (inContext->renderState.renderStyle == GLC_BITMAP) {
     /* Calculate pitch to upper 8 byte boundary for 1 bit/pixel, i.e. ceil() */
@@ -1141,8 +1141,7 @@ GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
 /* Chek if the outline of the glyph is empty (which means it is a spacing
  * character).
  */
-GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This,
-                                    __GLCcontext* inContext)
+GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This)
 {
   FT_Outline outline = This->face->glyph->outline;
 
