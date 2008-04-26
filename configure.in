@@ -143,6 +143,8 @@ fi
 if (test "x$no_fribidi" = "xyes"); then
   FRIBIDI_OBJ="libGLC_la-fribidi.lo libGLC_la-fribidi_char_type.lo \
                libGLC_la-fribidi_mirroring.lo libGLC_la-fribidi_types.lo"
+else
+  PKGCONFIG_REQUIREMENTS="fribidi"
 fi
 
 # Checks for OpenGL and related libraries.
@@ -178,6 +180,9 @@ fi
 
 if (test "x$no_glew" = "xyes"); then
   GLEW_OBJ="libGLC_la-glew.lo"
+  PKGCONFIG_LIBS_PRIVATE="$PTHREAD_LIBS"
+else
+  PKGCONFIG_LIBS_PRIVATE="-lGLEW $PTHREAD_LIBS"
 fi
 
 # Special flags for MinGW32 build.
@@ -232,13 +237,16 @@ AC_CONFIG_FILES([Makefile
                  build/Makefile
                  include/Makefile
                  tests/Makefile
-                 examples/Makefile])
+                 examples/Makefile
+                 quesoglc.pc])
 
 AC_SUBST(EXECUTABLES)
 AC_SUBST(TESTS_WITH_GLUT)
 AC_SUBST(FRIBIDI_OBJ)
 AC_SUBST(GLEW_OBJ)
 AC_SUBST(GLEW_CFLAGS)
+AC_SUBST(PKGCONFIG_REQUIREMENTS)
+AC_SUBST(PKGCONFIG_LIBS_PRIVATE)
 AC_OUTPUT
 
 

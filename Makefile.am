@@ -65,6 +65,9 @@ DOCS = docs/body_comparison.eps \
        docs/tutorial.eps \
        docs/tutorial.png
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = quesoglc.pc
+
 dist-hook:
 	mkdir -p -- $(distdir)/build/m4
 

@@ -44,6 +44,7 @@ EXTRA_libGLC_la_SOURCES = $(top_builddir)/src/fribidi/fribidi.h \
 
 libGLC_la_CFLAGS = -I$(top_builddir)/src \
                    -D_REENTRANT \
+                   -Werror \
                    @GLEW_CFLAGS@ \
                    @PTHREAD_CFLAGS@ \
                    @FONTCONFIG_CFLAGS@ \
