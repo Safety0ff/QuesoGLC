@@ -104,9 +104,9 @@ typedef void GLCchar;
 typedef GLint GLCenum;
 
 #if defined(__cplusplus)
-typedef GLboolean (CALLBACK *GLCfunc)(...);
+typedef GLboolean (CALLBACK *GLCfunc)(GLint);
 #else
-typedef GLboolean (CALLBACK *GLCfunc)();
+typedef GLboolean (CALLBACK *GLCfunc)(GLint);
 #endif
 
 /*************************************************************/

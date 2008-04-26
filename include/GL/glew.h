@@ -2391,7 +2391,7 @@ GLEWAPI GLboolean glewContextIsSupported (GLEWContext* ctx, const char* name);
 
 #else /* GLEW_MX */
 
-GLEWAPI GLenum glewInit ();
+GLEWAPI GLenum glewInit (void);
 GLEWAPI GLboolean glewIsSupported (const char* name);
 #define glewIsExtensionSupported(x) glewIsSupported(x)
 
