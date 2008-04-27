@@ -12,5 +12,5 @@ Version: @VERSION@
 Requires: fontconfig, freetype2, @PKGCONFIG_REQUIREMENTS@
 Conflicts:
 Libs: -L${libdir} -lGLC
-Libs.private: -lm -lGL -lGLU @PKGCONFIG_LIBS_PRIVATE@
-Cflags: -I${includedir}
+Libs.private: @PKGCONFIG_LIBS_PRIVATE@
+Cflags: -I${includedir} @PKGCONFIG_INCLUDE@

@@ -162,6 +162,9 @@ if (test "x$no_glu" = "xyes"); then
   AC_MSG_ERROR([GLU library not found])
 fi
 
+PKGCONFIG_LIBS_PRIVATE="$PHREAD_LIBS $GLU_LIBS"
+PKGCONFIG_INCLUDE="$GLU_CFLAGS"
+
 # Checks for GLEW library.
 # ------------------------
 
@@ -180,9 +183,8 @@ fi
 
 if (test "x$no_glew" = "xyes"); then
   GLEW_OBJ="libGLC_la-glew.lo"
-  PKGCONFIG_LIBS_PRIVATE="$PTHREAD_LIBS"
 else
-  PKGCONFIG_LIBS_PRIVATE="-lGLEW $PTHREAD_LIBS"
+  PKGCONFIG_LIBS_PRIVATE="-lGLEW $PKGCONFIG_LIBS_PRIVATE"
 fi
 
 # Special flags for MinGW32 build.
@@ -247,6 +249,7 @@ AC_SUBST(GLEW_OBJ)
 AC_SUBST(GLEW_CFLAGS)
 AC_SUBST(PKGCONFIG_REQUIREMENTS)
 AC_SUBST(PKGCONFIG_LIBS_PRIVATE)
+AC_SUBST(PKGCONFIG_INCLUDE)
 AC_OUTPUT
 
 

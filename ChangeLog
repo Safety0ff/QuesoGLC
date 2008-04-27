@@ -3,7 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
-- Added files for pkg-config
+- Feature request #1947346 : added files for pkg-config (thanks to Giel
+  van Shijndel and Dennis Schridde for providing them)
 - Fixed bug #1947464 (Warnings are generated when compiling with gcc option
   -Wstrict-prototypes)
 - Added backface culling to the extruded rendering mode
