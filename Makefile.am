@@ -26,6 +26,13 @@ VCPROJS = QuesoGLC.sln \
           tests/test9.7.vcproj \
           tests/test9.8.vcproj \
           tests/test10.vcproj \
+          tests/test11.1.vcproj \
+          tests/test11.2.vcproj \
+          tests/test11.3.vcproj \
+          tests/test11.4.vcproj \
+          tests/test11.5.vcproj \
+          tests/test11.6.vcproj \
+          tests/test11.7.vcproj \
           tests/testcontex.vcproj \
           tests/testfont.vcproj \
           tests/testmaster.vcproj \
