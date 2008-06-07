@@ -37,7 +37,7 @@ struct __GLCmasterRec {
 
 __GLCmaster* __glcMasterCreate(GLint inMaster, __GLCcontext* inContext);
 void __glcMasterDestroy(__GLCmaster* This);
-const GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
+GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
 				       __GLCcontext* inContext, GLint inIndex);
 GLboolean __glcMasterIsFixedPitch(__GLCmaster* This);
 GLint __glcMasterFaceCount(__GLCmaster* This, __GLCcontext* inContext);

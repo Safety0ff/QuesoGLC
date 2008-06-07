@@ -779,11 +779,12 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
       for (i = 0; i < GLC_ARRAY_LENGTH(rendererData.endContour)-1; i++)
 	nVertices += endContour[i+1] - endContour[i] + 1;
 
+      assert(nVertices);
+
       /* The array stores (3D vertices + 3D normal) * 2 for each point of the
        * contour.
        */
-      extrudeArray = (GLfloat*)__glcMalloc(12 * sizeof(GLfloat)
-						 * nVertices);
+      extrudeArray = (GLfloat*)__glcMalloc(12 * sizeof(GLfloat) * nVertices);
       if (!extrudeArray) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	glDeleteBuffers(1, &inGlyph->glObject[3]);
@@ -873,6 +874,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
       glBufferDataARB(GL_ARRAY_BUFFER_ARB, (interleavedArray - extrudeArray)
 		      * 12 * sizeof(GLfloat), extrudeArray,
 		      GL_STATIC_DRAW_ARB);
+
+      __glcFree(extrudeArray);
 
       /* Render the contour */
       if (inContext->enableState.extrude) {

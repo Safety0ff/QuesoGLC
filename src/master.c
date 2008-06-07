@@ -133,6 +133,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
   __GLCmaster *master = NULL;
   __GLCcharMap *charMap = NULL;
   const GLCchar8* string = NULL;
+  GLCchar8* faceName = NULL;
   GLCchar* element = NULL;
 
   GLC_INIT_THREAD();
@@ -183,7 +184,8 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     break;
   case GLC_FACE_LIST:
     /* Get the face name */
-    string = __glcMasterGetFaceName(master, ctx, inIndex);
+    faceName = __glcMasterGetFaceName(master, ctx, inIndex);
+    string = (const GLCchar8*)faceName;
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -192,11 +194,12 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
 
   /* Convert it from UTF-8 to the current string type and return */
-  element = __glcConvertFromUtf8ToBuffer(ctx, string,
-					 ctx->stringState.stringType);
+  element = __glcConvertFromUtf8ToBuffer(ctx, string);
   __glcMasterDestroy(master);
   if (charMap)
     __glcCharMapDestroy(charMap);
+  else
+    free(faceName);
 
   return element;
 }
@@ -245,24 +248,23 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
     const GLCchar8* name = NULL;
 
     charMap = __glcCharMapCreate(master, ctx);
-    if (!charMap) {
-      __glcMasterDestroy(master);
+    __glcMasterDestroy(master);
+    if (!charMap)
       return NULL;
-    }
 
     /* Get the character code converted to the UCS-4 format */
     code = __glcConvertGLintToUcs4(ctx, inCode);
-    if (code < 0)
+    if (code < 0) {
+      __glcCharMapDestroy(charMap);
       return NULL;
+    }
 
     name = __glcCharMapGetCharName(charMap, code);
+    __glcCharMapDestroy(charMap);
     if (!name)
       return NULL;
 
-    result = __glcConvertFromUtf8ToBuffer(ctx, name,
-					  ctx->stringState.stringType);
-    __glcMasterDestroy(master);
-    __glcCharMapDestroy(charMap);
+    result = __glcConvertFromUtf8ToBuffer(ctx, name);
     return result;
   }
   else
@@ -308,8 +310,7 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
 const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
 {
   __GLCcontext *ctx = NULL;
-  const GLCchar8* info = NULL;
-  GLCchar *buffer = NULL;
+  const GLCchar *buffer = NULL;
   __GLCmaster* master = NULL;
 
   GLC_INIT_THREAD();
@@ -335,8 +336,8 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     return GLC_NONE;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
-  info = __glcMasterGetInfo(master, ctx, inAttrib);
-  buffer = __glcConvertFromUtf8ToBuffer(ctx, info, ctx->stringState.stringType);
+  buffer = __glcMasterGetInfo(master, ctx, inAttrib);
+
   __glcMasterDestroy(master);
 
   return buffer;

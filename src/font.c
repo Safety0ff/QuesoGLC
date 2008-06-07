@@ -657,8 +657,8 @@ const GLCchar* APIENTRY glcGetFontFace(GLint inFont)
     __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
 
     /* Convert the string name of the face into the current string type */
-    buffer = __glcConvertFromUtf8ToBuffer(ctx, __glcFaceDescGetStyleName(font->faceDesc),
-					  ctx->stringState.stringType);
+    buffer = __glcConvertFromUtf8ToBuffer(ctx,
+				    __glcFaceDescGetStyleName(font->faceDesc));
     if (!buffer)
       return GLC_NONE;
 
@@ -738,8 +738,7 @@ const GLCchar* APIENTRY glcGetFontListc(GLint inFont, GLCenum inAttrib,
     if (!name)
       return NULL;
 
-    return __glcConvertFromUtf8ToBuffer(ctx, name,
-					ctx->stringState.stringType);
+    return __glcConvertFromUtf8ToBuffer(ctx, name);
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
@@ -790,8 +789,7 @@ const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
 
   return __glcConvertFromUtf8ToBuffer(ctx,
 				      __glcCharMapGetCharName(font->charMap,
-							      code),
-				      ctx->stringState.stringType);
+							      code));
 }
 
 

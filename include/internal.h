@@ -210,8 +210,7 @@ extern GLCchar8* __glcConvertToUtf8(const GLCchar* inString,
  * any Unicode format.
  */
 extern GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
-					     const GLCchar8* inString,
-					     const GLint inStringType);
+					     const GLCchar8* inString);
 
 /* Duplicate a counted string to the context buffer and convert it from any
  * Unicode format to UTF-8 format.

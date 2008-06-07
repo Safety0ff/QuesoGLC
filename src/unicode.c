@@ -308,8 +308,7 @@ GLCchar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
  * converted string in the context buffer.
  */
 GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
-				      const GLCchar8* inString,
-				      const GLint inStringType)
+				      const GLCchar8* inString)
 {
   GLCchar* string = NULL;
   const GLCchar8* utf8 = NULL;
@@ -319,7 +318,7 @@ GLCchar* __glcConvertFromUtf8ToBuffer(__GLCcontext* This,
 
   assert(inString);
 
-  switch(inStringType) {
+  switch(This->stringState.stringType) {
   case GLC_UCS1:
     {
       GLCchar8 buffer[GLC_OUT_OF_RANGE_LEN];

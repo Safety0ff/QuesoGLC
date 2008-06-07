@@ -133,8 +133,8 @@ void __glcMasterDestroy(__GLCmaster* This)
 
 
 /* Get the style name of the face identified by inIndex  */
-const GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
-				       __GLCcontext* inContext, GLint inIndex)
+GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
+				 __GLCcontext* inContext, GLint inIndex)
 {
   FcObjectSet* objectSet = NULL;
   FcFontSet *fontSet = NULL;
@@ -335,6 +335,7 @@ const GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
   __GLCfaceDescriptor* faceDesc = NULL;
   FcResult result = FcResultMatch;
   GLCchar8 *string = NULL;
+  const GLCchar8* info = NULL;
   const GLCchar8 *buffer = NULL;
 
   /* Get the Unicode string which corresponds to the requested attribute */
@@ -361,7 +362,14 @@ const GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
       return NULL;
     }
 
-    buffer = __glcFaceDescGetFontFormat(faceDesc, inContext, inAttrib);
+    info = __glcFaceDescGetFontFormat(faceDesc, inContext, inAttrib);
+    if (info) {
+      /* Convert the string and store it in the context buffer */
+      buffer = (const GLCchar8*)__glcConvertFromUtf8ToBuffer(inContext, info);
+    }
+    else
+      __glcRaiseError(GLC_RESOURCE_ERROR);
+
     if (faceDesc) {
 #ifndef GLC_FT_CACHE
       __glcFaceDescClose(faceDesc);

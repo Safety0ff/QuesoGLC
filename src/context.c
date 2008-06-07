@@ -822,15 +822,12 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 	strcat((char*)__glcExtensions, __glcExtensions2);
       strcat((char*)__glcExtensions, __glcExtensions3);
 
-      return __glcConvertFromUtf8ToBuffer(ctx, __glcExtensions,
-					  ctx->stringState.stringType);
+      return __glcConvertFromUtf8ToBuffer(ctx, __glcExtensions);
     }
   case GLC_RELEASE:
-    return __glcConvertFromUtf8ToBuffer(ctx, __glcRelease,
-					ctx->stringState.stringType);
+    return __glcConvertFromUtf8ToBuffer(ctx, __glcRelease);
   case GLC_VENDOR:
-    return __glcConvertFromUtf8ToBuffer(ctx, __glcVendor,
-					ctx->stringState.stringType);
+    return __glcConvertFromUtf8ToBuffer(ctx, __glcVendor);
   default:
     return GLC_NONE;
   }
