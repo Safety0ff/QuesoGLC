@@ -282,24 +282,6 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
 
 
 
-#ifndef GLC_FT_CACHE
-/* Open the font file */
-inline void* __glcFontOpen(__GLCfont* This, __GLCcontext* inContext)
-{
-  return __glcFaceDescOpen(This->faceDesc, inContext);
-}
-
-
-
-/* Close the font file */
-inline void __glcFontClose(__GLCfont* This)
-{
-   __glcFaceDescClose(This->faceDesc);
-}
-#endif
-
-
-
 /* Load a glyph of the current font face and stores the corresponding data in
  * the corresponding face. The size of the glyph is given by inScaleX and
  * inScaleY. 'inGlyphIndex' contains the index of the glyph in the font file.
@@ -316,59 +298,4 @@ GLboolean __glcFontPrepareGlyph(__GLCfont* This, __GLCcontext* inContext,
 #endif
 
   return result;
-}
-
-
-
-/* Get the size of the bitmap in which the glyph will be rendered */
-inline GLboolean __glcFontGetBitmapSize(__GLCfont* This, GLint* outWidth,
-					GLint *outHeight, GLint* outBoundingBox,
-					GLfloat inScaleX, GLfloat inScaleY,
-					int inFactor, __GLCcontext* inContext)
-{
-  return __glcFaceDescGetBitmapSize(This->faceDesc, outWidth, outHeight,
-				    outBoundingBox, inScaleX, inScaleY,
-				    inFactor, inContext);
-}
-
-
-
-/* Get the maximum metrics of a face that is the bounding box that encloses
- * every glyph of the face, and the maximum advance of the face.
- */
-inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
-				      __GLCcontext* inContext)
-{
-  return __glcFaceDescGetMaxMetric(This->faceDesc, outVec, inContext);
-}
-
-
-
-/* Decompose the outline of a glyph */
-inline GLboolean __glcFontOutlineDecompose(__GLCfont* This,
-					   __GLCrendererData* inData,
-					   __GLCcontext* inContext)
-{
-  return __glcFaceDescOutlineDecompose(This->faceDesc, inData, inContext);
-}
-
-
-
-/* Render the glyph in a bitmap */
-inline GLboolean __glcFontGetBitmap(__GLCfont* This, GLint inWidth,
-				    GLint inHeight, void* inBuffer,
-				    __GLCcontext* inContext)
-{
-  return __glcFaceDescGetBitmap(This->faceDesc, inWidth, inHeight, inBuffer,
-				inContext);
-}
-
-
-
-/* Chek if the outline of the glyph is empty (which means it is a spacing
- * character).
- */
-inline GLboolean __glcFontOutlineEmpty(__GLCfont* This)
-{
-  return __glcFaceDescOutlineEmpty(This->faceDesc);
 }
