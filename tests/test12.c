@@ -16,7 +16,7 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-/* $Id: test10.c 712 2008-01-26 19:46:49Z bcoconni $ */
+/* $Id$ */
 
 /** \file
  * Regression test for bug #1987563 (reported by GenPFault) :
@@ -65,33 +65,65 @@ void display(void)
 {
   int i = 0;
   GLfloat bbox[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-  GLfloat width1 = 0.f;
-  GLfloat width2 = 0.f;
+  GLfloat bbox2[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  char string[20];
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glColor3f(1.f, 0.f, 0.f);
+  /* Render GLC_BITMAP without kerning */
   glLoadIdentity();
-  glScalef(100.f, 100.f, 1.f);
-  glTranslatef(0.5f, 0.5f, 0.f);
+  glColor3f(1.f, 0.f, 0.f);
+  glRasterPos2f(50.f, 50.f);
   glcDisable(GLC_KERNING_QSO);
-  glPushMatrix();
+  glcRenderStyle(GLC_BITMAP);
+  glcLoadIdentity();
+  glcScale(100.f, 100.f);
   glcRenderString("AVG");
-  glPopMatrix();
   glcMeasureString(GL_FALSE, "AVG");
   glcGetStringMetric(GLC_BOUNDS, bbox);
   glColor3f(0.f, 1.f, 1.f);
+  glTranslatef(50.f, 50.f, 0.f);
   glBegin(GL_LINE_LOOP);
   for (i = 0; i < 4; i++)
     glVertex2fv(&bbox[2*i]);
   glEnd();
-  width1 = bbox[4] - bbox[1];
-
-  glColor3f(1.f, 0.f, 0.f);
+  /* Display the dimensions */
+  snprintf(string, 20, "%f", bbox[2] - bbox[0]);
+  glcEnable(GLC_HINTING_QSO);
+  glcScale(0.15f, 0.15f);
+  glcMeasureString(GL_FALSE, string);
+  glcGetStringMetric(GLC_BOUNDS, bbox2);
+  glColor3f(1.f, 1.f, 1.f);
+  glBegin(GL_LINE);
+  glVertex2fv(bbox);
+  glVertex2f(bbox[0], bbox[1] - 40.f);
+  glVertex2fv(&bbox[2]);
+  glVertex2f(bbox[2], bbox[3] - 40.f);
+  glVertex2f(bbox[0], bbox[1] - 30.f);
+  glVertex2f(bbox[2], bbox[3] - 30.f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[0] + 5.f, bbox[1] - 25.f);
+  glVertex2f(bbox[0], bbox[1] - 30.f);
+  glVertex2f(bbox[0] + 5.f, bbox[1] - 35.f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[2] - 5.f, bbox[1] - 25.f);
+  glVertex2f(bbox[2], bbox[1] - 30.f);
+  glVertex2f(bbox[2] - 5.f, bbox[1] - 35.f);
+  glEnd();
   glLoadIdentity();
+  glRasterPos2f((bbox[2] - bbox[0] - (bbox2[2] - bbox2[0])) / 2.f + 50.f,
+		bbox[1] + 23.f);
+  glcRenderString(string);
+  glcDisable(GLC_HINTING_QSO);
+
+  /* Render GLC_TEXTURE without kerning */
+  glLoadIdentity();
+  glcRenderStyle(GLC_TEXTURE);
+  glColor3f(1.f, 0.f, 0.f);
   glScalef(100.f, 100.f, 1.f);
-  glTranslatef(0.5f, 1.5f, 0.f);
-  glcEnable(GLC_KERNING_QSO);
+  glTranslatef(3.f, 0.5f, 0.f);
   glPushMatrix();
   glcRenderString("AVG");
   glPopMatrix();
@@ -102,11 +134,145 @@ void display(void)
   for (i = 0; i < 4; i++)
     glVertex2fv(&bbox[2*i]);
   glEnd();
-  width2 = bbox[4] - bbox[1];
+  /* Display the dimensions */
+  snprintf(string, 20, "%f", (bbox[2] - bbox[0]) * 100.f);
+  glcEnable(GLC_HINTING_QSO);
+  glcMeasureString(GL_FALSE, string);
+  glcGetStringMetric(GLC_BOUNDS, bbox2);
+  glColor3f(1.f, 1.f, 1.f);
+  glBegin(GL_LINE);
+  glVertex2fv(bbox);
+  glVertex2f(bbox[0], bbox[1] - 0.4f);
+  glVertex2fv(&bbox[2]);
+  glVertex2f(bbox[2], bbox[3] - 0.4f);
+  glVertex2f(bbox[0], bbox[1] - 0.3f);
+  glVertex2f(bbox[2], bbox[3] - 0.3f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[0] + 0.05f, bbox[1] - 0.25f);
+  glVertex2f(bbox[0], bbox[1] - 0.3f);
+  glVertex2f(bbox[0] + 0.05f, bbox[1] - 0.35f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[2] - 0.05f, bbox[1] - 0.25f);
+  glVertex2f(bbox[2], bbox[1] - 0.3f);
+  glVertex2f(bbox[2] - 0.05f, bbox[1] - 0.35f);
+  glEnd();
+  glTranslatef((bbox[2] - bbox[0] - (bbox2[2] - bbox2[0]) * 0.15f) / 2.f,
+	       bbox[1] - 0.27f, 0.f);
+  glScalef(0.15f, 0.15f, 1.f);
+  glcRenderString(string);
+  glcDisable(GLC_HINTING_QSO);
+
+  /* Render GLC_BITMAP with kerning */
+  glColor3f(1.f, 0.f, 0.f);
+  glcEnable(GLC_KERNING_QSO);
+  glcRenderStyle(GLC_BITMAP);
+  glcLoadIdentity();
+  glcScale(100.f, 100.f);
+  glLoadIdentity();
+  glRasterPos2f(50.f, 150.f);
+  glcRenderString("AVG");
+  glcMeasureString(GL_FALSE, "AVG");
+  glcGetStringMetric(GLC_BOUNDS, bbox);
+  glColor3f(0.f, 1.f, 1.f);
+  glTranslatef(50.f, 150.f, 0.f);
+  glBegin(GL_LINE_LOOP);
+  for (i = 0; i < 4; i++)
+    glVertex2fv(&bbox[2*i]);
+  glEnd();
+  /* Display the dimensions */
+  snprintf(string, 20, "%f", bbox[4] - bbox[6]);
+  glcEnable(GLC_HINTING_QSO);
+  glcScale(0.15f, 0.15f);
+  glcMeasureString(GL_FALSE, string);
+  glcGetStringMetric(GLC_BOUNDS, bbox2);
+  glColor3f(1.f, 1.f, 1.f);
+  glBegin(GL_LINE);
+  glVertex2fv(&bbox[4]);
+  glVertex2f(bbox[4], bbox[5] + 40.f);
+  glVertex2fv(&bbox[6]);
+  glVertex2f(bbox[6], bbox[7] + 40.f);
+  glVertex2f(bbox[4], bbox[5] + 30.f);
+  glVertex2f(bbox[6], bbox[7] + 30.f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[4] - 5.f, bbox[5] + 25.f);
+  glVertex2f(bbox[4], bbox[5] + 30.f);
+  glVertex2f(bbox[4] - 5.f, bbox[5] + 35.f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[6] + 5.f, bbox[7] + 25.f);
+  glVertex2f(bbox[6], bbox[7] + 30.f);
+  glVertex2f(bbox[6] + 5.f, bbox[7] + 35.f);
+  glEnd();
+  glLoadIdentity();
+  glRasterPos2f((bbox[4] - bbox[6] - (bbox2[4] - bbox2[6])) / 2.f + 50.f,
+		bbox[7] + 183.f);
+  glcRenderString(string);
+  glcScale(2.f, 2.f);
+  glcMeasureString(GL_FALSE, "GL_BITMAP");
+  glcGetStringMetric(GLC_BOUNDS, bbox2);
+  glRasterPos2f((bbox[2] - bbox[0] - (bbox2[2] - bbox2[0])) / 2.f + 50.f,
+		300.f);
+  glcRenderString("GL_BITMAP");
+  glcDisable(GLC_HINTING_QSO);
+
+  /* Render GLC_TEXTURE with kerning */
+  glLoadIdentity();
+  glcRenderStyle(GLC_TEXTURE);
+  glColor3f(1.f, 0.f, 0.f);
+  glScalef(100.f, 100.f, 1.f);
+  glTranslatef(3.f, 1.5f, 0.f);
+  glPushMatrix();
+  glcRenderString("AVG");
+  glPopMatrix();
+  glcMeasureString(GL_FALSE, "AVG");
+  glcGetStringMetric(GLC_BOUNDS, bbox);
+  glColor3f(0.f, 1.f, 1.f);
+  glBegin(GL_LINE_LOOP);
+  for (i = 0; i < 4; i++)
+    glVertex2fv(&bbox[2*i]);
+  glEnd();
+  /* Display the dimensions */
+  snprintf(string, 20, "%f", (bbox[4] - bbox[6]) * 100.f);
+  glcEnable(GLC_HINTING_QSO);
+  glcMeasureString(GL_FALSE, string);
+  glcGetStringMetric(GLC_BOUNDS, bbox2);
+  glColor3f(1.f, 1.f, 1.f);
+  glBegin(GL_LINE);
+  glVertex2fv(&bbox[4]);
+  glVertex2f(bbox[4], bbox[5] + 0.4f);
+  glVertex2fv(&bbox[6]);
+  glVertex2f(bbox[6], bbox[7] + 0.4f);
+  glVertex2f(bbox[4], bbox[5] + 0.3f);
+  glVertex2f(bbox[6], bbox[7] + 0.3f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[6] + 0.05f, bbox[7] + 0.25f);
+  glVertex2f(bbox[6], bbox[7] + 0.3f);
+  glVertex2f(bbox[6] + 0.05f, bbox[7] + 0.35f);
+  glEnd();
+  glBegin(GL_LINE_LOOP);
+  glVertex2f(bbox[4] - 0.05f, bbox[5] + 0.25f);
+  glVertex2f(bbox[4], bbox[5] + 0.3f);
+  glVertex2f(bbox[4] - 0.05f, bbox[5] + 0.35f);
+  glEnd();
+  glPushMatrix();
+  glTranslatef((bbox[4] - bbox[6] - (bbox2[4] - bbox2[6]) * 0.15f) / 2.f,
+	       bbox[5] + 0.33f, 0.f);
+  glScalef(0.15f, 0.15f, 1.f);
+  glcRenderString(string);
+  glPopMatrix();
+  glcMeasureString(GL_FALSE, "GL_TEXTURE");
+  glcGetStringMetric(GLC_BOUNDS, bbox2);
+  glTranslatef((bbox[2] - bbox[0] - (bbox2[2] - bbox2[0]) * 0.3f) / 2.f,
+	       1.5f, 0.f);
+  glScalef(0.3f, 0.3f, 1.f);
+  glcRenderString("GL_TEXTURE");
+  glcDisable(GLC_HINTING_QSO);
 
   glFlush();
-
-  printf("Width /wo kerning: %f\nWidth /w kerning : %f\n", width1, width2);
 }
 
 int main(int argc, char **argv)
@@ -116,7 +282,7 @@ int main(int argc, char **argv)
 
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-  glutInitWindowSize(640, 300);
+  glutInitWindowSize(640, 400);
   glutCreateWindow("Test12");
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
@@ -139,7 +305,7 @@ int main(int argc, char **argv)
 #endif
   glcFontFace(myFont, "Book");
   glcFont(myFont);
-  glcRenderStyle(GLC_TEXTURE);
+  glcRenderStyle(GLC_BITMAP);
 
   glutMainLoop();
   return 0;
