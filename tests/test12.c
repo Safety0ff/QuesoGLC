@@ -230,7 +230,13 @@ void display(void)
   glcEnable(GLC_GL_OBJECTS);
   glcRenderString("AVG");
   glPopMatrix();
-  glcMeasureString(GL_FALSE, "AVG");
+  glcMeasureString(GL_TRUE, "AVG");
+  glcGetStringCharMetric(1, GLC_BOUNDS, bbox);
+  glColor3f(0.f, 1.f, 0.f);
+  glBegin(GL_LINE_LOOP);
+  for (i = 0; i < 4; i++)
+    glVertex2fv(&bbox[2*i]);
+  glEnd();
   glcGetStringMetric(GLC_BOUNDS, bbox);
   glColor3f(0.f, 1.f, 1.f);
   glBegin(GL_LINE_LOOP);

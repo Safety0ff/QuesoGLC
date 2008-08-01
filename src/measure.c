@@ -674,8 +674,19 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
     ptr += shift;
 
     /* If characters are to be measured then store the results */
-    if (inMeasureChars)
+    if (inMeasureChars) {
       __glcArrayAppend(inContext->measurementBuffer, metrics);
+
+      if (i) {
+	GLfloat (*measurementBuffer)[12] =
+	  (GLfloat(*)[12])GLC_ARRAY_DATA(inContext->measurementBuffer);
+	GLfloat prevCharAdvance = measurementBuffer[i-1][2] + metrics[12];
+	int j = 0;
+
+	for (j = 0; j < 6; j++)
+	  measurementBuffer[i][2*j] += prevCharAdvance;
+      }
+    }
 
     /* Initialize outVec if we are processing the first character of the string
      */

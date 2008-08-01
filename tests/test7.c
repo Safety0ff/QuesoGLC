@@ -116,9 +116,9 @@ int main(int argc, char **argv) {
 
     CheckError();
 
-    for (j = 0; j < 4; j++) {
-      v1 = fabs(baseline1[j]);
-      v2 = fabs(baseline2[j]);
+    for (j = 0; j < 2; j++) {
+      v1 = fabs(baseline1[j + 2] - baseline1[j]);
+      v2 = fabs(baseline2[j + 2] - baseline2[j]);
       norm = v1 > v2 ? v1 : v2;
 
       if (fabs(v1 - v2) > EPSILON * norm) {
@@ -144,9 +144,9 @@ int main(int argc, char **argv) {
 
     CheckError();
 
-    for (j = 0; j < 8; j++) {
-      v1 = fabs(boundingBox1[j]);
-      v2 = fabs(boundingBox2[j]);
+    for (j = 0; j < 6; j++) {
+      v1 = fabs(boundingBox1[j + 2] - boundingBox1[j]);
+      v2 = fabs(boundingBox2[j + 2] - boundingBox2[j]);
       norm = v1 > v2 ? v1 : v2;
 
       if (fabs(v1 - v2) > EPSILON * norm) {
