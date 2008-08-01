@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #1987563 (Kerning does not work when GLC_GL_OBJECTS is enabled)
+  Thanks to GenPFault for the bug report.
 - Fixed bug #2012579 (Mac OSX Leopard compiling bug) - Thanks to Michael Strobel
   and Tim Baumgartner for the bug report and the patch.
 - Fixed bug #1980982 (Checks for MinGW in the configure script are incomplete)

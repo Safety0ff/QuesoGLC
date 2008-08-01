@@ -125,6 +125,7 @@ void display(void)
   glScalef(100.f, 100.f, 1.f);
   glTranslatef(3.f, 0.5f, 0.f);
   glPushMatrix();
+  glcEnable(GLC_GL_OBJECTS);
   glcRenderString("AVG");
   glPopMatrix();
   glcMeasureString(GL_FALSE, "AVG");
@@ -136,6 +137,7 @@ void display(void)
   glEnd();
   /* Display the dimensions */
   snprintf(string, 20, "%f", (bbox[2] - bbox[0]) * 100.f);
+  glcDisable(GLC_GL_OBJECTS);
   glcEnable(GLC_HINTING_QSO);
   glcMeasureString(GL_FALSE, string);
   glcGetStringMetric(GLC_BOUNDS, bbox2);
@@ -225,6 +227,7 @@ void display(void)
   glScalef(100.f, 100.f, 1.f);
   glTranslatef(3.f, 1.5f, 0.f);
   glPushMatrix();
+  glcEnable(GLC_GL_OBJECTS);
   glcRenderString("AVG");
   glPopMatrix();
   glcMeasureString(GL_FALSE, "AVG");
@@ -236,6 +239,7 @@ void display(void)
   glEnd();
   /* Display the dimensions */
   snprintf(string, 20, "%f", (bbox[4] - bbox[6]) * 100.f);
+  glcDisable(GLC_GL_OBJECTS);
   glcEnable(GLC_HINTING_QSO);
   glcMeasureString(GL_FALSE, string);
   glcGetStringMetric(GLC_BOUNDS, bbox2);
@@ -293,17 +297,17 @@ int main(int argc, char **argv)
   /* Set up and initialize GLC */
   ctx = glcGenContext();
   glcContext(ctx);
-  glcAppendCatalog("/usr/lib/X11/fonts/Type1");
   glcDisable(GLC_GL_OBJECTS);
 
   /* Create a font "Palatino Bold" */
   myFont = glcGenFontID();
 #ifdef __WIN32__
   glcNewFontFromFamily(myFont, "Times New Roman");
+  glcFontFace(myFont, "Regular");
 #else
   glcNewFontFromFamily(myFont, "DejaVu Serif");
-#endif
   glcFontFace(myFont, "Book");
+#endif
   glcFont(myFont);
   glcRenderStyle(GLC_BITMAP);
 

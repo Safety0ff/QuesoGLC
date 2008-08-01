@@ -431,12 +431,14 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
  		if (__glcFontGetKerning(font, leftCode, rightCode, kerning,
  					inContext, GLC_POINT_SIZE,
  					GLC_POINT_SIZE)) {
- 		  if (inIsRightToLeft)
- 		    chars[length].advance[0] -= kerning[0];
- 		  else
- 		    chars[length].advance[0] += kerning[0];
+		  assert(length > 0);
 
- 		  chars[length].advance[1] += kerning[1];
+ 		  if (inIsRightToLeft)
+ 		    chars[length - 1].advance[0] -= kerning[0];
+ 		  else
+ 		    chars[length - 1].advance[0] += kerning[0];
+
+ 		  chars[length - 1].advance[1] += kerning[1];
  		}
  	      }
  	    }
@@ -801,6 +803,8 @@ void APIENTRY glcReplacementCode(GLint inCode)
  *
  *  The resolution is given in \e dpi (dots per inch). If \e inVal is zero, the
  *  resolution defaults to 72 dpi.
+ *
+ *  The command raises \b GLC_PARAMETER_ERROR if \e inVal is negative.
  *  \param inVal A floating point number to be used as resolution.
  *  \sa glcGetf() with argument GLC_RESOLUTION
  */
