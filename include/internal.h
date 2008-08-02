@@ -150,6 +150,12 @@ struct __GLCcharacterRec {
   GLfloat advance[2];
 };
 
+/* Those functions are used to protect against race conditions whenever we try
+ * to access the common area or functions which are not multi-threaded.
+ */
+void __glcLock(void);
+void __glcUnlock(void);
+
 /* Callback function type that is called by __glcProcessChar().
  * It allows to unify the character processing before the rendering or the
  * measurement of a character : __glcProcessChar() is called first (see below)

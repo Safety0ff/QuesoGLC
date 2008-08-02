@@ -73,12 +73,14 @@ void _fini(void);
 
 /* Since the common area can be accessed by any thread, this function should
  * be called before any access (read or write) to the common area. Otherwise
- * race conditions can occur.
+ * race conditions can occur. This function must also be used whenever we call
+ * a function which is not reentrant (it is the case for some Fontconfig
+ * entries).
  * __glcLock/__glcUnlock can be nested : they keep track of the number of
  * time they have been called and the mutex will be released as soon as
  * __glcUnlock() will be called as many time as __glcLock() was.
  */
-static void __glcLock(void)
+void __glcLock(void)
 {
   __GLCthreadArea *area = NULL;
 
@@ -101,7 +103,7 @@ static void __glcLock(void)
  * common area.
  * See also the note on nested calls in __glcLock's description.
  */
-static void __glcUnlock(void)
+void __glcUnlock(void)
 {
   __GLCthreadArea *area = NULL;
 
@@ -163,6 +165,10 @@ void _fini(void)
     node = next;
   }
 
+#if FC_MINOR > 2
+  /*FcFini();*/
+#endif
+
   __glcUnlock();
 #ifdef __WIN32__
   DeleteCriticalSection(&__glcCommonArea.section);
@@ -177,10 +183,6 @@ void _fini(void)
     __glcFreeThreadArea(key);
 
   pthread_key_delete(__glcCommonArea.threadKey);
-#endif
-
-#if FC_MINOR > 2
-  FcFini();
 #endif
 }
 

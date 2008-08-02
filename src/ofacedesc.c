@@ -81,7 +81,6 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
   FcPatternDestroy(pattern);
   if (!fontSet) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
-    FcPatternDestroy(pattern);
     return NULL;
   }
 

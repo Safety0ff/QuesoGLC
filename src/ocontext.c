@@ -76,7 +76,9 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   }
 #endif
 
+  __glcLock();
   This->config = FcInitLoadConfigAndFonts();
+  __glcUnlock();
   if (!This->config) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
 #ifdef GLC_FT_CACHE

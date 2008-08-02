@@ -3,6 +3,7 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed a race condition in glcGenContext()
 - Function glcGetStringCharMetric() now returns metrics in global string
   coordinates (otherwise the kerning can not be measured)
 - Fixed bug #1987563 (Kerning does not work when GLC_GL_OBJECTS is enabled)
