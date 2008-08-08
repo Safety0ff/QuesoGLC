@@ -25,6 +25,7 @@
  * Microsoft Word 2003 and the official Freetype tutorial kerning algorithm
  * both produced the correct kerning which is different from the kerning
  * obtained with QuesoGLC.
+ * Actually, the combination of GLC_GL_OBJECTS and KERNING induces the bug.
  */
 
 #include "GL/glc.h"
@@ -78,8 +79,8 @@ void display(void)
   glcRenderStyle(GLC_BITMAP);
   glcLoadIdentity();
   glcScale(100.f, 100.f);
-  glcRenderString("AVG");
-  glcMeasureString(GL_FALSE, "AVG");
+  glcRenderString("VAV");
+  glcMeasureString(GL_FALSE, "VAV");
   glcGetStringMetric(GLC_BOUNDS, bbox);
   glColor3f(0.f, 1.f, 1.f);
   glTranslatef(50.f, 50.f, 0.f);
@@ -125,10 +126,13 @@ void display(void)
   glScalef(100.f, 100.f, 1.f);
   glTranslatef(3.f, 0.5f, 0.f);
   glPushMatrix();
-  glcEnable(GLC_GL_OBJECTS);
-  glcRenderString("AVG");
+  /* In order to reproduce the conditions of bug #1987563, GLC_GL_OBJECTS must
+   * be disabled when rendering GLC_TEXTURE w/o kerning.
+   */
+  glcDisable(GLC_GL_OBJECTS);
+  glcRenderString("VAV");
   glPopMatrix();
-  glcMeasureString(GL_FALSE, "AVG");
+  glcMeasureString(GL_FALSE, "VAV");
   glcGetStringMetric(GLC_BOUNDS, bbox);
   glColor3f(0.f, 1.f, 1.f);
   glBegin(GL_LINE_LOOP);
@@ -137,7 +141,6 @@ void display(void)
   glEnd();
   /* Display the dimensions */
   snprintf(string, 20, "%f", (bbox[2] - bbox[0]) * 100.f);
-  glcDisable(GLC_GL_OBJECTS);
   glcEnable(GLC_HINTING_QSO);
   glcMeasureString(GL_FALSE, string);
   glcGetStringMetric(GLC_BOUNDS, bbox2);
@@ -174,8 +177,8 @@ void display(void)
   glcScale(100.f, 100.f);
   glLoadIdentity();
   glRasterPos2f(50.f, 150.f);
-  glcRenderString("AVG");
-  glcMeasureString(GL_FALSE, "AVG");
+  glcRenderString("VAV");
+  glcMeasureString(GL_FALSE, "VAV");
   glcGetStringMetric(GLC_BOUNDS, bbox);
   glColor3f(0.f, 1.f, 1.f);
   glTranslatef(50.f, 150.f, 0.f);
@@ -228,9 +231,9 @@ void display(void)
   glTranslatef(3.f, 1.5f, 0.f);
   glPushMatrix();
   glcEnable(GLC_GL_OBJECTS);
-  glcRenderString("AVG");
+  glcRenderString("VAV");
   glPopMatrix();
-  glcMeasureString(GL_TRUE, "AVG");
+  glcMeasureString(GL_TRUE, "VAV");
   glcGetStringCharMetric(1, GLC_BOUNDS, bbox);
   glColor3f(0.f, 1.f, 0.f);
   glBegin(GL_LINE_LOOP);

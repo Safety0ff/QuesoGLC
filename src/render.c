@@ -431,14 +431,20 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
  		if (__glcFontGetKerning(font, leftCode, rightCode, kerning,
  					inContext, GLC_POINT_SIZE,
  					GLC_POINT_SIZE)) {
-		  assert(length > 0);
+		  if (length) {
+		    if (inIsRightToLeft)
+		      chars[length - 1].advance[0] -= kerning[0];
+		    else
+		      chars[length - 1].advance[0] += kerning[0];
 
- 		  if (inIsRightToLeft)
- 		    chars[length - 1].advance[0] -= kerning[0];
- 		  else
- 		    chars[length - 1].advance[0] += kerning[0];
-
- 		  chars[length - 1].advance[1] += kerning[1];
+		    chars[length - 1].advance[1] += kerning[1];
+		  }
+		  else {
+		    if (inIsRightToLeft)
+		      glTranslatef(-kerning[0], kerning[1], 0.f);
+		    else
+		      glTranslatef(kerning[0], kerning[1], 0.f);
+		  }
  		}
  	      }
  	    }
