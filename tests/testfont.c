@@ -35,8 +35,9 @@
 
 int main(int argc, char **argv)
 {
-  int ctx = 0;
-  int font = 0;
+  GLint ctx = 0;
+  GLint font = 0;
+  GLint dummyFont = 0;
   int i = 0;
   int last = 0;
   int count = 0;
@@ -53,7 +54,7 @@ int main(int argc, char **argv)
   font = glcNewFontFromFamily(1, "Times New Roman");
   glcFontFace(font, "Bold");
   glcFont(font);
-  font = glcNewFontFromFamily(2, "Courier New");
+  font = glcNewFontFromFamily(3, "Courier New");
   glcAppendFont(font);
   glcFontFace(font, "Italic");
 #else
@@ -80,9 +81,21 @@ int main(int argc, char **argv)
     if (glcGetMasterMap(i, 65) && (glcGetMasteri(i, GLC_FACE_COUNT) > 1))
       break;
   }
-  font = glcNewFontFromMaster(2, i);
+  font = glcNewFontFromMaster(3, i);
   glcAppendFont(font);
 #endif
+
+  dummyFont = glcGenFontID();
+  if (dummyFont != 2) {
+    printf("Unexpected font ID #%d (should have been #2)\n", dummyFont);
+    return -1;
+  }
+
+  dummyFont = glcGenFontID();
+  if (dummyFont != 4) {
+    printf("Unexpected font ID #%d (should have been #4)\n", dummyFont);
+    return -1;
+  }
 
   if (!glcIsFont(font)) {
     printf("Font %d not recognized as a legal font ID while it should\n", font);

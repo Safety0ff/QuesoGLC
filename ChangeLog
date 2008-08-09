@@ -3,6 +3,7 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed a bug in glcGenFontID() which could return the ID of an existing font.
 - Fixed a race condition in glcGenContext()
 - Function glcGetStringCharMetric() now returns metrics in global string
   coordinates (otherwise the kerning can not be measured)
