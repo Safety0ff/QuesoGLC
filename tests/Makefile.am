@@ -37,10 +37,7 @@ EXTRA_PROGRAMS = test1 \
 TESTS = $(noinst_PROGRAMS)
 
 AM_CFLAGS = @PTHREAD_CFLAGS@ \
-            @FREETYPE2_CFLAGS@ \
-            @FONTCONFIG_CFLAGS@ \
-            @GLUT_CFLAGS@ \
-            @FRIBIDI_CFLAGS@
+            @GLUT_CFLAGS@
 
 LDADD = $(top_builddir)/build/libGLC.la \
         @GLUT_LIBS@ \
