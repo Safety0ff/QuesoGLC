@@ -28,6 +28,7 @@ EXTRA_PROGRAMS = test1 \
                  test11.6 \
                  test11.7 \
                  test12 \
+                 test13 \
                  testcontex \
                  testfont \
                  testmaster \
@@ -48,32 +49,8 @@ LDADD = $(top_builddir)/build/libGLC.la \
         @PTHREAD_LIBS@ \
         @FRIBIDI_LIBS@
 
-test1_SOURCES = test1.c
-
-test2_SOURCES = test2.c
-
-test3_SOURCES = test3.c
-
-test4_SOURCES = test4.c
-
-test5_SOURCES = test5.c
-
 test6_SOURCES = test6.c
 test6_CFLAGS = $(CFLAGS) -DQUESOGLC_VERSION=\"@PACKAGE_VERSION@\" @GLEW_CFLAGS@
-
-testcontex_SOURCES = testcontex.c
-
-testfont_SOURCES = testfont.c
-
-testmaster_SOURCES = testmaster.c
-
-test7_SOURCES = test7.c
-test7_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
-test7_LDADD = @GLUT_LIBS@ $(LDADD)
-
-test8_SOURCES = test8.c
-test8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
-test8_LDADD = @GLUT_LIBS@ $(LDADD)
 
 test9_1_SOURCES = test9.c
 test9_1_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE \
@@ -113,8 +90,6 @@ test9_8_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TRIANGLE \
                  -DWITH_USER_LIST
 test9_8_LDADD = @GLUT_LIBS@ $(LDADD)
 
-test10_SOURCES = test10.c
-
 test11_1_SOURCES = test11.c
 test11_1_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_TEXTURE
 test11_1_LDADD = @GLUT_LIBS@ $(LDADD)
@@ -143,6 +118,3 @@ test11_7_SOURCES = test11.c
 test11_7_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@ -DRENDER_STYLE=GLC_BITMAP
 test11_7_LDADD = @GLUT_LIBS@ $(LDADD)
 
-testrender_SOURCES = testrender.c
-testrender_CFLAGS = $(CFLAGS) @GLUT_CFLAGS@
-testrender_LDADD = @GLUT_LIBS@ $(LDADD)
