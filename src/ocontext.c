@@ -44,10 +44,34 @@ static void __glcContextUpdateHashTable(__GLCcontext *This);
 
 
 
+/* Find a token in a list of tokens separated by 'separator' */
+static GLCchar8* __glcFindIndexList(GLCchar8* inString, const GLuint inIndex,
+				    const GLCchar8* inSeparator)
+{
+  GLuint occurence = 0;
+  GLCchar8* s = inString;
+  const GLCchar8* sep = inSeparator;
+
+  if (!inIndex)
+    return s;
+
+  for (; *s != '\0'; s++) {
+    if (*s == *sep) {
+      occurence++;
+      if (occurence == inIndex)
+	break;
+    }
+  }
+
+  return (GLCchar8 *) s;
+}
+
+
+
 /* Constructor of the object : it allocates memory and initializes the member
  * of the new object.
  */
-__GLCcontext* __glcContextCreate(GLint inContext)
+__GLCcontext* __glcContextCreate(const GLint inContext)
 {
   __GLCcontext *This = NULL;
 
@@ -89,10 +113,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     return NULL;
   }
 
-  This->node.prev = NULL;
-  This->node.next = NULL;
-  This->node.data = NULL;
-
   This->catalogList = __glcArrayCreate(sizeof(GLCchar8*));
   if (!This->catalogList) {
 #ifdef GLC_FT_CACHE
@@ -117,20 +137,12 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   }
   __glcContextUpdateHashTable(This);
 
-  This->currentFontList.head = NULL;
-  This->currentFontList.tail = NULL;
-  This->fontList.head = NULL;
-  This->fontList.tail = NULL;
-  This->genFontList.head = NULL;
-  This->genFontList.tail = NULL;
-
   This->isCurrent = GL_FALSE;
   This->isInGlobalCommand = GL_FALSE;
   This->id = inContext;
   This->pendingDelete = GL_FALSE;
-  This->stringState.callback = GLC_NONE;
-  This->stringState.dataPointer = NULL;
-  This->stringState.replacementCode = 0;
+  This->stringState.callback = (GLCfunc)GLC_NONE;
+  This->stringState.dataPointer = (void*)GLC_NONE;
   This->stringState.stringType = GLC_UCS1;
   This->enableState.autoFont = GL_TRUE;
   This->enableState.glObjects = GL_TRUE;
@@ -143,10 +155,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
   This->bitmapMatrixStackDepth = 1;
   This->bitmapMatrix = This->bitmapMatrixStack;
   This->bitmapMatrix[0] = 1.;
-  This->bitmapMatrix[1] = 0.;
-  This->bitmapMatrix[2] = 0.;
   This->bitmapMatrix[3] = 1.;
-  This->attribStackDepth = 0;
   This->measurementBuffer = __glcArrayCreate(12 * sizeof(GLfloat));
   if (!This->measurementBuffer) {
     __glcArrayDestroy(This->masterHashTable);
@@ -160,8 +169,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     return NULL;
   }
   This->isInCallbackFunc = GL_FALSE;
-  This->buffer = NULL;
-  This->bufferSize = 0;
   This->vertexArray = __glcArrayCreate(2 * sizeof(GLfloat));
   if (!This->vertexArray) {
     __glcArrayDestroy(This->measurementBuffer);
@@ -207,11 +214,11 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 
   This->vertexIndices = __glcArrayCreate(sizeof(GLuint));
   if (!This->vertexIndices) {
+    __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->controlPoints);
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
-    __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->catalogList);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
@@ -224,12 +231,12 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 
   This->geomBatches = __glcArrayCreate(sizeof(__GLCgeomBatch));
   if (!This->geomBatches) {
+    __glcArrayDestroy(This->vertexIndices);
+    __glcArrayDestroy(This->endContour);
     __glcArrayDestroy(This->controlPoints);
     __glcArrayDestroy(This->vertexArray);
     __glcArrayDestroy(This->measurementBuffer);
     __glcArrayDestroy(This->masterHashTable);
-    __glcArrayDestroy(This->endContour);
-    __glcArrayDestroy(This->vertexIndices);
     __glcArrayDestroy(This->catalogList);
 #ifdef GLC_FT_CACHE
     FTC_Manager_Done(This->cache);
@@ -239,21 +246,6 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     __glcFree(This);
     return NULL;
   }
-
-  This->texture.id = 0;
-  This->texture.width = 0;
-  This->texture.height = 0;
-  This->texture.bufferObjectID = 0;
-
-  This->atlas.id = 0;
-  This->atlas.width = 0;
-  This->atlas.height = 0;
-  This->atlas.bufferObjectID = 0;
-  This->atlasList.head = NULL;
-  This->atlasList.tail = NULL;
-  This->atlasWidth = 0;
-  This->atlasHeight = 0;
-  This->atlasCount = 0;
 
   /* The environment variable GLC_PATH is an alternate way to allow QuesoGLC
    * to access to fonts catalogs/directories.
@@ -268,16 +260,16 @@ __GLCcontext* __glcContextCreate(GLint inContext)
     /* Get the list separator */
     if (!separator) {
 #ifdef __WIN32__
-	/* Windows can not use a colon-separated list since the colon sign is
-	 * used after the drive letter. The semicolon is used for the PATH
-	 * variable, so we use it for consistency.
-	 */
+      /* Windows can not use a colon-separated list since the colon sign is
+       * used after the drive letter. The semicolon is used by Windows for its
+       * PATH variable, so we use it for consistency.
+       */
       separator = (const GLCchar8*)";";
 #else
-	/* POSIX platforms uses colon-separated lists for the paths variables
-	 * so we keep with it for consistency.
-	 */
-	separator = (const GLCchar8*)":";
+      /* POSIX platforms use colon-separated lists for the paths variables
+       * so we keep with it for consistency.
+       */
+      separator = (const GLCchar8*)":";
 #endif
     }
 
@@ -288,10 +280,10 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 #ifdef __WIN32__
       path = (GLCchar8*)_strdup(getenv("GLC_CATALOG_LIST"));
 #else
-    path = (GLCchar8*)strdup(getenv("GLC_CATALOG_LIST"));
+      path = (GLCchar8*)strdup(getenv("GLC_CATALOG_LIST"));
 #endif
+    /* Then try GLC_PATH */
     else if (getenv("GLC_PATH")) {
-      /* Try GLC_PATH which uses the same format than PATH */
 #ifdef __WIN32__
       path = (GLCchar8*)_strdup(getenv("GLC_PATH"));
 #else
@@ -318,7 +310,7 @@ __GLCcontext* __glcContextCreate(GLint inContext)
 #endif
         if (!duplicated) {
 	  __glcRaiseError(GLC_RESOURCE_ERROR);
-        }
+	}
         else {
 	  if (!__glcArrayAppend(This->catalogList, &duplicated))
             free(duplicated);
@@ -384,9 +376,9 @@ static void __glcFontDestructor(FT_Memory GLC_UNUSED_ARG(inMemory),
  * occupied by the GLC state struct.
  * It does not destroy GL objects associated with the GLC context since we can
  * not be sure that the current GL context is the GL context that contains the
- * GL objects designated by the GLC context that we are destroying. This could
+ * GL objects built by the GLC context that we are destroying. This could
  * happen if the user calls glcDeleteContext() after the GL context has been
- * destroyed of after the user has changed the current GL context.
+ * destroyed or after the user has changed the current GL context.
  */
 void __glcContextDestroy(__GLCcontext *This)
 {
@@ -460,7 +452,7 @@ void __glcContextDestroy(__GLCcontext *This)
  * If there is no such font, the function returns NULL.
  * 'inCode' must be given in UCS-4 format.
  */
-static __GLCfont* __glcLookupFont(GLint inCode, FT_List fontList)
+static __GLCfont* __glcLookupFont(const FT_List fontList, const GLint inCode)
 {
   FT_ListNode node = NULL;
 
@@ -468,7 +460,7 @@ static __GLCfont* __glcLookupFont(GLint inCode, FT_List fontList)
     __GLCfont* font = (__GLCfont*)node->data;
 
     /* Check if the character identified by inCode exists in the font */
-    if (__glcCharMapHasChar(font->charMap, inCode))
+    if (__glcFontHasChar(font, inCode))
       return font;
   }
   return NULL;
@@ -480,8 +472,8 @@ static __GLCfont* __glcLookupFont(GLint inCode, FT_List fontList)
  * possible) and returns GL_TRUE if it has succeeded or GL_FALSE otherwise.
  * 'inCode' must be given in UCS-4 format.
  */
-static GLboolean __glcCallCallbackFunc(GLint inCode,
-				       __GLCcontext *inContext)
+static GLboolean __glcCallCallbackFunc(__GLCcontext *inContext,
+				       const GLint inCode)
 {
   GLCfunc callbackFunc = NULL;
   GLboolean result = GL_FALSE;
@@ -519,12 +511,12 @@ static GLboolean __glcCallCallbackFunc(GLint inCode,
  * to GLC_CURRENT_FONT_LIST. If the attempt fails the function returns zero.
  * 'inCode' must be given in UCS-4 format.
  */
-__GLCfont* __glcContextGetFont(__GLCcontext *This, GLint inCode)
+__GLCfont* __glcContextGetFont(__GLCcontext *This, const GLint inCode)
 {
   __GLCfont* font = NULL;
 
   /* Look for a font in the current font list */
-  font = __glcLookupFont(inCode, &This->currentFontList);
+  font = __glcLookupFont(&This->currentFontList, inCode);
   /* If a font has been found return */
   if (font)
     return font;
@@ -533,8 +525,8 @@ __GLCfont* __glcContextGetFont(__GLCcontext *This, GLint inCode)
    * The callback function should return GL_TRUE if it succeeds in appending to
    * GLC_CURRENT_FONT_LIST the ID of a font that maps 'inCode'.
    */
-  if (__glcCallCallbackFunc(inCode, This)) {
-    font = __glcLookupFont(inCode, &This->currentFontList);
+  if (__glcCallCallbackFunc(This, inCode)) {
+    font = __glcLookupFont(&This->currentFontList, inCode);
     if (font)
       return font;
   }
@@ -546,7 +538,7 @@ __GLCfont* __glcContextGetFont(__GLCcontext *This, GLint inCode)
   if (This->enableState.autoFont) {
     __GLCmaster* master = NULL;
 
-    font = __glcLookupFont(inCode, &This->fontList);
+    font = __glcLookupFont(&This->fontList, inCode);
     if (font) {
       __glcAppendFont(This, font);
       return font;
@@ -555,7 +547,7 @@ __GLCfont* __glcContextGetFont(__GLCcontext *This, GLint inCode)
     master = __glcMasterMatchCode(This, inCode);
     if (!master)
       return NULL;
-    font = __glcNewFontFromMaster(glcGenFontID(), master, This, inCode);
+    font = __glcNewFontFromMaster(__glcGenFontID(This), master, This, inCode);
     __glcMasterDestroy(master);
 
     if (font) {
@@ -573,18 +565,18 @@ __GLCfont* __glcContextGetFont(__GLCcontext *This, GLint inCode)
  * The so-called 'buffer' is created for that purpose. Notice that it is a
  * component of the GLC state struct hence its lifetime is the same as the
  * GLC state's lifetime.
- * __glcCtxQueryBuffer() should be called whenever the buffer is to be used
- * in order to check if it is big enough to store infos.
+ * __glcContextQueryBuffer() should be called whenever the buffer is to be used
+ * The function checks that the buffer is big enough to store the required data
+ * and returns a pointer to the buffer.
  * Note that the only memory management function used below is 'realloc' which
  * means that the buffer goes bigger and bigger until it is freed. No function
  * is provided to reduce its size so it should be freed and re-allocated
  * manually in case of emergency ;-)
  */
-GLCchar* __glcContextQueryBuffer(__GLCcontext *This, size_t inSize)
+GLCchar* __glcContextQueryBuffer(__GLCcontext *This, const size_t inSize)
 {
-  GLCchar* buffer;
+  GLCchar* buffer = This->buffer;
 
-  buffer = This->buffer;
   if (inSize > This->bufferSize) {
     buffer = (GLCchar*)__glcRealloc(This->buffer, inSize);
     if (!buffer) {
@@ -601,8 +593,8 @@ GLCchar* __glcContextQueryBuffer(__GLCcontext *This, size_t inSize)
 
 
 
-/* Update the hash table that allows to convert master IDs into FontConfig
- * patterns.
+/* Update the hash table that which is used to convert master IDs into
+ * FontConfig patterns.
  */
 static void __glcContextUpdateHashTable(__GLCcontext *This)
 {
@@ -638,26 +630,37 @@ static void __glcContextUpdateHashTable(__GLCcontext *This)
   for (i = 0; i < fontSet->nfont; i++) {
     GLCchar32 hashValue = 0;
     int j = 0;
-    int length = GLC_ARRAY_LENGTH(This->masterHashTable);
+    const int length = GLC_ARRAY_LENGTH(This->masterHashTable);
     GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(This->masterHashTable);
     FcBool outline = FcFalse;
     FcChar8* family = NULL;
     int fixed = 0;
     FcChar8* foundry = NULL;
+#ifdef DEBUGMODE
     FcResult result = FcResultMatch;
 
-    /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
     assert(result != FcResultTypeMismatch);
+#else
+    FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+#endif
+
+    /* Check whether the glyphs are outlines */
     if (!outline)
       continue;
 
+#ifdef DEBUGMODE
     result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
     assert(result != FcResultTypeMismatch);
     result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
     assert(result != FcResultTypeMismatch);
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
+#else
+    FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+#endif
 
     if (foundry)
       pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
@@ -758,7 +761,8 @@ void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog)
 
 
 /* Get the path of the catalog identified by inIndex */
-GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex)
+GLCchar8* __glcContextGetCatalogPath(const __GLCcontext* This,
+				     const GLint inIndex)
 {
   if (inIndex >= GLC_ARRAY_LENGTH(This->catalogList)) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -770,8 +774,32 @@ GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex)
 
 
 
+/* This function must be called each time that a command destroys
+ * a font. __glcContextDeleteFont removes, if necessary, the font identified by
+ * inFont from the list GLC_CURRENT_FONT_LIST and then delete the font.
+ */
+void __glcContextDeleteFont(__GLCcontext* inContext, __GLCfont* font)
+{
+  FT_ListNode node = NULL;
+
+  /* Look for the font into GLC_CURRENT_FONT_LIST */
+  node = FT_List_Find(&inContext->currentFontList, font);
+
+  /* If the font has been found, remove it from the list */
+  if (node) {
+    FT_List_Remove(&inContext->currentFontList, node);
+#ifndef GLC_FT_CACHE
+    __glcFontClose(font);
+#endif
+    __glcFree(node);
+  }
+  __glcFontDestroy(font, inContext);
+}
+
+
+
 /* Remove a catalog from the context catalog list */
-void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
+void __glcContextRemoveCatalog(__GLCcontext* This, const GLint inIndex)
 {
   FT_ListNode node = NULL;
   GLCchar8* catalog = NULL;
@@ -795,6 +823,8 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
       __glcRaiseError(GLC_RESOURCE_ERROR);
       __glcArrayRemove(This->catalogList, i);
       free(catalog);
+      /* After the removal of the problematic catalog , indices are shifted by 1
+       */
       if (i > 0) i--;
     }
   }
@@ -810,7 +840,7 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
     __GLCfont* font = (__GLCfont*)(node->data);
     GLCchar32 hashValue = 0;
     GLCchar32* hashTable = (GLCchar32*)GLC_ARRAY_DATA(This->masterHashTable);
-    int length = GLC_ARRAY_LENGTH(This->masterHashTable);
+    const int length = GLC_ARRAY_LENGTH(This->masterHashTable);
     __GLCmaster* master = __glcMasterCreate(font->parentMasterID, This);
 
     if (!master)
@@ -824,8 +854,10 @@ void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex)
     }
 
     /* The font is not contained in the hash table => remove it */
-    if (i == length)
-      glcDeleteFont(font->id);
+    if (i == length) {
+      FT_List_Remove(&This->fontList, node);
+      __glcContextDeleteFont(This, font);
+    }
 
     __glcMasterDestroy(master);
   }

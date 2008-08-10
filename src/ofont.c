@@ -44,6 +44,7 @@ __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+  memset(This, 0, sizeof(__GLCfont));
 
   if (inMaster) {
     /* At font creation, the default face is the first one.
@@ -95,8 +96,8 @@ void __glcFontDestroy(__GLCfont *This, __GLCcontext* inContext)
 /* Extract from the font the glyph which corresponds to the character code
  * 'inCode'.
  */
-__GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
-			      __GLCcontext* inContext)
+__GLCglyph* __glcFontGetGlyph(const __GLCfont *This, const GLint inCode,
+			      const __GLCcontext* inContext)
 {
   /* Try to get the glyph from the character map */
   __GLCglyph* glyph = __glcCharMapGetGlyph(This->charMap, inCode);
@@ -120,9 +121,9 @@ __GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
  * inScaleY. The result is returned in outVec. 'inCode' contains the character
  * code for which the bounding box is requested.
  */
-GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
-				 GLfloat* outVec, __GLCcontext* inContext,
-				 GLfloat inScaleX, GLfloat inScaleY)
+GLfloat* __glcFontGetBoundingBox(const __GLCfont *This, const GLint inCode,
+				 GLfloat* outVec, const __GLCcontext* inContext,
+				 const GLfloat inScaleX, const GLfloat inScaleY)
 {
   /* Get the glyph from the font */
   __GLCglyph* glyph = __glcFontGetGlyph(This, inCode, inContext);
@@ -160,9 +161,9 @@ GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
  * inScaleY. The result is returned in outVec. 'inCode' contains the character
  * code for which the advance is requested.
  */
-GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
-			     __GLCcontext* inContext, GLfloat inScaleX,
-			     GLfloat inScaleY)
+GLfloat* __glcFontGetAdvance(const __GLCfont* This, const GLint inCode,
+			     GLfloat* outVec, const __GLCcontext* inContext,
+			     const GLfloat inScaleX, const GLfloat inScaleY)
 {
   /* Get the glyph from the font */
   __GLCglyph* glyph = __glcFontGetGlyph(This, inCode, inContext);
@@ -201,9 +202,10 @@ GLfloat* __glcFontGetAdvance(__GLCfont* This, GLint inCode, GLfloat* outVec,
  * the current character code and 'inPrevCode' the character code of the
  * previously displayed character.
  */
-GLfloat* __glcFontGetKerning(__GLCfont* This, GLint inCode, GLint inPrevCode,
-			     GLfloat* outVec, __GLCcontext* inContext,
-			     GLfloat inScaleX, GLfloat inScaleY)
+GLfloat* __glcFontGetKerning(const __GLCfont* This, const GLint inCode,
+			     const GLint inPrevCode, GLfloat* outVec,
+			     const __GLCcontext* inContext,
+			     const GLfloat inScaleX, const GLfloat inScaleY)
 {
   __GLCglyph* glyph = __glcFontGetGlyph(This, inCode, inContext);
   __GLCglyph* prevGlyph = __glcFontGetGlyph(This, inPrevCode, inContext);
@@ -286,9 +288,10 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
  * the corresponding face. The size of the glyph is given by inScaleX and
  * inScaleY. 'inGlyphIndex' contains the index of the glyph in the font file.
  */
-GLboolean __glcFontPrepareGlyph(__GLCfont* This, __GLCcontext* inContext,
-				GLfloat inScaleX, GLfloat inScaleY,
-				GLCulong inGlyphIndex)
+GLboolean __glcFontPrepareGlyph(const __GLCfont* This,
+				const __GLCcontext* inContext,
+				const GLfloat inScaleX, const GLfloat inScaleY,
+				const GLCulong inGlyphIndex)
 {
   GLboolean result = __glcFaceDescPrepareGlyph(This->faceDesc, inContext,
 					       inScaleX, inScaleY,

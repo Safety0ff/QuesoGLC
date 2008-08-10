@@ -37,8 +37,7 @@
 /* This function is called when a glyph is destroyed, so that it is removed from
  * the atlas list if relevant.
  */
-void __glcDeleteAtlasElement(__GLCatlasElement* This,
-			     __GLCcontext* inContext)
+void __glcDeleteAtlasElement(__GLCatlasElement* This, __GLCcontext* inContext)
 {
   FT_List_Remove(&inContext->atlasList, (FT_ListNode)This);
   inContext->atlasCount--;
@@ -132,7 +131,7 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
    */
   if (inContext->atlasCount == inContext->atlasWidth * inContext->atlasHeight) {
     /* The texture atlas is full. We must release an area to re-use it.
-     * We get the glyph that has not been used for a long time (that is the
+     * We get the glyph that has not been used for the longer time (that is the
      * tail element of atlasList).
      */
     atlasNode = (__GLCatlasElement*)inContext->atlasList.tail;
@@ -190,9 +189,12 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
  * rendered. If the texture does not exist yet, it is created.
  */
 static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
-					  GLsizei inWidth, GLsizei inHeight)
+					  const GLsizei inWidth,
+					  const GLsizei inHeight)
 {
   GLint format = 0;
+  GLsizei width = inWidth;
+  GLsizei height = inHeight;
 
   /* Check if a texture exists to store the glyph */
   if (inContext->texture.id) {
@@ -201,9 +203,9 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
 	|| (inHeight > inContext->texture.height)) {
       /* The texture is not large enough so we destroy the current texture */
       glDeleteTextures(1, &inContext->texture.id);
-      inWidth = (inWidth > inContext->texture.width) ?
+      width = (inWidth > inContext->texture.width) ?
 	inWidth : inContext->texture.width;
-      inHeight = (inHeight > inContext->texture.height) ?
+      height = (inHeight > inContext->texture.height) ?
 	inHeight : inContext->texture.height;
       inContext->texture.id = 0;
       inContext->texture.width = 0;
@@ -221,8 +223,8 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
     glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
   /* Check if a new texture can be created */
-  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, inWidth,
-	       inHeight, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_ALPHA8, width, height, 0, GL_ALPHA,
+	       GL_UNSIGNED_BYTE, NULL);
   glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS,
 			   &format);
   /* TODO: If the texture creation fails, try with a smaller size */
@@ -234,8 +236,8 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
   /* Create a texture object and make it current */
   glGenTextures(1, &inContext->texture.id);
   glBindTexture(GL_TEXTURE_2D, inContext->texture.id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA8, inWidth,
-	       inHeight, 0, GL_ALPHA, GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA8, width, height, 0, GL_ALPHA,
+	       GL_UNSIGNED_BYTE, NULL);
   /* For immediate mode rendering, always use bilinear filtering even if
    * GLC_MIPMAP is enabled : we have determined the size of the glyph when it
    * will be rendered on the screen and the texture size has been defined
@@ -247,8 +249,8 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-  inContext->texture.width = inWidth;
-  inContext->texture.height = inHeight;
+  inContext->texture.width = width;
+  inContext->texture.height = height;
 
   if (GLEW_ARB_pixel_buffer_object) {
     /* Create a PBO, if none exists yet */
@@ -265,7 +267,7 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
     /* Bind the buffer and define/update its size */
     glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
 		    inContext->texture.bufferObjectID);
-    glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, inWidth * inHeight, NULL,
+    glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, width * height, NULL,
 		    GL_STREAM_DRAW_ARB);
   }
 
@@ -277,8 +279,8 @@ static GLboolean __glcTextureGetImmediate(__GLCcontext* inContext,
 /* Internal function that renders glyph in textures :
  * 'inCode' must be given in UCS-4 format
  */
-void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
-			    GLfloat scale_x, GLfloat scale_y,
+void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
+			    const GLfloat inScaleX, const GLfloat inScaleY,
 			    __GLCglyph* inGlyph)
 {
   GLfloat width = 0, height = 0;
@@ -300,7 +302,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     atlasNode = inGlyph->textureObject;
 
     __glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
-                               boundingBox, scale_x, scale_y, 0, inContext);
+                               boundingBox, inScaleX, inScaleY, 0, inContext);
 
     texWidth = inContext->atlas.width;
     texHeight = inContext->atlas.height;
@@ -314,7 +316,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
     /* Try several texture size until we are able to create one */
     do {
       if (!__glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
-                                      boundingBox, scale_x, scale_y, factor,
+                                      boundingBox, inScaleX, inScaleY, factor,
                                       inContext))
 	return;
 
@@ -347,7 +349,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
   do {
     if (GLEW_ARB_pixel_buffer_object && !inContext->enableState.glObjects) {
       pixBuffer = (GLubyte *)glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
-						GL_WRITE_ONLY_ARB);
+					    GL_WRITE_ONLY_ARB);
       if (!pixBuffer) {
 	__glcRaiseError(GLC_RESOURCE_ERROR);
 	return;
@@ -520,13 +522,13 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
       /* Create the display list */
       glNewList(inGlyph->glObject[1], GL_COMPILE);
-      glScalef(1. / 64. / scale_x, 1. / 64. / scale_y , 1.);
+      glScalef(1. / 64. / inScaleX, 1. / 64. / inScaleY , 1.);
 
       /* Modify the bouding box dimensions to compensate the glScalef() */
-      boundingBox[0] *= scale_x / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      boundingBox[1] *= scale_y / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      boundingBox[2] *= scale_x / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      boundingBox[3] *= scale_y / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      boundingBox[0] *= inScaleX / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      boundingBox[1] *= inScaleY / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      boundingBox[2] *= inScaleX / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      boundingBox[3] *= inScaleY / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
     }
   }
 
@@ -549,7 +551,7 @@ void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
 
   if (inContext->enableState.glObjects) {
     /* Finish display list creation */
-    glScalef(64. * scale_x, 64. * scale_y, 1.);
+    glScalef(64. * inScaleX, 64. * inScaleY, 1.);
     glEndList();
     glCallList(inGlyph->glObject[1]);
   }

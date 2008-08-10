@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -39,7 +39,7 @@
  * of the new object.
  * The user must give the size of an element of the array.
  */
-__GLCarray* __glcArrayCreate(int inElementSize)
+__GLCarray* __glcArrayCreate(const int inElementSize)
 {
   __GLCarray* This = NULL;
 
@@ -48,6 +48,7 @@ __GLCarray* __glcArrayCreate(int inElementSize)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+  memset(This, 0, sizeof(__GLCarray));
 
   This->data = (char*)__glcMalloc(GLC_ARRAY_BLOCK_SIZE * inElementSize);
   if (!This->data) {
@@ -57,7 +58,6 @@ __GLCarray* __glcArrayCreate(int inElementSize)
   }
 
   This->allocated = GLC_ARRAY_BLOCK_SIZE;
-  This->length = 0;
   This->elementSize = inElementSize;
 
   return This;
@@ -103,7 +103,7 @@ static __GLCarray* __glcArrayUpdateSize(__GLCarray* This)
 /* Append a value to the array. The function may allocate some more room if
  * necessary
  */
-__GLCarray* __glcArrayAppend(__GLCarray* This, void* inValue)
+__GLCarray* __glcArrayAppend(__GLCarray* This, const void* inValue)
 {
   /* Update the room if needed */
   if (This->length == This->allocated) {
@@ -124,7 +124,8 @@ __GLCarray* __glcArrayAppend(__GLCarray* This, void* inValue)
 /* Insert a value in the array at the rank inRank. The function may allocate
  * some more room if necessary
  */
-__GLCarray* __glcArrayInsert(__GLCarray* This, int inRank, void* inValue)
+__GLCarray* __glcArrayInsert(__GLCarray* This, const int inRank,
+			     const void* inValue)
 {
   /* Update the room if needed */
   if (This->length == This->allocated) {
@@ -149,7 +150,7 @@ __GLCarray* __glcArrayInsert(__GLCarray* This, int inRank, void* inValue)
 /* Remove an element from the array. For performance reasons, this function
  * does not release memory.
  */
-void __glcArrayRemove(__GLCarray* This, int inRank)
+void __glcArrayRemove(__GLCarray* This, const int inRank)
 {
   if (inRank < This->length-1)
     memmove(This->data + inRank * This->elementSize,
@@ -168,7 +169,8 @@ void __glcArrayRemove(__GLCarray* This, int inRank)
  * several times in a row.
  * This function is used to optimize performance in certain configurations.
  */
-char* __glcArrayInsertCell(__GLCarray* This, int inRank, int inCells)
+void* __glcArrayInsertCell(__GLCarray* This, const int inRank,
+			   const int inCells)
 {
   char* newCell = NULL;
 
@@ -187,5 +189,5 @@ char* __glcArrayInsertCell(__GLCarray* This, int inRank, int inCells)
 
   This->length += inCells;
 
-  return newCell;
+  return (void*)newCell;
 }

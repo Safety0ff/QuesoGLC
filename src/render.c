@@ -46,7 +46,7 @@
  *
  * If there are fonts in the list \b GLC_CURRENT_FONT_LIST, but a match for
  * the character code cannot be found in any of those fonts, GLC goes through
- * these steps :
+ * the following steps :
  * -# If the value of the variable \b GLC_REPLACEMENT_CODE is nonzero,
  * GLC finds a font that maps the replacement code, and renders the character
  * that the replacement code is mapped to.
@@ -64,9 +64,10 @@
  * digits are in upper case. The GLC measurement commands treat the sequence
  * as a single character.
  *
- * The rendering commands raise \b GLC_PARAMETER_ERROR if the callback function
- * defined for \b GLC_OP_glcUnmappedCode is called and the current string type
- * is \b GLC_UTF8_QSO.
+ * \note The rendering commands may issue GL commands, hence a GL context must
+ * be bound to the current thread such that the GLC commands produce the desired
+ * result. It is the responsibility of the GLC client to set up the underlying
+ * GL implementation.
  *
  * \note Some rendering commands create and/or use display lists and/or
  * textures. The IDs of those display lists and textures are stored in the
@@ -77,11 +78,6 @@
  * created. If the current GL context has changed meanwhile, the result of
  * commands that refer to the corresponding display lists or textures is
  * undefined.
- *
- * As a reminder, the render commands may issue GL commands, hence a GL context
- * must be bound to the current thread such that the GLC commands produce the
- * desired result. It is the responsibility of the GLC client to set up the
- * underlying GL implementation.
  */
 
 #include "internal.h"
@@ -99,17 +95,20 @@
 
 /* This internal function renders a glyph using the GLC_BITMAP format */
 /* TODO : Render Bitmap fonts */
-static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
-                                  GLfloat scale_x, GLfloat scale_y,
-                                  GLfloat* advance, GLboolean inIsRTL)
+static void __glcRenderCharBitmap(const __GLCfont* inFont,
+				  const __GLCcontext* inContext,
+                                  const GLfloat inScaleX,
+				  const GLfloat inScaleY,
+				  const GLfloat* inAdvance,
+				  const GLboolean inIsRTL)
 {
   GLfloat *transform = inContext->bitmapMatrix;
   GLint pixWidth = 0, pixHeight = 0;
   GLubyte* pixBuffer = NULL;
   GLint boundingBox[4] = {0, 0, 0, 0};
 
-  __glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, boundingBox, scale_x,
-			 scale_y, 0, inContext);
+  __glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, boundingBox, inScaleX,
+			 inScaleY, 0, inContext);
 
   pixBuffer = (GLubyte *)__glcMalloc(pixWidth * pixHeight);
   if (!pixBuffer) {
@@ -133,8 +132,8 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
 
   if (inIsRTL) {
     glBitmap(0, 0, 0, 0,
-	     advance[1] * transform[2] - advance[0] * transform[0],
-	     advance[1] * transform[3] - advance[0] * transform[1],
+	     inAdvance[1] * transform[2] - inAdvance[0] * transform[0],
+	     inAdvance[1] * transform[3] - inAdvance[0] * transform[1],
 	     NULL);
     glBitmap(pixWidth, pixHeight,
 	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[0] >> 6),
@@ -145,8 +144,8 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
     glBitmap(pixWidth, pixHeight,
 	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[0] >> 6),
 	     (GLC_TEXTURE_PADDING >> 1) - (boundingBox[1] >> 6),
-	     advance[0] * transform[0] + advance[1] * transform[2],
-	     advance[0] * transform[1] + advance[1] * transform[3],
+	     inAdvance[0] * transform[0] + inAdvance[1] * transform[2],
+	     inAdvance[0] * transform[1] + inAdvance[1] * transform[3],
 	     pixBuffer);
 
   glPopClientAttrib();
@@ -159,23 +158,24 @@ static void __glcRenderCharBitmap(__GLCfont* inFont, __GLCcontext* inContext,
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
-			    __GLCfont* inFont, __GLCcontext* inContext,
-                            void* GLC_UNUSED_ARG(inData),
-			    GLboolean GLC_UNUSED_ARG(inMultipleChars))
+static void* __glcRenderChar(const GLint inCode, const GLint inPrevCode,
+			     const GLboolean inIsRTL, const __GLCfont* inFont,
+			     __GLCcontext* inContext,
+			     const void* GLC_UNUSED_ARG(inData),
+			     const GLboolean GLC_UNUSED_ARG(inMultipleChars))
 {
   GLfloat transformMatrix[16];
-  GLfloat scale_x = GLC_POINT_SIZE;
-  GLfloat scale_y = GLC_POINT_SIZE;
+  GLfloat scaleX = GLC_POINT_SIZE;
+  GLfloat scaleY = GLC_POINT_SIZE;
   __GLCglyph* glyph = NULL;
   GLfloat sx64 = 0., sy64 = 0.;
   GLfloat advance[2] = {0., 0.};
 
   assert(inFont);
 
-  __glcGetScale(inContext, transformMatrix, &scale_x, &scale_y);
+  __glcGetScale(inContext, transformMatrix, &scaleX, &scaleY);
 
-  if ((fabs(scale_x) < GLC_EPSILON) || (fabs(scale_y) < GLC_EPSILON))
+  if ((fabs(scaleX) < GLC_EPSILON) || (fabs(scaleY) < GLC_EPSILON))
     return NULL;
 
 #ifndef GLC_FT_CACHE
@@ -189,7 +189,7 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     GLint rightCode = inIsRTL ? inPrevCode : inCode;
 
     if (__glcFontGetKerning(inFont, leftCode, rightCode, kerning, inContext,
-			    scale_x, scale_y)) {
+			    scaleX, scaleY)) {
       if (inIsRTL)
 	kerning[0] = -kerning[0];
 
@@ -205,8 +205,8 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
     }
   }
 
-  if (!__glcFontGetAdvance(inFont, inCode, advance, inContext, scale_x,
-			   scale_y)) {
+  if (!__glcFontGetAdvance(inFont, inCode, advance, inContext, scaleX,
+			   scaleY)) {
 #ifndef GLC_FT_CACHE
     __glcFontClose(inFont);
 #endif
@@ -217,16 +217,16 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
   glyph = __glcFontGetGlyph(inFont, inCode, inContext);
 
   if (inContext->enableState.glObjects
-      && !__glcFontPrepareGlyph(inFont, inContext, scale_x, scale_y,
-			     glyph->index)) {
+      && !__glcFontPrepareGlyph(inFont, inContext, scaleX, scaleY,
+				glyph->index)) {
 #ifndef GLC_FT_CACHE
     __glcFontClose(inFont);
 #endif
     return NULL;
   }
 
-  sx64 = 64. * scale_x;
-  sy64 = 64. * scale_y;
+  sx64 = 64. * scaleX;
+  sy64 = 64. * scaleY;
 
   if (inContext->renderState.renderStyle != GLC_BITMAP) {
     if (inIsRTL)
@@ -254,25 +254,22 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
       glScalef(1. / sx64, 1. / sy64, 1.f);
   }
 
-  /* Call the appropriate function depending on the rendering mode. It first
-   * checks if a display list that draws the desired glyph has already been
-   * defined
-   */
+  /* Call the appropriate function depending on the rendering mode */
   switch(inContext->renderState.renderStyle) {
   case GLC_BITMAP:
-    __glcRenderCharBitmap(inFont, inContext, scale_x, scale_y, advance,
+    __glcRenderCharBitmap(inFont, inContext, scaleX, scaleY, advance,
 			  inIsRTL);
     break;
   case GLC_TEXTURE:
-    __glcRenderCharTexture(inFont, inContext, scale_x, scale_y, glyph);
+    __glcRenderCharTexture(inFont, inContext, scaleX, scaleY, glyph);
     break;
   case GLC_LINE:
-    __glcRenderCharScalable(inFont, inContext, transformMatrix, scale_x,
-			    scale_y, glyph);
+    __glcRenderCharScalable(inFont, inContext, transformMatrix, scaleX,
+			    scaleY, glyph);
     break;
   case GLC_TRIANGLE:
-    __glcRenderCharScalable(inFont, inContext, transformMatrix, scale_x,
-			    scale_y, glyph);
+    __glcRenderCharScalable(inFont, inContext, transformMatrix, scaleX,
+			    scaleY, glyph);
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
@@ -297,12 +294,13 @@ static void* __glcRenderChar(GLint inCode, GLint inPrevCode, GLboolean inIsRTL,
  * order and stored using UCS4 format.
  */
 static void __glcRenderCountedString(__GLCcontext* inContext,
-				     GLCchar32* inString,
-				     GLboolean inIsRightToLeft,GLint inCount)
+				     const GLCchar32* inString,
+				     const GLboolean inIsRightToLeft,
+				     const GLint inCount)
 {
   GLint listIndex = 0;
   GLint i = 0;
-  GLCchar32* ptr = NULL;
+  const GLCchar32* ptr = NULL;
   __GLCglState GLState;
   __GLCcharacter prevCode = {0, NULL, NULL, {0.f, 0.f}};
   GLboolean saveGLObjects = GL_FALSE;
@@ -318,6 +316,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
     inContext->enableState.glObjects = GL_FALSE;
   }
 
+
+  /* Allocate a buffer to store the glyphes informations of the string to be
+   * rendered.
+   */
   if (inContext->enableState.glObjects
       && inContext->renderState.renderStyle != GLC_BITMAP) {
     chars = (__GLCcharacter*)__glcMalloc(inCount * sizeof(__GLCcharacter));
@@ -330,6 +332,9 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
   /* Save the value of the GL parameters */
   __glcSaveGLState(&GLState, inContext, GL_FALSE);
 
+  /* Set the vertex arrays parameters for GLC_LINE and GLC_TRIANGLE rendering
+   * styles when GLC_GL_OBJECTS is enabled.
+   */
   if (inContext->renderState.renderStyle == GLC_LINE ||
       (inContext->renderState.renderStyle == GLC_TRIANGLE
        && !(inContext->enableState.glObjects
@@ -391,12 +396,12 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
     if (inContext->renderState.renderStyle == GLC_TRIANGLE
 	&& inContext->enableState.extrude) {
       GLfloat transformMatrix[16];
-      GLfloat scale_x = GLC_POINT_SIZE;
-      GLfloat scale_y = GLC_POINT_SIZE;
+      GLfloat scaleX = GLC_POINT_SIZE;
+      GLfloat scaleY = GLC_POINT_SIZE;
 
-      __glcGetScale(inContext, transformMatrix, &scale_x, &scale_y);
+      __glcGetScale(inContext, transformMatrix, &scaleX, &scaleY);
 
-      if ((fabs(scale_x) < GLC_EPSILON) || (fabs(scale_y) < GLC_EPSILON))
+      if ((fabs(scaleX) < GLC_EPSILON) || (fabs(scaleY) < GLC_EPSILON))
 	return;
 
       orientation = -transformMatrix[11];
@@ -431,20 +436,15 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
  		if (__glcFontGetKerning(font, leftCode, rightCode, kerning,
  					inContext, GLC_POINT_SIZE,
  					GLC_POINT_SIZE)) {
-		  if (length) {
-		    if (inIsRightToLeft)
-		      chars[length - 1].advance[0] -= kerning[0];
-		    else
-		      chars[length - 1].advance[0] += kerning[0];
+		  if (inIsRightToLeft)
+		    kerning[0] = -kerning[0];
 
+		  if (length) {
+		    chars[length - 1].advance[0] += kerning[0];
 		    chars[length - 1].advance[1] += kerning[1];
 		  }
-		  else {
-		    if (inIsRightToLeft)
-		      glTranslatef(-kerning[0], kerning[1], 0.f);
-		    else
-		      glTranslatef(kerning[0], kerning[1], 0.f);
-		  }
+		  else
+		    glTranslatef(kerning[0], kerning[1], 0.f);
  		}
  	      }
  	    }

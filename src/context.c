@@ -170,7 +170,7 @@ void APIENTRY glcDeleteGLObjects(void)
   for(node = ctx->fontList.head; node; node = node->next)
     __glcFaceDescDestroyGLObjects(((__GLCfont*)(node->data))->faceDesc, ctx);
 
-  /* Delete the texture used for immediate mode */
+  /* Delete the texture used for immediate texture mode */
   if (ctx->texture.id) {
     glDeleteTextures(1, &ctx->texture.id);
     ctx->texture.id = 0;
@@ -178,13 +178,13 @@ void APIENTRY glcDeleteGLObjects(void)
     ctx->texture.height = 0;
   }
 
-  /* Delete the pixel buffer object */
+  /* Delete the pixel buffer object used for immediate mode */
   if (GLEW_ARB_pixel_buffer_object && ctx->texture.bufferObjectID) {
     glDeleteBuffersARB(1, &ctx->texture.bufferObjectID);
     ctx->texture.bufferObjectID = 0;
   }
 
-  /* Delete the vertex buffer object */
+  /* Delete the vertex buffer object used for the texture atlas */
   if (GLEW_ARB_vertex_buffer_object && ctx->atlas.bufferObjectID) {
     glDeleteBuffersARB(1, &ctx->atlas.bufferObjectID);
     ctx->atlas.bufferObjectID = 0;
@@ -193,11 +193,11 @@ void APIENTRY glcDeleteGLObjects(void)
 
 
 
-/* This internal function is used by both glcEnable/glcDisable since they
- * actually do the same job : put a value into a member of the
- * __GLCcontext struct. The only difference is the value that it puts.
+/* This internal function is used by both glcEnable/glcDisable which basically
+ * do the same job : put a value into a member of the __GLCcontext struct. The
+ * only difference is the value that they put (true or false).
  */
-static void __glcChangeState(GLCenum inAttrib, GLboolean value)
+static void __glcChangeState(const GLCenum inAttrib, const GLboolean value)
 {
   __GLCcontext *ctx = NULL;
 
@@ -234,6 +234,7 @@ static void __glcChangeState(GLCenum inAttrib, GLboolean value)
     break;
   case GLC_MIPMAP:
     ctx->enableState.mipmap = value;
+    /* Update the mipmap setting of the texture atlas */
     if (ctx->atlas.id) {
       GLuint boundTexture = 0;
       glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&boundTexture);
@@ -317,7 +318,7 @@ void APIENTRY glcDisable(GLCenum inAttrib)
  *    among the masters to map the character code to be rendered (see also
  *    glcRenderChar()).
  *  - \b GLC_GL_OBJECTS : if enabled, GLC stores characters rendering commands
- *    in GL display lists and textures (if any) in GL texture objects.
+ *    in GL display lists and textures in GL texture objects.
  *  - \b GLC_MIPMAP : if enabled, texture objects used by GLC are mipmapped
  *  - \b GLC_HINTING_QSO : if enabled, GLC uses the auto-hinting procedures
  *    that are available for most scalable fonts. It gives better results for
@@ -326,7 +327,7 @@ void APIENTRY glcDisable(GLCenum inAttrib)
  *    This attribute should be disabled in such cases.
  *  - \b GLC_EXTRUDE_QSO : if enabled and \b GLC_RENDER_STYLE is
  *    \b GLC_TRIANGLE then GLC renders extruded characters with a thickness
- *    equal to 1.0. A call to glScale3*(1., 1., \e thickness ) can be added
+ *    equal to 1.0. A call to glScale3f(1., 1., \e thickness ) can be added
  *    before the rendering commands in order to obtain the desired thickness.
  *  - \b GLC_KERNING_QSO : if enabled, GLC uses kerning information (when
  *    available) when string are rendered or measured.
@@ -458,7 +459,7 @@ const GLCchar* APIENTRY glcGetListc(GLCenum inAttrib, GLint inIndex)
    *    then there is no need to care about optimization.
    */
 
-  /* Grmmff, is the use of strlen() adequate here ? 
+  /* FIXME: Is the use of strlen() adequate here ? 
    * What if 'catalog' is encoded in UCS2 format or any other weird format ?
    */
   length = strlen((const char*) catalog) + 1;
@@ -628,7 +629,7 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
 	  return ctx->texture.id;
 	/* If the texture for immediate mode does not exist, then the first
 	 * texture is the texture atlas.
-	 * NOTE: if the texture atlas is created first and the texture for
+	 * FIXME: if the texture atlas is created first and the texture for
 	 * immediate mode is created after then this algorithm leads to a
 	 * modification of the order which is not satisfying...
 	 */
@@ -645,17 +646,25 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
     break;
   case GLC_BUFFER_OBJECT_LIST_QSO: /* QuesoGLC extension */
     switch(inIndex) {
-      /* QuesoGLC uses at most 2 buffer objects : one PBO for immediate mode
-       * rendering and one VBO for the texture atlas. That's all. They are
-       * virtually stored in the following order : PBO for immediate mode first,
-       * then VBO for texture atlas.
+      /* QuesoGLC uses the following buffer objects :
+       * - one PBO for immediate texture mode rendering
+       * - one VBO for the texture atlas.
+       * - for each glyph (for GLC_LINE and GLC_TRIANGLE rendering modes) :
+       *       -> one VBO to store the nodes
+       *       -> one VBO to store the triangles
+       * Virtually, the buffer objects are numbered as indicated below :
+       *  0 : PBO for immediate texture mode rendering
+       *  1 : VBO for the texture atlas
+       *  2 and on : VBOs for GLC_LINE and GLC_TRIANGLE rendering modes
+       * If one of the first 2 PBO/VBO is not existing then the numbering is
+       * shifted down by 1 (or 2 if both are not existing).
        */
       case 0:
 	if (ctx->texture.bufferObjectID)
 	  return ctx->texture.bufferObjectID;
 	/* If the PBO for immediate mode does not exist, then the first buffer
 	 * object is the VBO for the texture atlas.
-	 * NOTE: if the texture atlas is created first and the PBO for
+	 * FIXME: if the texture atlas is created first and the PBO for
 	 * immediate mode is created after then this algorithm leads to a
 	 * modification of the order in which buffer objects are reported which
 	 * is not satisfying...
@@ -676,6 +685,10 @@ GLint APIENTRY glcGetListi(GLCenum inAttrib, GLint inIndex)
     if (ctx->atlas.bufferObjectID)
       inIndex--;
 
+    /* The required index is neither the PBO nor the VBO for the texture atlas.
+     * In order to get the buffer object name, we have to perform a search
+     * through the list of buffer objects of every face descriptor.
+     */
     for (node = ctx->fontList.head; node; node = node->next) {
       __GLCfaceDescriptor* faceDesc =
 		(__GLCfaceDescriptor*)(((__GLCfont*)(node->data))->faceDesc);
@@ -813,6 +826,10 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
     {
       GLCchar8 __glcExtensions[256];
 
+      /* This assertion checks that the fixed sized array __glcExtensions is
+       * large enough to store the extensions name. If this is not the case
+       * then the size must be updated.
+       */
       assert((strlen(__glcExtensions1) + strlen(__glcExtensions2)
 	      + strlen(__glcExtensions3)) <= 256);
 
@@ -896,7 +913,6 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
  *  </table>
  *  </center>
  *
- *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inAttrib The parameter value to be returned
  *  \param outVec Specifies where to store the return value
  *  \return The current value of the floating point vector variable
@@ -910,8 +926,6 @@ GLfloat* APIENTRY glcGetfv(GLCenum inAttrib, GLfloat* outVec)
   __GLCcontext *ctx = NULL;
 
   GLC_INIT_THREAD();
-
-  assert(outVec);
 
   /* Check the parameters */
   if (inAttrib != GLC_BITMAP_MATRIX) {
@@ -1187,11 +1201,11 @@ GLboolean APIENTRY glcIsEnabled(GLCenum inAttrib)
     return ctx->enableState.glObjects;
   case GLC_MIPMAP:
     return ctx->enableState.mipmap;
-  case GLC_HINTING_QSO:
+  case GLC_HINTING_QSO: /* QuesoGLC Extension */
     return ctx->enableState.hinting;
-  case GLC_EXTRUDE_QSO:
+  case GLC_EXTRUDE_QSO: /* QuesoGLC Extension */
     return ctx->enableState.extrude;
-  case GLC_KERNING_QSO:
+  case GLC_KERNING_QSO: /* QuesoGLC Extension */
     return ctx->enableState.kerning;
   }
 
@@ -1418,14 +1432,19 @@ void APIENTRY glcPushAttribQSO(GLbitfield inMask)
     return;
   }
 
+  /* Check if there is enough room remaining in the stack */
   if (ctx->attribStackDepth >= GLC_MAX_ATTRIB_STACK_DEPTH) {
     __glcRaiseError(GLC_STACK_OVERFLOW_QSO);
     return;
   }
 
+  /* Get a level from the stack and initialise it.
+   * The stack level is incremented.
+   */
   level = &ctx->attribStack[ctx->attribStackDepth++];
   level->attribBits = 0;
 
+  /* Save the state in the stack level with respect to the bitfield mask */
   if (inMask & GLC_ENABLE_BIT_QSO) {
     memcpy(&level->enableState, &ctx->enableState, sizeof(__GLCenableState));
     level->attribBits |= GLC_ENABLE_BIT_QSO;
@@ -1475,14 +1494,19 @@ void APIENTRY glcPopAttribQSO(void)
     return;
   }
 
+  /* Check that the stack contains saved context states */
   if (ctx->attribStackDepth <= 0) {
     __glcRaiseError(GLC_STACK_UNDERFLOW_QSO);
     return;
   }
 
+  /* Get the last context state saved in the stack.
+   * The stack depth is decremented.
+   */
   level = &ctx->attribStack[--ctx->attribStackDepth];
   mask = level->attribBits;
 
+  /* Restore the context state with respect to the bitfield mask */
   if (mask & GLC_ENABLE_BIT_QSO)
     memcpy(&ctx->enableState, &level->enableState, sizeof(__GLCenableState));
 

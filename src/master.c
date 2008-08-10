@@ -67,9 +67,9 @@
  * This internal function does both checks and returns the pointer to the
  * __glcMaster object that is identified by 'inMaster'.
  */
-__GLCmaster* __glcVerifyMasterParameters(GLint inMaster)
+__GLCmaster* __glcVerifyMasterParameters(const GLint inMaster)
 {
-  __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
+  const __GLCcontext *ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Check if the current thread owns a context state */
   if (!ctx) {
@@ -93,8 +93,7 @@ __GLCmaster* __glcVerifyMasterParameters(GLint inMaster)
  *  the master identified by \e inMaster. The string list is identified by
  *  \e inAttrib. The command returns the string at offset \e inIndex from the
  *  first element in this string list. Below are the string list attributes
- *  associated with each GLC master and font and their element count
- *  attributes :
+ *  associated with each GLC master and font and their element count attributes:
  * <center>
  * <table>
  * <caption>Master/font string list attributes</caption>
@@ -116,7 +115,7 @@ __GLCmaster* __glcVerifyMasterParameters(GLint inMaster)
  *  \n The command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than
  *  zero or is greater than or equal to the value of the list element count
  *  attribute.
- *  \param inMaster Master from which an attribute is needed.
+ *  \param inMaster Master from which an attribute is required.
  *  \param inAttrib String list that contains the desired attribute.
  *  \param inIndex Offset from the first element of the list associated with
  *                 \e inAttrib.
@@ -138,7 +137,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
 
   GLC_INIT_THREAD();
 
-  /* Check some parameter.
+  /* Check some parameters.
    * NOTE : the verification of some parameters needs to get the current
    *        context state but since we are supposed to check parameters
    *        _before_ the context state, we are done !
@@ -149,13 +148,13 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return (GLCchar*)GLC_NONE;
   }
 
   /* Verify if inIndex is in legal bounds */
   if (inIndex < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return (GLCchar*)GLC_NONE;
   }
 
   /* Verify that the thread has a current context and that the master
@@ -163,7 +162,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
    */
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
-    return GLC_NONE;
+    return (GLCchar*)GLC_NONE;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
 
@@ -173,13 +172,13 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     charMap = __glcCharMapCreate(master, ctx);
     if (!charMap) {
       __glcMasterDestroy(master);
-      return GLC_NONE;
+      return (GLCchar*)GLC_NONE;
     }
     string = __glcCharMapGetCharNameByIndex(charMap, inIndex);
     if (!string) {
       __glcMasterDestroy(master);
       __glcCharMapDestroy(charMap);
-      return GLC_NONE;
+      return (GLCchar*)GLC_NONE;
     }
     break;
   case GLC_FACE_LIST:
@@ -189,7 +188,7 @@ const GLCchar* APIENTRY glcGetMasterListc(GLint inMaster, GLCenum inAttrib,
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return (GLCchar*)GLC_NONE;
   }
 
 
@@ -250,25 +249,25 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
     charMap = __glcCharMapCreate(master, ctx);
     __glcMasterDestroy(master);
     if (!charMap)
-      return NULL;
+      return (GLCchar*)GLC_NONE;
 
     /* Get the character code converted to the UCS-4 format */
     code = __glcConvertGLintToUcs4(ctx, inCode);
     if (code < 0) {
       __glcCharMapDestroy(charMap);
-      return NULL;
+      return (GLCchar*)GL_NONE;
     }
 
     name = __glcCharMapGetCharName(charMap, code);
     __glcCharMapDestroy(charMap);
     if (!name)
-      return NULL;
+      return (GLCchar*)GLC_NONE;
 
     result = __glcConvertFromUtf8ToBuffer(ctx, name);
     return result;
   }
   else
-    return NULL;
+    return (GLCchar*)GLC_NONE;
 }
 
 
@@ -300,8 +299,8 @@ const GLCchar* APIENTRY glcGetMasterMap(GLint inMaster, GLint inCode)
  *    </tr>
  *  </table>
  *  </center>
- *  \param inMaster The master for which an attribute value is needed.
- *  \param inAttrib The attribute for which the value is needed.
+ *  \param inMaster The master for which an attribute value is required.
+ *  \param inAttrib The attribute for which the value is required.
  *  \return The value that is associated with the attribute \e inAttrib.
  *  \sa glcGetMasteri()
  *  \sa glcGetMasterMap()
@@ -325,7 +324,7 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return (GLCchar*)GLC_NONE;
   }
 
   /* Verify that the thread has a current context and that the master
@@ -333,7 +332,7 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
    */
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
-    return GLC_NONE;
+    return (GLCchar*)GLC_NONE;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
   buffer = __glcMasterGetInfo(master, ctx, inAttrib);
@@ -376,8 +375,8 @@ const GLCchar* APIENTRY glcGetMasterc(GLint inMaster, GLCenum inAttrib)
  *  \n If the requested master attribute is \b GLC_IS_FIXED_PITCH then the
  *  command returns \b GL_TRUE if and only if each face of the master
  *  identified by \e inMaster has a fixed pitch.
- *  \param inMaster The master for which an attribute value is needed.
- *  \param inAttrib The attribute for which the value is needed.
+ *  \param inMaster The master for which an attribute value is required.
+ *  \param inAttrib The attribute for which the value is required.
  *  \return The value of the attribute \e inAttrib of the master identified
  *  by \e inMaster.
  *  \sa glcGetMasterc()
@@ -409,7 +408,6 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
   /* Verify that the thread has a current context and that the master
    * identified by 'inMaster' exists.
    */
-  ctx = GLC_GET_CURRENT_CONTEXT();
   master = __glcVerifyMasterParameters(inMaster);
   if (!master)
     return GLC_NONE;
@@ -421,6 +419,8 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
     __glcMasterDestroy(master);
     return fixed;
   }
+
+  ctx = GLC_GET_CURRENT_CONTEXT();
 
   if (inAttrib != GLC_FACE_COUNT) {
     charMap = __glcCharMapCreate(master, ctx);
@@ -457,7 +457,7 @@ GLint APIENTRY glcGetMasteri(GLint inMaster, GLCenum inAttrib)
 /* Common subroutine to add a catalog to the current context. It is called
  * either by glcAppendCatalog() or by glcPrependCatalog().
  */
-static void __glcAddCatalog(const GLCchar* inCatalog, GLboolean inAppend)
+static void __glcAddCatalog(const GLCchar* inCatalog, const GLboolean inAppend)
 {
   __GLCcontext *ctx = NULL;
   struct stat dirStat;
@@ -474,14 +474,14 @@ static void __glcAddCatalog(const GLCchar* inCatalog, GLboolean inAppend)
   #else
   if (access((const char *)inCatalog, R_OK) < 0) {
   #endif
-    /* May be something more explicit should be done */
+    /* May be something more explicit should be done ? */
     __glcRaiseError(GLC_PARAMETER_ERROR);
-	return;
+    return;
   }
   /* Check that 'inCatalog' is a directory */
   if (stat((const char *)inCatalog, &dirStat) < 0) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-	return;
+    return;
   }
   #ifdef __WIN32__
   if (!(dirStat.st_mode & _S_IFDIR)) {
@@ -489,7 +489,7 @@ static void __glcAddCatalog(const GLCchar* inCatalog, GLboolean inAppend)
   if (!S_ISDIR(dirStat.st_mode)) {
   #endif
     __glcRaiseError(GLC_PARAMETER_ERROR);
-	return;
+    return;
   }
 
   /* Verify that the thread owns a context */
@@ -560,9 +560,9 @@ void APIENTRY glcPrependCatalog(const GLCchar* inCatalog)
  *  command raises \b GLC_PARAMETER_ERROR if \e inIndex is less than zero or is
  *  greater than or equal to the value of the variable \b GLC_CATALOG_COUNT.
  *
- *  QuesoGLC also destroys the masters that are defined in the corresponding
+ *  QuesoGLC also removes the masters that are defined in the corresponding
  *  catalog.
- *  \param inIndex The string to remove from the catalog list
+ *  \param inIndex The index of the string to remove from the catalog list
  *                 \b GLC_CATALOG_LIST
  *  \sa glcAppendCatalog()
  *  \sa glcPrependCatalog()

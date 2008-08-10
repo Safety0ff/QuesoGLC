@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -35,15 +35,21 @@ struct __GLCmasterRec {
   FcPattern* pattern;
 };
 
-__GLCmaster* __glcMasterCreate(GLint inMaster, __GLCcontext* inContext);
+__GLCmaster* __glcMasterCreate(const GLint inMaster,
+			       const __GLCcontext* inContext);
 void __glcMasterDestroy(__GLCmaster* This);
-GLCchar8* __glcMasterGetFaceName(__GLCmaster* This,
-				       __GLCcontext* inContext, GLint inIndex);
-GLboolean __glcMasterIsFixedPitch(__GLCmaster* This);
-GLint __glcMasterFaceCount(__GLCmaster* This, __GLCcontext* inContext);
-const GLCchar8* __glcMasterGetInfo(__GLCmaster* This, __GLCcontext* inContext,
-			     GLCenum inAttrib);
-__GLCmaster* __glcMasterFromFamily(__GLCcontext* inContext, GLCchar8* inFamily);
-__GLCmaster* __glcMasterMatchCode(__GLCcontext* inContext, GLint inCode);
-GLint __glcMasterGetID(__GLCmaster* This, __GLCcontext* inContext);
+GLCchar8* __glcMasterGetFaceName(const __GLCmaster* This,
+				 const __GLCcontext* inContext,
+				 const GLint inIndex);
+GLboolean __glcMasterIsFixedPitch(const __GLCmaster* This);
+GLint __glcMasterFaceCount(const __GLCmaster* This,
+			   const __GLCcontext* inContext);
+const GLCchar8* __glcMasterGetInfo(const __GLCmaster* This,
+				   __GLCcontext* inContext,
+				   const GLCenum inAttrib);
+__GLCmaster* __glcMasterFromFamily(const __GLCcontext* inContext,
+				   const GLCchar8* inFamily);
+__GLCmaster* __glcMasterMatchCode(const __GLCcontext* inContext,
+				  const GLint inCode);
+GLint __glcMasterGetID(const __GLCmaster* This, const __GLCcontext* inContext);
 #endif

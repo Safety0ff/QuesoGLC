@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2007, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -43,17 +43,25 @@ struct __GLCcharMapRec {
   __GLCarray* map;
 };
 
-__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext);
+__GLCcharMap* __glcCharMapCreate(const __GLCmaster* inMaster,
+				 const __GLCcontext* inContext);
 void __glcCharMapDestroy(__GLCcharMap* This);
-void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode,
+void __glcCharMapAddChar(__GLCcharMap* This, const GLint inCode,
 			 __GLCglyph* inGlyph);
-void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode);
-const GLCchar8* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode);
-__GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode);
-GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode);
-const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
-					       GLint inIndex);
-GLint __glcCharMapGetCount(__GLCcharMap* This);
-GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This);
-GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This);
+void __glcCharMapRemoveChar(__GLCcharMap* This, const GLint inCode);
+const GLCchar8* __glcCharMapGetCharName(const __GLCcharMap* This,
+					const GLint inCode);
+__GLCglyph* __glcCharMapGetGlyph(const __GLCcharMap* This, const GLint inCode);
+GLboolean __glcCharMapHasChar(const __GLCcharMap* This, const GLint inCode);
+const GLCchar8* __glcCharMapGetCharNameByIndex(const __GLCcharMap* This,
+					       const GLint inIndex);
+/* Return the number of characters in the character map */
+static inline GLint __glcCharMapGetCount(const __GLCcharMap* This)
+{
+  assert(This);
+  assert(This->charSet);
+  return FcCharSetCount(This->charSet);
+}
+GLint __glcCharMapGetMaxMappedCode(const __GLCcharMap* This);
+GLint __glcCharMapGetMinMappedCode(const __GLCcharMap* This);
 #endif

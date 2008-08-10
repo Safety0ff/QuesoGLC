@@ -86,7 +86,8 @@ struct __GLCstringStateRec {
 struct __GLCglStateRec {
   GLint textureID;
   GLint textureEnvMode;
-  GLint bufferObjectID;
+  GLint pixelBufferObjectID;
+  GLint vertexBufferObjectID;
   GLint elementBufferObjectID;
   GLboolean blend;
   GLboolean normalize;
@@ -213,12 +214,14 @@ extern __thread __GLCthreadArea __glcTlsThreadArea
 extern __GLCthreadArea* __glcThreadArea;
 #endif
 
-__GLCcontext* __glcContextCreate(GLint inContext);
+__GLCcontext* __glcContextCreate(const GLint inContext);
 void __glcContextDestroy(__GLCcontext *This);
-__GLCfont* __glcContextGetFont(__GLCcontext *This, GLint code);
-GLCchar* __glcContextQueryBuffer(__GLCcontext *This, size_t inSize);
+__GLCfont* __glcContextGetFont(__GLCcontext *This, const GLint code);
+GLCchar* __glcContextQueryBuffer(__GLCcontext *This, const size_t inSize);
 void __glcContextAppendCatalog(__GLCcontext* This, const GLCchar* inCatalog);
 void __glcContextPrependCatalog(__GLCcontext* This, const GLCchar* inCatalog);
-void __glcContextRemoveCatalog(__GLCcontext* This, GLint inIndex);
-GLCchar8* __glcContextGetCatalogPath(__GLCcontext* This, GLint inIndex);
+void __glcContextRemoveCatalog(__GLCcontext* This, const GLint inIndex);
+GLCchar8* __glcContextGetCatalogPath(const __GLCcontext* This,
+				     const GLint inIndex);
+void __glcContextDeleteFont(__GLCcontext* inContext, __GLCfont* font);
 #endif /* __glc_ocontext_h */

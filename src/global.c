@@ -110,7 +110,9 @@ void __glcUnlock(void)
   area = GLC_GET_THREAD_AREA();
   assert(area);
 
+  assert(area->lockState);
   area->lockState--;
+
   if (!area->lockState)
 #ifdef __WIN32__
     LeaveCriticalSection(&__glcCommonArea.section);
@@ -166,7 +168,7 @@ void _fini(void)
   }
 
 #if FC_MINOR > 2
-  /*FcFini();*/
+  FcFini();
 #endif
 
   __glcUnlock();
@@ -226,7 +228,7 @@ void _init(void)
    * initialization "{.., ..}" which is not allowed to be used by C99 anywhere
    * but at variables declaration.
    */
-  pthread_once_t onceInit = PTHREAD_ONCE_INIT;
+  const pthread_once_t onceInit = PTHREAD_ONCE_INIT;
 #endif
 
   /* Initialize fontconfig */
@@ -286,10 +288,10 @@ BOOL WINAPI DllMain(HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
   switch(dwReason) {
   case DLL_PROCESS_ATTACH:
     _init();
-	return TRUE;
+    return TRUE;
   case DLL_PROCESS_DETACH:
     _fini();
-	return TRUE;
+    return TRUE;
   }
   return TRUE;
 }
@@ -298,7 +300,7 @@ BOOL WINAPI DllMain(HANDLE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
 
 
 /* Get the context state corresponding to a given context ID */
-static __GLCcontext* __glcGetContext(GLint inContext)
+static __GLCcontext* __glcGetContext(const GLint inContext)
 {
   FT_ListNode node = NULL;
 
@@ -315,7 +317,7 @@ static __GLCcontext* __glcGetContext(GLint inContext)
 
 /** \ingroup global
  *  This command checks whether \e inContext is the ID of one of the client's
- *  GLC context and returns \b GLC_TRUE if and only if it is.
+ *  GLC context and returns \b GLC_TRUE if and only if it is the case.
  *  \param inContext The context ID to be tested
  *  \return \b GL_TRUE if \e inContext is the ID of a GLC context,
  *          \b GL_FALSE otherwise
@@ -495,13 +497,8 @@ void APIENTRY glcContext(GLint inContext)
     /* Is the context already current to a thread ? */
     if (ctx->isCurrent) {
       /* If the context is current to another thread => ERROR ! */
-      if (!currentContext) {
+      if (ctx != currentContext)
 	__glcRaiseError(GLC_STATE_ERROR);
-      }
-      else {
-	if (currentContext->id != inContext)
-	  __glcRaiseError(GLC_STATE_ERROR);
-      }
 
       /* If we get there, this means that the context 'inContext'
        * is already current to one thread (whether it is the issuing thread
@@ -540,6 +537,7 @@ void APIENTRY glcContext(GLint inContext)
    */
   if (currentContext) {
     if (currentContext->pendingDelete) {
+      assert(!currentContext->isCurrent);
       FT_List_Remove(&__glcCommonArea.contextList, (FT_ListNode)currentContext);
       currentContext->isInGlobalCommand = GL_TRUE;
       __glcContextDestroy(currentContext);
@@ -559,14 +557,15 @@ void APIENTRY glcContext(GLint inContext)
    * available extensions, but it also allows to be conformant with GLC specs
    * which require to issue those GL commands. 
    *
-   * Notice however that some OpenGL implementations return a void pointer if
-   * the function glGetString() is called while no GL context is bound to the
-   * current thread. However this behaviour is not required by the GL specs, so
-   * those calls may just fail or lead to weird results or even crash the app
-   * (on Mac OSX). There is nothing that we can do against that : the GLC specs
-   * make it very clear that glGetString() is called by glcContext() and the
-   * QuesoGLC docs tell that the behaviour of GLC is undefined if no GL context
-   * is current while issuing GL commands.
+   * Notice however that not all OpenGL implementations return a result if the
+   * function glGetString() is called while no GL context is bound to the
+   * current thread. Since this behaviour is not required by the GL specs, such
+   * calls may just fail or lead to weird results or even crash the app (on
+   * Mac OSX). It is the user's responsibility to make sure that it does not
+   * happen since the GLC specs state clearly that : 
+   *   1. glGetString() is called by glcContext()
+   *   2. the behaviour of GLC is undefined if no GL context is current while
+   *      issuing GL commands.
    */
   if (glewInit() != GLEW_OK)
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -599,12 +598,10 @@ GLint APIENTRY glcGenContext(void)
   __glcLock();
 
   /* Search for the first context ID that is unused */
-  if (!__glcCommonArea.contextList.tail)
-    newContext = 1;
-  else
-    newContext = ((__GLCcontext*)__glcCommonArea.contextList.tail)->id + 1;
+  if (__glcCommonArea.contextList.tail)
+    newContext = ((__GLCcontext*)__glcCommonArea.contextList.tail)->id;
 
-  ctx->id = newContext;
+  ctx->id = newContext + 1;
 
   node = (FT_ListNode)ctx;
   node->data = ctx;
@@ -612,7 +609,7 @@ GLint APIENTRY glcGenContext(void)
 
   __glcUnlock();
 
-  return newContext;
+  return ctx->id;
 }
 
 
@@ -644,7 +641,7 @@ GLint* APIENTRY glcGetAllContexts(void)
   for (node = __glcCommonArea.contextList.head, count = 0; node;
        node = node->next, count++);
 
-  /* Allocate memory to store the array */
+  /* Allocate memory to store the array (including the zero termination value)*/
   contextArray = (GLint *)__glcMalloc(sizeof(GLint) * (count+1));
   if (!contextArray) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -656,7 +653,7 @@ GLint* APIENTRY glcGetAllContexts(void)
   contextArray[count] = 0;
 
   /* Copy the context IDs to the array */
-  for (node = __glcCommonArea.contextList.tail; node;node = node->prev)
+  for (node = __glcCommonArea.contextList.tail; node; node = node->prev)
     contextArray[--count] = ((__GLCcontext*)node)->id;
 
   __glcUnlock();

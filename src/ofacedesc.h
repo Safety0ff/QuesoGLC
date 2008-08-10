@@ -42,52 +42,61 @@ struct __GLCfaceDescriptorRec {
 };
 
 
-__GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
+__GLCfaceDescriptor* __glcFaceDescCreate(const __GLCmaster* inMaster,
 					 const GLCchar8* inFace,
-					 __GLCcontext* inContext, GLint inCode);
-void __glcFaceDescDestroy(__GLCfaceDescriptor* This,
-			  __GLCcontext* inContext);
+					 const __GLCcontext* inContext,
+					 const GLint inCode);
+void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext);
 #ifndef GLC_FT_CACHE
 FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
 			  __GLCcontext* inContext);
 void __glcFaceDescClose(__GLCfaceDescriptor* This);
 #endif
-__GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
-				  __GLCcontext* inContext);
-void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
+__GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This,
+				  const GLint inCode,
+				  const __GLCcontext* inContext);
+void __glcFaceDescDestroyGLObjects(const __GLCfaceDescriptor* This,
 				   __GLCcontext* inContext);
 GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
-				    __GLCcontext* inContext, GLfloat inScaleX,
-				    GLfloat inScaleY, GLCulong inGlyphIndex);
+				    const __GLCcontext* inContext,
+				    const GLfloat inScaleX,
+				    const GLfloat inScaleY,
+				    const GLCulong inGlyphIndex);
 GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
-				     GLCulong inGlyphIndex, GLfloat* outVec,
-				     GLfloat inScaleX, GLfloat inScaleY,
-				     __GLCcontext* inContext);
+				     const GLCulong inGlyphIndex,
+				     GLfloat* outVec, const GLfloat inScaleX,
+				     const GLfloat inScaleY,
+				     const __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
-				 GLCulong inGlyphIndex, GLfloat* outVec,
-				 GLfloat inScaleX, GLfloat inScaleY,
-				 __GLCcontext* inContext);
-const GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
-					   __GLCcontext* inContext,
-					   GLCenum inAttrib);
+				 const GLCulong inGlyphIndex, GLfloat* outVec,
+				 const GLfloat inScaleX, const GLfloat inScaleY,
+				 const __GLCcontext* inContext);
+const GLCchar8* __glcFaceDescGetFontFormat(const __GLCfaceDescriptor* This,
+					   const __GLCcontext* inContext,
+					   const GLCenum inAttrib);
 GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
 				   __GLCcontext* inContext);
 GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
-				 GLCuint inGlyphIndex, GLCuint inPrevGlyphIndex,
-				 GLfloat inScaleX, GLfloat inScaleY,
-				 GLfloat* outVec, __GLCcontext* inContext);
+				 const GLCuint inGlyphIndex,
+				 const GLCuint inPrevGlyphIndex,
+				 const GLfloat inScaleX, const GLfloat inScaleY,
+				 GLfloat* outVec,
+				 const __GLCcontext* inContext);
 GLCchar8* __glcFaceDescGetStyleName(__GLCfaceDescriptor* This);
 GLboolean __glcFaceDescIsFixedPitch(__GLCfaceDescriptor* This);
-GLboolean __glcFaceDescOutlineDecompose(__GLCfaceDescriptor* This,
+GLboolean __glcFaceDescOutlineDecompose(const __GLCfaceDescriptor* This,
                                         __GLCrendererData* inData,
-                                        __GLCcontext* inContext);
-GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
-                                     GLint *outHeight, GLint* outBoundingBox,
-                                     GLfloat inScaleX, GLfloat inScaleY,
-                                     int inFactor, __GLCcontext* inContext);
-GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
-                                 GLint inHeight, void* inBuffer,
-                                 __GLCcontext* inContext);
+                                        const __GLCcontext* inContext);
+GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
+				     GLint* outWidth, GLint *outHeight,
+				     GLint* outBoundingBox,
+				     const GLfloat inScaleX,
+				     const GLfloat inScaleY, const int inFactor,
+				     const __GLCcontext* inContext);
+GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
+				 const GLint inWidth, const GLint inHeight,
+				 const void* inBuffer,
+				 const __GLCcontext* inContext);
 GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This);
 __GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
 				      __GLCcontext* inContext);

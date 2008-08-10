@@ -30,6 +30,7 @@
 #include <fontconfig/fcfreetype.h>
 
 #include "internal.h"
+#include "texture.h"
 #include FT_GLYPH_H
 #ifdef GLC_FT_CACHE
 #include FT_CACHE_H
@@ -54,9 +55,10 @@
  * The user must give the name of the face, the character map, if it is a fixed
  * font or not, the file name and the index of the font in its file.
  */
-__GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
+__GLCfaceDescriptor* __glcFaceDescCreate(const __GLCmaster* inMaster,
 					 const GLCchar8* inFace,
-					 __GLCcontext* inContext, GLint inCode)
+					 const __GLCcontext* inContext,
+					 const GLint inCode)
 {
   __GLCfaceDescriptor* This = NULL;
   FcObjectSet* objectSet = NULL;
@@ -91,26 +93,43 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     FcChar8* style = NULL;
     FcBool outline = FcFalse;
     FcCharSet* charSet = NULL;
-    FcResult result = FcResultMatch;
     FcBool equal = FcFalse;
+#ifdef DEBUGMODE
+    FcResult result = FcResultMatch;
 
-    result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
-    assert(result != FcResultTypeMismatch);
-    if (inCode && !FcCharSetHasChar(charSet, inCode))
-      continue;
-
-    /* Check whether the glyphs are outlines */
     result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
     assert(result != FcResultTypeMismatch);
+#else
+    FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+#endif
+
+    /* Check whether the glyphs are outlines */
     if (!outline)
       continue;
 
+#ifdef DEBUGMODE
+    result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+    assert(result != FcResultTypeMismatch);
+#else
+    FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+#endif
+
+    /* Check that the code is included in the font */
+    if (inCode && !FcCharSetHasChar(charSet, inCode))
+      continue;
+
+#ifdef DEBUGMODE
     result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
     assert(result != FcResultTypeMismatch);
     result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
     assert(result != FcResultTypeMismatch);
     result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
     assert(result != FcResultTypeMismatch);
+#else
+    FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+    FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+    FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+#endif
 
     if (foundry)
       pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
@@ -130,8 +149,12 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     FcPatternDestroy(pattern);
     if (equal) {
       if (inFace) {
+#ifdef DEBUGMODE
 	result = FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &style);
 	assert(result != FcResultTypeMismatch);
+#else
+	FcPatternGetString(fontSet->fonts[i], FC_STYLE, 0, &style);
+#endif
 	if (strcmp((const char*)style, (const char*)inFace))
 	  continue;
       }
@@ -151,6 +174,7 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+  memset(This, 0, sizeof(__GLCfaceDescriptor));
 
   This->pattern = FcPatternDuplicate(fontSet->fonts[i]);
   FcFontSetDestroy(fontSet);
@@ -159,16 +183,6 @@ __GLCfaceDescriptor* __glcFaceDescCreate(__GLCmaster* inMaster,
     __glcFree(This);
     return NULL;
   }
-
-  This->node.prev = NULL;
-  This->node.next = NULL;
-  This->node.data = NULL;
-  This->face = NULL;
-#ifndef GLC_FT_CACHE
-  This->faceRefCount = 0;
-#endif
-  This->glyphList.head = NULL;
-  This->glyphList.tail = NULL;
 
   return This;
 }
@@ -220,6 +234,7 @@ FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
   if (!This->faceRefCount) {
     GLCchar8 *fileName = NULL;
     int index = 0;
+#ifdef DEBUGMODE
     FcResult result = FcResultMatch;
 
     /* get the file name */
@@ -228,6 +243,12 @@ FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
     /* get the index of the font in font file */
     result = FcPatternGetInteger(This->pattern, FC_INDEX, 0, &index);
     assert(result != FcResultTypeMismatch);
+#else
+    /* get the file name */
+    FcPatternGetString(This->pattern, FC_FILE, 0, &fileName);
+    /* get the index of the font in font file */
+    FcPatternGetInteger(This->pattern, FC_INDEX, 0, &index);
+#endif
 
     if (FT_New_Face(inContext->library, (const char*)fileName, index,
 		    &This->face)) {
@@ -274,8 +295,9 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
   __GLCfaceDescriptor* file = (__GLCfaceDescriptor*)inFile;
   GLCchar8 *fileName = NULL;
   int fileIndex = 0;
-  FcResult result = FcResultMatch;
   FT_Error error;
+#ifdef DEBUGMODE
+  FcResult result = FcResultMatch;
 
   /* get the file name */
   result = FcPatternGetString(file->pattern, FC_FILE, 0, &fileName);
@@ -283,6 +305,12 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
   /* get the index of the font in font file */
   result = FcPatternGetInteger(file->pattern, FC_INDEX, 0, &fileIndex);
   assert(result != FcResultTypeMismatch);
+#else
+  /* get the file name */
+  FcPatternGetString(file->pattern, FC_FILE, 0, &fileName);
+  /* get the index of the font in font file */
+  FcPatternGetInteger(file->pattern, FC_INDEX, 0, &fileIndex);
+#endif
 
   error = FT_New_Face(inLibrary, (const char*)fileName, fileIndex, outFace);
 
@@ -301,8 +329,9 @@ FT_Error __glcFileOpen(FTC_FaceID inFile, FT_Library inLibrary,
 
 
 /* Return the glyph which corresponds to codepoint 'inCode' */
-__GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
-				  __GLCcontext* inContext)
+__GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This,
+				  const GLint inCode,
+				  const __GLCcontext* inContext)
 {
   FT_Face face = NULL;
   __GLCglyph* glyph = NULL;
@@ -355,8 +384,10 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This, GLint inCode,
  * inScaleY. 'inGlyphIndex' contains the index of the glyph in the font file.
  */
 GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
-				    __GLCcontext* inContext, GLfloat inScaleX,
-				    GLfloat inScaleY, GLCulong inGlyphIndex)
+				    const __GLCcontext* inContext,
+				    const GLfloat inScaleX,
+				    const GLfloat inScaleY,
+				    const GLCulong inGlyphIndex)
 {
   FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
 #ifdef GLC_FT_CACHE
@@ -459,7 +490,7 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
 
 
 /* Destroy the GL objects of every glyph of the face */
-void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
+void __glcFaceDescDestroyGLObjects(const __GLCfaceDescriptor* This,
 				   __GLCcontext* inContext)
 {
   FT_ListNode node = NULL;
@@ -478,9 +509,10 @@ void __glcFaceDescDestroyGLObjects(__GLCfaceDescriptor* This,
  * index of the glyph in the font file.
  */
 GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
-				     GLCulong inGlyphIndex, GLfloat* outVec,
-				     GLfloat inScaleX, GLfloat inScaleY,
-				     __GLCcontext* inContext)
+				     const GLCulong inGlyphIndex,
+				     GLfloat* outVec, const GLfloat inScaleX,
+				     const GLfloat inScaleY,
+				     const __GLCcontext* inContext)
 {
   FT_BBox boundBox;
   FT_Glyph glyph;
@@ -517,9 +549,9 @@ GLfloat* __glcFaceDescGetBoundingBox(__GLCfaceDescriptor* This,
  * index of the glyph in the font file.
  */
 GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
-				 GLCulong inGlyphIndex, GLfloat* outVec,
-				 GLfloat inScaleX, GLfloat inScaleY,
-				 __GLCcontext* inContext)
+				 const GLCulong inGlyphIndex, GLfloat* outVec,
+				 const GLfloat inScaleX, const GLfloat inScaleY,
+				 const __GLCcontext* inContext)
 {
   assert(outVec);
 
@@ -544,9 +576,9 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 /* Use FreeType to determine in which format the face is stored in its file :
  * Type1, TrueType, OpenType, ...
  */
-const GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
-					   __GLCcontext* inContext,
-					   GLCenum inAttrib)
+const GLCchar8* __glcFaceDescGetFontFormat(const __GLCfaceDescriptor* This,
+					   const __GLCcontext* inContext,
+					   const GLCenum inAttrib)
 {
   static GLCchar8 unknown[] = "Unknown";
 #ifndef FT_XFREE86_H
@@ -740,9 +772,10 @@ GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
  * by inScaleX and inScaleY. The result is returned in outVec.
  */
 GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
-				 GLCuint inGlyphIndex, GLCuint inPrevGlyphIndex,
-				 GLfloat inScaleX, GLfloat inScaleY,
-				 GLfloat* outVec, __GLCcontext* inContext)
+				 const GLCuint inGlyphIndex,
+				 const GLCuint inPrevGlyphIndex,
+				 const GLfloat inScaleX, const GLfloat inScaleY,
+				 GLfloat* outVec, const __GLCcontext* inContext)
 {
   FT_Vector kerning;
   FT_Error error;
@@ -781,9 +814,13 @@ GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
 GLCchar8* __glcFaceDescGetStyleName(__GLCfaceDescriptor* This)
 {
   GLCchar8 *styleName = NULL;
+#ifdef DEBUGMODE
   FcResult result = FcPatternGetString(This->pattern, FC_STYLE, 0, &styleName);
 
   assert(result != FcResultTypeMismatch);
+#else
+  FcPatternGetString(This->pattern, FC_STYLE, 0, &styleName);
+#endif
   return styleName;
 }
 
@@ -793,9 +830,13 @@ GLCchar8* __glcFaceDescGetStyleName(__GLCfaceDescriptor* This)
 GLboolean __glcFaceDescIsFixedPitch(__GLCfaceDescriptor* This)
 {
   int fixed = 0;
+#ifdef DEBUGMODE
   FcResult result = FcPatternGetInteger(This->pattern, FC_SPACING, 0, &fixed);
 
   assert(result != FcResultTypeMismatch);
+#else
+  FcPatternGetInteger(This->pattern, FC_SPACING, 0, &fixed);
+#endif
   return (fixed != FC_PROPORTIONAL);
 }
 
@@ -915,9 +956,9 @@ static int __glcCubicTo(FT_Vector *inVecControl1, FT_Vector *inVecControl2,
 
 
 /* Decompose the outline of a glyph */
-GLboolean __glcFaceDescOutlineDecompose(__GLCfaceDescriptor* This,
+GLboolean __glcFaceDescOutlineDecompose(const __GLCfaceDescriptor* This,
                                         __GLCrendererData* inData,
-                                        __GLCcontext* inContext)
+                                        const __GLCcontext* inContext)
 {
   FT_Outline *outline = NULL;
   FT_Outline_Funcs outlineInterface;
@@ -978,10 +1019,12 @@ static int __glcNextPowerOf2(int value)
 
 
 /* Get the size of the bitmap in which the glyph will be rendered */
-GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
-                                     GLint *outHeight, GLint* outBoundingBox,
-                                     GLfloat inScaleX, GLfloat inScaleY,
-                                     int inFactor, __GLCcontext* inContext)
+GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
+				     GLint* outWidth, GLint *outHeight,
+				     GLint* outBoundingBox,
+				     const GLfloat inScaleX,
+				     const GLfloat inScaleY, const int inFactor,
+				     const __GLCcontext* inContext)
 {
   FT_Outline outline;
   FT_Matrix matrix;
@@ -1068,9 +1111,10 @@ GLboolean __glcFaceDescGetBitmapSize(__GLCfaceDescriptor* This, GLint* outWidth,
 
 
 /* Render the glyph in a bitmap */
-GLboolean __glcFaceDescGetBitmap(__GLCfaceDescriptor* This, GLint inWidth,
-                                 GLint inHeight, void* inBuffer,
-                                 __GLCcontext* inContext)
+GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
+				 const GLint inWidth, const GLint inHeight,
+				 const void* inBuffer,
+				 const __GLCcontext* inContext)
 {
   FT_Outline outline;
   FT_BBox boundingBox;
@@ -1153,7 +1197,9 @@ GLboolean __glcFaceDescOutlineEmpty(__GLCfaceDescriptor* This)
 __GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
 				      __GLCcontext* inContext)
 {
+#ifdef DEBUGMODE
   FcResult result = FcResultMatch;
+#endif
   FcCharSet* charSet = NULL;
   FcCharSet* newCharSet = NULL;
   __GLCcharMap* charMap = __glcCharMapCreate(NULL, inContext);
@@ -1161,8 +1207,12 @@ __GLCcharMap* __glcFaceDescGetCharMap(__GLCfaceDescriptor* This,
   if (!charMap)
     return NULL;
 
+#ifdef DEBUGMODE
   result = FcPatternGetCharSet(This->pattern, FC_CHARSET, 0, &charSet);
   assert(result != FcResultTypeMismatch);
+#else
+  FcPatternGetCharSet(This->pattern, FC_CHARSET, 0, &charSet);
+#endif
 
   newCharSet = FcCharSetCopy(charSet);
   if (!newCharSet) {

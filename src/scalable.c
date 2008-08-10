@@ -41,7 +41,7 @@
  * inCoord[2..4] contains the 2D homogeneous coordinates in observer space
  */
 static void __glcComputePixelCoordinates(GLfloat* inCoord,
-					 __GLCrendererData* inData)
+					 const __GLCrendererData* inData)
 {
   GLfloat x = inCoord[0] * inData->transformMatrix[0]
 	     + inCoord[1] * inData->transformMatrix[4]
@@ -394,9 +394,9 @@ int __glcdeCasteljauCubic(void *inUserData)
  * polygon.
  */
 static void CALLBACK __glcCombineCallback(GLdouble coords[3],
-				 void* GLC_UNUSED_ARG(vertex_data[4]),
-                                 GLfloat GLC_UNUSED_ARG(weight[4]),
-				 void** outData, void* inUserData)
+					  void* GLC_UNUSED_ARG(vertex_data[4]),
+					  GLfloat GLC_UNUSED_ARG(weight[4]),
+					  void** outData, void* inUserData)
 {
   __GLCrendererData *data = (__GLCrendererData*)inUserData;
   GLfloat vertex[2];
@@ -481,15 +481,16 @@ static void CALLBACK __glcCallbackError(GLenum GLC_UNUSED_ARG(inErrorCode))
  * contour defines a polygon that is tesselated in triangles by the GLU library
  * before being rendered.
  */
-void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
-			     GLfloat* inTransformMatrix, GLfloat scale_x,
-			     GLfloat scale_y, __GLCglyph* inGlyph)
+void __glcRenderCharScalable(const __GLCfont* inFont,
+			     const __GLCcontext* inContext,
+			     GLfloat* inTransformMatrix, const GLfloat inScaleX,
+			     const GLfloat inScaleY, __GLCglyph* inGlyph)
 {
   __GLCrendererData rendererData;
   GLfloat identityMatrix[16] = {1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
 				       1., 0., 0., 0., 0., 1.};
-  GLfloat sx64 = 64. * scale_x;
-  GLfloat sy64 = 64. * scale_y;
+  GLfloat sx64 = 64. * inScaleX;
+  GLfloat sy64 = 64. * inScaleY;
   int objectIndex = 0;
   GLfloat orientation = 1.f;
 
@@ -533,8 +534,8 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
     /* Distances are computed in object space, so is the tolerance of the
      * de Casteljau algorithm.
      */
-    rendererData.tolerance = 0.005 * sqrt(scale_x*scale_x + scale_y*scale_y)
-      / sx64 / sy64;
+    rendererData.tolerance = 0.005 * sqrt(inScaleX * inScaleX
+					  + inScaleY * inScaleY) / sx64 / sy64;
     rendererData.halfWidth = 0.5;
     rendererData.halfHeight = 0.5;
     rendererData.transformMatrix = identityMatrix;
@@ -562,7 +563,7 @@ void __glcRenderCharScalable(__GLCfont* inFont, __GLCcontext* inContext,
   /* Prepare the display list if needed. For optimization reasons, if we use
    * VBOs we build them for the 3 rendering modes (GLC_LINE, GLC_TRIANGLE,
    * extrusion) in a row. (Vertices are common to all rendering modes and
-   * contours are common to GLC_LINE an extrude).
+   * contours are common to GLC_LINE and extrude).
    */
   if (inContext->enableState.glObjects) {
     if (GLEW_ARB_vertex_buffer_object) {

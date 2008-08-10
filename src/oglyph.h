@@ -51,12 +51,12 @@ struct __GLCglyphRec {
   GLboolean isSpacingChar;
 };
 
-__GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode);
+__GLCglyph* __glcGlyphCreate(const GLCulong inIndex, const GLCulong inCode);
 void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext);
-void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext);
+void __glcGlyphDestroyTexture(__GLCglyph* This, const __GLCcontext* inContext);
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext);
-int __glcGlyphGetDisplayListCount(__GLCglyph* This);
-GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount);
-int __glcGlyphGetBufferObjectCount(__GLCglyph* This);
-GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount);
+int __glcGlyphGetDisplayListCount(const __GLCglyph* This);
+GLuint __glcGlyphGetDisplayList(const __GLCglyph* This, const int inCount);
+int __glcGlyphGetBufferObjectCount(const __GLCglyph* This);
+GLuint __glcGlyphGetBufferObject(const __GLCglyph* This, const int inCount);
 #endif

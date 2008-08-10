@@ -65,7 +65,7 @@
 
 
 /* Multiply a vector by the GLC_BITMAP_MATRIX */
-static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
+static void __glcTransformVector(GLfloat* outVec, const GLfloat *inMatrix)
 {
   GLfloat temp = inMatrix[0] * outVec[0] + inMatrix[2] * outVec[1];
 
@@ -79,17 +79,18 @@ static void __glcTransformVector(GLfloat* outVec, GLfloat *inMatrix)
  * identified by 'inFont'.
  * 'inCode' must be given in UCS-4 format
  */
-static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
-				GLboolean inIsRTL, __GLCfont* inFont,
-				__GLCcontext* inContext, void* inData,
-				GLboolean inMultipleChars)
+static void* __glcGetCharMetric(const GLint inCode, const GLint inPrevCode,
+				const GLboolean inIsRTL,
+				const __GLCfont* inFont,
+				__GLCcontext* inContext, const void* inData,
+				const GLboolean inMultipleChars)
 {
   GLfloat* outVec = (GLfloat*)inData;
   int i = 0;
   GLfloat xMin = 0., xMax = 0.;
   GLfloat yMin = 0., yMax = 0.;
-  GLfloat scale_x = GLC_POINT_SIZE;
-  GLfloat scale_y = GLC_POINT_SIZE;
+  GLfloat inScaleX = GLC_POINT_SIZE;
+  GLfloat inScaleY = GLC_POINT_SIZE;
   GLfloat temp[4];
 
   assert(inFont);
@@ -101,12 +102,10 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
      * screen coordinate system. In order to get the values that already stored
      * in outVec back in the glyph coordinate system, we must compute the
      * inverse of the transformation matrix.
-     * Note that the inverse of the transformation exists since we have already
-     * checked that the scale factors are not zero.
      */
     GLfloat* matrix = inContext->bitmapMatrix;
     GLfloat inverseMatrix[4];
-    GLfloat norm = 0.;
+    GLfloat norm = 0.f;
     GLfloat determinant = matrix[0] * matrix[3]	- matrix[1] * matrix[2];
 
     for (i = 0; i < 4; i++) {
@@ -141,8 +140,8 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
     outVec[3] += outVec[13];
   }
 
-  if (!__glcFontGetBoundingBox(inFont, inCode, temp, inContext, scale_x,
-              scale_y))
+  if (!__glcFontGetBoundingBox(inFont, inCode, temp, inContext, inScaleX,
+			       inScaleY))
       return NULL;
   /* Take into account the advance of the glyphs that have already been
    * measured.
@@ -172,7 +171,7 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
   outVec[11] = outVec[9];
 
   /* Get the advance of the glyph */
-  if (!__glcFontGetAdvance(inFont, inCode, temp, inContext, scale_x, scale_y))
+  if (!__glcFontGetAdvance(inFont, inCode, temp, inContext, inScaleX, inScaleY))
       return NULL;
   /* Update the global advance accordingly */
   if (inIsRTL) {
@@ -188,11 +187,11 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
   outVec[13] = 0.;
   if (inPrevCode && inContext->enableState.kerning) {
     GLfloat kerning[2];
-    GLint leftCode = inIsRTL ? inCode : inPrevCode;
-    GLint rightCode = inIsRTL ? inPrevCode : inCode;
+    const GLint leftCode = inIsRTL ? inCode : inPrevCode;
+    const GLint rightCode = inIsRTL ? inPrevCode : inCode;
 
     if (__glcFontGetKerning(inFont, leftCode, rightCode, kerning, inContext,
-			    scale_x, scale_y)) {
+			    inScaleX, inScaleY)) {
       outVec[12] = inIsRTL ? -kerning[0] : kerning[0];
       outVec[13] = kerning[1];
     }
@@ -216,7 +215,6 @@ static void* __glcGetCharMetric(GLint inCode, GLint inPrevCode,
  *  metric identified by \e inMetric. If the command does not raise an error,
  *  its return value is \e outVec.
  *
- *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inCode The character to measure.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                   \b GLC_BOUNDS.
@@ -304,7 +302,6 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
  *  \e inMetric. If the command does not raise an error, its return value
  *  is \e outVec.
  *
- *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is NULL.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                  \b GLC_BOUNDS.
  *  \param outVec A vector in which to store value of \e inMetric for all
@@ -318,7 +315,7 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
 GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 {
   __GLCcontext *ctx = NULL;
-  GLfloat advance_x = 0., advance_y = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
+  GLfloat advanceX = 0., advanceY = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
   FT_ListNode node = NULL;
 
   GLC_INIT_THREAD();
@@ -352,8 +349,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     if (!__glcFontGetMaxMetric(font, temp, ctx))
       return NULL;
 
-    advance_x = temp[0] > advance_x ? temp[0] : advance_x;
-    advance_y = temp[1] > advance_y ? temp[1] : advance_y;
+    advanceX = temp[0] > advanceX ? temp[0] : advanceX;
+    advanceY = temp[1] > advanceY ? temp[1] : advanceY;
     yt = temp[2] > yt ? temp[2] : yt;
     yb = temp[3] < yb ? temp[3] : yb;
     xr = temp[4] > xr ? temp[4] : xr;
@@ -365,8 +362,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
   case GLC_BASELINE:
     outVec[0] = 0.;
     outVec[1] = 0.;
-    outVec[2] = advance_x;
-    outVec[3] = advance_y;
+    outVec[2] = advanceX;
+    outVec[3] = advanceY;
     if (ctx->renderState.renderStyle == GLC_BITMAP)
       __glcTransformVector(&outVec[2], ctx->bitmapMatrix);
     return outVec;
@@ -414,7 +411,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  GLfloat overallBaseline[4];
  *  GLfloat overallBoundingBox[8];
  *
- *  GLfloat charBaslines[5][4];
+ *  GLfloat charBaselines[5][4];
  *  GLfloat charBoundingBoxes[5][8];
  *
  *  GLint i;
@@ -432,8 +429,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
  *  \note
  *  \e glcGetStringCharMetric is useful if you're interested in the metrics of
  *  a character as it appears in a string, that is, influenced by kerning,
- *  ligatures, and so on. To measure a character as if it started at the
- *  origin, call glcGetCharMetric().
+ *  ligatures, and so on. To measure the metrics of a character alone, call
+ *  glcGetCharMetric().
  *  \param inIndex Specifies which element in the string to measure.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
  *                  \b GLC_BOUNDS.
@@ -484,11 +481,11 @@ GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
   switch(inMetric) {
   case GLC_BASELINE:
     memcpy(outVec, &measurementBuffer[inIndex][0],
-           4*sizeof(GLfloat));
+           4 * sizeof(GLfloat));
     return outVec;
   case GLC_BOUNDS:
     memcpy(outVec, &measurementBuffer[inIndex][4],
-	   8*sizeof(GLfloat));
+	   8 * sizeof(GLfloat));
     return outVec;
   }
 
@@ -500,10 +497,8 @@ GLfloat* APIENTRY glcGetStringCharMetric(GLint inIndex, GLCenum inMetric,
 /** \ingroup measure
  *  This command retrieves a string metric from the GLC measurement buffer
  *  and stores it in \e outVec. The metric is identified by \e inMetric. To
- *  store a string from the GLC measurement buffer, call
+ *  store the metrics of a string in the GLC measurement buffer, call
  *  glcMeasureCountedString() or glcMeasureString().
- *
- *  The command raises \b GLC_PARAMETER_ERROR if \e outVec is \b GLC_NONE
  *
  *  If the command does not raise an error, its return value is \e outVec.
  *  \param inMetric The metric to measure, either \b GLC_BASELINE or
@@ -562,9 +557,10 @@ GLfloat* APIENTRY glcGetStringMetric(GLCenum inMetric, GLfloat *outVec)
  * The string inString is encoded in UCS4 and is stored in visual order.
  */
 static GLint __glcMeasureCountedString(__GLCcontext *inContext,
-				       GLboolean inMeasureChars, GLint inCount,
+				       const GLboolean inMeasureChars,
+				       const GLint inCount,
 				       const GLCchar32* inString,
-				       GLboolean inIsRTL)
+				       const GLboolean inIsRTL)
 {
   GLint i = 0;
   GLfloat metrics[14];
@@ -608,11 +604,12 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
       memset(metrics, 0, 14 * sizeof(GLfloat));
     }
     else {
+      FT_ListNode node = NULL;
+
       if (inContext->enableState.glObjects
 	  && inContext->renderState.renderStyle) {
 	__GLCfont* font = NULL;
 	__GLCglyph* glyph = NULL;
-	FT_ListNode node = NULL;
 
 	for (node = inContext->currentFontList.head; node ; node = node->next) {
  	  font = (__GLCfont*)node->data;
@@ -648,8 +645,8 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 
 	  if (inContext->enableState.kerning) {
 	    if (prevCode.code && prevCode.font == font) {
-	      GLint leftCode = inIsRTL ? *ptr : prevCode.code;
-	      GLint rightCode = inIsRTL ? prevCode.code : *ptr;
+	      const GLint leftCode = inIsRTL ? *ptr : prevCode.code;
+	      const GLint rightCode = inIsRTL ? prevCode.code : *ptr;
 
 	      __glcFontGetKerning(font, leftCode, rightCode, &metrics[12],
 				  inContext, GLC_POINT_SIZE, GLC_POINT_SIZE);
@@ -660,12 +657,9 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 	  prevCode.code = *ptr;
 	  break;
 	}
-
-	if (!node)
-	  __glcProcessChar(inContext, *ptr, &prevCode, inIsRTL,
-			   __glcGetCharMetric, metrics);
       }
-      else {
+
+      if (!node) {
 	__glcProcessChar(inContext, *ptr, &prevCode, inIsRTL,
 			 __glcGetCharMetric, metrics);
       }
@@ -788,6 +782,10 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
   GLCchar32* UinString = NULL;
   GLboolean isRightToLeft = GL_FALSE;
 
+  /* If inString is NULL then there is no point in continuing */
+  if (!inString)
+    return 0;
+
   GLC_INIT_THREAD();
 
   /* Check the parameters */
@@ -802,10 +800,6 @@ GLint APIENTRY glcMeasureCountedString(GLboolean inMeasureChars, GLint inCount,
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
-
-  /* If inString is NULL then there is no point in continuing */
-  if (!inString)
-    return 0;
 
   UinString = __glcConvertCountedStringToVisualUcs4(ctx, &isRightToLeft,
 						    inString, inCount);
@@ -846,6 +840,10 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
   GLint length = 0;
   GLboolean isRightToLeft = GL_FALSE;
 
+  /* If inString is NULL then there is no point in continuing */
+  if (!inString)
+    return 0;
+
   GLC_INIT_THREAD();
 
   /* Verify if the current thread owns a context state */
@@ -854,10 +852,6 @@ GLint APIENTRY glcMeasureString(GLboolean inMeasureChars,
     __glcRaiseError(GLC_STATE_ERROR);
     return 0;
   }
-
-  /* If inString is NULL then there is no point in continuing */
-  if (!inString)
-    return 0;
 
   UinString = __glcConvertToVisualUcs4(ctx, &isRightToLeft, &length, inString);
   if (!UinString)

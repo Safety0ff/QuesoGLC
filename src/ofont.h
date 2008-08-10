@@ -42,39 +42,47 @@ struct __GLCfontRec {
 __GLCfont*  __glcFontCreate(GLint id, __GLCmaster* inMaster,
 			    __GLCcontext* inContext, GLint inCode);
 void __glcFontDestroy(__GLCfont *This, __GLCcontext* inContext);
-__GLCglyph* __glcFontGetGlyph(__GLCfont *This, GLint inCode,
-			      __GLCcontext* inContext);
-GLfloat* __glcFontGetBoundingBox(__GLCfont *This, GLint inCode,
-				 GLfloat* outVec, __GLCcontext* inContext,
-				 GLfloat inScaleX, GLfloat inScaleY);
-GLfloat* __glcFontGetAdvance(__GLCfont *This, GLint inCode, GLfloat* outVec,
-			     __GLCcontext* inContext, GLfloat inScaleX,
-			     GLfloat inScaleY);
-GLfloat* __glcFontGetKerning(__GLCfont* This, GLint inCode, GLint inPrevCode,
-			     GLfloat* outVec, __GLCcontext* inContext,
-			     GLfloat inScaleX, GLfloat inScaleY);
+__GLCglyph* __glcFontGetGlyph(const __GLCfont *This, const GLint inCode,
+			      const __GLCcontext* inContext);
+GLfloat* __glcFontGetBoundingBox(const __GLCfont *This, const GLint inCode,
+				 GLfloat* outVec, const __GLCcontext* inContext,
+				 const GLfloat inScaleX,
+				 const GLfloat inScaleY);
+GLfloat* __glcFontGetAdvance(const __GLCfont *This, const GLint inCode,
+			     GLfloat* outVec, const __GLCcontext* inContext,
+			     const GLfloat inScaleX, const GLfloat inScaleY);
+GLfloat* __glcFontGetKerning(const __GLCfont* This, const GLint inCode,
+			     const GLint inPrevCode, GLfloat* outVec,
+			     const __GLCcontext* inContext,
+			     const GLfloat inScaleX, const GLfloat inScaleY);
 #ifndef GLC_FT_CACHE
 static inline void* __glcFontOpen(__GLCfont* This, __GLCcontext* inContext);
 static inline void __glcFontClose(__GLCfont* This);
 #endif
-GLboolean __glcFontPrepareGlyph(__GLCfont* This, __GLCcontext* inContext,
-				GLfloat inScaleX, GLfloat inScaleY,
-				GLCulong inGlyphIndex);
-static inline GLboolean __glcFontGetBitmapSize(__GLCfont* This, GLint* outWidth,
+GLboolean __glcFontPrepareGlyph(const __GLCfont* This,
+				const __GLCcontext* inContext,
+				const GLfloat inScaleX, const GLfloat inScaleY,
+				const GLCulong inGlyphIndex);
+static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
+					       GLint* outWidth,
 					       GLint *outHeight,
 					       GLint* outBoundingBox,
 					       GLfloat inScaleX,
 					       GLfloat inScaleY, int inFactor,
-					       __GLCcontext* inContext);
+					       const __GLCcontext* inContext);
 static inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
 					     __GLCcontext* inContext);
-static inline GLboolean __glcFontOutlineDecompose(__GLCfont* This,
-						  __GLCrendererData* inData,
-						  __GLCcontext* inContext);
-static inline GLboolean __glcFontGetBitmap(__GLCfont* This, GLint inWidth,
-					   GLint inHeight, void* inBuffer,
-					   __GLCcontext* inContext);
-static inline GLboolean __glcFontOutlineEmpty(__GLCfont* This);
+static inline GLboolean __glcFontOutlineDecompose(const __GLCfont* This,
+						 __GLCrendererData* inData,
+						 const __GLCcontext* inContext);
+static inline GLboolean __glcFontGetBitmap(const __GLCfont* This,
+					   const GLint inWidth,
+					   const GLint inHeight,
+					   const void* inBuffer,
+					   const __GLCcontext* inContext);
+static inline GLboolean __glcFontOutlineEmpty(const __GLCfont* This);
+static inline GLboolean __glcFontHasChar(const __GLCfont* This,
+					 const GLint inCode);
 
 /* Inline functions definitions */
 
@@ -93,12 +101,14 @@ static inline void __glcFontClose(__GLCfont* This)
 #endif
 
 /* Get the size of the bitmap in which the glyph will be rendered */
-static inline GLboolean __glcFontGetBitmapSize(__GLCfont* This, GLint* outWidth,
-					       GLint *outHeight,
+static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
+					       GLint* outWidth,
+					       GLint* outHeight,
 					       GLint* outBoundingBox,
-					       GLfloat inScaleX,
-					       GLfloat inScaleY, int inFactor,
-					       __GLCcontext* inContext)
+					       const GLfloat inScaleX,
+					       const GLfloat inScaleY,
+					       const int inFactor,
+					       const __GLCcontext* inContext)
 {
   return __glcFaceDescGetBitmapSize(This->faceDesc, outWidth, outHeight,
 				    outBoundingBox, inScaleX, inScaleY,
@@ -115,17 +125,19 @@ static inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
 }
 
 /* Decompose the outline of a glyph */
-static inline GLboolean __glcFontOutlineDecompose(__GLCfont* This,
+static inline GLboolean __glcFontOutlineDecompose(const __GLCfont* This,
 						  __GLCrendererData* inData,
-						  __GLCcontext* inContext)
+						  const __GLCcontext* inContext)
 {
   return __glcFaceDescOutlineDecompose(This->faceDesc, inData, inContext);
 }
 
 /* Render the glyph in a bitmap */
-static inline GLboolean __glcFontGetBitmap(__GLCfont* This, GLint inWidth,
-					   GLint inHeight, void* inBuffer,
-					   __GLCcontext* inContext)
+static inline GLboolean __glcFontGetBitmap(const __GLCfont* This,
+					   const GLint inWidth,
+					   const GLint inHeight,
+					   const void* inBuffer,
+					   const __GLCcontext* inContext)
 {
   return __glcFaceDescGetBitmap(This->faceDesc, inWidth, inHeight, inBuffer,
 				inContext);
@@ -134,9 +146,15 @@ static inline GLboolean __glcFontGetBitmap(__GLCfont* This, GLint inWidth,
 /* Chek if the outline of the glyph is empty (which means it is a spacing
  * character).
  */
-static inline GLboolean __glcFontOutlineEmpty(__GLCfont* This)
+static inline GLboolean __glcFontOutlineEmpty(const __GLCfont* This)
 {
   return __glcFaceDescOutlineEmpty(This->faceDesc);
+}
+
+static inline GLboolean __glcFontHasChar(const __GLCfont* This,
+					 const GLint inCode)
+{
+  return __glcCharMapHasChar(This->charMap, inCode);
 }
 
 #endif /* __glc_ofont_h */

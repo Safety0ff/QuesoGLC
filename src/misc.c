@@ -28,48 +28,6 @@
 
 
 
-/* QuesoGLC own allocation and memory management routines */
-void* __glcMalloc(size_t size)
-{
-  return malloc(size);
-}
-
-void __glcFree(void *ptr)
-{
-  free(ptr);
-}
-
-void* __glcRealloc(void *ptr, size_t size)
-{
-  return realloc(ptr, size);
-}
-
-
-
-/* Find a token in a list of tokens separated by 'separator' */
-GLCchar8* __glcFindIndexList(GLCchar8* inString, GLuint inIndex,
-			     const GLCchar8* inSeparator)
-{
-  GLuint occurence = 0;
-  GLCchar8* s = inString;
-  const GLCchar8* sep = inSeparator;
-
-  if (!inIndex)
-    return s;
-
-  for (; *s != '\0'; s++) {
-    if (*s == *sep) {
-      occurence++;
-      if (occurence == inIndex)
-	break;
-    }
-  }
-
-  return (GLCchar8 *) s;
-}
-
-
-
 #ifndef HAVE_TLS
 /* Each thread has to store specific informations so they can be retrieved
  * later. __glcGetThreadArea() returns a struct which contains thread specific
@@ -119,11 +77,9 @@ __GLCthreadArea* __glcGetThreadArea(void)
     __glcThreadArea = area;
   return area;
 }
-#endif /* HAVE_TLS */
 
 
 
-#ifndef HAVE_TLS
 /* Raise an error. This function must be called each time the current error
  * of the issuing thread must be set
  */
@@ -143,11 +99,9 @@ void __glcRaiseError(GLCenum inError)
   if (!error || !inError)
     area->errorState = inError;
 }
-#endif /* HAVE_TLS */
 
 
 
-#ifndef HAVE_TLS
 /* Get the current context of the issuing thread */
 __GLCcontext* __glcGetCurrent(void)
 {
@@ -158,7 +112,7 @@ __GLCcontext* __glcGetCurrent(void)
 
   return area->currentContext;
 }
-#endif
+#endif /* HAVE_TLS */
 
 
 
@@ -167,10 +121,10 @@ __GLCcontext* __glcGetCurrent(void)
  * are issued if necessary. The previous code is updated accordingly.
  * 'inCode' must be given in UCS-4 format
  */
-void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
-		       __GLCcharacter* inPrevCode, GLboolean inIsRTL,
-		       __glcProcessCharFunc inProcessCharFunc,
-		       void* inProcessCharData)
+void* __glcProcessChar(__GLCcontext *inContext, const GLint inCode,
+		       __GLCcharacter* inPrevCode, const GLboolean inIsRTL,
+		       const __glcProcessCharFunc inProcessCharFunc,
+		       const void* inProcessCharData)
 {
   GLint repCode = 0;
   __GLCfont* font = NULL;
@@ -192,11 +146,11 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
     return ret;
   }
 
-  /* __glcCtxGetFont() can not find a font that maps inCode, we then attempt to
-   * produce an alternate rendering.
+  /* __glcContextGetFont() can not find a font that maps inCode, we then attempt
+   * to produce an alternate rendering.
    */
 
-  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and __glcCtxGetFont()
+  /* If the variable GLC_REPLACEMENT_CODE is nonzero, and __glcContextGetFont()
    * finds a font that maps the replacement code, we now render the character
    * that the replacement code is mapped to
    */
@@ -207,7 +161,7 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
       inPrevCode->code = 0; /* The font has changed, kerning must be disabled */
     ret = inProcessCharFunc(repCode, inPrevCode->code, inIsRTL, font, inContext,
 			    inProcessCharData, GL_FALSE);
-    inPrevCode->code = inCode;
+    inPrevCode->code = repCode;
     inPrevCode->font = font;
     return ret; 
   }
@@ -262,10 +216,11 @@ void* __glcProcessChar(__GLCcontext *inContext, GLint inCode,
 /* Store an 4x4 identity matrix in 'm' */
 static void __glcMakeIdentity(GLfloat* m)
 {
-    m[0+4*0] = 1; m[0+4*1] = 0; m[0+4*2] = 0; m[0+4*3] = 0;
-    m[1+4*0] = 0; m[1+4*1] = 1; m[1+4*2] = 0; m[1+4*3] = 0;
-    m[2+4*0] = 0; m[2+4*1] = 0; m[2+4*2] = 1; m[2+4*3] = 0;
-    m[3+4*0] = 0; m[3+4*1] = 0; m[3+4*2] = 0; m[3+4*3] = 1;
+  memset(m, 0, 16 * sizeof(GLfloat));
+  m[0] = 1.f;
+  m[5] = 1.f;
+  m[10] = 1.f;
+  m[15] = 1.f;
 }
 
 
@@ -273,7 +228,7 @@ static void __glcMakeIdentity(GLfloat* m)
 /* Invert a 4x4 matrix stored in inMatrix. The result is stored in outMatrix
  * It uses the Gauss-Jordan elimination method
  */
-static GLboolean __glcInvertMatrix(GLfloat* inMatrix, GLfloat* outMatrix)
+static GLboolean __glcInvertMatrix(const GLfloat* inMatrix, GLfloat* outMatrix)
 {
   int i, j, k, swap;
   GLfloat t;
@@ -339,8 +294,8 @@ static GLboolean __glcInvertMatrix(GLfloat* inMatrix, GLfloat* outMatrix)
  * The result is stored in outMatrix which can be neither inMatrix1 nor
  * inMatrix2.
  */
-static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
-			      GLfloat* outMatrix)
+static void __glcMultMatrices(const GLfloat* inMatrix1,
+			      const GLfloat* inMatrix2, GLfloat* outMatrix)
 {
   int i, j;
 
@@ -360,7 +315,7 @@ static void __glcMultMatrices(GLfloat* inMatrix1, GLfloat* inMatrix2,
 /* Compute an optimal size for the glyph to be rendered on the screen if no
  * display list is planned to be built.
  */
-void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
+void __glcGetScale(const __GLCcontext* inContext, GLfloat* outTransformMatrix,
 		   GLfloat* outScaleX, GLfloat* outScaleY)
 {
   int i = 0;
@@ -453,8 +408,8 @@ void __glcGetScale(__GLCcontext* inContext, GLfloat* outTransformMatrix,
 
 
 /* Save the GL State in a structure */
-void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
-		      GLboolean inAll)
+void __glcSaveGLState(__GLCglState* inGLState, const __GLCcontext* inContext,
+		      const GLboolean inAll)
 {
   if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE) {
     inGLState->blend = glIsEnabled(GL_BLEND);
@@ -463,15 +418,17 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &inGLState->textureID);
     glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
 		  &inGLState->textureEnvMode);
-    if ((!inContext->enableState.glObjects) && GLEW_ARB_pixel_buffer_object)
+    if ((inAll || !inContext->enableState.glObjects)
+	&& GLEW_ARB_pixel_buffer_object)
       glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING_ARB,
-		    &inGLState->bufferObjectID);
+		    &inGLState->pixelBufferObjectID);
   }
 
   if ((inAll || (inContext->enableState.glObjects
 		 && inContext->renderState.renderStyle != GLC_BITMAP))
       && GLEW_ARB_vertex_buffer_object) {
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB, &inGLState->bufferObjectID);
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB,
+		  &inGLState->vertexBufferObjectID);
     if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE))
       glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB,
 		    &inGLState->elementBufferObjectID);
@@ -496,7 +453,7 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
     inGLState->colorArray = glIsEnabled(GL_COLOR_ARRAY);
     inGLState->indexArray = glIsEnabled(GL_INDEX_ARRAY);
     inGLState->texCoordArray = glIsEnabled(GL_TEXTURE_COORD_ARRAY);
-    if (inContext->renderState.renderStyle == GLC_TEXTURE) {
+    if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE) {
       glGetIntegerv(GL_TEXTURE_COORD_ARRAY_SIZE, &inGLState->texCoordArraySize);
       glGetIntegerv(GL_TEXTURE_COORD_ARRAY_TYPE, &inGLState->texCoordArrayType);
       glGetIntegerv(GL_TEXTURE_COORD_ARRAY_STRIDE,
@@ -511,8 +468,8 @@ void __glcSaveGLState(__GLCglState* inGLState, __GLCcontext* inContext,
 
 
 /* Restore the GL State from a structure */
-void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
-			 GLboolean inAll)
+void __glcRestoreGLState(const __GLCglState* inGLState,
+			 const __GLCcontext* inContext, const GLboolean inAll)
 {
   if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE) {
     if (!inGLState->blend)
@@ -520,14 +477,16 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
     glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
     glBindTexture(GL_TEXTURE_2D, inGLState->textureID);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, inGLState->textureEnvMode);
-    if ((!inContext->enableState.glObjects) && GLEW_ARB_pixel_buffer_object)
-      glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, inGLState->bufferObjectID);
+    if ((inAll || !inContext->enableState.glObjects)
+	&& GLEW_ARB_pixel_buffer_object)
+      glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB,
+		      inGLState->pixelBufferObjectID);
   }
 
   if ((inAll || (inContext->enableState.glObjects
 		 && inContext->renderState.renderStyle != GLC_BITMAP))
       && GLEW_ARB_vertex_buffer_object) {
-    glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGLState->bufferObjectID);
+    glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGLState->vertexBufferObjectID);
     if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE))
       glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
 		      inGLState->elementBufferObjectID);
@@ -557,7 +516,7 @@ void __glcRestoreGLState(__GLCglState* inGLState, __GLCcontext* inContext,
       glDisableClientState(GL_INDEX_ARRAY);
     if (!inGLState->texCoordArray)
       glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    if (inContext->renderState.renderStyle == GLC_TEXTURE)
+    if (inAll || inContext->renderState.renderStyle == GLC_TEXTURE)
       glTexCoordPointer(inGLState->texCoordArraySize,
 			inGLState->texCoordArrayType,
 			inGLState->texCoordArrayStride,

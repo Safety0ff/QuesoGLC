@@ -32,7 +32,7 @@
 
 
 /* Find a Unicode name from its code */
-const GLCchar8* __glcNameFromCode(GLint code)
+const GLCchar8* __glcNameFromCode(const GLint code)
 {
   GLint position = -1;
 
@@ -53,7 +53,7 @@ const GLCchar8* __glcNameFromCode(GLint code)
 
 
 /* Find a Unicode code from its name */
-GLint __glcCodeFromName(GLCchar8* name)
+GLint __glcCodeFromName(const GLCchar8* name)
 {
   int start = 0;
   int end = __glcCodeFromNameSize;
@@ -84,7 +84,7 @@ GLint __glcCodeFromName(GLCchar8* name)
 /* Convert a character from UCS1 to UTF-8 and return the number of bytes
  * needed to encode the char.
  */
-static int __glcUcs1ToUtf8(GLCchar8 ucs1, GLCchar8 dest[FC_UTF8_MAX_LEN])
+static int __glcUcs1ToUtf8(const GLCchar8 ucs1, GLCchar8 dest[FC_UTF8_MAX_LEN])
 {
   GLCchar8 *d = dest;
 
@@ -103,7 +103,7 @@ static int __glcUcs1ToUtf8(GLCchar8 ucs1, GLCchar8 dest[FC_UTF8_MAX_LEN])
 /* Convert a character from UCS2 to UTF-8 and return the number of bytes
  * needed to encode the char.
  */
-static int __glcUcs2ToUtf8(GLCchar16 ucs2, GLCchar8 dest[FC_UTF8_MAX_LEN])
+static int __glcUcs2ToUtf8(const GLCchar16 ucs2, GLCchar8 dest[FC_UTF8_MAX_LEN])
 {
   GLCchar8 *d = dest;
 
@@ -199,14 +199,27 @@ static int __glcUtf8ToUcs2(const GLCchar8* src_orig,
       char buffer[GLC_OUT_OF_RANGE_LEN];
 
 #ifdef _MSC_VER
-      sprintf_s(buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      *dstlen = sprintf_s((char*)buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>",
+			  result);
+      /* sprintf_s returns -1 on any error, and the number of characters
+       * written to the string not including the terminating null otherwise.
+       * Insufficient length of the destination buffer is an error and the
+       * buffer is set to an empty string. */
+      if (*dstlen < 0)
+        *dstlen = 0;
 #else
-      snprintf(buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      *dstlen = snprintf((char*)buffer, GLC_OUT_OF_RANGE_LEN, "\\<%X>", result);
+      /* Standard ISO/IEC 9899:1999 (ISO C99) snprintf, which it appears
+       * Microsoft has not implemented for their operating systems. Return
+       * value is length of the string that would have been written into
+       * the destination buffer not including the terminating null had their
+       * been enough space. Truncation has occurred if return value is >= 
+       * destination buffer size. */
+      if (*dstlen >= GLC_OUT_OF_RANGE_LEN)
+        *dstlen = GLC_OUT_OF_RANGE_LEN - 1;
 #endif
-      for (count = 0, src = buffer; *src && count < GLC_OUT_OF_RANGE_LEN;
-	   count++, *dst++ = *src++);
+      for (count = 0, src = buffer; count < *dstlen; count++, *dst++ = *src++);
       *dst = 0; /* Terminating '\0' character */
-      *dstlen = count;
     }
   }
   return src_shift;
@@ -261,7 +274,7 @@ GLCchar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
 
       /* Perform the conversion */
       for (ucs2 = (const GLCchar16*)inString, ptr = string; *ucs2;
-	     ptr += __glcUcs2ToUtf8(*ucs2++, ptr));
+	   ptr += __glcUcs2ToUtf8(*ucs2++, ptr));
       *ptr = 0;
     }
     break;
@@ -281,7 +294,7 @@ GLCchar8* __glcConvertToUtf8(const GLCchar* inString, const GLint inStringType)
 
       /* Perform the conversion */
       for (ucs4 = (const GLCchar32*)inString, ptr = string; *ucs4;
-	     ptr += FcUcs4ToUtf8(*ucs4++, ptr));
+	   ptr += FcUcs4ToUtf8(*ucs4++, ptr));
       *ptr = 0;
     }
     break;
@@ -490,7 +503,7 @@ GLint __glcConvertUcs4ToGLint(__GLCcontext *inContext, GLint inCode)
  * This function is needed since the GLC specs store individual character codes
  * in GLint which may cause problems for the UTF-8 format.
  */
-GLint __glcConvertGLintToUcs4(__GLCcontext *inContext, GLint inCode)
+GLint __glcConvertGLintToUcs4(const __GLCcontext *inContext, GLint inCode)
 {
   GLint code = inCode;
 

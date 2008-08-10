@@ -27,6 +27,9 @@
 
 #include "ofont.h"
 
+#define GLC_TEXTURE_SIZE        64
+#define GLC_TEXTURE_PADDING     4
+
 struct __GLCatlasElementRec {
   FT_ListNodeRec node;
 
@@ -35,7 +38,7 @@ struct __GLCatlasElementRec {
 };
 
 void __glcDeleteAtlasElement(__GLCatlasElement* This, __GLCcontext* inContext);
-void __glcRenderCharTexture(__GLCfont* inFont, __GLCcontext* inContext,
-			    GLfloat scale_x, GLfloat scale_y,
+void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
+			    const GLfloat inScaleX, const GLfloat inScaleY,
 			    __GLCglyph* inGlyph);
 #endif

@@ -36,7 +36,7 @@
  * The user must give the index of the glyph in the font file and its Unicode
  * codepoint.
  */
-__GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
+__GLCglyph* __glcGlyphCreate(const GLCulong inIndex, const GLCulong inCode)
 {
   __GLCglyph* This = NULL;
 
@@ -45,25 +45,12 @@ __GLCglyph* __glcGlyphCreate(GLCulong inIndex, GLCulong inCode)
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+  memset(This, 0, sizeof(__GLCglyph));
 
-  This->node.prev = NULL;
-  This->node.next = NULL;
   This->node.data = This;
-
   This->index = inIndex;
   This->codepoint = inCode;
   This->isSpacingChar = GL_FALSE;
-  This->textureObject = NULL;
-  This->nContour = 0;
-  This->contours = NULL;
-  This->nGeomBatch = 0;
-  This->geomBatches = NULL;
-
-  /* A display list for each rendering mode (except GLC_BITMAP) may be built */
-  memset(This->glObject, 0, 4 * sizeof(GLuint));
-  memset(This->boundingBox, 0, 4 * sizeof(GLfloat));
-  memset(This->advance, 0, 2 * sizeof(GLfloat));
-
   This->advanceCached = GL_FALSE;
   This->boundingBoxCached = GL_FALSE;
 
@@ -82,7 +69,7 @@ void __glcGlyphDestroy(__GLCglyph* This, __GLCcontext* inContext)
 
 
 /* Remove all GL objects related to the texture of the glyph */
-void __glcGlyphDestroyTexture(__GLCglyph* This, __GLCcontext* inContext)
+void __glcGlyphDestroyTexture(__GLCglyph* This, const __GLCcontext* inContext)
 {
   if (!inContext->isInGlobalCommand && !GLEW_ARB_vertex_buffer_object)
     glDeleteLists(This->glObject[1], 1);
@@ -141,7 +128,7 @@ void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 
 
 /* Returns the number of display that has been built for a glyph */
-int __glcGlyphGetDisplayListCount(__GLCglyph* This)
+int __glcGlyphGetDisplayListCount(const __GLCglyph* This)
 {
   int i = 0;
   int count = 0;
@@ -162,9 +149,10 @@ int __glcGlyphGetDisplayListCount(__GLCglyph* This)
 /* Returns the ID of the inCount-th display list that has been built for a
  * glyph.
  */
-GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
+GLuint __glcGlyphGetDisplayList(const __GLCglyph* This, const int inCount)
 {
   int i = 0;
+  int count = inCount;
 
   assert(inCount >= 0);
   assert(inCount < __glcGlyphGetDisplayListCount(This));
@@ -176,9 +164,9 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
     GLuint displayList = This->glObject[i];
 
     if (displayList) {
-      if (!inCount)
+      if (!count)
 	return displayList;
-      inCount--;
+      count--;
     }
   }
 
@@ -192,7 +180,7 @@ GLuint __glcGlyphGetDisplayList(__GLCglyph* This, int inCount)
 
 
 /* Returns the number of buffer objects that has been built for a glyph */
-int __glcGlyphGetBufferObjectCount(__GLCglyph* This)
+int __glcGlyphGetBufferObjectCount(const __GLCglyph* This)
 {
   int i = 0;
   int count = 0;
@@ -215,9 +203,10 @@ int __glcGlyphGetBufferObjectCount(__GLCglyph* This)
 /* Returns the ID of the inCount-th buffer object that has been built for a
  * glyph.
  */
-GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount)
+GLuint __glcGlyphGetBufferObject(const __GLCglyph* This, const int inCount)
 {
   int i = 0;
+  int count = inCount;
 
   assert(GLEW_ARB_vertex_buffer_object);
   assert(inCount >= 0);
@@ -230,9 +219,9 @@ GLuint __glcGlyphGetBufferObject(__GLCglyph* This, int inCount)
       continue;
 
     if (bufferObject) {
-      if (!inCount)
+      if (!count)
 	return bufferObject;
-      inCount--;
+      count--;
     }
   }
 

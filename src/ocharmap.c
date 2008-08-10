@@ -35,15 +35,19 @@
  * The user must give the FcPattern of the font or the master (which may be NULL
  * in which case the character map will be empty).
  */
-__GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
+__GLCcharMap* __glcCharMapCreate(const __GLCmaster* inMaster,
+				 const __GLCcontext* inContext)
 {
   __GLCcharMap* This = NULL;
+
+  assert(inContext);
 
   This = (__GLCcharMap*)__glcMalloc(sizeof(__GLCcharMap));
   if (!This) {
     __glcRaiseError(GLC_RESOURCE_ERROR);
     return NULL;
   }
+  memset(This, 0, sizeof(__GLCcharMap));
 
   This->charSet = FcCharSetCreate();
   if (!This->charSet) {
@@ -91,22 +95,32 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
       int fixed = 0;
       FcChar8* foundry = NULL;
       FcBool outline = FcFalse;
-      FcResult result = FcResultMatch;
       FcBool equal = FcFalse;
+#ifdef DEBUGMODE
+      FcResult result = FcResultMatch;
 
-      /* Check whether the glyphs are outlines */
       result = FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
       assert(result != FcResultTypeMismatch);
+#else
+      FcPatternGetBool(fontSet->fonts[i], FC_OUTLINE, 0, &outline);
+#endif
 
+      /* Check whether the glyphs are outlines */
       if (!outline)
 	continue;
 
+#ifdef DEBUGMODE
       result = FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
       assert(result != FcResultTypeMismatch);
       result = FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
       assert(result != FcResultTypeMismatch);
       result = FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
       assert(result != FcResultTypeMismatch);
+#else
+      FcPatternGetString(fontSet->fonts[i], FC_FAMILY, 0, &family);
+      FcPatternGetString(fontSet->fonts[i], FC_FOUNDRY, 0, &foundry);
+      FcPatternGetInteger(fontSet->fonts[i], FC_SPACING, 0, &fixed);
+#endif
 
       if (foundry)
 	pattern = FcPatternBuild(NULL, FC_FAMILY, FcTypeString, family,
@@ -129,9 +143,13 @@ __GLCcharMap* __glcCharMapCreate(__GLCmaster* inMaster, __GLCcontext* inContext)
       if (equal) {
         FcCharSet* newCharSet = NULL;
 
+#ifdef DEBUGMODE
         result = FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0,
 				     &charSet);
         assert(result != FcResultTypeMismatch);
+#else
+	FcPatternGetCharSet(fontSet->fonts[i], FC_CHARSET, 0, &charSet);
+#endif
 
         newCharSet = FcCharSetUnion(This->charSet, charSet);
 	if (!newCharSet) {
@@ -179,12 +197,14 @@ void __glcCharMapDestroy(__GLCcharMap* This)
 /* Add a given character to the character map. Afterwards, the character map
  * will associate the glyph 'inGlyph' to the Unicode codepoint 'inCode'.
  */
-void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
+void __glcCharMapAddChar(__GLCcharMap* This, const GLint inCode,
+			 __GLCglyph* inGlyph)
 {
   __GLCcharMapElement* element = NULL;
   __GLCcharMapElement* newElement = NULL;
   int start = 0, middle = 0, end = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
   assert(inCode >= 0);
@@ -212,7 +232,7 @@ void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
       start = middle + 1;
   }
 
-  /* If we have reached the end of the array then updated the rank 'middle'
+  /* If we have reached the end of the array then update the rank 'middle'
    * accordingly.
    */
   if ((end >= 0) && (element[middle].mappedCode < (GLCulong)inCode))
@@ -231,11 +251,12 @@ void __glcCharMapAddChar(__GLCcharMap* This, GLint inCode, __GLCglyph* inGlyph)
 
 
 /* Remove a character from the character map */
-void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
+void __glcCharMapRemoveChar(__GLCcharMap* This, const GLint inCode)
 {
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
   assert(inCode >= 0);
@@ -269,12 +290,14 @@ void __glcCharMapRemoveChar(__GLCcharMap* This, GLint inCode)
  * can return 'LATIN CAPITAL LETTER B' whereas inCode contained 65 (which is
  * the Unicode code point of 'LATIN CAPITAL LETTER A').
  */
-const GLCchar8* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode)
+const GLCchar8* __glcCharMapGetCharName(const __GLCcharMap* This,
+					const GLint inCode)
 {
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
   GLint code = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
   assert(inCode >= 0);
@@ -312,11 +335,12 @@ const GLCchar8* __glcCharMapGetCharName(__GLCcharMap* This, GLint inCode)
 
 
 /* Get the glyph corresponding to codepoint 'inCode' */
-__GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode)
+__GLCglyph* __glcCharMapGetGlyph(const __GLCcharMap* This, const GLint inCode)
 {
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
   assert(inCode >= 0);
@@ -347,11 +371,12 @@ __GLCglyph* __glcCharMapGetGlyph(__GLCcharMap* This, GLint inCode)
 
 
 /* Check if a character is in the character map */
-GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode)
+GLboolean __glcCharMapHasChar(const __GLCcharMap* This, const GLint inCode)
 {
   __GLCcharMapElement* element = NULL;
   int start = 0, middle = 0, end = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
   assert(inCode >= 0);
@@ -382,7 +407,7 @@ GLboolean __glcCharMapHasChar(__GLCcharMap* This, GLint inCode)
 /* This function counts the number of bits that are set in c1 
  * Copied from Keith Packard's fontconfig
  */
-static GLCchar32 __glcCharSetPopCount(GLCchar32 c1)
+static GLCchar32 __glcCharSetPopCount(const GLCchar32 c1)
 {
   /* hackmem 169 */
   GLCchar32    c2 = (c1 >> 1) & 033333333333;
@@ -395,16 +420,16 @@ static GLCchar32 __glcCharSetPopCount(GLCchar32 c1)
 /* Get the name of the character which is stored at rank 'inIndex' in the
  * FcCharSet of the face.
  */
-const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
-					       GLint inIndex)
+const GLCchar8* __glcCharMapGetCharNameByIndex(const __GLCcharMap* This,
+					       const GLint inIndex)
 {
   int i = 0;
   int j = 0;
 
   /* In Fontconfig the map in FcCharSet is organized as an array of integers.
    * Each integer corresponds to a page of 32 characters (since it uses 32 bits
-   * integer). If a bit is set then character is in the character map otherwise
-   * it is not.
+   * integer). If a bit is set then the corresponding character is in the
+   * character map otherwise it is not.
    * In order not to store pages of 0's, the character map begins at the
    * character which codepoint is 'base'. 
    * Pages are also gathered in blocks of 'FC_CHARSET_MAP_SIZE' pages in order
@@ -416,11 +441,14 @@ const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
    */
   GLCchar32 map[FC_CHARSET_MAP_SIZE];
   GLCchar32 next = 0;
-  GLCchar32 base = FcCharSetFirstPage(This->charSet, map, &next);
-  GLCchar32 count = 0;
+  GLCchar32 base = 0;
+  GLCchar32 count = 1;
   GLCchar32 value = 0;
 
+  assert(This);
   assert(inIndex >= 0);
+
+  base = FcCharSetFirstPage(This->charSet, map, &next);
 
   do {
     /* Parse the pages in FcCharSet */
@@ -429,14 +457,16 @@ const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
       value = __glcCharSetPopCount(map[i]);
 
       /* Check if the character we are looking for is in the current page */
-      if (count + value >= (GLCchar32)inIndex + 1) {
+      if (count + value >= (GLCchar32)inIndex) {
 	for (j = 0; j < 32; j++) {
 	  /* Parse the page bit by bit */
-	  if ((map[i] >> j) & 1) count++; /* A character is set at bit j */
-	  /* Check if we have reached the rank inIndex */
-	  if (count == (GLCchar32)inIndex + 1) {
-	    /* Get the character name */
-	    return __glcNameFromCode(base + (i << 5) + j);
+	  if ((map[i] >> j) & 1) {
+	    count++; /* A character is set at bit j */
+	    /* Check if we have reached the rank inIndex */
+	    if (count == (GLCchar32)inIndex) {
+	      /* Get the character name */
+	      return __glcNameFromCode(base + (i << 5) + j);
+	    }
 	  }
 	}
       }
@@ -456,16 +486,8 @@ const GLCchar8* __glcCharMapGetCharNameByIndex(__GLCcharMap* This,
 
 
 
-/* Return the number of characters in the character map */
-GLint __glcCharMapGetCount(__GLCcharMap* This)
-{
-  return FcCharSetCount(This->charSet);
-}
-
-
-
 /* Get the maximum mapped code of a character set */
-GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
+GLint __glcCharMapGetMaxMappedCode(const __GLCcharMap* This)
 {
   GLCchar32 base = 0;
   GLCchar32 next = 0;
@@ -476,6 +498,7 @@ GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
   __GLCcharMapElement* element = NULL;
   int length = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
@@ -503,6 +526,8 @@ GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
   for (j = 31; j >= 0; j--)
     if ((map[i] >> j) & 1) break;
 
+  assert(j >= 0);
+
   /* Calculate the max mapped code */
   maxMappedCode = prev_base + (i << 5) + j;
 
@@ -523,7 +548,7 @@ GLint __glcCharMapGetMaxMappedCode(__GLCcharMap* This)
 
 
 /* Get the minimum mapped code of a character set */
-GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
+GLint __glcCharMapGetMinMappedCode(const __GLCcharMap* This)
 {
   GLCchar32 base = 0;
   GLCchar32 next = 0;
@@ -533,6 +558,7 @@ GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
   __GLCcharMapElement* element = NULL;
   int length = 0;
 
+  assert(This);
   assert(This->map);
   assert(GLC_ARRAY_DATA(This->map));
 
@@ -554,6 +580,8 @@ GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
    */
   for (j = 0; j < 32; j++)
     if ((map[i] >> j) & 1) break;
+
+  assert(j < 32);
   minMappedCode = base + (i << 5) + j;
 
   /* Check that a code lower than the one found in the FcCharSet is not
@@ -563,7 +591,7 @@ GLint __glcCharMapGetMinMappedCode(__GLCcharMap* This)
   length = GLC_ARRAY_LENGTH(This->map);
 
   /* Return the lower of the code of both the FcCharSet and the array 'map'*/
-  if (length > 0)
+  if (length)
     return element[0].mappedCode < minMappedCode ?
       element[0].mappedCode : minMappedCode;
   else
