@@ -112,6 +112,10 @@
 #define GLC_GET_CURRENT_CONTEXT() __glcTlsThreadArea.currentContext
 #endif
 
+/* ceil() and floor() macros for 26.6 fixed integers */
+#define GLC_CEIL_26_6(x) (((x) < 0) ? ((x) & -64) : ((x) + 63) & -64)
+#define GLC_FLOOR_26_6(x) (((x) < 0) ? (((x) - 63) & -64) : ((x) & -64))
+
 typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
 typedef struct __GLCcharacterRec __GLCcharacter;
 
