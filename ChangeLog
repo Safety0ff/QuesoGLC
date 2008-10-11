@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed a bug which caused artifacts when rendering glyphes that extend beyond
+  the EM square.
 - Fixed a bug which prevented letters l and i to be displayed at small scales
   when GLC_HINTING_QSO was enabled.
 - Fixed a bug in glcGenFontID() which could return the ID of an existing font.

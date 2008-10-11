@@ -285,11 +285,12 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
 {
   GLfloat width = 0, height = 0;
   GLint level = 0;
-  GLint posX = 0, posY = 0;
+  GLint texX = 0, texY = 0;
   GLfloat dX = 0.f, dY = 0.;
   GLint pixWidth = 0, pixHeight = 0;
   void* pixBuffer = NULL;
-  GLint boundingBox[4] = {0, 0, 0, 0};
+  GLint texBoundingBox[4] = {0, 0, 0, 0};
+  GLint pixBoundingBox[4] = {0, 0, 0, 0};
   int minSize = (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod) ? 2 : 1;
   GLfloat texWidth = 0, texHeight = 0;
 
@@ -302,23 +303,23 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
     /* Compute the size of the pixmap where the glyph will be rendered */
     atlasNode = inGlyph->textureObject;
 
-    __glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
-                               boundingBox, inScaleX, inScaleY, 0, inContext);
+    __glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, texBoundingBox,
+			   inScaleX, inScaleY, 0, pixBoundingBox, inContext);
 
     texWidth = inContext->atlas.width;
     texHeight = inContext->atlas.height;
-    posY = (atlasNode->position / inContext->atlasWidth);
-    posX = (atlasNode->position - posY*inContext->atlasWidth)*GLC_TEXTURE_SIZE;
-    posY *= GLC_TEXTURE_SIZE;
+    texY = (atlasNode->position / inContext->atlasWidth);
+    texX = (atlasNode->position - texY*inContext->atlasWidth)*GLC_TEXTURE_SIZE;
+    texY *= GLC_TEXTURE_SIZE;
   }
   else {
     int factor = 0;
 
     /* Try several texture size until we are able to create one */
     do {
-      if (!__glcFaceDescGetBitmapSize(inFont->faceDesc, &pixWidth, &pixHeight,
-                                      boundingBox, inScaleX, inScaleY, factor,
-                                      inContext))
+      if (!__glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, texBoundingBox,
+				  inScaleX, inScaleY, factor, pixBoundingBox,
+				  inContext))
 	return;
 
       factor = 1;
@@ -326,8 +327,8 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
 
     texWidth = inContext->texture.width;
     texHeight = inContext->texture.height;
-    posX = 0;
-    posY = 0;
+    texX = 0;
+    texY = 0;
   }
 
   if (!inContext->texture.bufferObjectID || inContext->enableState.glObjects) {
@@ -375,7 +376,7 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
       pixBuffer = NULL;
     }
 
-    glTexSubImage2D(GL_TEXTURE_2D, level, posX >> level, posY >> level,
+    glTexSubImage2D(GL_TEXTURE_2D, level, texX >> level, texY >> level,
 		    pixWidth, pixHeight, GL_ALPHA, GL_UNSIGNED_BYTE,
 		    pixBuffer);
 
@@ -407,7 +408,7 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
       assert(!GLEW_ARB_pixel_buffer_object);
       memset(pixBuffer, 0, pixWidth * pixHeight);
       while ((pixWidth > 0) || (pixHeight > 0)) {
-	glTexSubImage2D(GL_TEXTURE_2D, level, posX >> level, posY >> level,
+	glTexSubImage2D(GL_TEXTURE_2D, level, texX >> level, texY >> level,
 		     pixWidth ? pixWidth : 1,
 		     pixHeight ? pixHeight : 1, GL_ALPHA,
 		     GL_UNSIGNED_BYTE, pixBuffer);
@@ -422,15 +423,15 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
   glPopClientAttrib();
 
   /* Compute the size of the glyph */
-  width = (GLfloat)((boundingBox[2] - boundingBox[0]) / 64.)
+  width = (GLfloat)((texBoundingBox[2] - texBoundingBox[0]) / 64.)
     + GLC_TEXTURE_PADDING;
-  height = (GLfloat)((boundingBox[3] - boundingBox[1]) / 64.)
+  height = (GLfloat)((texBoundingBox[3] - texBoundingBox[1]) / 64.)
     + GLC_TEXTURE_PADDING;
 
   if ((inContext->renderState.renderStyle != GLC_TEXTURE)
       || (!inContext->enableState.glObjects)) {
-    dX = (boundingBox[0] - GLC_FLOOR_26_6(boundingBox[0])) / 64.;
-    dY = (boundingBox[1] - GLC_FLOOR_26_6(boundingBox[1])) / 64.;
+    dX = (texBoundingBox[0] - GLC_FLOOR_26_6(texBoundingBox[0])) / 64.;
+    dY = (texBoundingBox[1] - GLC_FLOOR_26_6(texBoundingBox[1])) / 64.;
   }
 
   if (pixBuffer)
@@ -478,23 +479,23 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
 
       data = buffer + atlasNode->position * 20;
 
-      data[0] = (posX + dX) / texWidth;
-      data[1] = (posY + dY) / texHeight;
-      data[2] = (boundingBox[0] / 64. - (GLC_TEXTURE_PADDING >> 1))
+      data[0] = (texX + dX) / texWidth;
+      data[1] = (texY + dY) / texHeight;
+      data[2] = (pixBoundingBox[0] / 64. - (GLC_TEXTURE_PADDING >> 1))
 	/ (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      data[3] = (boundingBox[1] / 64. - (GLC_TEXTURE_PADDING >> 1))
+      data[3] = (pixBoundingBox[1] / 64. - (GLC_TEXTURE_PADDING >> 1))
 	/ (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
       data[4] = 0.f;
-      data[5] = (posX + dX + width) / texWidth;
+      data[5] = (texX + dX + width) / texWidth;
       data[6] = data[1];
-      data[7] = (boundingBox[2] / 64. + (GLC_TEXTURE_PADDING >> 1))
+      data[7] = (pixBoundingBox[2] / 64. + (GLC_TEXTURE_PADDING >> 1))
 	/ (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
       data[8] = data[3];
       data[9] = 0.f;
       data[10] = data[5];
-      data[11] = (posY + dY + height) / texHeight;
+      data[11] = (texY + dY + height) / texHeight;
       data[12] = data[7];
-      data[13] = (boundingBox[3] / 64. + (GLC_TEXTURE_PADDING >> 1))
+      data[13] = (pixBoundingBox[3] / 64. + (GLC_TEXTURE_PADDING >> 1))
 	/ (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
       data[14] = 0.f;
       data[15] = data[0];
@@ -532,29 +533,29 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
       glScalef(1. / 64. / inScaleX, 1. / 64. / inScaleY , 1.);
 
       /* Modify the bouding box dimensions to compensate the glScalef() */
-      boundingBox[0] *= inScaleX / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      boundingBox[1] *= inScaleY / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      boundingBox[2] *= inScaleX / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
-      boundingBox[3] *= inScaleY / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      pixBoundingBox[0] *= inScaleX / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      pixBoundingBox[1] *= inScaleY / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      pixBoundingBox[2] *= inScaleX / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
+      pixBoundingBox[3] *= inScaleY / (GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING);
     }
   }
 
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
   glNormal3f(0.f, 0.f, 1.f);
-  glTexCoord2f((posX + dX) / texWidth, (posY + dY) / texHeight);
-  glVertex2i(boundingBox[0] - (GLC_TEXTURE_PADDING << 5),
-	     boundingBox[1] - (GLC_TEXTURE_PADDING << 5));
-  glTexCoord2f((posX + dX + width) / texWidth, (posY + dY) / texHeight);
-  glVertex2i(boundingBox[2] + (GLC_TEXTURE_PADDING << 5),
-	     boundingBox[1] - (GLC_TEXTURE_PADDING << 5));
-  glTexCoord2f((posX + dX + width) / texWidth,
-	       (posY + dY + height) / texHeight);
-  glVertex2i(boundingBox[2] + (GLC_TEXTURE_PADDING << 5),
-	     boundingBox[3] + (GLC_TEXTURE_PADDING << 5));
-  glTexCoord2f((posX + dX) / texWidth, (posY + dY + height) / texHeight);
-  glVertex2i(boundingBox[0] - (GLC_TEXTURE_PADDING << 5),
-	     boundingBox[3] + (GLC_TEXTURE_PADDING << 5));
+  glTexCoord2f((texX + dX) / texWidth, (texY + dY) / texHeight);
+  glVertex2i(pixBoundingBox[0] - (GLC_TEXTURE_PADDING << 5),
+	     pixBoundingBox[1] - (GLC_TEXTURE_PADDING << 5));
+  glTexCoord2f((texX + dX + width) / texWidth, (texY + dY) / texHeight);
+  glVertex2i(pixBoundingBox[2] + (GLC_TEXTURE_PADDING << 5),
+	     pixBoundingBox[1] - (GLC_TEXTURE_PADDING << 5));
+  glTexCoord2f((texX + dX + width) / texWidth,
+	       (texY + dY + height) / texHeight);
+  glVertex2i(pixBoundingBox[2] + (GLC_TEXTURE_PADDING << 5),
+	     pixBoundingBox[3] + (GLC_TEXTURE_PADDING << 5));
+  glTexCoord2f((texX + dX) / texWidth, (texY + dY + height) / texHeight);
+  glVertex2i(pixBoundingBox[0] - (GLC_TEXTURE_PADDING << 5),
+	     pixBoundingBox[3] + (GLC_TEXTURE_PADDING << 5));
   glEnd();
 
   if (inContext->enableState.glObjects) {
