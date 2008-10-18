@@ -66,7 +66,6 @@ GLboolean __glcFontPrepareGlyph(const __GLCfont* This,
 static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
 					       GLint* outWidth,
 					       GLint *outHeight,
-					       GLint* outTexBoundingBox,
 					       GLfloat inScaleX,
 					       GLfloat inScaleY, int inFactor,
 					       GLint* outPixBoundingBox,
@@ -105,7 +104,6 @@ static inline void __glcFontClose(__GLCfont* This)
 static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
 					       GLint* outWidth,
 					       GLint* outHeight,
-					       GLint* outTexBoundingBox,
 					       const GLfloat inScaleX,
 					       const GLfloat inScaleY,
 					       const int inFactor,
@@ -113,8 +111,8 @@ static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
 					       const __GLCcontext* inContext)
 {
   return __glcFaceDescGetBitmapSize(This->faceDesc, outWidth, outHeight,
-				    outTexBoundingBox, inScaleX, inScaleY,
-				    outPixBoundingBox, inFactor, inContext);
+				    inScaleX, inScaleY, outPixBoundingBox,
+				    inFactor, inContext);
 }
 
 /* Get the maximum metrics of a face that is the bounding box that encloses

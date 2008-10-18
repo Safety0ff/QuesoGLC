@@ -28,7 +28,6 @@
 #include "ofont.h"
 
 #define GLC_TEXTURE_SIZE        64
-#define GLC_TEXTURE_PADDING     4
 
 struct __GLCatlasElementRec {
   FT_ListNodeRec node;

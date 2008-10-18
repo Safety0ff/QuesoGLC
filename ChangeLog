@@ -6,7 +6,9 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 - Fixed a bug which caused artifacts when rendering glyphes that extend beyond
   the EM square.
 - Fixed a bug which prevented letters l and i to be displayed at small scales
-  when GLC_HINTING_QSO was enabled.
+  when GLC_HINTING_QSO and GLC_TEXTURE were enabled.
+- Side effect of the above bug fix : the antialiasing is improved for most
+  characters since they are no longer located against the edges of the texture.
 - Fixed a bug in glcGenFontID() which could return the ID of an existing font.
 - Fixed a race condition in glcGenContext()
 - Function glcGetStringCharMetric() now returns metrics in global string
@@ -25,8 +27,6 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
   them.
 - Negative values passed to glcResolution() now raise GLC_PARAMETER_ERROR
 - Simplified a bit the internal management of the resolution
-- Added padding for GLC_TEXTURE rendering mode so that the antialiasing is not
-  jeopardized when a glyph touches the border of the texture.
 - Fixed bug #1935557 (Fonts are not rendered correctly when the resolution is
   changed using glcResolution).
 - The configure script now exports a summary of the parameters values

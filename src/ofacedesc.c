@@ -406,7 +406,7 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
   /* If GLC_HINTING_QSO is enabled then perform hinting on the glyph while
    * loading it.
    */
-  if (!inContext->enableState.hinting)
+  if (!inContext->enableState.hinting && !inContext->enableState.glObjects)
     loadFlags |= FT_LOAD_NO_HINTING;
 
   /* Open the face */
@@ -1021,7 +1021,6 @@ static int __glcNextPowerOf2(int value)
 /* Get the size of the bitmap in which the glyph will be rendered */
 GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
 				     GLint* outWidth, GLint *outHeight,
-				     GLint* outTexBoundingBox,
 				     const GLfloat inScaleX,
 				     const GLfloat inScaleY,
 				     GLint* outPixBoundingBox,
@@ -1051,10 +1050,8 @@ GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
     matrix.yx = 0;
 
     if (inContext->enableState.glObjects) {
-      matrix.xx = (FT_Fixed)(((GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING) << 16)
-			     / inScaleX);
-      matrix.yy = (FT_Fixed)(((GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING) << 16)
-			     / inScaleY);
+      matrix.xx = (FT_Fixed)((GLC_TEXTURE_SIZE << 16) / inScaleX);
+      matrix.yy = (FT_Fixed)((GLC_TEXTURE_SIZE << 16)/ inScaleY);
     }
     else {
       matrix.xx = 65536 >> inFactor;
@@ -1068,75 +1065,94 @@ GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
   if (inContext->renderState.renderStyle == GLC_BITMAP) {
     FT_Pos pitch = 0;
 
-    boundingBox.xMin = GLC_FLOOR_26_6(boundingBox.xMin);
-    boundingBox.yMin = GLC_FLOOR_26_6(boundingBox.yMin);
-    boundingBox.xMax = GLC_CEIL_26_6(boundingBox.xMax);
-    boundingBox.yMax = GLC_CEIL_26_6(boundingBox.yMax);
+    outPixBoundingBox[0] = GLC_FLOOR_26_6(boundingBox.xMin);
+    outPixBoundingBox[1] = GLC_FLOOR_26_6(boundingBox.yMin);
+    outPixBoundingBox[2] = GLC_CEIL_26_6(boundingBox.xMax);
+    outPixBoundingBox[3] = GLC_CEIL_26_6(boundingBox.yMax);
 
     /* Calculate pitch to upper 8 byte boundary for 1 bit/pixel, i.e. ceil() */
-    pitch = (boundingBox.xMax - boundingBox.xMin + (GLC_TEXTURE_PADDING << 6)
-	     + 511) >> 9;
+    pitch = (outPixBoundingBox[2] - outPixBoundingBox[0] + 511) >> 9;
 
     *outWidth = pitch << 3;
-    *outHeight = ((boundingBox.yMax - boundingBox.yMin) >> 6)
-      + GLC_TEXTURE_PADDING;
+    *outHeight = (outPixBoundingBox[3] - outPixBoundingBox[1]) >> 6;
   }
   else {
-    if (inContext->enableState.glObjects) {
-      GLfloat ratioX = (GLC_CEIL_26_6(boundingBox.xMax)
-			- GLC_FLOOR_26_6(boundingBox.xMin))
-	/ ((GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING) * 64.);
-      GLfloat ratioY = (GLC_CEIL_26_6(boundingBox.yMax)
-			- GLC_FLOOR_26_6(boundingBox.yMin))
-	/ ((GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING) * 64.);
+    GLint width = 0;
+    GLint height = 0;
 
-      *outWidth = GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING;
-      *outHeight = GLC_TEXTURE_SIZE - GLC_TEXTURE_PADDING;
+    if (inContext->enableState.glObjects) {
+      GLfloat ratioX = 0.f;
+      GLfloat ratioY = 0.f;
+      GLfloat ratio = 0.f;
+
+      width = boundingBox.xMax - boundingBox.xMin;
+      height = boundingBox.yMax - boundingBox.yMin;
+
+      ratioX = width / (64.f * GLC_TEXTURE_SIZE);
+      ratioY = height / (64.f * GLC_TEXTURE_SIZE);
+
+      ratioX = (ratioX > 1.f) ? ratioX : 1.f;
+      ratioY = (ratioY > 1.f) ? ratioY : 1.f;
+      ratio = ((ratioX > ratioY) ? ratioX : ratioY);
+
+      *outWidth = GLC_TEXTURE_SIZE;
+      *outHeight = GLC_TEXTURE_SIZE;
 
       outline.flags |= FT_OUTLINE_HIGH_PRECISION;
 
-      if ((ratioX > 1.) || (ratioY > 1.)) {
-	matrix.xx = (FT_Fixed)(65536. / ((ratioX > ratioY) ? ratioX : ratioY));
-	matrix.yy = matrix.xx;
+      if (ratio > 1.f) {
+	outPixBoundingBox[0] = boundingBox.xMin
+	  - ((GLint)((GLC_TEXTURE_SIZE << 5) - (width * 0.5f)) * ratio);
+	outPixBoundingBox[1] = boundingBox.yMin
+	  - ((GLint)((GLC_TEXTURE_SIZE << 5) - (height * 0.5f)) * ratio);
+	outPixBoundingBox[2] = outPixBoundingBox[0]
+	  + ((GLint)((GLC_TEXTURE_SIZE << 6) * ratio));
+	outPixBoundingBox[3] = outPixBoundingBox[1]
+	  + ((GLint)((GLC_TEXTURE_SIZE << 6) * ratio));
 
-	outPixBoundingBox[0] = boundingBox.xMin;
-	outPixBoundingBox[1] = boundingBox.yMin;
-	outPixBoundingBox[2] = boundingBox.xMax;
-	outPixBoundingBox[3] = boundingBox.yMax;
+	matrix.xx = (FT_Fixed)(65536.f / ratio);
+	matrix.yy = matrix.xx;
 
 	FT_Outline_Transform(&outline, &matrix);
 	FT_Outline_Get_CBox(&outline, &boundingBox);
-
-	outTexBoundingBox[0] = boundingBox.xMin;
-	outTexBoundingBox[1] = boundingBox.yMin;
-	outTexBoundingBox[2] = boundingBox.xMax;
-	outTexBoundingBox[3] = boundingBox.yMax;
-
-	return GL_TRUE;
+      }
+      else {
+	outPixBoundingBox[0] = boundingBox.xMin
+	  - ((GLC_TEXTURE_SIZE << 5) - (width >> 1));
+	outPixBoundingBox[1] = boundingBox.yMin
+	  - ((GLC_TEXTURE_SIZE << 5) - (height >> 1));
+	outPixBoundingBox[2] = outPixBoundingBox[0] + (GLC_TEXTURE_SIZE << 6);
+	outPixBoundingBox[3] = outPixBoundingBox[1] + (GLC_TEXTURE_SIZE << 6);
       }
     }
     else {
-      *outWidth = __glcNextPowerOf2(((GLC_CEIL_26_6(boundingBox.xMax)
-				      - GLC_FLOOR_26_6(boundingBox.xMin)) >> 6)
-				    + GLC_TEXTURE_PADDING);
-      *outHeight = __glcNextPowerOf2(((GLC_CEIL_26_6(boundingBox.yMax)
-				       - GLC_FLOOR_26_6(boundingBox.yMin)) >> 6)
-				     + GLC_TEXTURE_PADDING);
+      width = (GLC_CEIL_26_6(boundingBox.xMax)
+	       - GLC_FLOOR_26_6(boundingBox.xMin)) >> 6;
+      height = (GLC_CEIL_26_6(boundingBox.yMax)
+		- GLC_FLOOR_26_6(boundingBox.yMin)) >> 6;
+      *outWidth = __glcNextPowerOf2(width);
+      *outHeight = __glcNextPowerOf2(height);
+
+      *outWidth = (*outWidth > inContext->texture.width)
+	? *outWidth : inContext->texture.width;
+      *outHeight = (*outHeight > inContext->texture.height)
+	? *outHeight : inContext->texture.height;
+
+      if (*outWidth - width <= 1) *outWidth <<= 1;
+      if (*outHeight - height <= 1) *outHeight <<= 1;
+
       /* If the texture size is too small then give up */
       if ((*outWidth < 4) || (*outHeight < 4))
         return GL_FALSE;
+
+      outPixBoundingBox[0] = GLC_FLOOR_26_6(boundingBox.xMin)
+	- (((*outWidth - width) >> 1 ) << 6);
+      outPixBoundingBox[1] = GLC_FLOOR_26_6(boundingBox.yMin)
+	- (((*outHeight - height) >> 1) << 6);
+      outPixBoundingBox[2] = outPixBoundingBox[0] + (*outWidth << 6);
+      outPixBoundingBox[3] = outPixBoundingBox[1] + (*outHeight << 6);
     }
   }
-
-  outPixBoundingBox[0] = boundingBox.xMin;
-  outPixBoundingBox[1] = boundingBox.yMin;
-  outPixBoundingBox[2] = boundingBox.xMax;
-  outPixBoundingBox[3] = boundingBox.yMax;
-
-  outTexBoundingBox[0] = boundingBox.xMin;
-  outTexBoundingBox[1] = boundingBox.yMin;
-  outTexBoundingBox[2] = boundingBox.xMax;
-  outTexBoundingBox[3] = boundingBox.yMax;
 
   return GL_TRUE;
 }
@@ -1153,22 +1169,33 @@ GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
   FT_BBox boundingBox;
   FT_Bitmap pixmap;
   FT_Matrix matrix;
-  GLint dx = 0, dy = 0;
+  FT_Pos dx = 0, dy = 0;
   FT_Face face = This->face;
+  FT_Pos width = 0, height = 0;
 
   assert(face);
 
   outline = face->glyph->outline;
   FT_Outline_Get_CBox(&outline, &boundingBox);
 
-  if ((inContext->renderState.renderStyle != GLC_TEXTURE)
+  if ((inContext->renderState.renderStyle == GLC_BITMAP)
       || (!inContext->enableState.glObjects)) {
     dx = GLC_FLOOR_26_6(boundingBox.xMin);
     dy = GLC_FLOOR_26_6(boundingBox.yMin);
+    if (inContext->renderState.renderStyle == GLC_TEXTURE) {
+      width = (GLC_CEIL_26_6(boundingBox.xMax) - dx) >> 6;
+      height = (GLC_CEIL_26_6(boundingBox.yMax) - dy) >> 6;
+      dx -= (((inWidth - width) >> 1) << 6);
+      dy -= (((inHeight - height) >> 1) << 6);
+    }
   }
   else {
     dx = boundingBox.xMin;
     dy = boundingBox.yMin;
+    width = boundingBox.xMax - dx;
+    height = boundingBox.yMax - dy;
+    dx -= (inWidth << 5) - (width >> 1);
+    dy -= (inHeight << 5) - (height >> 1);
   }
   
   pixmap.width = inWidth;
@@ -1197,8 +1224,7 @@ GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
   /* translate the outline to match (0,0) with the glyph's lower left
    * corner
    */
-  FT_Outline_Translate(&outline, (GLC_TEXTURE_PADDING << 5) - dx,
-		       (GLC_TEXTURE_PADDING << 5) - dy);
+  FT_Outline_Translate(&outline, -dx, -dy);
 
   /* render the glyph */
   if (FT_Outline_Get_Bitmap(inContext->library, &outline, &pixmap)) {
@@ -1210,8 +1236,7 @@ GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
     /* Prepare the outline for the next mipmap level :
      * a. Restore the outline initial position
      */
-    FT_Outline_Translate(&outline, dx - (GLC_TEXTURE_PADDING << 5),
-			 dy - (GLC_TEXTURE_PADDING << 5));
+    FT_Outline_Translate(&outline, dx, dy);
 
     /* b. Divide the character size by 2. */
     matrix.xx = 32768; /* 0.5 in FT_Fixed type */
