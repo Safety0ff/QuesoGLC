@@ -120,6 +120,8 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
 		   size, 0, GL_ALPHA, GL_UNSIGNED_BYTE, buffer);
     }
 
+    __glcFree(buffer);
+
     /* Use trilinear filtering if GLC_MIPMAP is enabled.
      * Otherwise use bilinear filtering.
      */
@@ -297,7 +299,7 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
   void* pixBuffer = NULL;
   GLint pixBoundingBox[4] = {0, 0, 0, 0};
   int minSize = (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod) ? 2 : 1;
-  GLfloat texWidth = 0, texHeight = 0;
+  GLfloat texWidth = 0.f, texHeight = 0.f;
 
   if (inContext->enableState.glObjects) {
     __GLCatlasElement* atlasNode = NULL;
@@ -518,13 +520,16 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
 
       /* Create the display list */
       glNewList(inGlyph->glObject[1], GL_COMPILE);
-      glScalef(1. / 64. / inScaleX, 1. / 64. / inScaleY , 1.);
+      glScalef(1. / (64. * inScaleX), 1. / (64. * inScaleY) , 1.);
 
       /* Modify the bouding box dimensions to compensate the glScalef() */
       pixBoundingBox[0] *= inScaleX / GLC_TEXTURE_SIZE;
       pixBoundingBox[1] *= inScaleY / GLC_TEXTURE_SIZE;
       pixBoundingBox[2] *= inScaleX / GLC_TEXTURE_SIZE;
       pixBoundingBox[3] *= inScaleY / GLC_TEXTURE_SIZE;
+
+      pixWidth = GLC_TEXTURE_SIZE;
+      pixHeight = GLC_TEXTURE_SIZE;
     }
   }
 
