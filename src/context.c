@@ -320,17 +320,18 @@ void APIENTRY glcDisable(GLCenum inAttrib)
  *  - \b GLC_GL_OBJECTS : if enabled, GLC stores characters rendering commands
  *    in GL display lists and textures in GL texture objects.
  *  - \b GLC_MIPMAP : if enabled, texture objects used by GLC are mipmapped
- *  - \b GLC_HINTING_QSO : if enabled, GLC uses the auto-hinting procedures
- *    that are available for most scalable fonts. It gives better results for
- *    characters that are rendered at small sizes. Hinting may however generate
- *    visual artifacts such as shaking outlines if the character is animated.
- *    This attribute should be disabled in such cases.
+ *  - \b GLC_HINTING_QSO : if enabled, GLC uses the hinting procedures that are
+ *    available for most scalable fonts. It gives better results for characters
+ *    that are rendered at small sizes. This attribute is ignored when
+ *    \b GLC_GL_OBJECTS is enabled. Hinting may generate visual artifacts such
+ *    as "shaking outlines" if the character is animated. This attribute should
+ *    be disabled in such cases.
  *  - \b GLC_EXTRUDE_QSO : if enabled and \b GLC_RENDER_STYLE is
  *    \b GLC_TRIANGLE then GLC renders extruded characters with a thickness
  *    equal to 1.0. A call to glScale3f(1., 1., \e thickness ) can be added
  *    before the rendering commands in order to obtain the desired thickness.
- *  - \b GLC_KERNING_QSO : if enabled, GLC uses kerning information (when
- *    available) when string are rendered or measured.
+ *  - \b GLC_KERNING_QSO : if enabled, GLC uses kerning information when
+ *    rendering or measuring a string. Not all fonts have kerning informations.
  *
  *  \param inAttrib A symbolic constant indicating a GLC attribute.
  *  \sa glcDisable()
@@ -1306,22 +1307,22 @@ void APIENTRY glcStringType(GLCenum inStringType)
  *  <table>
  *  <caption>Group attributes</caption>
  *  <tr>
- *    <td>Group attribute</td> <td>Name</td>
+ *    <td>Group attribute</td> <td>Name</td> <td>Enumerant</td>
  *  </tr>
  *  <tr>
- *    <td>enable</td> <td><b>GLC_ENABLE_BIT_QSO</b></td>
+ *    <td>enable</td> <td><b>GLC_ENABLE_BIT_QSO</b></td> <td>0x0001</td>
  *  </tr>
  *  <tr>
- *    <td>render</td> <td><b>GLC_RENDER_BIT_QSO</b></td>
+ *    <td>render</td> <td><b>GLC_RENDER_BIT_QSO</b></td> <td>0x0002</td>
  *  </tr>
  *  <tr>
- *    <td>string</td> <td><b>GLC_STRING_BIT_QSO</b></td>
+ *    <td>string</td> <td><b>GLC_STRING_BIT_QSO</b></td> <td>0x0004</td>
  *  </tr>
  *  <tr>
- *    <td> </td> <td><b>GLC_GL_ATTRIB_BIT_QSO</b></td>
+ *    <td> </td> <td><b>GLC_GL_ATTRIB_BIT_QSO</b></td> <td>0x0008</td>
  *  </tr>
  *  <tr>
- *    <td> </td> <td><b>GLC_ALL_ATTRIBS_BIT_QSO</b></td>
+ *    <td> </td> <td><b>GLC_ALL_ATTRIBS_BIT_QSO</b></td> <td>0xFFFF</td>
  *  </tr>
  *  </table>
  *  </center>
