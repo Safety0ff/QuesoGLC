@@ -146,6 +146,20 @@ GLfloat* __glcFontGetBoundingBox(const __GLCfont *This, const GLint inCode,
 				   inScaleX, inScaleY, inContext))
     return NULL;
 
+  /* Special case for glyphes which have no bounding box (i.e. spaces) */
+  if ((outVec[0] == outVec[2]) || (outVec[1] == outVec[3])) {
+    GLfloat advance[2] = {0.f, 0.f};
+
+    if (__glcFontGetAdvance(This, inCode, advance, inContext, inScaleX,
+			    inScaleY)) {
+      if (outVec[0] == outVec[2])
+	outVec[2] += advance[0];
+
+      if (outVec[1] == outVec[3])
+	outVec[3] += advance[1];
+    }
+  }
+
   /* Copy the result to outVec and return */
   if (inContext->enableState.glObjects) {
     memcpy(glyph->boundingBox, outVec, 4 * sizeof(GLfloat));
