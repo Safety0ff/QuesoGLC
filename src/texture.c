@@ -34,14 +34,24 @@
 
 
 
-/* This function is called when a glyph is destroyed, so that it is removed from
- * the atlas list if relevant.
+/* This function is called when a glyph is destroyed, the atlas element is then
+ * released.
  */
-void __glcDeleteAtlasElement(__GLCatlasElement* This, __GLCcontext* inContext)
+void __glcReleaseAtlasElement(__GLCatlasElement* This,
+			      __GLCcontext* inContext)
 {
-  FT_List_Remove(&inContext->atlasList, (FT_ListNode)This);
-  inContext->atlasCount--;
-  free(This);
+  FT_ListNode node = (FT_ListNode)This;
+  FT_ListNode tail = inContext->atlasList.tail;
+
+  /* Put the atlas element at the tail of the list so that its position is used
+   * as soon as possible.
+   */
+  FT_List_Remove(&inContext->atlasList, node);
+  tail->next = node;
+  node->prev = tail;
+  node->next = NULL;
+  inContext->atlasList.tail = node;
+  This->glyph = NULL; /* The glyph will be destroyed so clear the pointer */
 }
 
 
@@ -146,8 +156,11 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
      */
     atlasNode = (__GLCatlasElement*)inContext->atlasList.tail;
     assert(atlasNode);
-    /* Release the texture area of the glyph */
-    __glcGlyphDestroyTexture(atlasNode->glyph, inContext);
+
+    if (atlasNode->glyph) {
+      /* Release the texture area of the glyph */
+      __glcGlyphDestroyTexture(atlasNode->glyph, inContext);
+    }
     /* Put the texture area at the head of the list otherwise we will use the
      * same texture element over and over again each time that we need to
      * release a texture area.

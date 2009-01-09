@@ -85,7 +85,7 @@ void __glcGlyphDestroyTexture(__GLCglyph* This, const __GLCcontext* inContext)
 void __glcGlyphDestroyGLObjects(__GLCglyph* This, __GLCcontext* inContext)
 {
   if (This->glObject[1]) {
-    __glcDeleteAtlasElement(This->textureObject, inContext);
+    __glcReleaseAtlasElement(This->textureObject, inContext);
     __glcGlyphDestroyTexture(This, inContext);
   }
 

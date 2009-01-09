@@ -3,6 +3,9 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed a memory leak in the management of the texture atlas: when a font was
+  deleted, the memory allocated to this font in the atlas was definitely lost
+  instead of being given back to the texture allocator.
 - Fixed a bug which did not include trailing spaces in the calculation of
   bounding boxes.
 - Fixed a bug which caused artifacts when rendering glyphes that extend beyond
