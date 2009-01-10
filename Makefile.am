@@ -1,5 +1,7 @@
 SUBDIRS = include build @EXECUTABLES@
 
+ACLOCAL_AMFLAGS = -I build/m4
+
 EXTRA_DIST = ChangeLog \
              INSTALL \
              INSTALL.win \
