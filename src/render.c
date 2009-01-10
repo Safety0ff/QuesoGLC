@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -814,6 +814,7 @@ void APIENTRY glcReplacementCode(GLint inCode)
 void APIENTRY glcResolution(GLfloat inVal)
 {
   __GLCcontext *ctx = NULL;
+  FT_ListNode node = NULL;
 
   GLC_INIT_THREAD();
 
@@ -832,6 +833,21 @@ void APIENTRY glcResolution(GLfloat inVal)
 
   /* Stores the resolution */
   ctx->renderState.resolution = (inVal < GLC_EPSILON) ? 72. : inVal;
+
+  /* Force the measurement caches to be updated */
+  for (node = ctx->fontList.head; node; node = node->next) {
+    __GLCfont* font = (__GLCfont*)node->data;
+    __GLCfaceDescriptor* faceDesc = font->faceDesc;
+    FT_ListNode glyphNode = NULL;
+
+    for (glyphNode = faceDesc->glyphList.head; glyphNode;
+	 glyphNode = glyphNode->next) {
+      __GLCglyph* glyph = (__GLCglyph*)glyphNode->data;
+
+      glyph->advanceCached = GL_FALSE;
+      glyph->boundingBoxCached = GL_FALSE;
+    }
+  }
 
   return;
 }

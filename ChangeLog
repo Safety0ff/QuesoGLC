@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed a bug which caused the measurement caches not to be updated when
+  GLC_RESOLUTION was changed by the users.
 - Fixed a memory leak in the management of the texture atlas: when a font was
   deleted, the memory allocated to this font in the atlas was definitely lost
   instead of being given back to the texture allocator.
@@ -57,7 +59,7 @@ Changes made from the "0.6.5" release to the "0.7.0" release:
 - Updated GLEW source code to release 1.5.0
 - glcGetFontMap() and glcGetMasterMap() now return GLC_NONE if the font/master
   does not map 'inCode'.
-- Updated test7 in order not to report an error when testing fonts which defines
+- Updated test7 in order not to report an error when testing fonts that defines
   a space character with no width.
 - glcGenFontID() now creates an empty font in order to reserve the ID for a
   future use. The new ID can be freed by deleting it with glcDeleteFont().
