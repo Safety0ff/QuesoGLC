@@ -37,6 +37,8 @@ struct __GLCfontRec {
   __GLCfaceDescriptor* faceDesc;
   GLint parentMasterID;
   __GLCcharMap* charMap;
+  GLfloat maxMetric[6];
+  GLboolean maxMetricCached;
 };
 
 __GLCfont*  __glcFontCreate(GLint id, __GLCmaster* inMaster,
@@ -55,36 +57,13 @@ GLfloat* __glcFontGetKerning(const __GLCfont* This, const GLint inCode,
 			     const GLint inPrevCode, GLfloat* outVec,
 			     const __GLCcontext* inContext,
 			     const GLfloat inScaleX, const GLfloat inScaleY);
-#ifndef GLC_FT_CACHE
-static inline void* __glcFontOpen(__GLCfont* This, __GLCcontext* inContext);
-static inline void __glcFontClose(__GLCfont* This);
-#endif
 GLboolean __glcFontPrepareGlyph(const __GLCfont* This,
 				const __GLCcontext* inContext,
 				const GLfloat inScaleX, const GLfloat inScaleY,
 				const GLCulong inGlyphIndex);
-static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
-					       GLint* outWidth,
-					       GLint *outHeight,
-					       GLfloat inScaleX,
-					       GLfloat inScaleY, int inFactor,
-					       GLint* outPixBoundingBox,
-					       const __GLCcontext* inContext);
-static inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
-					     const __GLCcontext* inContext,
-					     const GLfloat inScaleX,
-					     const GLfloat inScaleY);
-static inline GLboolean __glcFontOutlineDecompose(const __GLCfont* This,
-						 __GLCrendererData* inData,
-						 const __GLCcontext* inContext);
-static inline GLboolean __glcFontGetBitmap(const __GLCfont* This,
-					   const GLint inWidth,
-					   const GLint inHeight,
-					   const void* inBuffer,
-					   const __GLCcontext* inContext);
-static inline GLboolean __glcFontOutlineEmpty(const __GLCfont* This);
-static inline GLboolean __glcFontHasChar(const __GLCfont* This,
-					 const GLint inCode);
+GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
+			       const __GLCcontext* inContext,
+			       const GLfloat inScaleX, const GLfloat inScaleY);
 
 /* Inline functions definitions */
 
@@ -115,18 +94,6 @@ static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
   return __glcFaceDescGetBitmapSize(This->faceDesc, outWidth, outHeight,
 				    inScaleX, inScaleY, outPixBoundingBox,
 				    inFactor, inContext);
-}
-
-/* Get the maximum metrics of a face that is the bounding box that encloses
- * every glyph of the face, and the maximum advance of the face.
- */
-static inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
-					     const __GLCcontext* inContext,
-					     const GLfloat inScaleX,
-					     const GLfloat inScaleY)
-{
-  return __glcFaceDescGetMaxMetric(This->faceDesc, outVec, inContext, inScaleX,
-				   inScaleY);
 }
 
 /* Decompose the outline of a glyph */

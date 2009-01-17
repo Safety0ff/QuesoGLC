@@ -840,6 +840,8 @@ void APIENTRY glcResolution(GLfloat inVal)
     __GLCfaceDescriptor* faceDesc = font->faceDesc;
     FT_ListNode glyphNode = NULL;
 
+    font->maxMetricCached = GL_FALSE;
+
     for (glyphNode = faceDesc->glyphList.head; glyphNode;
 	 glyphNode = glyphNode->next) {
       __GLCglyph* glyph = (__GLCglyph*)glyphNode->data;

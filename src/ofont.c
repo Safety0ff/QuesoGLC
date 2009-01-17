@@ -74,6 +74,8 @@ __GLCfont* __glcFontCreate(GLint inID, __GLCmaster* inMaster,
   }
 
   This->id = inID;
+  This->maxMetricCached = GL_FALSE;
+  memset(This->maxMetric, 0, 6 * sizeof(GLfloat));
 
   return This;
 }
@@ -213,6 +215,35 @@ GLfloat* __glcFontGetAdvance(const __GLCfont* This, const GLint inCode,
 
 
 
+/* Get the maximum metrics of a face that is the bounding box that encloses
+ * every glyph of the face, and the maximum advance of the face.
+ */
+GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
+			       const __GLCcontext* inContext,
+			       const GLfloat inScaleX, const GLfloat inScaleY)
+{
+  assert(outVec);
+
+  if (This->maxMetricCached && inContext->enableState.glObjects) {
+    memcpy(outVec, This->maxMetric, 6 * sizeof(GLfloat));
+    return outVec;
+  }
+
+  if (!__glcFaceDescGetMaxMetric(This->faceDesc, outVec, inContext, inScaleX,
+				 inScaleY))
+    return NULL;
+
+  /* Copy the result to outVec and return */
+  if (inContext->enableState.glObjects) {
+    memcpy(This->maxMetric, outVec, 6 * sizeof(GLfloat));
+    This->maxMetricCached = GL_TRUE;
+  }
+
+  return outVec;
+}
+
+
+
 /* Get the kerning information of a pair of glyph according to the size given by
  * inScaleX and inScaleY. The result is returned in outVec. 'inCode' contains
  * the current character code and 'inPrevCode' the character code of the
@@ -294,6 +325,8 @@ GLboolean __glcFontFace(__GLCfont* This, const GLCchar8* inFace,
 
   __glcFaceDescDestroy(This->faceDesc, inContext);
   This->faceDesc = faceDesc;
+  This->maxMetricCached = GL_FALSE;
+  memset(This->maxMetric, 0, 6 * sizeof(GLfloat));
 
   return GL_TRUE;
 }
