@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -768,24 +768,27 @@ const GLCchar* APIENTRY glcGetFontMap(GLint inFont, GLint inCode)
   __GLCfont *font = NULL;
   __GLCcontext *ctx = NULL;
   GLint code = 0;
+  const GLCchar8* name = NULL;
 
   GLC_INIT_THREAD();
 
   /* Check if the font parameters are valid */
   font = __glcVerifyFontParameters(inFont);
   if (!font)
-    return GLC_NONE;
+    return NULL;
 
   ctx = GLC_GET_CURRENT_CONTEXT();
 
   /* Get the character code converted to the UCS-4 format */
   code = __glcConvertGLintToUcs4(ctx, inCode);
   if (code < 0)
-    return GLC_NONE;
+    return NULL;
 
-  return __glcConvertFromUtf8ToBuffer(ctx,
-				      __glcCharMapGetCharName(font->charMap,
-							      code));
+  name = __glcCharMapGetCharName(font->charMap, code);
+  if (!name)
+    return NULL;
+
+  return __glcConvertFromUtf8ToBuffer(ctx, name);
 }
 
 

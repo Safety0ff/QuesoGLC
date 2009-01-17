@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed a bug that crashed QuesoGLC when trying to call glcGetFontMap() with a
+  character not mapped in the font.
 - Fixed a bug which caused the measurement caches not to be updated when
   GLC_RESOLUTION was changed by the users.
 - Fixed a memory leak in the management of the texture atlas: when a font was
