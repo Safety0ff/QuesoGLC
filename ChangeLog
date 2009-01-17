@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Character codes out of range are now rejected when GLC_UCS1 or GLC_UCS2 are
+  enabled. GLC_PARAMETER_ERROR is then raised.
 - Fixed a bug that crashed QuesoGLC when trying to call glcGetFontMap() with a
   character not mapped in the font.
 - Fixed a bug which caused the measurement caches not to be updated when

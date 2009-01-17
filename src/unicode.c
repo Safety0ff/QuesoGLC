@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -512,8 +512,20 @@ GLint __glcConvertGLintToUcs4(const __GLCcontext *inContext, GLint inCode)
     return -1;
   }
 
-  /* If the current string type is GLC_UTF8_QSO then converts to GLC_UCS4 */
-  if (inContext->stringState.stringType == GLC_UTF8_QSO) {
+  switch (inContext->stringState.stringType) {
+  case GLC_UCS1:
+    if (inCode > 0xff) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return -1;
+    }
+    break;
+  case GLC_UCS2:
+    if (inCode > 0xffff) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return -1;
+    }
+    break;
+  case GLC_UTF8_QSO:
     /* Convert the codepoint in UCS4 format and check if it is ill-formed or
      * not
      */
@@ -522,6 +534,7 @@ GLint __glcConvertGLintToUcs4(const __GLCcontext *inContext, GLint inCode)
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return -1;
     }
+    break;
   }
 
   return code;
