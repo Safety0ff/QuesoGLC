@@ -37,14 +37,21 @@ const GLCchar8* __glcNameFromCode(const GLint code)
   GLint position = -1;
 
   if ((code < 0) || (code > __glcMaxCode)) {
-    __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    static char buffer[20];
+
+    if (code > 0x10ffff) {
+      __glcRaiseError(GLC_PARAMETER_ERROR);
+      return NULL;
+    }
+
+    snprintf(buffer, 20, "Character 0x%x", code);
+    return (const GLCchar8*)buffer; 
   }
 
   position = __glcNameFromCodeArray[code];
   if (position == -1) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
-    return GLC_NONE;
+    return NULL;
   }
 
   return (const GLCchar8*)__glcCodeFromNameArray[position].name;
