@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Refactored code of object __GLCmaster.
+- Maximum character metrics obtained from glcGetMaxCharMetric() are now cached.
 - Code refactoring between glcGetMaxCharMetric() and the other measurement
   commands in order to maximize common code for easier maintenance.
 - Fixed glcGetFontMap() and glcGetMasterMap() so that their return is not null

@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     return -1;
 
   glcNewFontFromFamily(glcGenFontID(), "");
-  if (!checkError(GLC_RESOURCE_ERROR)) /* The family does not exist */
+  if (!checkError(GLC_PARAMETER_ERROR)) /* The family does not exist */
     return -1;
 
   glcRenderCountedString(1, "");
