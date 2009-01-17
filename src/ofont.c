@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,7 @@
  * defines the object __GLCfont which manage the fonts
  */
 
+#include <math.h>
 #include "internal.h"
 
 
@@ -147,15 +148,16 @@ GLfloat* __glcFontGetBoundingBox(const __GLCfont *This, const GLint inCode,
     return NULL;
 
   /* Special case for glyphes which have no bounding box (i.e. spaces) */
-  if ((outVec[0] == outVec[2]) || (outVec[1] == outVec[3])) {
+  if ((fabs(outVec[0] - outVec[2]) < GLC_EPSILON)
+      || (fabs(outVec[1] - outVec[3]) < GLC_EPSILON)) {
     GLfloat advance[2] = {0.f, 0.f};
 
     if (__glcFontGetAdvance(This, inCode, advance, inContext, inScaleX,
 			    inScaleY)) {
-      if (outVec[0] == outVec[2])
+      if (fabs(outVec[0] - outVec[2]) < GLC_EPSILON)
 	outVec[2] += advance[0];
 
-      if (outVec[1] == outVec[3])
+      if (fabs(outVec[1] - outVec[3]) < GLC_EPSILON)
 	outVec[3] += advance[1];
     }
   }
