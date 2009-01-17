@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -315,8 +315,11 @@ GLfloat* APIENTRY glcGetCharMetric(GLint inCode, GLCenum inMetric,
 GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
 {
   __GLCcontext *ctx = NULL;
-  GLfloat advanceX = 0., advanceY = 0., yb = 0., yt = 0., xr = 0., xl = 0.;
+  GLfloat advanceX = 0.f, advanceY = 0.f, yb = 1e4f, yt = -1e4f, xr = -1e4f,
+    xl = 1e4f;
   FT_ListNode node = NULL;
+  GLfloat inScaleX = GLC_POINT_SIZE;
+  GLfloat inScaleY = GLC_POINT_SIZE;
 
   GLC_INIT_THREAD();
 
@@ -346,7 +349,7 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     GLfloat temp[6];
     __GLCfont* font = (__GLCfont*)node->data;
 
-    if (!__glcFontGetMaxMetric(font, temp, ctx))
+    if (!__glcFontGetMaxMetric(font, temp, ctx, inScaleX, inScaleY))
       return NULL;
 
     advanceX = temp[0] > advanceX ? temp[0] : advanceX;

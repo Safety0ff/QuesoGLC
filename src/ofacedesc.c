@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -379,17 +379,14 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This,
 
 
 
-/* Load a glyph of the current font face and stores the corresponding data in
- * the corresponding face. The size of the glyph is given by inScaleX and
- * inScaleY. 'inGlyphIndex' contains the index of the glyph in the font file.
+/* Prepare a font to obtain data for glyphes. Size is given via the parameters
+ * "inScaleX" and "inScaleY".
  */
-GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
-				    const __GLCcontext* inContext,
-				    const GLfloat inScaleX,
-				    const GLfloat inScaleY,
-				    const GLCulong inGlyphIndex)
+static GLboolean __glcFaceDescPrepareFont(__GLCfaceDescriptor* This,
+					  const __GLCcontext* inContext,
+					  const GLfloat inScaleX,
+					  const GLfloat inScaleY)
 {
-  FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM;
 #ifdef GLC_FT_CACHE
 # if FREETYPE_MAJOR == 2 \
      && (FREETYPE_MINOR < 1 \
@@ -402,12 +399,6 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
 #else
   FT_Error error;
 #endif
-
-  /* If GLC_HINTING_QSO is enabled then perform hinting on the glyph while
-   * loading it.
-   */
-  if (!inContext->enableState.hinting && !inContext->enableState.glObjects)
-    loadFlags |= FT_LOAD_NO_HINTING;
 
   /* Open the face */
 #ifdef GLC_FT_CACHE
@@ -474,6 +465,33 @@ GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
     return GL_FALSE;
   }
 #endif
+
+  return GL_TRUE;
+}
+
+
+
+/* Load a glyph of the current font face and stores the corresponding data in
+ * the corresponding face. The size of the glyph is given by inScaleX and
+ * inScaleY. 'inGlyphIndex' contains the index of the glyph in the font file.
+ */
+GLboolean __glcFaceDescPrepareGlyph(__GLCfaceDescriptor* This,
+				    const __GLCcontext* inContext,
+				    const GLfloat inScaleX,
+				    const GLfloat inScaleY,
+				    const GLCulong inGlyphIndex)
+{
+  FT_Int32 loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_IGNORE_TRANSFORM
+                     | FT_LOAD_FORCE_AUTOHINT;
+
+  if (!__glcFaceDescPrepareFont(This, inContext, inScaleX, inScaleY))
+    return GL_FALSE;
+
+  /* If GLC_HINTING_QSO is enabled then perform hinting on the glyph while
+   * loading it.
+   */
+  if (!inContext->enableState.hinting && !inContext->enableState.glObjects)
+    loadFlags |= FT_LOAD_NO_HINTING;
 
   /* Load the glyph */
   if (FT_Load_Glyph(This->face, inGlyphIndex, loadFlags)) {
@@ -735,30 +753,26 @@ const GLCchar8* __glcFaceDescGetFontFormat(const __GLCfaceDescriptor* This,
  * every glyph of the face, and the maximum advance of the face.
  */
 GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
-				   __GLCcontext* inContext)
+				   const __GLCcontext* inContext,
+				   const GLfloat inScaleX,
+				   const GLfloat inScaleY)
 {
-  FT_Face face = NULL;
   GLfloat scale = inContext->renderState.resolution / 72.;
 
   assert(outVec);
 
-#ifdef GLC_FT_CACHE
-  if (FTC_Manager_LookupFace(inContext->cache, (FTC_FaceID)This, &face))
-#else
-  face = __glcFaceDescOpen(This, inContext);
-  if (!face)
-#endif
+  if (!__glcFaceDescPrepareFont(This, inContext, inScaleX, inScaleY))
     return NULL;
 
-  scale /= face->units_per_EM;
+  scale /= This->face->units_per_EM;
 
   /* Get the values and transform them according to the resolution */
-  outVec[0] = (GLfloat)face->max_advance_width * scale;
-  outVec[1] = (GLfloat)face->max_advance_height * scale;
-  outVec[2] = (GLfloat)face->bbox.yMax * scale;
-  outVec[3] = (GLfloat)face->bbox.yMin * scale;
-  outVec[4] = (GLfloat)face->bbox.xMax * scale;
-  outVec[5] = (GLfloat)face->bbox.xMin * scale;
+  outVec[0] = (GLfloat)This->face->max_advance_width * scale;
+  outVec[1] = (GLfloat)This->face->max_advance_height * scale;
+  outVec[2] = (GLfloat)This->face->bbox.yMax * scale;
+  outVec[3] = (GLfloat)This->face->bbox.yMin * scale;
+  outVec[4] = (GLfloat)This->face->bbox.xMax * scale;
+  outVec[5] = (GLfloat)This->face->bbox.xMin * scale;
 
 #ifndef GLC_FT_CACHE
   __glcFaceDescClose(This);

@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -71,7 +71,9 @@ static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
 					       GLint* outPixBoundingBox,
 					       const __GLCcontext* inContext);
 static inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
-					     __GLCcontext* inContext);
+					     const __GLCcontext* inContext,
+					     const GLfloat inScaleX,
+					     const GLfloat inScaleY);
 static inline GLboolean __glcFontOutlineDecompose(const __GLCfont* This,
 						 __GLCrendererData* inData,
 						 const __GLCcontext* inContext);
@@ -119,9 +121,12 @@ static inline GLboolean __glcFontGetBitmapSize(const __GLCfont* This,
  * every glyph of the face, and the maximum advance of the face.
  */
 static inline GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
-					     __GLCcontext* inContext)
+					     const __GLCcontext* inContext,
+					     const GLfloat inScaleX,
+					     const GLfloat inScaleY)
 {
-  return __glcFaceDescGetMaxMetric(This->faceDesc, outVec, inContext);
+  return __glcFaceDescGetMaxMetric(This->faceDesc, outVec, inContext, inScaleX,
+				   inScaleY);
 }
 
 /* Decompose the outline of a glyph */

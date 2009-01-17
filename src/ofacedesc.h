@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -75,7 +75,9 @@ const GLCchar8* __glcFaceDescGetFontFormat(const __GLCfaceDescriptor* This,
 					   const __GLCcontext* inContext,
 					   const GLCenum inAttrib);
 GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,
-				   __GLCcontext* inContext);
+				   const __GLCcontext* inContext,
+				   const GLfloat inScaleX,
+				   const GLfloat inScaleY);
 GLfloat* __glcFaceDescGetKerning(__GLCfaceDescriptor* This,
 				 const GLCuint inGlyphIndex,
 				 const GLCuint inPrevGlyphIndex,
