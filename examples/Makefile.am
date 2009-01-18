@@ -19,3 +19,6 @@ LDADD = $(top_builddir)/build/libGLC.la \
         @FRIBIDI_LIBS@
 
 demo_SOURCES = demo.c trackball.c trackball.h
+
+clean-generic:
+	rm -f *.gcno *.gcda *.gcov

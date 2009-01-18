@@ -66,4 +66,6 @@ libGLC_la_LDFLAGS = -version-info 0:8:0
 
 $(top_builddir)/src/database.c: $(top_builddir)/database/buildDB.py
 	cd $(top_builddir)/database && python buildDB.py && cd $(top_builddir)/src
- 
+
+clean-generic:
+	rm -f *.gcno *.gcda *.gcov

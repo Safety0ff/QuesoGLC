@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -25,6 +25,53 @@
 #include <math.h>
 
 #include "internal.h"
+
+
+#ifdef DEBUGMODE
+GLuint __glcMemAllocCount = 0;
+GLuint __glcMemAllocTrigger = 0;
+GLboolean __glcMemAllocFailOnce = GL_TRUE;
+
+
+/* QuesoGLC own allocation and memory management routines */
+void* __glcMalloc(size_t size)
+{
+  __glcMemAllocCount++;
+
+  if (__glcMemAllocFailOnce) {
+    if (__glcMemAllocCount == __glcMemAllocTrigger)
+      return NULL;
+  }
+  else if (__glcMemAllocCount >= __glcMemAllocTrigger)
+    return NULL;
+
+  return malloc(size);
+}
+
+void __glcFree(void *ptr)
+{
+  /* Not all implementations of free() accept NULL. Moreover this allows to
+   * detect useless calls.
+   */
+  assert(ptr);
+
+  free(ptr);
+}
+
+void* __glcRealloc(void *ptr, size_t size)
+{
+  __glcMemAllocCount++;
+
+  if (__glcMemAllocFailOnce) {
+    if (__glcMemAllocCount == __glcMemAllocTrigger)
+      return NULL;
+  }
+  else if (__glcMemAllocCount >= __glcMemAllocTrigger)
+    return NULL;
+
+  return realloc(ptr, size);
+}
+#endif
 
 
 

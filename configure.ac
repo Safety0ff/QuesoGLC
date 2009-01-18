@@ -40,6 +40,11 @@ AC_ARG_ENABLE([executables],
    [build example and test executables @<:@default=yes@:>@]),
    [], [enable_executables=yes]
 )
+AC_ARG_ENABLE([debug],
+  AC_HELP_STRING([--enable-debug],
+   [compile debug version @<:@default=no@:>@]),
+   [], [enable_debug=no]
+)
 
 # Init automake.
 # --------------
@@ -234,6 +239,14 @@ if (test "x$enable_executables" = "xyes"); then
   fi
 fi
 
+# Compile debug version
+# ---------------------
+
+if (test "x$enable_debug" = "xyes"); then
+  CFLAGS+=" -g -DDEBUGMODE"
+  DEBUG_TESTS="test17"
+fi
+
 # Output.
 # -------
 
@@ -245,6 +258,7 @@ AC_CONFIG_FILES([Makefile
                  quesoglc.pc])
 
 AC_SUBST(EXECUTABLES)
+AC_SUBST(DEBUG_TESTS)
 AC_SUBST(TESTS_WITH_GLUT)
 AC_SUBST(FRIBIDI_OBJ)
 AC_SUBST(GLEW_OBJ)

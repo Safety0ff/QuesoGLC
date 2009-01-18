@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -194,8 +194,12 @@ extern void __glcRenderCharScalable(const __GLCfont* inFont,
 				    const GLfloat inScaleY,
 				    __GLCglyph* inGlyph);
 
-/* QuesoGLC own memory management routines */
 /* QuesoGLC own allocation and memory management routines */
+#ifdef DEBUGMODE
+extern void* __glcMalloc(size_t size);
+extern void __glcFree(void* ptr);
+extern void* __glcRealloc(void* ptr, size_t size);
+#else
 static inline void* __glcMalloc(size_t size)
 {
   return malloc(size);
@@ -208,6 +212,7 @@ static inline void* __glcRealloc(void *ptr, size_t size)
 {
   return realloc(ptr, size);
 }
+#endif
 
 /* Arrays that contain the Unicode name of characters */
 extern const __GLCdataCodeFromName __glcCodeFromNameArray[];

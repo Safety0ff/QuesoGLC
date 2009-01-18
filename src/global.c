@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -196,19 +196,19 @@ void _fini(void)
  */
 static void* __glcAllocFunc(FT_Memory GLC_UNUSED_ARG(inMemory), long inSize)
 {
-  return __glcMalloc(inSize);
+  return malloc(inSize);
 }
 
 static void __glcFreeFunc(FT_Memory GLC_UNUSED_ARG(inMemory), void *inBlock)
 {
-  __glcFree(inBlock);
+  free(inBlock);
 }
 
 static void* __glcReallocFunc(FT_Memory GLC_UNUSED_ARG(inMemory),
                               long GLC_UNUSED_ARG(inCurSize),
                               long inNewSize, void* inBlock)
 {
-  return __glcRealloc(inBlock, inNewSize);
+  return realloc(inBlock, inNewSize);
 }
 
 
