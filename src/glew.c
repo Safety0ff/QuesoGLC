@@ -917,16 +917,21 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #ifdef GL_VERSION_2_1
   if (glewExperimental || GLEW_VERSION_2_1) CONST_CAST(GLEW_VERSION_2_1) = !_glewInit_GL_VERSION_2_1(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif /* GL_VERSION_2_1 */
-#ifdef GL_ARB_pixel_buffer_object
+#if defined(GL_ARB_pixel_buffer_object) && !defined(GLEW_DISABLE_VBOS)
   CONST_CAST(GLEW_ARB_pixel_buffer_object) = glewGetExtension("GL_ARB_pixel_buffer_object");
 #endif /* GL_ARB_pixel_buffer_object */
-#ifdef GL_ARB_vertex_buffer_object
+#if defined(GL_ARB_vertex_buffer_object) && !defined(GLEW_DISABLE_VBOS)
   CONST_CAST(GLEW_ARB_vertex_buffer_object) = glewGetExtension("GL_ARB_vertex_buffer_object");
   if (glewExperimental || GLEW_ARB_vertex_buffer_object) CONST_CAST(GLEW_ARB_vertex_buffer_object) = !_glewInit_GL_ARB_vertex_buffer_object(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif /* GL_ARB_vertex_buffer_object */
 #ifdef GL_SGIS_texture_lod
   CONST_CAST(GLEW_SGIS_texture_lod) = glewGetExtension("GL_SGIS_texture_lod");
 #endif /* GL_SGIS_texture_lod */
+
+#ifdef GLEW_DISABLE_VBOS
+  CONST_CAST(GLEW_ARB_pixel_buffer_object) = 0;
+  CONST_CAST(GLEW_ARB_vertex_buffer_object) = 0;
+#endif
 
   return GLEW_OK;
 }
