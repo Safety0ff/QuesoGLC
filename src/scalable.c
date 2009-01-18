@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -714,8 +714,6 @@ void __glcRenderCharScalable(const __GLCfont* inFont,
       (__GLCgeomBatch*)GLC_ARRAY_DATA(rendererData.geomBatches);
     GLboolean extrude = GL_FALSE;
 
-    glNormal3f(0.f, 0.f, 1.f);
-    
     do {
       GLuint* vertexIndices = NULL;
 
@@ -887,6 +885,8 @@ void __glcRenderCharScalable(const __GLCfont* inFont,
 		       (endContour[i+1] - endContour[i] + 1) * 2);
       }
     }
+
+    glNormal3f(0.f, 0.f, 1.f);
   }
 
   if (inContext->renderState.renderStyle == GLC_LINE) {
@@ -896,7 +896,6 @@ void __glcRenderCharScalable(const __GLCfont* inFont,
     int i = 0;
     int* endContour = (int*)GLC_ARRAY_DATA(rendererData.endContour);
 
-    glNormal3f(0.f, 0.f, 1.f);
     if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
       glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->glObject[0]);
       glVertexPointer(2, GL_FLOAT, 0, NULL);

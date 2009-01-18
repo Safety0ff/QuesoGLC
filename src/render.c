@@ -405,6 +405,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
       GLObjectIndex++;
     }
 
+    glNormal3f(0.f, 0.f, 1.f / resolution);
+
     for (i = 0; i < inCount; i++) {
       if (*ptr >= 32) {
  	for (node = inContext->currentFontList.head; node ; node = node->next) {
@@ -471,10 +473,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
 
 	    switch(inContext->renderState.renderStyle) {
 	    case GLC_TEXTURE:
-	      if (GLEW_ARB_vertex_buffer_object) {
-		glNormal3f(0.f, 0.f, 1.f / resolution);
+	      if (GLEW_ARB_vertex_buffer_object)
 		glDrawArrays(GL_QUADS, glyph->textureObject->position * 4, 4);
-	      }
 	      else
 		glCallList(glyph->glObject[1]);
 	      break;
@@ -484,7 +484,6 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
 
 		glBindBufferARB(GL_ARRAY_BUFFER_ARB, glyph->glObject[0]);
 		glVertexPointer(2, GL_FLOAT, 0, NULL);
-		glNormal3f(0.f, 0.f, 1.f / resolution);
 		for (k = 0; k < glyph->nContour; k++)
 		  glDrawArrays(GL_LINE_LOOP, glyph->contours[k],
 			       glyph->contours[k+1] - glyph->contours[k]);
@@ -501,7 +500,6 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
 		glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB,
 				glyph->glObject[2]);
 		glVertexPointer(2, GL_FLOAT, 0, NULL);
-		glNormal3f(0.f, 0.f, 1.f / resolution);
 
 		do {
 		  GLuint* vertexIndices = NULL;
@@ -528,6 +526,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
 			glDrawArrays(GL_TRIANGLE_STRIP, glyph->contours[k] * 2,
 				     (glyph->contours[k+1] - glyph->contours[k]
 				      + 1) * 2);
+		      glNormal3f(0.f, 0.f, 1.f / resolution);
 		    }
 		    else {
 		      glNormal3f(0.f, 0.f, -1.f / resolution);
@@ -537,10 +536,10 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
 		    extrude = (!extrude);
 		  }
 		} while(extrude);
-
-		break;
 	      }
-	      glCallList(glyph->glObject[GLObjectIndex]);
+	      else
+		glCallList(glyph->glObject[GLObjectIndex]);
+
 	      break;
 	    }
 	  }
@@ -560,6 +559,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
     }
   }
   else {
+    glNormal3f(0.f, 0.f, 1.f);
+
     for (i = 0; i < inCount; i++) {
       if (*ptr >= 32)
 	__glcProcessChar(inContext, *ptr, &prevCode, inIsRightToLeft,

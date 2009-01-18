@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -519,7 +519,6 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
 
       /* Do the actual GL rendering */
       glInterleavedArrays(GL_T2F_V3F, 0, NULL);
-      glNormal3f(0.f, 0.f, 1.f);
       glDrawArrays(GL_QUADS, atlasNode->position * 4, 4);
 
       return;
@@ -548,7 +547,6 @@ void __glcRenderCharTexture(const __GLCfont* inFont, __GLCcontext* inContext,
 
   /* Do the actual GL rendering */
   glBegin(GL_QUADS);
-  glNormal3f(0.f, 0.f, 1.f);
   glTexCoord2f(texX / texWidth, texY / texHeight);
   glVertex2iv(pixBoundingBox);
   glTexCoord2f((texX + pixWidth) / texWidth, texY / texHeight);
