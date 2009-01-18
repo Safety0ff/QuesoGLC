@@ -1135,8 +1135,8 @@ GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
 	  - ((GLC_TEXTURE_SIZE << 5) - (width >> 1));
 	outPixBoundingBox[1] = boundingBox.yMin
 	  - ((GLC_TEXTURE_SIZE << 5) - (height >> 1));
-	outPixBoundingBox[2] = outPixBoundingBox[0] + (GLC_TEXTURE_SIZE << 6);
-	outPixBoundingBox[3] = outPixBoundingBox[1] + (GLC_TEXTURE_SIZE << 6);
+	outPixBoundingBox[2] = outPixBoundingBox[0] + ((GLC_TEXTURE_SIZE - 1) << 6);
+	outPixBoundingBox[3] = outPixBoundingBox[1] + ((GLC_TEXTURE_SIZE - 1) << 6);
       }
     }
     else {
@@ -1163,8 +1163,8 @@ GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
 	- (((*outWidth - width) >> 1 ) << 6);
       outPixBoundingBox[1] = GLC_FLOOR_26_6(boundingBox.yMin)
 	- (((*outHeight - height) >> 1) << 6);
-      outPixBoundingBox[2] = outPixBoundingBox[0] + (*outWidth << 6);
-      outPixBoundingBox[3] = outPixBoundingBox[1] + (*outHeight << 6);
+      outPixBoundingBox[2] = outPixBoundingBox[0] + ((*outWidth - 1) << 6);
+      outPixBoundingBox[3] = outPixBoundingBox[1] + ((*outHeight - 1) << 6);
     }
   }
 
