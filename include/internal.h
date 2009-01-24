@@ -116,7 +116,6 @@
 #define GLC_CEIL_26_6(x) (((x) < 0) ? ((x) & -64) : ((x) + 63) & -64)
 #define GLC_FLOOR_26_6(x) (((x) < 0) ? (((x) - 63) & -64) : ((x) & -64))
 
-typedef struct __GLCdataCodeFromNameRec __GLCdataCodeFromName;
 typedef struct __GLCcharacterRec __GLCcharacter;
 
 struct __GLCrendererDataRec {
@@ -131,11 +130,6 @@ struct __GLCrendererDataRec {
 					   object space to the viewport */
   GLfloat halfWidth;
   GLfloat halfHeight;
-};
-
-struct __GLCdataCodeFromNameRec {
-  GLint code;
-  const char* name;
 };
 
 struct __GLCgeomBatchRec {
@@ -155,8 +149,8 @@ struct __GLCcharacterRec {
 /* Those functions are used to protect against race conditions whenever we try
  * to access the common area or functions which are not multi-threaded.
  */
-void __glcLock(void);
-void __glcUnlock(void);
+extern void __glcLock(void);
+extern void __glcUnlock(void);
 
 /* Callback function type that is called by __glcProcessChar().
  * It allows to unify the character processing before the rendering or the
@@ -214,17 +208,11 @@ static inline void* __glcRealloc(void *ptr, size_t size)
 }
 #endif
 
-/* Arrays that contain the Unicode name of characters */
-extern const __GLCdataCodeFromName __glcCodeFromNameArray[];
-extern const GLint __glcNameFromCodeArray[];
-extern const GLint __glcMaxCode;
-extern const GLint __glcCodeFromNameSize;
-
 /* Find a Unicode name from its code */
-extern const GLCchar8* __glcNameFromCode(const GLint code);
+extern const GLCchar8* __glcGetNameFromCode(const GLint code);
 
 /* Find a Unicode code from its name */
-extern GLint __glcCodeFromName(const GLCchar8* name);
+extern GLint __glcGetCodeFromName(const GLCchar8* name);
 
 /* Duplicate a string and convert if from any Unicode format to UTF-8 format */
 extern GLCchar8* __glcConvertToUtf8(const GLCchar* inString,
@@ -293,7 +281,7 @@ extern GLboolean __glcFontFace(__GLCfont* inFont, const GLCchar8* inFace,
 /* Allocate a new ID for a font and store it in a special list so that the same
  * ID is not allocated twice.
  */
-GLint __glcGenFontID(__GLCcontext* inContext);
+extern GLint __glcGenFontID(__GLCcontext* inContext);
 
 #ifndef HAVE_TLS
 /* Return a struct which contains thread specific info. If the platform supports
@@ -371,7 +359,7 @@ extern void __glcRestoreGLState(const __GLCglState* inGLState,
 
 #ifdef GLEW_MX
 /* Function for GLEW so that it can get a context */
-GLEWAPI GLEWContext* glewGetContext(void);
+extern GLEWAPI GLEWContext* glewGetContext(void);
 #endif
 
 #ifndef HAVE_TLS

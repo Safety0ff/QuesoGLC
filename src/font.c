@@ -518,7 +518,7 @@ void APIENTRY glcFontMap(GLint inFont, GLint inCode, const GLCchar* inCharName)
       return;
 
     /* Retrieve the Unicode code from its name */
-    error = __glcCodeFromName(buffer);
+    error = __glcGetCodeFromName(buffer);
     if (error < 0) {
       __glcFree(buffer);
       return;

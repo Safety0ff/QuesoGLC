@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,7 @@
 #include <windows.h>
 #endif
 
+#include <sqlite3.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #ifdef GLC_FT_CACHE
@@ -204,6 +205,7 @@ struct __GLCcommonAreaRec {
    * However, this has not happened yet so we still rely on FT_MemoryRec_ ...
    */
   struct FT_MemoryRec_ memoryManager;
+  sqlite3 *db;
 };
 
 extern __GLCcommonArea __glcCommonArea;

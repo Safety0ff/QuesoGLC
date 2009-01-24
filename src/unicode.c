@@ -31,59 +31,90 @@
 
 
 
-/* Find a Unicode name from its code */
-const GLCchar8* __glcNameFromCode(const GLint code)
+static int __glcGetNameCallback(void* inData, int argc, char** argv,
+				char** GLC_UNUSED_ARG(azColName))
 {
-  GLint position = -1;
+  if (argc && argv[0]) {
+    snprintf((char*)inData, 256, "%s", argv[0]);
+    return 0;
+  }
 
-  if ((code < 0) || (code > __glcMaxCode)) {
-    static char buffer[20];
+  return -1; /* Error: No name found */
+}
 
-    if (code > 0x10ffff) {
+
+
+/* Find a Unicode name from its code */
+const GLCchar8* __glcGetNameFromCode(const GLint code)
+{
+  if ((code >= 0) && (code < 0x110000)) {
+    static char buffer[50];
+    static GLCchar8 name[256];
+    int result = 0;
+    char* errorMsg = NULL;
+
+    name[0] = '\0';
+    snprintf(buffer, 50, "SELECT name FROM unicode WHERE code=%d", code);
+    result = sqlite3_exec(__glcCommonArea.db, buffer, __glcGetNameCallback,
+			  name, &errorMsg);
+    if (result != SQLITE_OK) {
+      sqlite3_free(errorMsg);
       __glcRaiseError(GLC_PARAMETER_ERROR);
       return NULL;
     }
 
-    snprintf(buffer, 20, "Character 0x%x", code);
-    return (const GLCchar8*)buffer; 
+    return name[0] ? name : NULL;
   }
-
-  position = __glcNameFromCodeArray[code];
-  if (position == -1) {
+  else {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return NULL;
   }
 
-  return (const GLCchar8*)__glcCodeFromNameArray[position].name;
+  return NULL;
+}
+
+
+
+static int __glcGetCodeCallback(void* inData, int argc, char** argv,
+				char** GLC_UNUSED_ARG(azColName))
+{
+  GLint* code = (GLint*)inData;
+
+  if (argc && argv[0]) {
+    *code = strtol(argv[0], NULL, 10);
+    return 0;
+  }
+
+  return -1; /* Error: no code found */
 }
 
 
 
 /* Find a Unicode code from its name */
-GLint __glcCodeFromName(const GLCchar8* name)
+GLint __glcGetCodeFromName(const GLCchar8* name)
 {
-  int start = 0;
-  int end = __glcCodeFromNameSize;
-  int middle = (end + start) / 2;
-  int res = 0;
+  static char buffer[256];
+  int result = 0;
+  GLint code = 0;
+  char* errorMsg = NULL;
 
-  while (end - start > 1) {
-    res = strcmp((const char*)name, __glcCodeFromNameArray[middle].name);
-    if (res > 0)
-      start = middle;
-    else if (res < 0)
-      end = middle;
-    else
-      return __glcCodeFromNameArray[middle].code;
-    middle = (end + start) / 2;
+  /* Sanity check to reject malformed requests */
+  if (strstr((const char*)name, "\"")) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return -1;
   }
-  if (strcmp((const char*)name, __glcCodeFromNameArray[start].name) == 0)
-    return __glcCodeFromNameArray[start].code;
-  if (strcmp((const char*)name, __glcCodeFromNameArray[end].name) == 0)
-    return __glcCodeFromNameArray[end].code;
 
-  __glcRaiseError(GLC_PARAMETER_ERROR);
-  return -1;
+  snprintf(buffer, 256, "SELECT code FROM unicode WHERE name=\"%s\"", name);
+
+  result = sqlite3_exec(__glcCommonArea.db, buffer, __glcGetCodeCallback,
+			&code, &errorMsg);
+  if (result != SQLITE_OK) {
+    sqlite3_free(errorMsg);
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return -1;
+  }
+
+  return code;
 }
 
 

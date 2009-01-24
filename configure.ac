@@ -35,6 +35,11 @@ AC_ARG_ENABLE([glew-multiple-contexts],
     @<:@default=no@:>@]),
    [], [enable_glew_multiple_contexts=no]
 )
+AC_ARG_WITH([sqlite3],
+  AC_HELP_STRING([--with-sqlite3],
+   [use the SQLite3 system library @<:@default=yes@:>@]),
+   [], [with_sqlite3=yes]
+)
 AC_ARG_ENABLE([executables],
   AC_HELP_STRING([--enable-executables],
    [build example and test executables @<:@default=yes@:>@]),
@@ -147,10 +152,29 @@ else
 fi
 
 if (test "x$no_fribidi" = "xyes"); then
-  FRIBIDI_OBJ="libGLC_la-fribidi.lo libGLC_la-fribidi_char_type.lo \
+  EMBEDDED_OBJ="libGLC_la-fribidi.lo libGLC_la-fribidi_char_type.lo \
                libGLC_la-fribidi_mirroring.lo libGLC_la-fribidi_types.lo"
 else
   PKGCONFIG_REQUIREMENTS="fribidi"
+fi
+
+# Checks for SQLite 3.
+# --------------------
+
+if (test "x$with_sqlite3" = "xyes"); then
+  AC_CHECK_HEADER(sqlite3.h, AC_CHECK_LIB(sqlite3, sqlite3_open, ,
+			     		  no_sqlite3="yes"), no_sqlite3="yes")
+  if (test "x$no_sqlite3" = "xyes"); then
+    AC_MSG_NOTICE([SQLite3 will be built and embedded])
+  fi
+else
+  no_sqlite3="yes"
+fi
+
+if (test "x$no_sqlite3" = "xyes"); then
+  EMBEDDED_OBJ="$EMBEDDED_OBJ libGLC_la-sqlite3.lo"
+else
+  PKGCONFIG_LIBS_PRIVATE="-lsqlite3 $PKGCONFIG_LIBS_PRIVATE"
 fi
 
 # Checks for OpenGL and related libraries.
@@ -188,7 +212,7 @@ if (test "x$enable_glew_multiple_contexts" = "xyes"); then
 fi
 
 if (test "x$no_glew" = "xyes"); then
-  GLEW_OBJ="libGLC_la-glew.lo"
+  EMBEDDED_OBJ="$EMBEDDED_OBJ libGLC_la-glew.lo"
 else
   PKGCONFIG_LIBS_PRIVATE="-lGLEW $PKGCONFIG_LIBS_PRIVATE"
 fi
@@ -260,8 +284,7 @@ AC_CONFIG_FILES([Makefile
 AC_SUBST(EXECUTABLES)
 AC_SUBST(DEBUG_TESTS)
 AC_SUBST(TESTS_WITH_GLUT)
-AC_SUBST(FRIBIDI_OBJ)
-AC_SUBST(GLEW_OBJ)
+AC_SUBST(EMBEDDED_OBJ)
 AC_SUBST(GLEW_CFLAGS)
 AC_SUBST(PKGCONFIG_REQUIREMENTS)
 AC_SUBST(PKGCONFIG_LIBS_PRIVATE)
@@ -278,16 +301,16 @@ echo "CFLAGS: $CFLAGS"
 echo ""
 
 if (test "x$no_fribidi" = "xyes"); then
-  echo "FriBiDi: Embedded"
+  echo "FriBiDi: Build own copy"
 else
   echo "FriBiDi: Use system library"
 fi
 
 if (test "x$no_glew" = "xyes"); then
   if (test "x$enable_glew_multiple_contexts" = "xyes"); then
-    echo "GLEW: Embedded with support for multiple rendering contexts"
+    echo "GLEW: Build own copy with support for multiple rendering contexts"
   else
-    echo "GLEW: Embedded with support for a single rendering context"
+    echo "GLEW: Build own copy with support for a single rendering context"
   fi
 else
   if (test "x$enable_glew_multiple_contexts" = "xyes"); then
@@ -295,6 +318,12 @@ else
   else
     echo "GLEW: Use system library with support for a single rendering context"
   fi
+fi
+
+if (test "x$no_sqlite3" = "xyes"); then
+  echo "SQLite3: Build own copy"
+else
+  echo "SQLite3: Use system library"
 fi
 
 if (test "x$enable_tls" = "xyes"); then

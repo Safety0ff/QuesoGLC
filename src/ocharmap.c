@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -329,7 +329,7 @@ const GLCchar8* __glcCharMapGetCharName(const __GLCcharMap* This,
       return NULL;
   }
 
-  return __glcNameFromCode(code);
+  return __glcGetNameFromCode(code);
 }
 
 
@@ -465,7 +465,7 @@ const GLCchar8* __glcCharMapGetCharNameByIndex(const __GLCcharMap* This,
 	    /* Check if we have reached the rank inIndex */
 	    if (count == (GLCchar32)inIndex) {
 	      /* Get the character name */
-	      return __glcNameFromCode(base + (i << 5) + j);
+	      return __glcGetNameFromCode(base + (i << 5) + j);
 	    }
 	  }
 	}

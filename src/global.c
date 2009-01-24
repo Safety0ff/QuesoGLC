@@ -171,6 +171,8 @@ void _fini(void)
   FcFini();
 #endif
 
+  sqlite3_close(__glcCommonArea.db);
+
   __glcUnlock();
 #ifdef __WIN32__
   DeleteCriticalSection(&__glcCommonArea.section);
@@ -222,6 +224,7 @@ __attribute__((constructor)) void init(void)
 void _init(void)
 #endif
 {
+  int result = 0;
 #if !defined(__WIN32__) && !defined(HAVE_TLS)
   /* A temporary variable is used to store the PTHREAD_ONCE_INIT value because
    * some platforms (namely Mac OSX) define PTHREAD_ONCE_INIT as a structure
@@ -269,6 +272,18 @@ void _init(void)
   if (pthread_mutex_init(&__glcCommonArea.mutex, NULL))
     goto FatalError;
 #endif
+
+#if SQLITE_VERSION_NUMBER < 3006000
+  result = sqlite3_open_v2(DATADIR"/quesoglc.db", &__glcCommonArea.db,
+			   SQLITE_OPEN_READONLY, NULL);
+#else
+  result = sqlite3_open_v2(DATADIR"/quesoglc.db", &__glcCommonArea.db,
+			   SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL);
+#endif
+  if (result) {
+    sqlite3_close(__glcCommonArea.db);
+    goto FatalError;
+  }
 
   return;
 

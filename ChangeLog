@@ -3,6 +3,7 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Now uses SQLite3 to manage Unicode names and code points.
 - Optimized calls to glNormal3f(). It is now called once per string rather than
   once per character (except for extrusion).
 - Refactored code of object __GLCmaster.
