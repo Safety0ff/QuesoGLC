@@ -49,6 +49,8 @@ static int menu, menuPolygon, menuRender;
 static GLenum polygonMode = GL_FILL;
 static GLint renderStyle = GLC_TRIANGLE;
 static int frame = 0, msec = 0;
+static GLboolean with_light;
+static GLbitfield clearMode = GL_COLOR_BUFFER_BIT;
 
 /* Forward declarations. */
 static void check_glc_error(char* routine_name);
@@ -88,7 +90,6 @@ draw_letters(void)
       { 83.0,  5.0, 0.0, 0.0, 0.0, -4.0 }   /* L */
    };
 
-
    for (i=0; i<strlen(letters); i++) {
 
       glPushMatrix(); {
@@ -110,7 +111,6 @@ draw_letters(void)
 
       } glPopMatrix();
    }
-
 }
 
 static void
@@ -171,7 +171,6 @@ access_font()
             }
          }
       }
-
 
       if (i < master_count) {
         /* Access the font family. */
@@ -295,6 +294,9 @@ my_reshape(int w, int h)
 void 
 my_handle_key(GLubyte key, GLint x, GLint y)
 {
+  (void)x;
+  (void)y;
+
    switch (key) {
 
    case 27:    /* Esc - Quits the program. */
@@ -393,7 +395,7 @@ my_display(void)
    glClear(GL_ACCUM_BUFFER_BIT);
 
    for (i=0; i<passes; i++) {
-      glClear(GL_COLOR_BUFFER_BIT);
+      glClear(clearMode);
       do_persp(GL_TRUE, j8[i].x, j8[i].y);
       draw_letters(scale);
       glAccum(GL_ACCUM, 1.0/(GLfloat)passes);
@@ -401,7 +403,7 @@ my_display(void)
    glAccum(GL_RETURN, 1.0);
    glFlush();
 #else
-   glClear(GL_COLOR_BUFFER_BIT);
+   glClear(clearMode);
    do_persp(GL_FALSE, 0.0, 0.0);
    draw_letters();
 #endif
@@ -436,6 +438,10 @@ create_menu(void)
       glutAddMenuEntry("+Fill", 203);
    else
       glutAddMenuEntry(" Fill", 203);
+   if (polygonMode == GLC_EXTRUDE_QSO)
+      glutAddMenuEntry("+Extrude", 204);
+   else
+      glutAddMenuEntry(" Extrude", 204);
 
    menuRender = glutCreateMenu(my_menu_render);
    if (renderStyle == GLC_TEXTURE)
@@ -456,6 +462,10 @@ create_menu(void)
       glutAddMenuEntry("Disable display lists", 101);
    else
       glutAddMenuEntry("Enable display lists", 101);
+   if (with_light)
+      glutAddMenuEntry("Disable light", 102);
+   else
+      glutAddMenuEntry("Enable light", 102);
    glutAddSubMenu("Render style", menuRender);
    if (renderStyle == GLC_TRIANGLE)
       glutAddSubMenu("Polygon mode", menuPolygon);
@@ -465,6 +475,9 @@ create_menu(void)
 void
 my_menu_polygon(int value)
 {
+   glcDisable(GLC_EXTRUDE_QSO);
+   clearMode = GL_COLOR_BUFFER_BIT;
+   glDisable(GL_DEPTH_TEST);
    switch(value) {
    case 201:
       polygonMode = GL_POINT;
@@ -475,8 +488,16 @@ my_menu_polygon(int value)
    case 203:
       polygonMode = GL_FILL;
       break;
+   case 204:
+      polygonMode = GL_FILL;
+      glcEnable(GLC_EXTRUDE_QSO);
+      clearMode = GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT;
+      glEnable(GL_DEPTH_TEST);
+      break;
    }
    glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
+   if (value == 204)
+      polygonMode = GLC_EXTRUDE_QSO;
    glutDestroyMenu(menu);
    glutDestroyMenu(menuPolygon);
    glutDestroyMenu(menuRender);
@@ -518,6 +539,19 @@ my_menu(int value)
    case 101:
       with_dlist = !with_dlist;
       break;
+   case 102:
+      with_light =!with_light;
+      if (with_light) {
+	 glEnable(GL_NORMALIZE);
+	 glEnable(GL_LIGHTING);
+	 glEnable(GL_LIGHT0);
+      }
+      else {
+	 glDisable(GL_NORMALIZE);
+	 glDisable(GL_LIGHTING);
+	 glDisable(GL_LIGHT0);
+      }
+     break;
    }
    glutDestroyMenu(menu);
    glutDestroyMenu(menuPolygon);
@@ -537,7 +571,11 @@ main(int argc, char **argv)
 {
 
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_RGBA|GLUT_ACCUM|GLUT_DOUBLE);
+#ifdef ANTIALIASING
+   glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE|GLUT_ACCUM|GLUT_DEPTH);
+#else
+   glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE|GLUT_DEPTH);
+#endif
 
    trackball(curquat, 0.0, 0.0, 0.0, 0.0);
    trackball(lastquat, 0.001, 0.0, 0.0, 0.001);
@@ -558,8 +596,9 @@ main(int argc, char **argv)
    glutMotionFunc(my_motion);
    glutIdleFunc(animate);
 
+   glDisable(GL_DEPTH_TEST);
    glEnable(GL_TEXTURE_2D);
-   glPolygonMode(GL_FRONT_AND_BACK, polygonMode);
+   with_light = GL_FALSE;
 
    create_menu();
    access_font();
