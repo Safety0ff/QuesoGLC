@@ -41,16 +41,12 @@ void __glcReleaseAtlasElement(__GLCatlasElement* This,
 			      __GLCcontext* inContext)
 {
   FT_ListNode node = (FT_ListNode)This;
-  FT_ListNode tail = inContext->atlasList.tail;
 
   /* Put the atlas element at the tail of the list so that its position is used
    * as soon as possible.
    */
   FT_List_Remove(&inContext->atlasList, node);
-  tail->next = node;
-  node->prev = tail;
-  node->next = NULL;
-  inContext->atlasList.tail = node;
+  FT_List_Add(&inContext->atlasList, node);
   This->glyph = NULL; /* The glyph will be destroyed so clear the pointer */
 }
 
