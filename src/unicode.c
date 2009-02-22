@@ -98,8 +98,8 @@ GLint __glcGetCodeFromName(const GLCchar8* name)
   GLint code = 0;
   char* errorMsg = NULL;
 
-  /* Sanity check to reject malformed requests */
-  if (strstr((const char*)name, "\"")) {
+  /* Sanity checks to reject malformed requests */
+  if (!strlen((const char*)name) || strstr((const char*)name, "\"")) {
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return -1;
   }
