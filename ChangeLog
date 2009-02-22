@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #2019450 (added a workaround for open source drivers of the Intel
+  chipsets : a bug in the drivers prevent a character to be displayed).
 - Fixed a bug which caused some memory leaks when memory allocation failed
   during the update of the masters.
 - Updated the demo in the examples: extrusion and ligthing have been added.

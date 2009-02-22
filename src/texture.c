@@ -56,7 +56,7 @@ void __glcReleaseAtlasElement(__GLCatlasElement* This,
 
 
 
-/* This function get some room in the texture atlas for a new glyph 'inGlyph'.
+/* This function gets some room in the texture atlas for a new glyph 'inGlyph'.
  * Eventually it creates the texture atlas, if it does not exist yet.
  */
 static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
@@ -130,20 +130,59 @@ static GLboolean __glcTextureAtlasGetPosition(__GLCcontext* inContext,
 		   size, 0, GL_ALPHA, GL_UNSIGNED_BYTE, buffer);
     }
 
-    __glcFree(buffer);
-
     /* Use trilinear filtering if GLC_MIPMAP is enabled.
      * Otherwise use bilinear filtering.
      */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+		    GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    /* The intent of this code is to work around an ugly bug of the Intel GMA
+     * 965 (or X3000) drivers on Linux. On those crappy drivers a 2nd call to
+     * glTexSubImage2D() completely clears the texture removing by the way the
+     * first character stored in the texture...
+     * This workaround displays a dummy character in order to deceive the
+     * stupid drivers. Note that I tried to reduce the code to the minimum : it
+     * seems that if any line below is removed, the workaround no longer works
+     * around the f***ing bug.
+     */
+    size = GLC_TEXTURE_SIZE;
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_ALPHA,
+		    GL_UNSIGNED_BYTE, buffer);
+    level = 0;
+    while (size > 2) {
+      size >>= 1;
+      level++;
+      glTexSubImage2D(GL_TEXTURE_2D, level, 0, 0, size, size, GL_ALPHA,
+		      GL_UNSIGNED_BYTE, buffer);
+    }
+
+    if (GLEW_VERSION_1_2 || GLEW_SGIS_texture_lod)
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, level - 1);
+
+    glBegin(GL_QUADS);
+    glNormal3f(0.f, 0.f, 1.f);
+    glTexCoord2f(0.f, 0.f);
+    glVertex2f(0.f, 0.f);
+    glTexCoord2f(0.f, 1.f);
+    glVertex2f(0.f, .5f);
+    glTexCoord2f(1.f, 1.f);
+    glVertex2f(.5f, .5f);
+    glTexCoord2f(1.f, 0.f);
+    glVertex2f(.5f, 0.f);
+    glEnd();
+    /* End of the workaround for the crappy open source drivers for Intel chips
+     */
+    __glcFree(buffer);
+
     if (inContext->enableState.mipmap)
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		      GL_LINEAR_MIPMAP_LINEAR);
     else
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		      GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   }
 
   /* At this stage, we want to get a free area in the texture atlas in order to
