@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -190,4 +190,31 @@ void* __glcArrayInsertCell(__GLCarray* This, const int inRank,
   This->length += inCells;
 
   return (void*)newCell;
+}
+
+
+
+/* Duplicate an array */
+__GLCarray* __glcArrayDuplicate(__GLCarray* This)
+{
+  __GLCarray* duplicate = NULL;
+
+  duplicate = (__GLCarray*)__glcMalloc(sizeof(__GLCarray));
+  if (!duplicate) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  memcpy(duplicate, This, sizeof(__GLCarray));
+
+  duplicate->data = (char*)__glcMalloc(This->allocated * This->elementSize);
+  if (!duplicate->data) {
+    __glcFree(duplicate);
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return NULL;
+  }
+
+  memcpy(duplicate->data, This->data, This->allocated * This->elementSize);
+
+  return duplicate;
 }
