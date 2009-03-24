@@ -28,9 +28,9 @@
 
 
 #ifdef DEBUGMODE
-GLuint __glcMemAllocCount = 0;
-GLuint __glcMemAllocTrigger = 0;
-GLboolean __glcMemAllocFailOnce = GL_TRUE;
+GLCAPI GLuint __glcMemAllocCount = 0;
+GLCAPI GLuint __glcMemAllocTrigger = 0;
+GLCAPI GLboolean __glcMemAllocFailOnce = GL_TRUE;
 
 
 /* QuesoGLC own allocation and memory management routines */

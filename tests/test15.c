@@ -16,7 +16,7 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-/* $Id: test10.c 712 2008-01-26 19:46:49Z bcoconni $ */
+/* $Id$ */
 
 /** \file
  * Regression test for a bug which did not include trailing spaces in

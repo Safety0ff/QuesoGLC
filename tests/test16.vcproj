@@ -2,9 +2,10 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="test11.1"
-	ProjectGUID="{775E474E-6BD9-4AB2-861B-8C647A2CC352}"
-	TargetFrameworkVersion="131072"
+	Name="test16"
+	ProjectGUID="{8F69627B-D309-471E-8887-982200431998}"
+	RootNamespace="test16"
+	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -39,7 +40,6 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE"
 				ExceptionHandling="0"
 				DebugInformationFormat="1"
 				CompileAs="1"
@@ -107,7 +107,6 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="&quot;..\include&quot;"
-				PreprocessorDefinitions="RENDER_STYLE=GLC_TEXTURE"
 				ExceptionHandling="0"
 				CompileAs="1"
 			/>
@@ -159,15 +158,15 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="test11.c"
+				RelativePath="test16.c"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName).1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName).1.xdc"
+						ObjectFile="$(IntDir)\$(InputName).obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName).xdc"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -175,8 +174,8 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName).1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName).1.xdc"
+						ObjectFile="$(IntDir)\$(InputName).obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName).xdc"
 					/>
 				</FileConfiguration>
 			</File>

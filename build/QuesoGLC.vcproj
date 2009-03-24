@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="glc32"
 	ProjectGUID="{067D0D15-F943-4049-B629-DC4E26ADB5EC}"
 	RootNamespace="QuesoGLC"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -38,7 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\src&quot;;&quot;C:\Program Files\Microsoft Visual Studio 8\VC\include\freetype2&quot;;&quot;..\include&quot;"
+				AdditionalIncludeDirectories="&quot;..\src&quot;;&quot;..\include&quot;"
 				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.7.9\&quot;;DEBUGMODE;GLEW_MX;GLEW_BUILD;_CRT_SECURE_NO_DEPRECATE"
 				ExceptionHandling="0"
 				EnableEnhancedInstructionSet="0"
@@ -60,6 +61,8 @@
 				AdditionalDependencies="opengl32.lib freetype.lib fontconfig.lib glu32.lib gdi32.lib user32.lib"
 				AdditionalLibraryDirectories="&quot;C:\Program Files\GnuWin32\lib&quot;"
 				GenerateDebugInformation="true"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -78,9 +81,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -109,7 +109,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;..\src&quot;;&quot;C:\Program Files\GnuWin32\include\freetype2&quot;;&quot;..\include&quot;"
+				AdditionalIncludeDirectories="&quot;..\src&quot;;&quot;..\include&quot;"
 				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.7.9\&quot;;GLEW_MX;GLEW_BUILD;_CRT_SECURE_NO_DEPRECATE"
 				ExceptionHandling="0"
 				CompileAs="1"
@@ -126,6 +126,8 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="opengl32.lib glu32.lib freetype.lib fontconfig.lib"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -144,9 +146,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -218,11 +217,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\src\ocharmap.c"
+				>
+			</File>
+			<File
+				RelativePath="..\src\ocontext.c"
+				>
+			</File>
+			<File
+				RelativePath="..\src\ofacedesc.c"
+				>
+			</File>
+			<File
 				RelativePath="..\src\ofont.c"
 				>
 			</File>
 			<File
 				RelativePath="..\src\oglyph.c"
+				>
+			</File>
+			<File
+				RelativePath="..\src\omaster.c"
 				>
 			</File>
 			<File
@@ -243,22 +258,6 @@
 			</File>
 			<File
 				RelativePath="..\src\unicode.c"
-				>
-			</File>
-			<File
-				RelativePath="..\src\ocharmap.c"
-				>
-			</File>
-			<File
-				RelativePath="..\src\ocontext.c"
-				>
-			</File>
-			<File
-				RelativePath="..\src\ofacedesc.c"
-				>
-			</File>
-			<File
-				RelativePath="..\src\omaster.c"
 				>
 			</File>
 		</Filter>

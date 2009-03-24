@@ -28,9 +28,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern GLuint __glcMemAllocCount;
-extern GLuint __glcMemAllocTrigger;
-extern GLboolean __glcMemAllocFailOnce;
+GLCAPI GLuint __glcMemAllocCount;
+GLCAPI GLuint __glcMemAllocTrigger;
+GLCAPI GLboolean __glcMemAllocFailOnce;
 
 #define TestErrorCode(func) \
   err = glcGetError();		  \

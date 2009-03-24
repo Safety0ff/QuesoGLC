@@ -54,7 +54,11 @@ const GLCchar8* __glcGetNameFromCode(const GLint code)
     char* errorMsg = NULL;
 
     name[0] = '\0';
+#ifdef _MSC_VER
+    sprintf_s(buffer, 50, "SELECT name FROM unicode WHERE code=%d", code);
+#else
     snprintf(buffer, 50, "SELECT name FROM unicode WHERE code=%d", code);
+#endif
     result = sqlite3_exec(__glcCommonArea.db, buffer, __glcGetNameCallback,
 			  name, &errorMsg);
     if (result != SQLITE_OK) {

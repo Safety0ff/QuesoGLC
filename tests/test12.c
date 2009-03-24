@@ -90,7 +90,11 @@ void display(void)
     glVertex2fv(&bbox[2*i]);
   glEnd();
   /* Display the dimensions */
-  snprintf(string, 20, "%f", bbox[2] - bbox[0]);
+#ifdef _MSC_VER
+    sprintf_s(string, 20, "%f", bbox[2] - bbox[0]);
+#else
+    snprintf(string, 20, "%f", bbox[2] - bbox[0]);
+#endif
   glcEnable(GLC_HINTING_QSO);
   glcScale(0.15f, 0.15f);
   glcMeasureString(GL_FALSE, string);
@@ -147,7 +151,11 @@ void display(void)
     glVertex2fv(&bbox[2*i]);
   glEnd();
   /* Display the dimensions */
-  snprintf(string, 20, "%f", (bbox[2] - bbox[0]) * 100.f);
+#ifdef _MSC_VER
+    sprintf_s(string, 20, "%f", (bbox[2] - bbox[0]) * 100.f);
+#else
+    snprintf(string, 20, "%f", (bbox[2] - bbox[0]) * 100.f);
+#endif
   glcEnable(GLC_HINTING_QSO);
   glcMeasureString(GL_FALSE, string);
   glcGetStringMetric(GLC_BOUNDS, bbox2);
@@ -198,7 +206,11 @@ void display(void)
     glVertex2fv(&bbox[2*i]);
   glEnd();
   /* Display the dimensions */
-  snprintf(string, 20, "%f", bbox[4] - bbox[6]);
+#ifdef _MSC_VER
+    sprintf_s(string, 20, "%f", bbox[4] - bbox[6]);
+#else
+    snprintf(string, 20, "%f", bbox[4] - bbox[6]);
+#endif
   glcEnable(GLC_HINTING_QSO);
   glcScale(0.15f, 0.15f);
   glcMeasureString(GL_FALSE, string);
@@ -259,7 +271,11 @@ void display(void)
     glVertex2fv(&bbox[2*i]);
   glEnd();
   /* Display the dimensions */
-  snprintf(string, 20, "%f", (bbox[4] - bbox[6]) * 100.f);
+#ifdef _MSC_VER
+    sprintf_s(string, 20, "%f", (bbox[4] - bbox[6]) * 100.f);
+#else
+    snprintf(string, 20, "%f", (bbox[4] - bbox[6]) * 100.f);
+#endif
   glcEnable(GLC_HINTING_QSO);
   glcMeasureString(GL_FALSE, string);
   glcGetStringMetric(GLC_BOUNDS, bbox2);
