@@ -68,14 +68,14 @@ draw_letters(void)
 
    char* letters = "OpenGL";
 
-   GLfloat colors[6][3] = {
+   GLfloat colors[6][4] = {
       /* R, G, B */
-      { 1.0, 0.0, 0.0 },
-      { 0.0, 1.0, 0.0 },
-      { 0.0, 0.0, 1.0 },
-      { 1.0, 0.0, 0.0 },
-      { 1.0, 1.0, 0.0 },
-      { 1.0, 0.0, 1.0 }
+      { 1.0, 0.0, 0.0, 1.0 },
+      { 0.0, 1.0, 0.0, 1.0 },
+      { 0.0, 0.0, 1.0, 1.0 },
+      { 1.0, 0.0, 0.0, 1.0 },
+      { 1.0, 1.0, 0.0, 1.0 },
+      { 1.0, 0.0, 1.0, 1.0 }
    };
 
    GLfloat origin[3] = { -50.0, -15.0, 0.0 };
@@ -100,7 +100,8 @@ draw_letters(void)
          glRotatef(pos[i][4], 0.0, 1.0, 0.0);
          glRotatef(pos[i][5], 0.0, 0.0, 1.0);
 
-         glColor3fv(colors[i]);
+         glColor4fv(colors[i]);
+         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, colors[i]);
 
          /* This is a "reasonable" font scaling - big enough to */
          /* see the letters when the overall scale is 1.0.      */
@@ -481,12 +482,18 @@ my_menu_polygon(int value)
    switch(value) {
    case 201:
       polygonMode = GL_POINT;
+      clearMode = GL_COLOR_BUFFER_BIT;
+      glDisable(GL_DEPTH_TEST);
       break;
    case 202:
       polygonMode = GL_LINE;
+      clearMode = GL_COLOR_BUFFER_BIT;
+      glDisable(GL_DEPTH_TEST);
       break;
    case 203:
       polygonMode = GL_FILL;
+      clearMode = GL_COLOR_BUFFER_BIT;
+      glDisable(GL_DEPTH_TEST);
       break;
    case 204:
       polygonMode = GL_FILL;
@@ -512,14 +519,26 @@ my_menu_render(int value)
       renderStyle = GLC_TEXTURE;
       polygonMode = GL_FILL;
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      clearMode = GL_COLOR_BUFFER_BIT;
+      glDisable(GL_DEPTH_TEST);
       break;
    case 302:
       renderStyle = GLC_LINE;
       polygonMode = GL_FILL;
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      clearMode = GL_COLOR_BUFFER_BIT;
+      glDisable(GL_DEPTH_TEST);
       break;
    case 303:
       renderStyle = GLC_TRIANGLE;
+      if (glcIsEnabled(GLC_EXTRUDE_QSO)) {
+	clearMode = GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT;
+	glEnable(GL_DEPTH_TEST);
+      }
+      else {
+	clearMode = GL_COLOR_BUFFER_BIT;
+	glDisable(GL_DEPTH_TEST);
+      }
       break;
    }
    glutDestroyMenu(menu);
