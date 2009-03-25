@@ -253,7 +253,7 @@ extern __GLCmaster* __glcVerifyMasterParameters(const GLint inMaster);
 /* Verify that the thread has a current context and that the font identified
  * by 'inFont' exists.
  */
-extern __GLCfont* __glcVerifyFontParameters(GLint inFont);
+extern __GLCfont* __glcVerifyFontParameters(const GLint inFont);
 
 /* Do the actual job of glcAppendFont(). This function can be called as an
  * internal version of glcAppendFont() where the current GLC context is already
@@ -359,7 +359,7 @@ extern void __glcRestoreGLState(const __GLCglState* inGLState,
 
 #ifdef GLEW_MX
 /* Function for GLEW so that it can get a context */
-extern GLEWAPI GLEWContext* glewGetContext(void);
+GLEWAPI GLEWContext* glewGetContext(void);
 #endif
 
 #ifndef HAVE_TLS

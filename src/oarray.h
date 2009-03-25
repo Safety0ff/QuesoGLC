@@ -39,7 +39,7 @@ struct __GLCarrayRec {
   int elementSize;
 };
 
-__GLCarray* __glcArrayCreate(int inElementSize);
+__GLCarray* __glcArrayCreate(const int inElementSize);
 void __glcArrayDestroy(__GLCarray* This);
 __GLCarray* __glcArrayAppend(__GLCarray* This, const void* inValue);
 __GLCarray* __glcArrayInsert(__GLCarray* This, const int inRank,

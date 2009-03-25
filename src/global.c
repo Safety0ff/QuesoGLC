@@ -277,7 +277,7 @@ void _init(void)
   result = sqlite3_open_v2(DATADIR"/quesoglc.db", &__glcCommonArea.db,
 			   SQLITE_OPEN_READONLY, NULL);
 #else
-  result = sqlite3_open_v2(DATADIR"/quesoglc.db", &__glcCommonArea.db,
+  result = sqlite3_open_v2(DATAPATH"/quesoglc.db", &__glcCommonArea.db,
 			   SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL);
 #endif
   if (result) {

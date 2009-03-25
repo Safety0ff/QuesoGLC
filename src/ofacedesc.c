@@ -229,7 +229,7 @@ void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext)
  * count for each face so that the face is open only once.
  */
 FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
-			  __GLCcontext* inContext)
+			  const __GLCcontext* inContext)
 {
   if (!This->faceRefCount) {
     GLCchar8 *fileName = NULL;
@@ -594,7 +594,7 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 /* Use FreeType to determine in which format the face is stored in its file :
  * Type1, TrueType, OpenType, ...
  */
-const GLCchar8* __glcFaceDescGetFontFormat(const __GLCfaceDescriptor* This,
+const GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 					   const __GLCcontext* inContext,
 					   const GLCenum inAttrib)
 {

@@ -69,13 +69,13 @@ GLfloat* __glcFontGetMaxMetric(__GLCfont* This, GLfloat* outVec,
 
 #ifndef GLC_FT_CACHE
 /* Open the font file */
-static inline void* __glcFontOpen(__GLCfont* This, __GLCcontext* inContext)
+static inline void* __glcFontOpen(const __GLCfont* This, __GLCcontext* inContext)
 {
   return __glcFaceDescOpen(This->faceDesc, inContext);
 }
 
 /* Close the font file */
-static inline void __glcFontClose(__GLCfont* This)
+static inline void __glcFontClose(const __GLCfont* This)
 {
    __glcFaceDescClose(This->faceDesc);
 }

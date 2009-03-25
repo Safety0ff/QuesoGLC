@@ -49,7 +49,7 @@ __GLCfaceDescriptor* __glcFaceDescCreate(const __GLCmaster* inMaster,
 void __glcFaceDescDestroy(__GLCfaceDescriptor* This, __GLCcontext* inContext);
 #ifndef GLC_FT_CACHE
 FT_Face __glcFaceDescOpen(__GLCfaceDescriptor* This,
-			  __GLCcontext* inContext);
+			  const __GLCcontext* inContext);
 void __glcFaceDescClose(__GLCfaceDescriptor* This);
 #endif
 __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This,
@@ -71,7 +71,7 @@ GLfloat* __glcFaceDescGetAdvance(__GLCfaceDescriptor* This,
 				 const GLCulong inGlyphIndex, GLfloat* outVec,
 				 const GLfloat inScaleX, const GLfloat inScaleY,
 				 const __GLCcontext* inContext);
-const GLCchar8* __glcFaceDescGetFontFormat(const __GLCfaceDescriptor* This,
+const GLCchar8* __glcFaceDescGetFontFormat(__GLCfaceDescriptor* This,
 					   const __GLCcontext* inContext,
 					   const GLCenum inAttrib);
 GLfloat* __glcFaceDescGetMaxMetric(__GLCfaceDescriptor* This, GLfloat* outVec,

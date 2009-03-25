@@ -1,6 +1,6 @@
 /* QuesoGLC
  * A free implementation of the OpenGL Character Renderer (GLC)
- * Copyright (c) 2002, 2004-2008, Bertrand Coconnier
+ * Copyright (c) 2002, 2004-2009, Bertrand Coconnier
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,11 @@ GLboolean __glcCharMapHasChar(const __GLCcharMap* This, const GLint inCode);
 const GLCchar8* __glcCharMapGetCharNameByIndex(const __GLCcharMap* This,
 					       const GLint inIndex);
 /* Return the number of characters in the character map */
+#ifdef _MSC_VER
+static GLint __glcCharMapGetCount(const __GLCcharMap* This)
+#else
 static inline GLint __glcCharMapGetCount(const __GLCcharMap* This)
+#endif
 {
   assert(This);
   assert(This->charSet);

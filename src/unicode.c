@@ -35,7 +35,11 @@ static int __glcGetNameCallback(void* inData, int argc, char** argv,
 				char** GLC_UNUSED_ARG(azColName))
 {
   if (argc && argv[0]) {
+#ifdef _MSC_VER
+    sprintf_s((char*)inData, 256, "%s", argv[0]);
+#else
     snprintf((char*)inData, 256, "%s", argv[0]);
+#endif
     return 0;
   }
 
@@ -108,7 +112,11 @@ GLint __glcGetCodeFromName(const GLCchar8* name)
     return -1;
   }
 
+#ifdef _MSC_VER
+  sprintf_s(buffer, 256, "SELECT code FROM unicode WHERE name=\"%s\"", name);
+#else
   snprintf(buffer, 256, "SELECT code FROM unicode WHERE name=\"%s\"", name);
+#endif
 
   result = sqlite3_exec(__glcCommonArea.db, buffer, __glcGetCodeCallback,
 			&code, &errorMsg);
