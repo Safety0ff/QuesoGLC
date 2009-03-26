@@ -274,7 +274,7 @@ void _init(void)
 #endif
 
 #if SQLITE_VERSION_NUMBER < 3006000
-  result = sqlite3_open_v2(DATADIR"/quesoglc.db", &__glcCommonArea.db,
+  result = sqlite3_open_v2(DATAPATH"/quesoglc.db", &__glcCommonArea.db,
 			   SQLITE_OPEN_READONLY, NULL);
 #else
   result = sqlite3_open_v2(DATAPATH"/quesoglc.db", &__glcCommonArea.db,
