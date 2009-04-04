@@ -50,7 +50,7 @@ advantages over platform specific interface such as GLX or WGL :
 
 GLC is a library that has been designed by SGI and that was only available on
 SGI workstations under IRIX 6.2 and later. The draft of the GLC specifications
-can be downloaded <a href="http://www.opengl.org/documentation/spec.html">
+can be downloaded <a href="http://www.opengl.org/documentation/specs">
 here</a>. As far as I know, SGI dropped the development of GLC and the draft of
 its specifications has not evolved since late 1996.
 
@@ -88,6 +88,16 @@ future for Windows and Mac OSX platforms.
 \section qusers QuesoGLC users
 QuesoGLC users are :
 
+-# <a href="http://chromium-bsu.sourceforge.net">Chromium B.S.U.</a> is a fast
+   paced, arcade-style, top-scrolling space shooter.
+-# The <a href="http://wz2100.net/">Warzone Resurrection Project</a> which aims
+   to make Warzone 2100 one of the top free software games available. Warzone
+   2100 was one of the first 3D RTS games ever. It was released commercially by
+   Pumpkin Studios in 1999, and released in 2004 under the GPL.
+-# <a href="http://navit.sourceforge.net/">NavIt</a> a modular touch screen
+   friendly car navigation system with GPS tracking, realtime routing engine and
+   support for various vector map formats. There's a GTK+ and a SDL user
+   interface and also a GL accelerated 3D view.
 -# <a href="http://sourceforge.net/projects/yogur">Yogur</a> an add-on to the
    OpenGL Character renderer. It provides additional GLC measurement metrics,
    convertion between string encodings and generic selection of font properties.
@@ -95,14 +105,6 @@ QuesoGLC users are :
    packages for Ada 2006 that can be used to create Graphical User Interfaces,
    relaying (almost) only on OpenGL. Hence should be rather
    platform-independant.
--# <a href="http://navit.sourceforge.net/">NavIt</a> a modular touch screen
-   friendly car navigation system with GPS tracking, realtime routing engine and
-   support for various vector map formats. There's a GTK+ and a SDL user
-   interface and also a GL accelerated 3D view.
--# The <a href="http://wz2100.net/">Warzone Resurrection Project</a> which aims
-   to make Warzone 2100 one of the top free software games available. Warzone
-   2100 was one of the first 3D RTS games ever. It was released commercially by
-   Pumpkin Studios in 1999, and released in 2004 under the GPL.
 
 If you know other projects that use QuesoGLC please let
 <a href="mailto:bcoconni@users.sourceforge.net">me</a> know.
@@ -634,7 +636,7 @@ glEnd();
 \section preamble Preamble
 
 The documentation of QuesoGLC is based on the
-<a href="http://www.opengl.org/documentation/spec.html">GLC specs</a>.
+<a href="http://www.opengl.org/documentation/specs">GLC specs</a>.
 Therefore, the principles, functions, and generally speaking the API described
 hereafter apply to every implementation of GLC.
 
