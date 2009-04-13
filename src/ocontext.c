@@ -170,6 +170,7 @@ __GLCcontext* __glcContextCreate(const GLint inContext)
   This->enableState.kerning = GL_FALSE;
   This->renderState.resolution = 72.;
   This->renderState.renderStyle = GLC_BITMAP;
+  This->renderState.tolerance = 0.005;
   This->bitmapMatrixStackDepth = 1;
   This->bitmapMatrix = This->bitmapMatrixStack;
   This->bitmapMatrix[0] = 1.;

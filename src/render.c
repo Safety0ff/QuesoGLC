@@ -854,3 +854,50 @@ void APIENTRY glcResolution(GLfloat inVal)
 
   return;
 }
+
+
+
+/** \ingroup render
+ *  This command assigns the value \b inVal to the floating point variable
+ *  identified by \e inAttrib which must be chosen in the table below.
+ *
+ *  - \b GLC_PARAMETRIC_TOLERANCE_QSO specifies the maximum distance, in object
+ *    space, between the tesselation line contours and the curves they
+ *    approximate. This parameter is only relevant for the \b GLC_LINE and
+ *    \b GLC_TRIANGLE rendering types.
+ *
+ *  \param inAttrib A symbolic constant indicating a GLC attribute.
+ *  \param inValue A floating point number to be used as tolerance.
+ *  \sa glcGetf() with argument GLC_PARAMETRIC_TOLERANCE_QSO
+ */
+void APIENTRY glcRenderParameterfQSO(GLenum inAttrib, GLfloat inVal)
+{
+  __GLCcontext *ctx = NULL;
+
+  GLC_INIT_THREAD();
+
+  /* Check if inAttrib has a legal value */
+  switch(inAttrib) {
+  case GLC_PARAMETRIC_TOLERANCE_QSO:
+    break;
+  default:
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
+  if (inVal <= 0.f) {
+    __glcRaiseError(GLC_PARAMETER_ERROR);
+    return;
+  }
+
+  /* Check if the current thread owns a current state */
+  ctx = GLC_GET_CURRENT_CONTEXT();
+  if (!ctx) {
+    __glcRaiseError(GLC_STATE_ERROR);
+    return;
+  }
+
+  /* Stores the tolerance */
+  ctx->renderState.tolerance = inVal;
+  return;
+}

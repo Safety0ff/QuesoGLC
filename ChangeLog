@@ -3,6 +3,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Feature request #2725659 - Added extension GLC_QSO_render_parameter to tweak
+  the curve tesselation tolerance.
 - Fixed bug #2019450 (added a workaround for open source drivers of the Intel
   chipsets : a bug in the drivers prevent a character to be displayed).
 - Fixed a bug which caused some memory leaks when memory allocation failed

@@ -791,7 +791,8 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
   static const char* __glcExtensions1 = "GLC_QSO_attrib_stack";
   static const char* __glcExtensions2 = " GLC_QSO_buffer_object";
   static const char* __glcExtensions3 = " GLC_QSO_extrude GLC_QSO_hinting"
-    " GLC_QSO_kerning GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name";
+    " GLC_QSO_kerning GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name"
+    " GLC_QSO_render_parameter";
   static const GLCchar8* __glcVendor = (const GLCchar8*) "The QuesoGLC Project";
 #ifdef HAVE_CONFIG_H
   static const GLCchar8* __glcRelease = (const GLCchar8*) PACKAGE_VERSION;
@@ -865,6 +866,10 @@ const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
  *    <tr>
  *      <td><b>GLC_RESOLUTION</b></td> <td>0x00C0</td> <td>0.0</td>
  *    </tr>
+ *    <tr>
+ *      <td><b>GLC_PARAMETRIC_TOLERANCE_QSO</b></td> <td>0x8010</td>
+ *      <td>0.005</td>
+ *    </tr>
  *  </table>
  *  </center>
  *  \param inAttrib The parameter value to be returned.
@@ -881,7 +886,11 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
   GLC_INIT_THREAD();
 
   /* Check the parameter */
-  if (inAttrib != GLC_RESOLUTION) {
+  switch(inAttrib) {
+  case GLC_RESOLUTION:
+  case GLC_PARAMETRIC_TOLERANCE_QSO:
+    break;
+  default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
     return 0.f;
   }
@@ -893,7 +902,14 @@ GLfloat APIENTRY glcGetf(GLCenum inAttrib)
     return 0.f;
   }
 
-  return ctx->renderState.resolution;
+  switch(inAttrib) {
+  case GLC_RESOLUTION:
+    return ctx->renderState.resolution;
+  case GLC_PARAMETRIC_TOLERANCE_QSO:
+    return ctx->renderState.tolerance;
+  }
+
+  return 0.f;
 }
 
 
