@@ -75,6 +75,7 @@ struct __GLCenableStateRec {
 struct __GLCrenderStateRec {
   GLfloat resolution;		/* GLC_RESOLUTION */
   GLint renderStyle;		/* GLC_RENDER_STYLE */
+  GLfloat tolerance;		/* GLC_PARAMETRIC_TOLERANCE_QSO */
 };
 
 struct __GLCstringStateRec {

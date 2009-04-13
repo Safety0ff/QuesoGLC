@@ -313,6 +313,11 @@ GLCAPI void APIENTRY glcPopAttribQSO(void);
 #define GLC_BUFFER_OBJECT_COUNT_QSO               0x800E
 #define GLC_BUFFER_OBJECT_LIST_QSO                0x800F
 
+#define GLC_QSO_render_parameter                  1
+#define GLC_PARAMETRIC_TOLERANCE_QSO              0x8010
+GLCAPI void APIENTRY glcRenderParameteriQSO(GLenum inAttrib, GLint inVal);
+GLCAPI void APIENTRY glcRenderParameterfQSO(GLenum inAttrib, GLfloat inVal);
+
 #if defined (__cplusplus)
 }
 #endif

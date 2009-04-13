@@ -534,8 +534,8 @@ void __glcRenderCharScalable(const __GLCfont* inFont,
     /* Distances are computed in object space, so is the tolerance of the
      * de Casteljau algorithm.
      */
-    rendererData.tolerance = 0.005 * sqrt(inScaleX * inScaleX
-					  + inScaleY * inScaleY) / sx64 / sy64;
+    rendererData.tolerance = inContext->renderState.tolerance
+      * sqrt(inScaleX * inScaleX + inScaleY * inScaleY) / sx64 / sy64;
     rendererData.halfWidth = 0.5;
     rendererData.halfHeight = 0.5;
     rendererData.transformMatrix = identityMatrix;
