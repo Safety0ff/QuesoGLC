@@ -53,7 +53,8 @@ static GLCchar* __glcExtensions1 = (GLCchar*) "GLC_QSO_attrib_stack"
   " GLC_QSO_utf8 GLC_SGI_full_name";
 static GLCchar* __glcExtensions2 = (GLCchar*) "GLC_QSO_attrib_stack"
   " GLC_QSO_buffer_object GLC_QSO_extrude GLC_QSO_hinting GLC_QSO_kerning"
-  " GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name";
+  " GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name"
+  " GLC_QSO_render_parameter";
 static GLCchar* __glcRelease = (GLCchar*) QUESOGLC_VERSION;
 static GLCchar* __glcVendor = (GLCchar*) "The QuesoGLC Project";
 
