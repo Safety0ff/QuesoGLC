@@ -5,3 +5,4 @@ Thanks to :
 * Thomas Zimmermann for fixing the string measurement commands and improving the autotools building scripts
 * Matt Turner for demonstrating that QuesoGLC could be compiled under Windows with a few changes
 * Giel van Schijndel and Dennis Schridde for providing the pkg-config files and reporting many bugs
+* Edward Cullen for providing an RPM spec file for QuesoGLC

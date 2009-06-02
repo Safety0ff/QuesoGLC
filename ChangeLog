@@ -67,6 +67,10 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
   Mac OS X platforms and Intel X3100 gfx cards under Linux).
 - Removed the workaround for bug #1852883
 
+* Edward Cullen:
+
+- Provided an RPM spec file for QuesoGLC
+
 Changes made from the "0.6.5" release to the "0.7.0" release:
 -------------------------------------------------------------
 
