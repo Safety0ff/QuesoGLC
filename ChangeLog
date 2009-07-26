@@ -70,6 +70,11 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 - Provided an RPM spec file for QuesoGLC
 
+* Paulo Meira
+
+- Added an extension for the GLC_PIXMAP_QSO rendering style (similar to
+  GLC_BITMAP but uses glDrawPixels() instead of glBitmap())
+	
 Changes made from the "0.6.5" release to the "0.7.0" release:
 -------------------------------------------------------------
 

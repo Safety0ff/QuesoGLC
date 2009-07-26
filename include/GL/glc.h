@@ -318,6 +318,9 @@ GLCAPI void APIENTRY glcPopAttribQSO(void);
 GLCAPI void APIENTRY glcRenderParameteriQSO(GLenum inAttrib, GLint inVal);
 GLCAPI void APIENTRY glcRenderParameterfQSO(GLenum inAttrib, GLfloat inVal);
 
+#define GLC_QSO_render_pixmap
+#define GLC_PIXMAP_QSO                            0x8011
+
 #if defined (__cplusplus)
 }
 #endif

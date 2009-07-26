@@ -55,8 +55,8 @@
  *  \image latex measure.eps "Baseline and bounds" width=7cm
  *  \n Each point <em>(x,y)</em> is computed in em coordinates, with the origin
  *  of a layout at <em>(0,0)</em>. If the value of the variable
- *  \b GLC_RENDER_STYLE is \b GLC_BITMAP, each point is transformed by the 2x2
- *  \b GLC_BITMAP_MATRIX.
+ *  \b GLC_RENDER_STYLE is \b GLC_BITMAP or GLC_PIXMAP_QSO, each point is
+ *  transformed by the 2x2 \b GLC_BITMAP_MATRIX.
  */
 
 #include "internal.h"
@@ -96,7 +96,8 @@ static void* __glcGetCharMetric(const GLint inCode, const GLint inPrevCode,
   assert(inFont);
 
 
-  if (inMultipleChars && (inContext->renderState.renderStyle == GLC_BITMAP)) {
+  if (inMultipleChars && ((inContext->renderState.renderStyle == GLC_BITMAP)
+		      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO))) {
     /* If a string (or several characters) is to be measured, it will be easier
      * to perform the calculations in the glyph coordinate system than in the
      * screen coordinate system. In order to get the values that already stored
@@ -198,7 +199,8 @@ static void* __glcGetCharMetric(const GLint inCode, const GLint inPrevCode,
   }
 
   /* Transforms the values into the screen coordinate system if necessary */
-  if (inContext->renderState.renderStyle == GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)){
     for (i = 0; i < 7; i++)
       __glcTransformVector(&outVec[2*i], inContext->bitmapMatrix);
   }
@@ -367,7 +369,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     outVec[1] = 0.;
     outVec[2] = advanceX;
     outVec[3] = advanceY;
-    if (ctx->renderState.renderStyle == GLC_BITMAP)
+    if ((ctx->renderState.renderStyle == GLC_BITMAP)
+        || (ctx->renderState.renderStyle == GLC_PIXMAP_QSO))
       __glcTransformVector(&outVec[2], ctx->bitmapMatrix);
     return outVec;
   case GLC_BOUNDS:
@@ -379,7 +382,8 @@ GLfloat* APIENTRY glcGetMaxCharMetric(GLCenum inMetric, GLfloat *outVec)
     outVec[5] = yt;
     outVec[6] = xl;
     outVec[7] = yt;
-    if (ctx->renderState.renderStyle == GLC_BITMAP) {
+    if ((ctx->renderState.renderStyle == GLC_BITMAP)
+	|| (ctx->renderState.renderStyle == GLC_PIXMAP_QSO)) {
       int i = 0;
 
       for (i = 0; i < 4; i++)
@@ -575,9 +579,11 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
   __GLCcharacter prevCode = { 0, NULL, NULL, {0.f, 0.f}};
   GLint shift = 1;
 
-  if (inContext->renderState.renderStyle == GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
      /* In order to prevent __glcProcessCharMetric() to transform its results
-      * with the GLC_MATRIX, ctx->renderStyle must not be GLC_BITMAP
+      * with the GLC_MATRIX, ctx->renderStyle must not be GLC_BITMAP (or
+      * GLC_PIXMAP_QSO)
       */
     inContext->renderState.renderStyle = 0;
   }
@@ -723,9 +729,10 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
   outVec[11] = outVec[9];
 
   /* Transform all the data in the screen coordinate system if the rendering
-   * style is GLC_BITMAP.
+   * style is GLC_BITMAP or GLC_PIXMAP_QSO.
    */
-  if (storeRenderStyle == GLC_BITMAP) {
+  if ((storeRenderStyle == GLC_BITMAP)
+      || (storeRenderStyle == GLC_PIXMAP_QSO)) {
     inContext->renderState.renderStyle = storeRenderStyle;
     for (i = 0; i < 6; i++)
       __glcTransformVector(&inContext->measurementStringBuffer[2*i],

@@ -66,7 +66,7 @@ void display(void)
 
   /* Render "Hello world!" */
   glColor3f(1.f, 0.f, 0.f);
-#if (RENDER_STYLE == GLC_BITMAP)
+#if (RENDER_STYLE == GLC_BITMAP) || (RENDER_STYLE == GLC_PIXMAP_QSO)
   glcLoadIdentity();
   glcScale(100.f, 100.f);
   glRasterPos2f(50.f, 50.f);
@@ -77,7 +77,7 @@ void display(void)
 #endif
   glcResolution(75.);
   glcRenderCountedString(4, "ABCDE");
-#if (RENDER_STYLE == GLC_BITMAP)
+#if (RENDER_STYLE == GLC_BITMAP) || (RENDER_STYLE == GLC_PIXMAP_QSO)
   glcLoadIdentity();
   glcScale(62.5f, 62.5f);
   glRasterPos2f(50.f, 150.f);
@@ -131,6 +131,8 @@ int main(int argc, char **argv)
   printf("Render style : GLC_LINE");
 #elif (RENDER_STYLE == GLC_BITMAP)
   printf("Render style : GLC_BITMAP");
+#elif (RENDER_STYLE == GLC_PIXMAP_QSO)
+  printf("Render style : GLC_PIXMAP_QSO");
 #endif
 
 #ifdef WITH_GL_OBJECTS

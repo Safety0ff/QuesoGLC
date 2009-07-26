@@ -27,6 +27,7 @@ EXTRA_PROGRAMS = test1 \
                  test11.5 \
                  test11.6 \
                  test11.7 \
+                 test11.8 \
                  test12 \
                  test13 \
                  test14 \
@@ -103,6 +104,9 @@ test11_6_CFLAGS = $(CFLAGS) -DRENDER_STYLE=GLC_LINE -DWITH_GL_OBJECTS
 
 test11_7_SOURCES = test11.c
 test11_7_CFLAGS = $(CFLAGS) -DRENDER_STYLE=GLC_BITMAP
+
+test11_8_SOURCES = test11.c
+test11_8_CFLAGS = $(CFLAGS) -DRENDER_STYLE=GLC_PIXMAP_QSO
 
 clean-generic:
 	rm -f *.gcno *.gcda *.gcov
