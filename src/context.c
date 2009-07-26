@@ -788,11 +788,12 @@ GLvoid* APIENTRY glcGetPointer(GLCenum inAttrib)
  */
 const GLCchar* APIENTRY glcGetc(GLCenum inAttrib)
 {
-  static const char* __glcExtensions1 = "GLC_QSO_attrib_stack";
+  static const char* __glcExtensions1 = "GLC_SGI_full_name"
+    " GLC_QSO_attrib_stack";
   static const char* __glcExtensions2 = " GLC_QSO_buffer_object";
   static const char* __glcExtensions3 = " GLC_QSO_extrude GLC_QSO_hinting"
-    " GLC_QSO_kerning GLC_QSO_matrix_stack GLC_QSO_utf8 GLC_SGI_full_name"
-    " GLC_QSO_render_parameter";
+    " GLC_QSO_kerning GLC_QSO_matrix_stack GLC_QSO_render_parameter"
+    " GLC_QSO_render_pixmap GLC_QSO_utf8";
   static const GLCchar8* __glcVendor = (const GLCchar8*) "The QuesoGLC Project";
 #ifdef HAVE_CONFIG_H
   static const GLCchar8* __glcRelease = (const GLCchar8*) PACKAGE_VERSION;

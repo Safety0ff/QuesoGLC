@@ -1050,7 +1050,8 @@ GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
 
   outline = face->glyph->outline;
 
-  if (inContext->renderState.renderStyle == GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
     GLfloat *transform = inContext->bitmapMatrix;
 
     /* compute glyph dimensions */
@@ -1076,7 +1077,8 @@ GLboolean __glcFaceDescGetBitmapSize(const __GLCfaceDescriptor* This,
   FT_Outline_Transform(&outline, &matrix);
   FT_Outline_Get_CBox(&outline, &boundingBox);
 
-  if (inContext->renderState.renderStyle == GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
     FT_Pos pitch = 0;
 
     outPixBoundingBox[0] = GLC_FLOOR_26_6(boundingBox.xMin);
@@ -1193,6 +1195,7 @@ GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
   FT_Outline_Get_CBox(&outline, &boundingBox);
 
   if ((inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)
       || (!inContext->enableState.glObjects)) {
     dx = GLC_FLOOR_26_6(boundingBox.xMin);
     dy = GLC_FLOOR_26_6(boundingBox.yMin);
@@ -1246,7 +1249,8 @@ GLboolean __glcFaceDescGetBitmap(const __GLCfaceDescriptor* This,
     return GL_FALSE;
   }
 
-  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)) {
     /* Prepare the outline for the next mipmap level :
      * a. Restore the outline initial position
      */

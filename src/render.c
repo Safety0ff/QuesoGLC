@@ -152,6 +152,90 @@ static void __glcRenderCharBitmap(const __GLCfont* inFont,
 
 
 
+/* This internal function renders a glyph using the GLC_PIXMAP_QSO format */
+static void __glcRenderCharPixmap(const __GLCfont* inFont,
+				  const __GLCcontext* inContext,
+                                  const GLfloat scaleX, const GLfloat scaleY,
+                                  const GLfloat* advance,
+				  const GLboolean inIsRTL)
+{
+  GLfloat *transform = inContext->bitmapMatrix;
+  GLint pixWidth = 0, pixHeight = 0;
+  GLubyte* pixBuffer = NULL;
+  GLint pixBoundingBox[4] = {0, 0, 0, 0};
+  GLfloat pixColor[4];
+
+  __glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, scaleX, scaleY, 0,
+			 pixBoundingBox, inContext);
+
+  pixBuffer = (GLubyte *)__glcMalloc(pixWidth * pixHeight);
+  if (!pixBuffer) {
+    __glcRaiseError(GLC_RESOURCE_ERROR);
+    return;
+  }
+
+  /* render the glyph */
+  if (!__glcFontGetBitmap(inFont, pixWidth, pixHeight, pixBuffer, inContext)) {
+    __glcFree(pixBuffer);
+    return;
+  }
+
+  /* Do the actual GL rendering */
+  glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
+  glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+
+  glPushAttrib(GL_COLOR_BUFFER_BIT|GL_ENABLE_BIT|GL_PIXEL_MODE_BIT);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glGetFloatv(GL_CURRENT_RASTER_COLOR, pixColor);
+  glPixelTransferf(GL_RED_BIAS, pixColor[0]);
+  glPixelTransferf(GL_GREEN_BIAS, pixColor[1]);
+  glPixelTransferf(GL_BLUE_BIAS, pixColor[2]);
+  glPixelTransferf(GL_ALPHA_SCALE, pixColor[3]);
+
+  if (inIsRTL) {
+    glBitmap(0, 0, 0.f, 0.f,
+	     advance[1] * transform[2] - advance[0] * transform[0] +
+	     (pixBoundingBox[0] >> 6),
+	     advance[1] * transform[3] - advance[0] * transform[1] +
+	     (pixBoundingBox[1] >> 6),
+	     NULL);
+
+    glDrawPixels(pixWidth, pixHeight, GL_ALPHA, GL_UNSIGNED_BYTE, pixBuffer);
+
+    glBitmap(0, 0, 0.f, 0.f,
+	     -(pixBoundingBox[0] >> 6),
+	     -(pixBoundingBox[1] >> 6),
+	     NULL);
+  }
+  else {
+    glBitmap(0, 0, 0.f, 0.f, 
+	     pixBoundingBox[0] >> 6, 
+	     pixBoundingBox[1] >> 6, 
+	     NULL);
+
+    glDrawPixels(pixWidth, pixHeight, GL_ALPHA, GL_UNSIGNED_BYTE, pixBuffer);
+
+    glBitmap(0, 0, 0.f, 0.f,
+	     advance[0] * transform[0] + advance[1] * transform[2] - 
+	     (pixBoundingBox[0] >> 6),
+	     advance[0] * transform[1] + advance[1] * transform[3] - 
+	     (pixBoundingBox[1] >> 6),
+	     NULL);
+  }
+
+  glPopAttrib();
+  glPopClientAttrib();
+
+  __glcFree(pixBuffer);
+}
+
+
+
 /* Internal function that is called to do the actual rendering :
  * 'inCode' must be given in UCS-4 format
  */
@@ -190,7 +274,8 @@ static void* __glcRenderChar(const GLint inCode, const GLint inPrevCode,
       if (inIsRTL)
 	kerning[0] = -kerning[0];
 
-      if (inContext->renderState.renderStyle == GLC_BITMAP)
+      if ((inContext->renderState.renderStyle == GLC_BITMAP)
+          || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO))
 	glBitmap(0, 0, 0, 0,
 		 kerning[0] * inContext->bitmapMatrix[0] 
 		 + kerning[1] * inContext->bitmapMatrix[2],
@@ -225,7 +310,8 @@ static void* __glcRenderChar(const GLint inCode, const GLint inPrevCode,
   sx64 = 64. * scaleX;
   sy64 = 64. * scaleY;
 
-  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)) {
     if (inIsRTL)
       glTranslatef(-advance[0], advance[1], 0.f);
 
@@ -257,6 +343,10 @@ static void* __glcRenderChar(const GLint inCode, const GLint inPrevCode,
     __glcRenderCharBitmap(inFont, inContext, scaleX, scaleY, advance,
 			  inIsRTL);
     break;
+  case GLC_PIXMAP_QSO:
+    __glcRenderCharPixmap(inFont, inContext, scaleX, scaleY, advance,
+			  inIsRTL);
+    break;
   case GLC_TEXTURE:
     __glcRenderCharTexture(inFont, inContext, scaleX, scaleY, glyph);
     break;
@@ -272,7 +362,8 @@ static void* __glcRenderChar(const GLint inCode, const GLint inPrevCode,
     __glcRaiseError(GLC_PARAMETER_ERROR);
   }
 
-  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)) {
     if (!inContext->enableState.glObjects)
       glScalef(sx64, sy64, 1.);
     if (!inIsRTL)
@@ -318,7 +409,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
    * rendered.
    */
   if (inContext->enableState.glObjects
-      && inContext->renderState.renderStyle != GLC_BITMAP) {
+      && (inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)) {
     chars = (__GLCcharacter*)__glcMalloc(inCount * sizeof(__GLCcharacter));
     if (!chars) {
       __glcRaiseError(GLC_RESOURCE_ERROR);
@@ -380,7 +472,8 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
   }
 
   if (inContext->enableState.glObjects
-      && inContext->renderState.renderStyle != GLC_BITMAP) {
+      && (inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)) {
     __GLCfont* font = NULL;
     __GLCglyph* glyph = NULL;
     int length = 0;
@@ -573,6 +666,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
   __glcRestoreGLState(&GLState, inContext, GL_FALSE);
 
   if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)
       && inContext->enableState.glObjects)
       __glcFree(chars);
 
@@ -728,6 +822,9 @@ void APIENTRY glcRenderString(const GLCchar *inString)
  *    <tr>
  *      <td><b>GLC_TRIANGLE</b></td> <td>0x0103</td>
  *    </tr>
+ *    <tr>
+ *      <td><b>GLC_PIXMAP_QSO</b></td> <td>0x8011</td>
+ *    </tr>
  *  </table>
  *  </center>
  *  \param inStyle The value to assign to the variable \b GLC_RENDER_STYLE.
@@ -745,6 +842,7 @@ void APIENTRY glcRenderStyle(GLCenum inStyle)
   case GLC_LINE:
   case GLC_TEXTURE:
   case GLC_TRIANGLE:
+  case GLC_PIXMAP_QSO:
     break;
   default:
     __glcRaiseError(GLC_PARAMETER_ERROR);
