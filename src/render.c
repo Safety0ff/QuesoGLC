@@ -123,13 +123,6 @@ static void __glcRenderCharBitmap(const __GLCfont* inFont,
   }
 
   /* Do the actual GL rendering */
-  glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
-  glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
   if (inIsRTL) {
     glBitmap(0, 0, 0, 0,
 	     inAdvance[1] * transform[2] - inAdvance[0] * transform[0],
@@ -144,8 +137,6 @@ static void __glcRenderCharBitmap(const __GLCfont* inFont,
 	     inAdvance[0] * transform[0] + inAdvance[1] * transform[2],
 	     inAdvance[0] * transform[1] + inAdvance[1] * transform[3],
 	     pixBuffer);
-
-  glPopClientAttrib();
 
   __glcFree(pixBuffer);
 }
@@ -163,7 +154,6 @@ static void __glcRenderCharPixmap(const __GLCfont* inFont,
   GLint pixWidth = 0, pixHeight = 0;
   GLubyte* pixBuffer = NULL;
   GLint pixBoundingBox[4] = {0, 0, 0, 0};
-  GLfloat pixColor[4];
 
   __glcFontGetBitmapSize(inFont, &pixWidth, &pixHeight, scaleX, scaleY, 0,
 			 pixBoundingBox, inContext);
@@ -181,22 +171,6 @@ static void __glcRenderCharPixmap(const __GLCfont* inFont,
   }
 
   /* Do the actual GL rendering */
-  glPushClientAttrib(GL_CLIENT_PIXEL_STORE_BIT);
-  glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-  glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
-
-  glPushAttrib(GL_COLOR_BUFFER_BIT|GL_ENABLE_BIT|GL_PIXEL_MODE_BIT);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glGetFloatv(GL_CURRENT_RASTER_COLOR, pixColor);
-  glPixelTransferf(GL_RED_BIAS, pixColor[0]);
-  glPixelTransferf(GL_GREEN_BIAS, pixColor[1]);
-  glPixelTransferf(GL_BLUE_BIAS, pixColor[2]);
-  glPixelTransferf(GL_ALPHA_SCALE, pixColor[3]);
-
   if (inIsRTL) {
     glBitmap(0, 0, 0.f, 0.f,
 	     advance[1] * transform[2] - advance[0] * transform[0] +
@@ -227,9 +201,6 @@ static void __glcRenderCharPixmap(const __GLCfont* inFont,
 	     (pixBoundingBox[1] >> 6),
 	     NULL);
   }
-
-  glPopAttrib();
-  glPopClientAttrib();
 
   __glcFree(pixBuffer);
 }
@@ -394,6 +365,7 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
   GLboolean saveGLObjects = GL_FALSE;
   GLint shift = 1;
   __GLCcharacter* chars = NULL;
+  GLfloat pixmapColor[4];
 
   /* Disable the internal management of GL objects when the user is currently
    * building a display list.
@@ -461,6 +433,29 @@ static void __glcRenderCountedString(__GLCcontext* inContext,
       if (GLEW_ARB_pixel_buffer_object && inContext->texture.bufferObjectID)
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER,
 			inContext->texture.bufferObjectID);
+    }
+  }
+
+  if ((inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
+    glPixelStorei(GL_UNPACK_LSB_FIRST, GL_FALSE);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    if (inContext->renderState.renderStyle == GLC_PIXMAP_QSO) {
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glGetFloatv(GL_CURRENT_RASTER_COLOR, pixmapColor);
+      glPixelTransferf(GL_RED_BIAS, pixmapColor[0]);
+      glPixelTransferf(GL_GREEN_BIAS, pixmapColor[1]);
+      glPixelTransferf(GL_BLUE_BIAS, pixmapColor[2]);
+      glPixelTransferf(GL_ALPHA_BIAS, 0.f);
+      glPixelTransferf(GL_RED_SCALE, 1.f);
+      glPixelTransferf(GL_GREEN_SCALE, 1.f);
+      glPixelTransferf(GL_BLUE_SCALE, 1.f);
+      glPixelTransferf(GL_ALPHA_SCALE, pixmapColor[3]);
     }
   }
 
