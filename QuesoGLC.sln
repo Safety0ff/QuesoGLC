@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual C++ Express 2008
+# Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glc32", "build\QuesoGLC.vcproj", "{067D0D15-F943-4049-B629-DC4E26ADB5EC}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test1", "tests\test1.vcproj", "{A1A2C05B-B7C8-4BC4-A7A5-CBC6012E459F}"
@@ -128,6 +128,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test16", "tests\test16.vcproj", "{8F69627B-D309-471E-8887-982200431998}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test17", "tests\test17.vcproj", "{16A205FE-525A-4A41-8C90-FC17BCC101C0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test11.8", "tests\test11.8.vcproj", "{2887913E-1A05-4734-BC15-17C318DA7FDE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -294,6 +296,10 @@ Global
 		{16A205FE-525A-4A41-8C90-FC17BCC101C0}.Debug|Win32.Build.0 = Debug|Win32
 		{16A205FE-525A-4A41-8C90-FC17BCC101C0}.Release|Win32.ActiveCfg = Release|Win32
 		{16A205FE-525A-4A41-8C90-FC17BCC101C0}.Release|Win32.Build.0 = Release|Win32
+		{2887913E-1A05-4734-BC15-17C318DA7FDE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2887913E-1A05-4734-BC15-17C318DA7FDE}.Debug|Win32.Build.0 = Debug|Win32
+		{2887913E-1A05-4734-BC15-17C318DA7FDE}.Release|Win32.ActiveCfg = Release|Win32
+		{2887913E-1A05-4734-BC15-17C318DA7FDE}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

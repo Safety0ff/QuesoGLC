@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="glc32"
 	ProjectGUID="{067D0D15-F943-4049-B629-DC4E26ADB5EC}"
 	RootNamespace="QuesoGLC"
@@ -110,8 +110,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;..\src&quot;;&quot;..\include&quot;"
-				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.7.9\&quot;;GLEW_MX;GLEW_BUILD;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="&quot;..\src&quot;;&quot;..\include&quot;;&quot;../src/sqlite3&quot;"
+				PreprocessorDefinitions="QUESOGLC_VERSION=\&quot;0.7.9\&quot;;DATAPATH=&quot;\&quot;.\&quot;&quot;;GLEW_MX;GLEW_BUILD;_CRT_SECURE_NO_DEPRECATE"
 				ExceptionHandling="0"
 				CompileAs="1"
 			/>
