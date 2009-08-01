@@ -109,6 +109,13 @@ struct __GLCglStateRec {
   GLint texCoordArrayType;
   GLint texCoordArrayStride;
   GLvoid* texCoordArrayPointer;
+  GLint unpackLsbFirst;
+  GLint unpackRowLength;
+  GLint unpackSkipPixels;
+  GLint unpackSkipRows;
+  GLint unpackAlignment;
+  GLfloat colorBias[4];
+  GLfloat colorScale[4];
 };
 
 struct __GLCattribStackLevelRec {

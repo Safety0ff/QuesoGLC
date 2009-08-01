@@ -367,7 +367,8 @@ void __glcGetScale(const __GLCcontext* inContext, GLfloat* outTransformMatrix,
 {
   int i = 0;
 
-  if (inContext->renderState.renderStyle != GLC_BITMAP) {
+  if ((inContext->renderState.renderStyle != GLC_BITMAP)
+      && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)) {
     /* Compute the matrix that transforms object space coordinates to viewport
      * coordinates. If we plan to use object space coordinates, this matrix is
      * set to identity.
@@ -471,8 +472,34 @@ void __glcSaveGLState(__GLCglState* inGLState, const __GLCcontext* inContext,
 		    &inGLState->pixelBufferObjectID);
   }
 
+  if (inAll || (inContext->renderState.renderStyle == GLC_BITMAP)
+      || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
+    glGetIntegerv(GL_UNPACK_LSB_FIRST, &inGLState->unpackLsbFirst);
+    glGetIntegerv(GL_UNPACK_ROW_LENGTH, &inGLState->unpackRowLength);
+    glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &inGLState->unpackSkipPixels);
+    glGetIntegerv(GL_UNPACK_SKIP_ROWS, &inGLState->unpackSkipRows);
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &inGLState->unpackAlignment);
+
+    if (inAll || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
+      if (!inAll) { /* if inAll, already saved in GLC_TEXTURE's block */
+        inGLState->blend = glIsEnabled(GL_BLEND);
+        glGetIntegerv(GL_BLEND_SRC, &inGLState->blendSrc);
+        glGetIntegerv(GL_BLEND_DST, &inGLState->blendDst);
+      }
+      glGetFloatv(GL_RED_BIAS, &inGLState->colorBias[0]);
+      glGetFloatv(GL_GREEN_BIAS, &inGLState->colorBias[1]);
+      glGetFloatv(GL_BLUE_BIAS, &inGLState->colorBias[2]);
+      glGetFloatv(GL_ALPHA_BIAS, &inGLState->colorBias[3]);
+      glGetFloatv(GL_RED_SCALE, &inGLState->colorScale[0]);
+      glGetFloatv(GL_GREEN_SCALE, &inGLState->colorScale[1]);
+      glGetFloatv(GL_BLUE_SCALE, &inGLState->colorScale[2]);
+      glGetFloatv(GL_ALPHA_SCALE, &inGLState->colorScale[3]);
+    }
+  }
+
   if ((inAll || (inContext->enableState.glObjects
-		 && inContext->renderState.renderStyle != GLC_BITMAP))
+		 && (inContext->renderState.renderStyle != GLC_BITMAP)
+		 && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)))
       && GLEW_ARB_vertex_buffer_object) {
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB,
 		  &inGLState->vertexBufferObjectID);
@@ -530,8 +557,34 @@ void __glcRestoreGLState(const __GLCglState* inGLState,
 		      inGLState->pixelBufferObjectID);
   }
 
+  if ((inAll || (inContext->renderState.renderStyle == GLC_BITMAP)
+       || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO))) {
+    glPixelStorei(GL_UNPACK_LSB_FIRST, inGLState->unpackLsbFirst);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, inGLState->unpackRowLength);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, inGLState->unpackSkipPixels);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, inGLState->unpackSkipRows);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, inGLState->unpackAlignment);
+
+    if (inAll || (inContext->renderState.renderStyle == GLC_PIXMAP_QSO)) {
+      if (!inAll) { /* if inAll, already restored in GLC_TEXTURE's block */
+        if (!inGLState->blend)
+          glDisable(GL_BLEND);
+        glBlendFunc(inGLState->blendSrc, inGLState->blendDst);
+      }
+      glPixelTransferf(GL_RED_BIAS, inGLState->colorBias[0]);
+      glPixelTransferf(GL_GREEN_BIAS, inGLState->colorBias[1]);
+      glPixelTransferf(GL_BLUE_BIAS, inGLState->colorBias[2]);
+      glPixelTransferf(GL_ALPHA_BIAS, inGLState->colorBias[3]);
+      glPixelTransferf(GL_RED_SCALE, inGLState->colorScale[0]);
+      glPixelTransferf(GL_GREEN_SCALE, inGLState->colorScale[1]);
+      glPixelTransferf(GL_BLUE_SCALE, inGLState->colorScale[2]);
+      glPixelTransferf(GL_ALPHA_SCALE, inGLState->colorScale[3]);
+    }
+  }
+
   if ((inAll || (inContext->enableState.glObjects
-		 && inContext->renderState.renderStyle != GLC_BITMAP))
+		 && (inContext->renderState.renderStyle != GLC_BITMAP)
+		 && (inContext->renderState.renderStyle != GLC_PIXMAP_QSO)))
       && GLEW_ARB_vertex_buffer_object) {
     glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGLState->vertexBufferObjectID);
     if (inAll || (inContext->renderState.renderStyle == GLC_TRIANGLE))
