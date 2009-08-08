@@ -77,6 +77,8 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
   GLC_BITMAP but uses glDrawPixels() instead of glBitmap())
 - Modified the GL state management for GLC_BITMAP and GLC_PIXMAP_QSO so that it
   is only modified once per string rather than once per character
+- Fixed a bug which caused a memory access error in the VBO management for
+  extruded rendering mode.
 	
 Changes made from the "0.6.5" release to the "0.7.0" release:
 -------------------------------------------------------------

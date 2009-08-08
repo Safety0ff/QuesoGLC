@@ -871,7 +871,7 @@ void __glcRenderCharScalable(const __GLCfont* inFont,
     if (inContext->enableState.glObjects && GLEW_ARB_vertex_buffer_object) {
       glBindBufferARB(GL_ARRAY_BUFFER_ARB, inGlyph->glObject[3]);
       glBufferDataARB(GL_ARRAY_BUFFER_ARB, (interleavedArray - extrudeArray)
-		      * 12 * sizeof(GLfloat), extrudeArray,
+		      * sizeof(GLfloat), extrudeArray,
 		      GL_STATIC_DRAW_ARB);
 
       __glcFree(extrudeArray);
