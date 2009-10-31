@@ -46,6 +46,7 @@ libGLC_la_CFLAGS = -I$(top_builddir)/src \
                    -D_REENTRANT \
                    -DDATAPATH=\"$(datadir)\" \
                    @GLEW_CFLAGS@ \
+                   @SQLITE3_CFLAGS@ \
                    @PTHREAD_CFLAGS@ \
                    @FONTCONFIG_CFLAGS@ \
                    @FREETYPE2_CFLAGS@ \
