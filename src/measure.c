@@ -627,17 +627,20 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 	  metrics[0] = 0.;
 	  metrics[1] = 0.;
 
-	  if (!glyph || !glyph->advanceCached)
-	    __glcFontGetAdvance(font, *ptr, &metrics[2], inContext,
-				GLC_POINT_SIZE, GLC_POINT_SIZE);
+	  if (!glyph || !glyph->advanceCached) {
+	    if (!__glcFontGetAdvance(font, *ptr, &metrics[2], inContext,
+				     GLC_POINT_SIZE, GLC_POINT_SIZE))
+	      continue;
+          }
 	  else {
 	    metrics[2] = glyph->advance[0];
 	    metrics[3] = glyph->advance[1];
 	  }
 
 	  if (!glyph || !glyph->boundingBoxCached) {
-	    __glcFontGetBoundingBox(font, *ptr, &metrics[4], inContext,
-				    GLC_POINT_SIZE, GLC_POINT_SIZE);
+	    if (!__glcFontGetBoundingBox(font, *ptr, &metrics[4], inContext,
+					 GLC_POINT_SIZE, GLC_POINT_SIZE))
+	      continue;
 	    metrics[9] = metrics[7];
 	  }
 	  else {
@@ -657,8 +660,10 @@ static GLint __glcMeasureCountedString(__GLCcontext *inContext,
 	      const GLint leftCode = inIsRTL ? *ptr : prevCode.code;
 	      const GLint rightCode = inIsRTL ? prevCode.code : *ptr;
 
-	      __glcFontGetKerning(font, leftCode, rightCode, &metrics[12],
-				  inContext, GLC_POINT_SIZE, GLC_POINT_SIZE);
+	      if (!__glcFontGetKerning(font, leftCode, rightCode, &metrics[12],
+				       inContext, GLC_POINT_SIZE,
+				       GLC_POINT_SIZE))
+		memset(&metrics[12], 0, 2*sizeof(GLfloat));
 	    }
 	  }
 

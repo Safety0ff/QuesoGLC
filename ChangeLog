@@ -3,6 +3,10 @@ Changes made from the "0.7.0" release to the "0.8.0" release:
 
 * Bertrand Coconnier:
 
+- Fixed bug #2890444 (Square boxes instead of Chinese characters) The return
+  of a FreeType function was not properly tested.
+- Fixed a bug in the measurement commands where the functions would return
+  an undefined result if they failed to find a glyph.
 - Feature request #2725659 - Added extension GLC_QSO_render_parameter to tweak
   the curve tesselation tolerance.
 - Fixed bug #2019450 (added a workaround for open source drivers of the Intel

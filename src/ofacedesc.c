@@ -336,6 +336,7 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This,
   FT_Face face = NULL;
   __GLCglyph* glyph = NULL;
   FT_ListNode node = NULL;
+  FT_UInt index = 0;
 
   /* Check if the glyph has already been added to the glyph list */
   for (node = This->glyphList.head; node; node = node->next) {
@@ -357,16 +358,19 @@ __GLCglyph* __glcFaceDescGetGlyph(__GLCfaceDescriptor* This,
 
   /* Create a new glyph */
 #ifdef GLC_FT_CACHE
-  glyph = __glcGlyphCreate(FT_Get_Char_Index(face, inCode), inCode);
-  if (!glyph)
-    return NULL;
+  index = FT_Get_Char_Index(face, inCode);
 #else
-  glyph = __glcGlyphCreate(FcFreeTypeCharIndex(face, inCode), inCode);
+  index = FcFreeTypeCharIndex(face, inCode);
+#endif
+  if (!index)
+    return NULL;
+  glyph = __glcGlyphCreate(index, inCode);
   if (!glyph) {
+#ifndef GLC_FT_CACHE
     __glcFaceDescClose(This);
+#endif
     return NULL;
   }
-#endif
   /* Append the new glyph to the list of the glyphes of the face and close the
    * face.
    */

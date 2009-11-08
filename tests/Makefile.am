@@ -34,6 +34,7 @@ EXTRA_PROGRAMS = test1 \
                  test15 \
                  test16 \
                  test17 \
+                 test18 \
                  testcontex \
                  testfont \
                  testmaster \
