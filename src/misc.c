@@ -630,7 +630,7 @@ void __glcRestoreGLState(const __GLCglState* inGLState,
 
 #ifdef GLEW_MX
 /* Function for GLEW so that it can get a context */
-GLEWAPI GLEWContext* glewGetContext(void)
+GLEWContext* __glcGetGlewContext(void)
 {
   __GLCcontext* ctx = GLC_GET_CURRENT_CONTEXT();
 
