@@ -1,0 +1,1 @@
+# TODO: support building fribidi and glew and linking internally

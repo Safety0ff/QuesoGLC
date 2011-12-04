@@ -1,0 +1,13 @@
+add_executable (glclogo glclogo.c)
+add_executable (tutorial tutorial.c)
+add_executable (tutorial2 tutorial2.c)
+add_executable (unicode unicode.c)
+add_executable (glcdemo glcdemo.c)
+add_executable (demo demo.c trackball.c)
+
+target_link_libraries (glclogo quesoglc ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_link_libraries (tutorial quesoglc ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_link_libraries (tutorial2 quesoglc ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_link_libraries (unicode quesoglc ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_link_libraries (glcdemo quesoglc ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_link_libraries (demo quesoglc ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
