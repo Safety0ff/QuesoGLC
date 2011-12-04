@@ -201,6 +201,10 @@ if (ENABLE_MULTICONTEXT)
   add_definitions (-DGLEW_MX)
 endif ()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions (-DDEBUGMODE)
+endif ()
+
 ##################################################################
 # Now setup targets
 ##################################################################
