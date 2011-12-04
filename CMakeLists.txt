@@ -109,6 +109,7 @@ endif ()
 
 find_package (OpenGL REQUIRED)
 find_package (Freetype REQUIRED)
+find_package (PythonInterp REQUIRED)
 
 set (CMAKE_THREAD_PREFER_PTHREAD TRUE)
 find_package (Threads REQUIRED)
@@ -216,6 +217,7 @@ if (NOT USE_SYSTEM_GLEW OR NOT USE_SYSTEM_FRIBIDI)
   add_subdirectory (3rdparty)
 endif ()
 
+include_directories (include)
 add_subdirectory (src)
 
 if (BUILD_EXAMPLES AND NOT GLUT_FOUND)
