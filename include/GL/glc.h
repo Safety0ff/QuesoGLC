@@ -62,6 +62,8 @@
 #    define GLCAPI __declspec(dllimport)
 #  elif defined(__LCC__) && defined(__WIN32__) /* LCC-Win32 */
 #    define GLCAPI __stdcall
+#  elif defined(__GNUC__) && __GNUC__ >= 4
+#    define GLCAPI extern __attribute__ ((visibility("default")))
 #  else                                        /* Others (e.g. MinGW, Cygwin, non-win32) */
 #    define GLCAPI extern
 #  endif
