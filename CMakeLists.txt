@@ -64,14 +64,14 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 
     # GCC >= 4.0
     exec_program (
-      ${CMAKE_CXX_COMPILER}
-      ARGS ${CMAKE_CXX_COMPILER_ARG1} -dumpversion
+      ${CMAKE_C_COMPILER}
+      ARGS ${CMAKE_C_COMPILER_ARG1} -dumpversion
       OUTPUT_VARIABLE GCC_VERSION
     )
     if (GCC_VERSION MATCHES "4\\.[0-9]\\.[0-9]")
-      set (HIDE_SYMBOLS_FLAGS "-fvisibility=hidden")
+      set (HIDE_SYMBOLS_FLAGS "-fvisibility=hidden" CACHE INTERNAL "")
     else ()
-      set (HIDE_SYMBOLS_FLAGS "")
+      set (HIDE_SYMBOLS_FLAGS "" CACHE INTERNAL "")
     endif ()
 
     # CMAKE_C_FLAGS gets appended to the other C flags
