@@ -69,7 +69,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
       OUTPUT_VARIABLE GCC_VERSION
     )
     if (GCC_VERSION MATCHES "4\\.[0-9]\\.[0-9]")
-      set (HIDE_SYMBOLS_FLAGS "-fvisibility=hidden -fvisibility-inlines-hidden")
+      set (HIDE_SYMBOLS_FLAGS "-fvisibility=hidden")
     else ()
       set (HIDE_SYMBOLS_FLAGS "")
     endif ()

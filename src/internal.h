@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 
-#ifndef DEBUGMODE
+#if !defined(DEBUGMODE) && !defined(NDEBUG)
 #define NDEBUG
 #endif
 #include <assert.h>
@@ -384,4 +384,5 @@ extern void __glcInitThread(void);
 
 extern int __glcdeCasteljauConic(void *inUserData);
 extern int __glcdeCasteljauCubic(void *inUserData);
+
 #endif /* __glc_internal_h */
