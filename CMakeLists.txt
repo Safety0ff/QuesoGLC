@@ -126,8 +126,11 @@ include_directories (
   ${GLEW_INCLUDE_DIRS}
   ${FRIBIDI_INCLUDE_DIRS}
   ${FONTCONFIG_INCLUDE_DIRS}
-  ${GLUT_INCLUDE_DIR}
 )
+
+if (GLUT_FOUND)
+  include_directories (${GLUT_INCLUDE_DIRS})
+endif ()
 
 # TLS check TODO: put it in its own module
 
@@ -215,7 +218,9 @@ endif ()
 
 add_subdirectory (src)
 
-if (BUILD_EXAMPLES)
+if (BUILD_EXAMPLES AND NOT GLUT_FOUND)
+  message ("Cannot build examples without GLUT")
+elseif (BUILD_EXAMPLES)
   add_subdirectory (examples)
 endif ()
 
