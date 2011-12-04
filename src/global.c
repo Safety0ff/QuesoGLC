@@ -167,7 +167,7 @@ void _fini(void)
     node = next;
   }
 
-#if FC_MINOR > 2
+#if FC_MINOR > 2 && defined(DEBUGMODE)
   FcFini();
 #endif
 
