@@ -209,6 +209,25 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_definitions (-DDEBUGMODE)
 endif ()
 
+# Pkgconfig file
+set (configure_input "quesoglc.pc.  Generated from quesoglc.pc.in by cmake.")
+set (prefix ${CMAKE_INSTALL_PREFIX})
+set (exec_prefix "\${prefix}")
+set (libdir "\${exec_prefix}/lib")
+set (includedir "\${prefix}/include")
+
+# FIXME: hardcoded stuff below
+if (THREADS_HAVE_PTHREAD_ARG)
+  set (PKGCONFIG_INCLUDE ${CMAKE_THREAD_LIBS_INIT})
+else ()
+  set (PKGCONFIG_LIBS_PRIVATE "-lGL ${CMAKE_THREAD_LIBS_INIT}")
+endif ()
+
+set (PKGCONFIG_REQUIREMENTS ", glew")
+
+configure_file (quesoglc.pc.in ${CMAKE_BINARY_DIR}/quesoglc.pc @ONLY)
+install (FILES ${CMAKE_BINARY_DIR}/quesoglc.pc DESTINATION lib/pkgconfig)
+
 ##################################################################
 # Now setup targets
 ##################################################################
