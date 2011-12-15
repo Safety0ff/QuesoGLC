@@ -11,8 +11,8 @@ cmake_policy (SET CMP0005 NEW)
 # This is mostly to reduce path size for command-line limits on windows
 if (WIN32)
   # This supposedly breaks Xcode projects so don't enable on Apple builds
-  set (CMAKE_USE_RELATIVE_PATHS true)
-  set (CMAKE_SUPPRESS_REGENERATION true)
+  set (CMAKE_USE_RELATIVE_PATHS TRUE)
+  set (CMAKE_SUPPRESS_REGENERATION TRUE)
 endif ()
 
 if (${CMAKE_PATCH_VERSION} LESS 5)
