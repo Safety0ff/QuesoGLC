@@ -15,6 +15,11 @@ if (WIN32)
   set (CMAKE_SUPPRESS_REGENERATION true)
 endif ()
 
+if (${CMAKE_PATCH_VERSION} LESS 5)
+  # relative paths break custom command on <2.8.5
+  set (CMAKE_USE_RELATIVE_PATHS FALSE)
+endif ()
+
 project (QuesoGLC) # CXX and C are default languages.
 set (QUESOGLC_VERSION 0.7.9)
 add_definitions ("-DQUESOGLC_VERSION=\"${QUESOGLC_VERSION}\"")
