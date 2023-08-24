@@ -24,6 +24,9 @@ project (QuesoGLC) # CXX and C are default languages.
 set (QUESOGLC_VERSION 0.7.9)
 add_definitions ("-DQUESOGLC_VERSION=\"${QUESOGLC_VERSION}\"")
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+include (GNUInstallDirs)
 include (FindPkgConfig)
 include (CheckCSourceRuns)
 include (CheckFunctionExists)
@@ -111,10 +114,11 @@ endif ()
 #######################################################################
 # Dependencies
 #######################################################################
-
+find_package (Math REQUIRED)
 find_package (OpenGL REQUIRED)
 find_package (Freetype REQUIRED)
 find_package (PythonInterp REQUIRED)
+
 
 set (CMAKE_THREAD_PREFER_PTHREAD TRUE)
 find_package (Threads REQUIRED)
@@ -193,10 +197,11 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ######################################################################
 
 option (BUILD_SHARED_LIBS "Build shared libraries if true, otherwise build static libraries." TRUE)
-option (BUILD_EXAMPLES "Build the demo executables." FALSE)
+option (BUILD_EXAMPLES "Build the demo executables." TRUE)
+option (BUILD_TESTS "Build the test executables." TRUE)
 option (USE_SYSTEM_GLEW "Use system glew library." TRUE)
 option (USE_SYSTEM_FRIBIDI "Use system freebidi library." TRUE)
-option (ENABLE_MULTICONTEXT "Enable multiple opengl context support." FALSE)
+option (ENABLE_MULTICONTEXT "Enable multiple opengl context support." TRUE)
 option (ENABLE_STRICT_COMPILATION "Compile using strict warning flags." FALSE)
 
 # hide advanced options
@@ -218,8 +223,8 @@ endif ()
 set (configure_input "quesoglc.pc.  Generated from quesoglc.pc.in by cmake.")
 set (prefix ${CMAKE_INSTALL_PREFIX})
 set (exec_prefix "\${prefix}")
-set (libdir "\${exec_prefix}/lib")
-set (includedir "\${prefix}/include")
+set (libdir "\${exec_prefix}/${CMAKE_INSTALL_LIBDIR}")
+set (includedir "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
 
 # FIXME: hardcoded stuff below
 if (THREADS_HAVE_PTHREAD_ARG)
@@ -231,7 +236,8 @@ endif ()
 set (PKGCONFIG_REQUIREMENTS ", glew")
 
 configure_file (quesoglc.pc.in ${CMAKE_BINARY_DIR}/quesoglc.pc @ONLY)
-install (FILES ${CMAKE_BINARY_DIR}/quesoglc.pc DESTINATION lib/pkgconfig)
+install (FILES ${CMAKE_BINARY_DIR}/quesoglc.pc DESTINATION
+	${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 ##################################################################
 # Now setup targets
@@ -251,6 +257,11 @@ elseif (BUILD_EXAMPLES)
 endif ()
 
 # TODO : Tests
+if ( BUILD_TESTS AND NOT GLUT_FOUND)
+  message ("Cannot build examples without GLUT")
+elseif (BUILD_TESTS)
+  add_subdirectory (tests)
+endif ()
 
 message (STATUS "Configuration Summary")
 message (STATUS "=================")

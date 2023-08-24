@@ -45,7 +45,7 @@
 #define QUESOGLC_MINOR 2
 
 #ifdef GLEW_MX
-GLEWAPI GLEWContext* glewGetContext(void);
+GLEWAPI void* glewGetContext(void);
 #endif
 
 static GLCchar* __glcExtensions1 = (GLCchar*) "GLC_QSO_attrib_stack"

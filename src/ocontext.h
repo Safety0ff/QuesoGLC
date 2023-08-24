@@ -157,7 +157,7 @@ struct __GLCcontextRec {
   __GLCarray* geomBatches;	/* Array of geometric batches */
 
 #ifdef GLEW_MX
-  GLEWContext glewContext;	/* GLEW context for OpenGL extensions */
+  void* glewContext;	/* GLEW context for OpenGL extensions */
 #endif
   __GLCtexture texture;		/* Texture for immediate mode rendering */
 
