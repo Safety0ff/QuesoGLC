@@ -371,7 +371,7 @@ extern void __glcRestoreGLState(const __GLCglState* inGLState,
 
 #ifdef GLEW_MX
 /* Macro/function for GLEW so that it can get a context */
-GLEWAPI GLEWContext* __glcGetGlewContext(void);
+GLEWAPI void* __glcGetGlewContext(void);
 #define glewGetContext() __glcGetGlewContext()
 #endif
 

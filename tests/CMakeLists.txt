@@ -1,0 +1,120 @@
+add_executable(test1 test1.c)
+target_link_libraries (test1 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test2 test2.c)
+target_link_libraries (test2 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test3 test3.c)
+target_link_libraries (test3 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test4 test4.c)
+target_link_libraries (test4 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test5 test5.c)
+target_link_libraries (test5 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test6 test6.c)
+target_link_libraries (test6 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test7 test7.c)
+target_link_libraries (test7 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+add_executable(test8 test8.c)
+target_link_libraries (test8 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+add_executable(test9.1 test9.c)
+target_link_libraries (test9.1 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.1 PUBLIC -DRENDER_STYLE=GLC_TEXTURE -DWITH_GL_OBJECTS )
+
+add_executable(test9.2 test9.c) 
+target_link_libraries (test9.2 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.2 PUBLIC -DRENDER_STYLE=GLC_TEXTURE )
+
+add_executable(test9.3 test9.c) 
+target_link_libraries (test9.3 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.3 PUBLIC -DRENDER_STYLE=GLC_TEXTURE -DWITH_USER_LIST -DWITH_GL_OBJECTS )
+
+add_executable(test9.4 test9.c) 
+target_link_libraries (test9.4 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.4 PUBLIC -DRENDER_STYLE=GLC_TEXTURE -DWITH_USER_LIST )
+
+add_executable(test9.5 test9.c) 
+target_link_libraries (test9.5 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.5 PUBLIC -DRENDER_STYLE=GLC_TRIANGLE -DWITH_USER_LIST )
+
+add_executable(test9.6 test9.c) 
+target_link_libraries (test9.6 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.6 PUBLIC -DRENDER_STYLE=GLC_TRIANGLE -DWITH_USER_LIST -DWITH_GL_OBJECTS)
+
+add_executable(test9.7 test9.c) 
+target_link_libraries (test9.7 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.7 PUBLIC -DRENDER_STYLE=GLC_TRIANGLE -DWITH_USER_LIST -DWITH_GL_OBJECTS )
+
+add_executable(test9.8 test9.c) 
+target_link_libraries (test9.8 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options ( test9.8 PUBLIC -DRENDER_STYLE=GLC_TRIANGLE -DWITH_USER_LIST )
+
+add_executable(test10 test10.c)
+target_link_libraries (test10 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+add_executable(test11.1 test11.c)
+target_link_libraries (test11.1 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options (test11.1 PUBLIC -DRENDER_STYLE=GLC_TEXTURE)
+
+add_executable(test11.2 test11.c)
+target_link_libraries (test11.2 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options (test11.2 PUBLIC -DRENDER_STYLE=GLC_TEXTURE -DWITH_GL_OBJECTS)
+
+add_executable(test11.3 test11.c)
+target_link_libraries (test11.3 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options (test11.3 PUBLIC -DRENDER_STYLE=GLC_TRIANGLE)
+
+add_executable(test11.4 test11.c)
+target_link_libraries (test11.4 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options(test11.4 PUBLIC -DRENDER_STYLE=GLC_TRIANGLE -DWITH_GL_OBJECTS)
+
+add_executable(test11.5 test11.c)
+target_link_libraries (test11.5 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options (test11.5 PUBLIC -DRENDER_STYLE=GLC_LINE)
+
+add_executable(test11.6 test11.c)
+target_link_libraries (test11.6 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options(test11.6 PUBLIC -DRENDER_STYLE=GLC_LINE -DWITH_GL_OBJECTS)
+
+add_executable(test11.7 test11.c)
+target_link_libraries (test11.7 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options(test11.7 PUBLIC -DRENDER_STYLE=GLC_BITMAP)
+
+add_executable(test11.8 test11.c)
+target_link_libraries (test11.8 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_compile_options(test11.8 PUBLIC -DRENDER_STYLE=GLC_PIXMAP_QSO)
+
+add_executable(test12 test12.c)
+target_link_libraries (test12 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+add_executable(test13 test13.c)
+target_link_libraries (test13 GLC ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+add_test (NAME test1 COMMAND test1)
+add_test (NAME test2 COMMAND test2)
+add_test (NAME test3 COMMAND test3)
+add_test (NAME test4 COMMAND test4)
+add_test (NAME test5 COMMAND test5)
+add_test (NAME test6 COMMAND test6)
+add_test (NAME test7 COMMAND test7)
+add_test (NAME test8 COMMAND test8)
+add_test (NAME test9.1 COMMAND test9.1)
+add_test (NAME test9.2 COMMAND test9.2)
+add_test (NAME test9.3 COMMAND test9.3)
+add_test (NAME test9.4 COMMAND test9.4)
+add_test (NAME test9.5 COMMAND test9.5)
+add_test (NAME test9.6 COMMAND test9.6)
+add_test (NAME test9.7 COMMAND test9.7)
+add_test (NAME test9.8 COMMAND test9.8)
+
+add_test (NAME test10 COMMAND test10)
+
+add_test (NAME test11.1 COMMAND test11.1)
+add_test (NAME test11.2 COMMAND test11.2)
+add_test (NAME test11.3 COMMAND test11.3)
+add_test (NAME test11.4 COMMAND test11.4)
+add_test (NAME test11.5 COMMAND test11.5)
+add_test (NAME test11.6 COMMAND test11.6)
+add_test (NAME test11.7 COMMAND test11.7)
+add_test (NAME test11.8 COMMAND test11.8)
+
+add_test (NAME test12 COMMAND test12)
+add_test (NAME test13 COMMAND test13)
